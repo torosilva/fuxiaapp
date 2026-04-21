@@ -1,27 +1,57 @@
-import { StyleSheet, Image, ScrollView, TouchableOpacity, View as RNView, TextInput } from 'react-native';
+import { StyleSheet, Image, ScrollView, TouchableOpacity, View as RNView, TextInput, ActivityIndicator } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { Search, Filter, ShoppingBag, Heart } from 'lucide-react-native';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { MotiView } from 'moti';
 import { router } from 'expo-router';
+import { useState, useEffect } from 'react';
+import { wcService, WCProduct } from '@/services/WooCommerceService';
 
-const HERO_IMAGE = require('../../assets/images/hero.png');
-const SANDALS_IMAGE = require('../../assets/images/sandals.png');
+import { ProductCard } from '@/components/ProductCard';
+
+import { PremiumHeader } from '@/components/PremiumHeader';
 
 export default function ShopScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+  
+  const [products, setProducts] = useState<WCProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      const data = await wcService.getProducts();
+      setProducts(data);
+    } catch (error) {
+      console.error('Error loading products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredProducts = products.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <PremiumHeader transparent={false} />
+      
       <RNView style={styles.header}>
-        <Text style={styles.headerTitle}>Tienda</Text>
         <RNView style={styles.searchBar}>
           <Search size={20} color={theme.muted} />
           <TextInput 
             placeholder="Buscar productos..." 
             placeholderTextColor={theme.muted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
             style={[styles.searchInput, { color: theme.text }]}
           />
           <TouchableOpacity style={styles.filterButton}>
@@ -45,33 +75,23 @@ export default function ShopScreen() {
           ))}
         </RNView>
 
-        <RNView style={styles.grid}>
-          {[1, 2, 3, 4].map((i) => (
-            <TouchableOpacity 
-              key={i}
-              onPress={() => router.push(`/product/${i}`)}
-              style={styles.productCard}
-            >
-              <MotiView 
-                from={{ opacity: 0, translateY: 20 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={{ delay: i * 100 }}
-              >
-              <RNView style={[styles.imageContainer, { backgroundColor: theme.soft }]}>
-                <Image source={i % 2 === 0 ? SANDALS_IMAGE : HERO_IMAGE} style={styles.image} />
-                <TouchableOpacity style={styles.wishlistButton}>
-                  <Heart size={18} color={theme.accent} fill={i === 1 ? theme.accent : 'transparent'} />
-                </TouchableOpacity>
-              </RNView>
-              <RNView style={styles.productInfo}>
-                <Text style={[styles.categoryLabel, { color: theme.muted }]}>Ballerinas</Text>
-                <Text style={styles.productName}>Modelo Clásico Fuxia</Text>
-                <Text style={styles.productPrice}>$3,200 MXN</Text>
-              </RNView>
-              </MotiView>
-            </TouchableOpacity>
-          ))}
-        </RNView>
+        {loading ? (
+          <RNView style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color={theme.accent} />
+            <Text style={{ marginTop: 10, color: theme.muted }}>Cargando colección...</Text>
+          </RNView>
+        ) : (
+          <RNView style={styles.grid}>
+            {filteredProducts.map((product, i) => (
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                index={i} 
+                fullWidth 
+              />
+            ))}
+          </RNView>
+        )}
       </ScrollView>
     </View>
   );
@@ -162,6 +182,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     marginTop: 4,
+  },
+  loaderContainer: {
+    padding: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  outOfStockBadge: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingVertical: 5,
+    alignItems: 'center',
+  },
+  outOfStockText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   wishlistButton: {
     position: 'absolute',

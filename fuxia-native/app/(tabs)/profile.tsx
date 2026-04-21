@@ -7,6 +7,8 @@ import { MotiView } from 'moti';
 
 const SANDALS_IMAGE = require('../../assets/images/sandals.png');
 
+import { LoyaltyCard } from '@/components/LoyaltyCard';
+
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
@@ -23,29 +25,15 @@ export default function ProfileScreen() {
 
       {/* Loyalty Card */}
       <RNView style={styles.cardContainer}>
-        <MotiView 
-          from={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', damping: 15 }}
-          style={[styles.loyaltyCard, { backgroundColor: '#1A1A1A' }]}
-        >
-          <RNView style={styles.loyaltyHeader}>
-            <RNView>
-              <Text style={styles.loyaltyLabel}>Fuxia Loyalty</Text>
-              <Text style={styles.loyaltyPoints}>1,250 <Text style={styles.pointsUnit}>pts</Text></Text>
-            </RNView>
-            <RNView style={[styles.levelBadge, { backgroundColor: theme.accent }]}>
-              <Text style={styles.levelBadgeText}>Nivel Gold</Text>
-            </RNView>
-          </RNView>
-          
-          <RNView style={styles.progressSection}>
-            <RNView style={[styles.progressBar, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-              <RNView style={[styles.progressFill, { backgroundColor: theme.accent, width: '75%' }]} />
-            </RNView>
-            <Text style={styles.progressText}>Faltan 250 pts para el nivel Platinum</Text>
-          </RNView>
-        </MotiView>
+        <LoyaltyCard
+          customerName="Ana García"
+          qrCode="FX-a3f8b2c1-preview-00"
+          tier="gold"
+          totalPoints={1250}
+          pairsCount={14}
+          pointsToNext={null}
+          pairsToNext={null}
+        />
       </RNView>
 
       {/* Quick Actions Grid */}

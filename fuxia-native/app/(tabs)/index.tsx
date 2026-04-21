@@ -1,19 +1,24 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, StatusBar, ImageBackground, Dimensions } from 'react-native';
-import { Search, ShoppingBag, ArrowRight } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, StatusBar, ImageBackground, Dimensions, ActivityIndicator } from 'react-native';
+import { Search, ShoppingBag, ArrowRight, Sparkles } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MotiView, MotiText } from 'moti';
+import { wcService, WCProduct } from '@/services/WooCommerceService';
+import { ProductCard } from '@/components/ProductCard';
 
-// 1. Sistema de Diseño (Dark Mode / Luxury Theme)
-// Actualizado a un "Richer Bronze Gold" como se solicitó
+const { width } = Dimensions.get('window');
+
+// Sistema de Diseño (Dark Luxury)
 const FuxiaDarkTheme = {
   colors: {
-    background: '#0F0F0F', // Negro puro o casi puro para máximo contraste
+    background: '#0D0D0D', // Deep black
     textPrimary: '#FFFFFF',
-    textSecondary: '#D1D1D1',
-    brandGold: '#B8860B', // Dark Goldenrod - un tono bronce más profundo y rico
-    surface: '#1A1A1A',
-    overlay: 'rgba(0,0,0,0.2)',
+    textSecondary: '#A0A0A0',
+    brandGold: '#B8860B', // Metallic Bronze
+    brandGoldLight: '#DAA520',
+    surface: '#121212',
+    accent: '#B8860B',
   },
   spacing: { s: 8, m: 16, l: 24, xl: 32 }
 };
@@ -25,106 +30,155 @@ const CAT_SANDALS = require('../../assets/images/cat_sandals.png');
 const CAT_BOOTS = require('../../assets/images/cat_boots.png');
 const CAT_SALE = require('../../assets/images/cat_sale.png');
 
+import { PremiumHeader } from '@/components/PremiumHeader';
+
 export default function HomeScreen() {
+  const [newArrivals, setNewArrivals] = useState<WCProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadHomeData();
+  }, []);
+
+  const loadHomeData = async () => {
+    try {
+      setLoading(true);
+      const data = await wcService.getProducts('per_page=6&status=publish&orderby=date');
+      setNewArrivals(data);
+    } catch (error) {
+      console.error('Error loading home data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      
+      <PremiumHeader transparent={true} />
 
-        {/* --- HEADER --- */}
-        <View style={styles.header}>
-          <Image source={LOGO_IMAGE} style={styles.logo} resizeMode="contain" />
-          <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.iconButton}>
-              <Search size={22} color={FuxiaDarkTheme.colors.textPrimary} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
-              <ShoppingBag size={22} color={FuxiaDarkTheme.colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* --- HERO SECTION ASIMÉTRICO --- */}
+      <ScrollView showsVerticalScrollIndicator={false} stickyHeaderIndices={[]} scrollEventThrottle={16}>
+        
+        {/* --- HERO SECTION: EDITORIAL IMPACT --- */}
         <ImageBackground 
           source={HERO_IMAGE} 
           style={styles.heroContainer}
           imageStyle={styles.heroImage}
         >
           <View style={styles.heroOverlay}>
-            <View style={styles.heroTextWrapper}>
-              <Text style={styles.collectionText}>COLECCIÓN 2026</Text>
-              <Text style={styles.heroTitle}>Elegancia en{'\n'}cada paso</Text>
+            <MotiView 
+              from={{ opacity: 0, translateX: 50 }}
+              animate={{ opacity: 1, translateX: 0 }}
+              transition={{ delay: 300, type: 'timing', duration: 1000 }}
+              style={styles.heroTextWrapper}
+            >
+              <Text style={styles.collectionText}>ÉDITION LIMITÉE 2026</Text>
+              <MotiText 
+                from={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 500, type: 'timing', duration: 1200 }}
+                style={styles.heroTitle}
+              >
+                Fuxia{'\n'}Essence
+              </MotiText>
               
               <TouchableOpacity 
                 style={styles.heroLinkButton}
                 onPress={() => router.push('/(tabs)/shop')}
               >
-                <Text style={styles.heroLinkText}>DESCUBRIR LA COLECCIÓN</Text>
-                <ArrowRight size={16} color={FuxiaDarkTheme.colors.brandGold} style={{ marginLeft: 6 }} />
+                <Text style={styles.heroLinkText}>VER COLECCIÓN</Text>
+                <ArrowRight size={16} color={FuxiaDarkTheme.colors.brandGold} style={{ marginLeft: 8 }} />
               </TouchableOpacity>
-            </View>
+            </MotiView>
           </View>
         </ImageBackground>
 
-        {/* --- CATEGORÍAS: COLLAGE ARTÍSTICO 2x2 --- */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Nuestras Colecciones</Text>
-        </View>
-
-        <View style={styles.balancedGrid}>
-          {/* Fila 1 */}
-          <View style={styles.gridRow}>
-            <TouchableOpacity 
-              style={styles.gridTile}
-              onPress={() => router.push('/(tabs)/shop')}
-            >
-              <ImageBackground source={CAT_BALLERINAS} style={styles.categoryImage}>
-                <View style={styles.categoryOverlay}>
-                  <Text style={styles.categoryLabel}>Ballerinas</Text>
-                </View>
-              </ImageBackground>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.gridTile}
-              onPress={() => router.push('/(tabs)/shop')}
-            >
-              <ImageBackground source={CAT_SANDALS} style={styles.categoryImage}>
-                <View style={styles.categoryOverlay}>
-                  <Text style={styles.categoryLabel}>Sandalias</Text>
-                </View>
-              </ImageBackground>
+        {/* --- NEW ARRIVALS: DYNAMIC CATALOG --- */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionLabel}>LATEST DROP</Text>
+              <Text style={styles.sectionTitle}>Novedades</Text>
+            </View>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/shop')}>
+              <Text style={[styles.viewAll, { color: FuxiaDarkTheme.colors.brandGold }]}>Ver todo</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Fila 2 */}
-          <View style={styles.gridRow}>
-            <TouchableOpacity 
-              style={styles.gridTile}
-              onPress={() => router.push('/(tabs)/shop')}
+          {loading ? (
+            <View style={styles.loader}>
+              <ActivityIndicator color={FuxiaDarkTheme.colors.brandGold} />
+            </View>
+          ) : (
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              contentContainerStyle={styles.carouselContent}
+              snapToInterval={width * 0.45}
+              decelerationRate="fast"
             >
-              <ImageBackground source={CAT_BOOTS} style={styles.categoryImage}>
-                <View style={styles.categoryOverlay}>
-                  <Text style={styles.categoryLabel}>Botas</Text>
-                </View>
-              </ImageBackground>
-            </TouchableOpacity>
+              {newArrivals.map((product, index) => (
+                <ProductCard key={product.id} product={product} index={index} />
+              ))}
+            </ScrollView>
+          )}
+        </View>
 
-            <TouchableOpacity 
-              style={styles.gridTile}
-              onPress={() => router.push('/(tabs)/shop')}
-            >
-              <ImageBackground source={CAT_SALE} style={styles.categoryImage}>
-                <View style={styles.categoryOverlay}>
-                  <Text style={styles.categoryLabel}>Sale</Text>
-                </View>
-              </ImageBackground>
-            </TouchableOpacity>
+        {/* --- BRAND STORY / DIVIDER --- */}
+        <MotiView 
+          from={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 1000 }}
+          style={styles.brandPitch}
+        >
+          <Sparkles size={18} color={FuxiaDarkTheme.colors.brandGold} />
+          <Text style={styles.pitchText}>
+            Diseñadas en México, inspiradas en el mundo. Calzado de lujo artesanal para la mujer contemporánea.
+          </Text>
+        </MotiView>
+
+        {/* --- CATEGORIES: MASONRY STYLE --- */}
+        <View style={[styles.section, { marginBottom: 100 }]}>
+          <Text style={styles.sectionTitleCenter}>Categorías</Text>
+          
+          <View style={styles.masonryGrid}>
+            <View style={styles.gridCol}>
+              <TouchableOpacity style={[styles.masonryTile, { height: 280 }]}>
+                <ImageBackground source={CAT_BALLERINAS} style={styles.catImage}>
+                   <View style={styles.catOverlay}>
+                     <Text style={styles.catLabel}>Ballerinas</Text>
+                   </View>
+                </ImageBackground>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.masonryTile, { height: 180 }]}>
+                <ImageBackground source={CAT_BOOTS} style={styles.catImage}>
+                   <View style={styles.catOverlay}>
+                     <Text style={styles.catLabel}>Botas</Text>
+                   </View>
+                </ImageBackground>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.gridCol}>
+              <TouchableOpacity style={[styles.masonryTile, { height: 180, marginTop: 40 }]}>
+                <ImageBackground source={CAT_SANDALS} style={styles.catImage}>
+                   <View style={styles.catOverlay}>
+                     <Text style={styles.catLabel}>Sandalias</Text>
+                   </View>
+                </ImageBackground>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.masonryTile, { height: 280 }]}>
+                <ImageBackground source={CAT_SALE} style={styles.catImage}>
+                   <View style={styles.catOverlay}>
+                     <Text style={styles.catLabel}>Outlet</Text>
+                   </View>
+                </ImageBackground>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
-        {/* Espacio extra al final para el scroll */}
-        <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -139,112 +193,172 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: FuxiaDarkTheme.spacing.m, 
-    paddingBottom: FuxiaDarkTheme.spacing.m,
-    paddingTop: 10,
-    backgroundColor: FuxiaDarkTheme.colors.background 
+    paddingHorizontal: 20, 
+    height: 70,
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
   logo: {
-    width: 150,
-    height: 30,
+    width: 140,
+    height: 40,
   },
   headerIcons: {
     flexDirection: 'row',
     gap: 15,
   },
   iconButton: {
-    padding: 5,
+    padding: 8,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 20,
   },
   
-  // Hero Styles
+  // Hero
   heroContainer: { 
     width: '100%', 
-    height: 480, 
-    backgroundColor: FuxiaDarkTheme.colors.surface 
+    height: width * 1.5,
+    backgroundColor: '#000'
   },
-  heroImage: { resizeMode: 'cover' },
+  heroImage: { resizeMode: 'cover', opacity: 0.85 },
   heroOverlay: { 
     flex: 1, 
-    backgroundColor: 'rgba(0,0,0,0.1)', 
     justifyContent: 'flex-end', 
-    padding: FuxiaDarkTheme.spacing.l 
+    padding: 30,
+    paddingBottom: 60,
   },
-  heroTextWrapper: { alignItems: 'flex-end' }, // Alineación a la derecha
+  heroTextWrapper: { alignItems: 'flex-end' },
   collectionText: { 
-    fontSize: 12, 
-    color: '#FFF', 
+    fontSize: 10, 
+    color: FuxiaDarkTheme.colors.brandGold, 
     letterSpacing: 4, 
-    marginBottom: 8, 
-    fontWeight: '600' 
+    marginBottom: 10, 
+    fontWeight: '700' 
   },
   heroTitle: { 
-    fontSize: 34, 
+    fontSize: 62, 
     color: '#FFF', 
     fontFamily: 'serif', 
     textAlign: 'right', 
-    marginBottom: 20, 
-    lineHeight: 40,
-    fontWeight: '700'
+    lineHeight: 65,
+    marginBottom: 25,
+    fontWeight: '300'
   },
   heroLinkButton: { 
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1, 
-    borderBottomColor: FuxiaDarkTheme.colors.brandGold, 
-    paddingBottom: 4 
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(184, 134, 11, 0.3)',
   },
   heroLinkText: { 
-    fontSize: 13, 
-    color: FuxiaDarkTheme.colors.brandGold, 
+    fontSize: 12, 
+    color: '#FFF', 
     letterSpacing: 2, 
-    fontWeight: '600',
-    textTransform: 'uppercase'
+    fontWeight: '700'
   },
 
   // Sections
-  sectionHeader: { 
-    padding: FuxiaDarkTheme.spacing.m, 
-    marginTop: FuxiaDarkTheme.spacing.l 
+  section: {
+    marginTop: 40,
   },
-  sectionTitle: { 
-    fontSize: 22, 
-    color: FuxiaDarkTheme.colors.textPrimary, 
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  sectionLabel: {
+    fontSize: 10,
+    color: FuxiaDarkTheme.colors.brandGold,
+    letterSpacing: 3,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  sectionTitle: {
+    fontSize: 32,
+    color: '#FFF',
+    fontFamily: 'serif',
+    fontWeight: '400',
+  },
+  sectionTitleCenter: {
+    fontSize: 28,
+    color: '#FFF',
+    fontFamily: 'serif',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  viewAll: {
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 1
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  carouselContent: {
+    paddingLeft: 20,
+    paddingRight: 20,
+  },
+  loader: {
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
-  // Balanced 2x2 Grid Layout
-  balancedGrid: { 
-    paddingHorizontal: FuxiaDarkTheme.spacing.m, 
-    gap: 12 
+  // Brand Pitch
+  brandPitch: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#151515',
+    marginVertical: 40,
   },
-  gridRow: {
+  pitchText: {
+    color: '#A0A0A0',
+    textAlign: 'center',
+    fontSize: 14,
+    lineHeight: 22,
+    marginTop: 15,
+    fontStyle: 'italic',
+    paddingHorizontal: 20,
+  },
+
+  // Masonry Grid
+  masonryGrid: {
     flexDirection: 'row',
-    gap: 12,
-    height: 200,
+    paddingHorizontal: 20,
+    gap: 15,
   },
-  gridTile: {
+  gridCol: {
     flex: 1,
+    gap: 15,
+  },
+  masonryTile: {
+    width: '100%',
     borderRadius: 2,
     overflow: 'hidden',
   },
-  categoryImage: { 
-    flex: 1, 
-    width: '100%', 
-    height: '100%' 
+  catImage: {
+    flex: 1,
   },
-  categoryOverlay: { 
-    flex: 1, 
-    backgroundColor: 'rgba(0,0,0,0.3)', 
-    justifyContent: 'center', 
-    alignItems: 'center' 
+  catOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 10,
   },
-  categoryLabel: { 
-    fontSize: 18, 
-    color: '#FFF', 
-    fontFamily: 'serif', 
-    letterSpacing: 2,
+  catLabel: {
+    color: '#FFF',
+    fontSize: 18,
+    fontFamily: 'serif',
+    letterSpacing: 3,
     textTransform: 'uppercase',
-    fontWeight: '700'
-  },
+    fontWeight: '400',
+    textAlign: 'center',
+  }
 });
