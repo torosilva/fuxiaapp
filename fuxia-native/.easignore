@@ -1,0 +1,12 @@
+node_modules
+.expo
+dist
+web-build
+.git
+.vscode
+*.log
+*.lock
+ios
+android
+.DS_Store
+expo-env.d.ts
