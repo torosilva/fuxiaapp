@@ -1,159 +1,204 @@
 # Fuxia App — Backlog
 
-Issues pendientes para convertir en GitHub Issues y trackear en el Project "Fuxia App Roadmap".
+Estado actualizado al 2026-04-28. Convención:
 
-Convenciones:
-- **Labels** entre paréntesis
-- **Priority**: P0 (bloquea) / P1 (alto) / P2 (medio) / P3 (nice to have)
-- **Estado**: `Todo` por defecto; mover a `In Progress` y `Done` en el board
+- **P0** bloquea / **P1** alto / **P2** medio / **P3** nice to have
+- **Status**: ✅ done · 🟡 in progress · ⬜ todo · 🚫 blocked
 
 ---
 
-## 1. Configurar webhook WooCommerce en fuxiaballerinas.com
-*(backend, setup, P0)*
+## ✅ Completado
 
-La función `woocommerce-webhook` está deployada en Supabase y el secret `WC_WEBHOOK_SECRET` seteado. Falta conectarla desde WooCommerce para que las compras reales sumen puntos.
-
-**Pasos:**
-1. Entrar a `fuxiaballerinas.com/wp-admin` → WooCommerce → Ajustes → Avanzado → Webhooks → Agregar webhook
-2. Completar:
-   - **Nombre**: `Fuxia Loyalty Sync`
-   - **Estado**: Activo
-   - **Tema**: `Pedido actualizado` (procesa cuando pasa a completed)
-   - **URL**: `https://tgzgiwfzddsghnxgkcqd.supabase.co/functions/v1/woocommerce-webhook`
-   - **Secreto**: `0e2097b05882b5b25be59f907636972d04923f95b57ee70711332a2a1707f7db`
-   - **API**: WP REST API Integration v3
-3. Mandar un "Send test ping" y verificar en los logs de la edge function que llegó con 200
-
-**DoD:** una compra real en el sitio hace subir `total_points` en `loyalty_cards` del cliente correspondiente y aparece en el tab "Mis Compras" de la app.
-
----
-
-## 2. Store Scanner: pantalla de escaneo QR para vendedoras
-*(feature, frontend, P1)*
-
-Pantalla protegida con PIN de tienda donde la vendedora escanea el QR de la clienta y ve su perfil + historial + talla más frecuente. Permite registrar venta en tienda física que suma puntos con `channel='store'`.
-
-**Sub-tareas:**
-- [ ] Nueva ruta `/store/scanner` fuera del stack de tabs
-- [ ] Pantalla PIN (4 dígitos) con PIN por tienda en `localStorage` o env
-- [ ] Integrar `expo-camera` y escaneo de códigos (formato esperado: `FX-...`)
-- [ ] Query por `qr_code` en `loyalty_cards` → resolver `customer_id`
-- [ ] Bottom sheet con perfil: nombre, tier, puntos, pares, últimas 3 compras, talla más frecuente (agrupar `purchase_items.size`)
-- [ ] Pantalla "Registrar venta": monto + productos buscados por nombre/SKU
-- [ ] Crear `transactions` con `channel='store'`, recalcular tier, insertar reward si sube
-- [ ] Insertar en `qr_scans` cada lectura (store_id, staff_id, scanned_at)
-- [ ] `utils/fraudDetection.ts`: alerta si mismo QR escanea >3 veces en 10min desde misma tienda; requiere confirm si monto > 10,000 MXN
+| ID | Título | Notas |
+|---|---|---|
+| #0 | Setup Supabase + DB schema | tablas + edge functions calculate-points/calculate-tier |
+| #1 | Onboarding por WhatsApp OTP | flujos signup + login separados, normalizer +52→+521, template aprobado |
+| #2 | Tarjeta de lealtad real | CardScreen + Profile leyendo de Supabase, sin mocks |
+| #3 | Webhook WooCommerce (código) | edge function `woocommerce-webhook` con HMAC, deployed (falta config en WP, ver #18) |
+| #4 | Foto de perfil | bucket `avatars` con RLS + expo-image-picker + upload + UI con badge cámara |
+| #5 | Historial de compras | pantalla `/purchases` agrupada por mes, expandible |
+| #6 | Categorías clickeables | tiles del Home navegan a Shop con filter, chips funcionales |
+| #7 | Botón "Comprar en la web" | abre WebBrowser con permalink + talla |
+| #8 | Logo + splash + iconos | logo-icon.png, logo-wordmark.png, app icon 1024² |
+| #9 | Welcome screen animado | logo spring + tagline + botones Crear cuenta / Iniciar sesión |
+| #10 | Tab bar custom + FAB | hoja dorada como FAB central, tab bar fija al borde inferior |
+| #11 | Dark mode forzado | `useColorScheme.ts` hardcoded a 'dark' |
+| #12 | EAS Update setup | OTA configurado, channel `preview` |
+| #13 | Mover WC creds a proxy | edge function `woocommerce-proxy` con whitelist read-only, secrets server-side |
+| #14 | Rotar WC keys | nuevas claves seteadas en Supabase (revocar las viejas en WC admin) |
+| #15 | Build iOS (IPA) | testflight profile + Distribution Certificate + Provisioning Profile |
+| #16 | Push notifications backend | tabla `push_tokens` + RLS + registro desde useAuth + push al ganar puntos / subir tier |
+| #17 | Sacar proyecto de OneDrive | movido a `C:\Users\mario\Documents\...` para evitar EAS build EACCES |
 
 ---
 
-## 3. Push notifications
-*(feature, backend, P2)*
+## 🟡 En progreso
 
-Notificar: gana puntos / sube de nivel / falta poco para nivel / recompensa lista.
+### Submit IPA a TestFlight (P0)
 
-**Sub-tareas:**
-- [ ] `npm install expo-notifications`
-- [ ] `services/notificationService.ts`: `registerForPushNotifications()` guarda token en tabla `push_tokens`
-- [ ] Migración SQL: nueva tabla `push_tokens (customer_id, expo_token, platform)`
-- [ ] Edge Function `send-push-notification`: recibe customer_id + mensaje, envía por `POST https://exp.host/--/api/v2/push/send`
-- [ ] Triggers (Postgres): sobre `loyalty_cards` — al aumentar points o cambiar tier, llamar a la edge function vía `pg_net`
-- [ ] Mensajes con nombre: "¡Hola Ana! Ganaste 27 puntos 🎉"
-- [ ] Probar en Expo Go (push requiere build real en iOS, funciona en Expo Go Android)
+Build OK. Falta `eas submit` con creación del entry en App Store Connect.
 
----
-
-## 4. Flujo de compra en app: decisión + implementación
-*(feature, decision, P1)*
-
-Hoy no hay checkout. Decidir entre:
-- **Opción A — WebView**: botón "Comprar" abre `fuxiaballerinas.com/producto/{slug}` en WebView. Rápido de implementar (1-2h), reutiliza checkout del sitio. Webhook suma puntos al completar.
-- **Opción B — Nativo**: carrito + dirección + pago (Stripe/Mercado Pago SDK). 1-2 días.
-- **Opción C — Deep link**: abre navegador del sistema. Cero costo de build.
-
-**DoD (opción A)**: tap en "Añadir al carrito" desde `/product/[id]` abre WebView modal con el producto. Al completar, app vuelve y muestra confirmación.
-
----
-
-## 5. Foto de perfil real (Supabase Storage)
-*(feature, frontend, P3)*
-
-Hoy el avatar muestra iniciales. Permitir subir foto.
-
-**Sub-tareas:**
-- [ ] Bucket público `avatars` en Supabase Storage con RLS (cada usuario solo lee/escribe su archivo)
-- [ ] Columna `avatar_url TEXT` en `customers`
-- [ ] Usar `expo-image-picker` para seleccionar foto
-- [ ] Subir con `supabase.storage.from('avatars').upload(...)` → guardar URL pública
-- [ ] Fallback: si `avatar_url` es null, seguir mostrando iniciales
-- [ ] Botón "Cambiar foto" en tap del avatar
-
----
-
-## 6. Mover WC consumer_key/secret a env vars
-*(security, tech-debt, P1)*
-
-`constants/WooCommerce.ts` tiene las credenciales de WooCommerce hardcoded en el bundle cliente. Cualquiera que descompile el APK las saca y puede crear/editar órdenes. Problema real.
-
-**Sub-tareas:**
-- [ ] Mover `WC_CONSUMER_KEY` y `WC_CONSUMER_SECRET` a env vars `EXPO_PUBLIC_*` (mitigación parcial)
-- [ ] Mejor aún: mover **todas** las llamadas a WC a un Edge Function proxy en Supabase. El cliente solo llama al proxy con su JWT; el proxy guarda los secrets y hace la request a WC.
-- [ ] Rotar las credenciales actuales en WooCommerce (las que están en el repo ya son públicas)
-
----
-
-## 7. useAuth como Context compartido
-*(tech-debt, performance, P2)*
-
-Hoy `useAuth` se ejecuta independiente en cada pantalla que lo usa (Card, Profile, Purchases, Product Detail). Cada montaje hace sus propias queries a Supabase → 3-4x queries duplicadas al cambiar de tab.
-
-**Sub-tareas:**
-- [ ] Crear `AuthProvider` Context
-- [ ] Mover la lógica de `loadSession`/`loadCustomerData` al provider
-- [ ] `useAuth()` pasa a ser consumer del contexto
-- [ ] Envolver `<AuthProvider>` en el root `_layout.tsx`
-- [ ] Exponer `refresh()` para recargar on-demand (ej. después de crear perfil o completar compra)
-
----
-
-## 8. Dev Build con EAS para testeo rápido
-*(devex, P2)*
-
-Expo Go + tunnel es lento (bundle de 20MB se baja cada arranque). Un dev build instala el bundle en el celu → reload instantáneo + permite módulos nativos que Expo Go no soporta.
-
-**Sub-tareas:**
-- [ ] `npm install -g eas-cli`
-- [ ] `eas login`
-- [ ] `eas build:configure`
-- [ ] `eas build --profile development --platform android`
-- [ ] Instalar APK en el celu
-- [ ] Documentar el flujo en `README.md`
-
----
-
-## 9. Grid actions del Profile: wire tiles restantes
-*(feature, frontend, P3)*
-
-Las tiles "Seguimiento", "Regalar", "Pagos" en el tab Profile están sin funcionalidad (solo "Mis Compras" navega a `/purchases`).
-
-**Sub-tareas:**
-- [ ] **Seguimiento**: pantalla con órdenes WC en estado `processing`/`shipped`. Requiere endpoint en WooCommerce.
-- [ ] **Regalar**: decidir producto (¿tarjeta de regalo? ¿referir amiga?). Necesita spec.
-- [ ] **Pagos**: pantalla de "métodos de pago guardados" — sólo tiene sentido si vamos por flujo de compra nativo (ver #4).
-
-Podrían quedar ocultas hasta que tengan destino real, en vez de visibles-sin-función.
-
----
-
-## Cómo convertir esto en issues de GitHub
-
-1. Abrir el Project `Fuxia App Roadmap`
-2. Por cada sección de arriba, *New issue* en la columna `Todo`
-3. Copiar título + pegar el bloque de texto correspondiente como descripción
-4. Agregar labels según la cabecera
-5. Linkear el issue al project (el Project los auto-agarra si están en `torosilva/fuxiaapp`)
-
-Tip: en vez de copiarlos a mano, podés instalar `gh` CLI y correr:
-```bash
-gh issue create --title "1. Configurar webhook WooCommerce" --body-file - < section1.md
+**Próximo paso** (terminal interactiva):
+```powershell
+cd C:\Users\mario\Documents\Emprendimientos\fuxia\fuxiaapp\fuxia-native
+npx eas submit -p ios --id d13bfc89-4ec2-49b2-b8d3-338a707c4ea5
 ```
+EAS pregunta si crear app en ASC → Y → llenar (Fuxia Ballerinas, SKU `fuxia-ballerinas-001`, lang es-MX). Tarda ~5min upload.
+
+DoD: la build aparece en App Store Connect → TestFlight → Internal Testing, lista para invitar testers.
+
+---
+
+## ⬜ Todo
+
+### #18 Configurar webhook en WooCommerce admin (P0)
+
+La edge function está deployada y probada (test directo desde curl funciona). Falta crear el webhook en WordPress.
+
+**Pasos** (15 min):
+1. fuxiaballerinas.com/wp-admin → WooCommerce → Avanzado → Webhooks → Agregar
+2. Nombre: `Fuxia Loyalty Sync`, Activo, Tema: `Pedido actualizado`
+3. URL: `https://tgzgiwfzddsghnxgkcqd.supabase.co/functions/v1/woocommerce-webhook`
+4. Secreto: `0e2097b05882b5b25be59f907636972d04923f95b57ee70711332a2a1707f7db`
+5. API: WP REST API Integration v3
+6. Probar editando un pedido completed
+
+DoD: hacer una compra real con número `+525543412939` → ver puntos sumar en la app sin intervención manual.
+
+---
+
+### #19 Build Android preview (P1)
+
+Después del fix de OneDrive read-only y commit con pre-install hook, debería andar.
+
+```powershell
+npx eas build --profile preview --platform android --non-interactive --no-wait
+```
+
+DoD: APK descargable + instalado en celu Android probando todo el flow.
+
+---
+
+### #20 Migrar Twilio sandbox → WhatsApp Business sender (P1)
+
+El sandbox requiere que cada nuevo número haga `join <palabra>` antes de recibir. No escala para producción ni para testers de TestFlight.
+
+**Pasos**:
+1. Comprar número WhatsApp en Twilio Console o usar uno existente
+2. Solicitar habilitación WhatsApp Business (revisión Meta, 3-7 días)
+3. Template OTP ya aprobado (`HX229f5a04fd0510ce1b071852155d3e75`)
+4. Updatear `TWILIO_WHATSAPP_FROM` en Supabase secrets
+
+DoD: clientes nuevos reciben OTP sin `join` previo.
+
+---
+
+### #21 Privacy Policy + Soporte en fuxiaballerinas.com (P0 Apple)
+
+Apple exige ambas URLs antes de submit a producción.
+
+**Pages a crear**:
+- `https://fuxiaballerinas.com/privacy` — copy template en `APP_STORE_METADATA.md`
+- `https://fuxiaballerinas.com/soporte` — email + FAQ básico
+- Email `soporte@fuxiaballerinas.com`
+
+DoD: ambas URLs accesibles públicamente, contenido al día.
+
+---
+
+### #22 Screenshots para App Store (P1)
+
+Apple requiere **6.7"** (1290×2796) y **6.5"** (1242×2688) en portrait.
+
+**Pantallas a capturar** (capturables hoy):
+1. Welcome con logo animado + botones
+2. Tarjeta de lealtad con QR
+3. Home (hero + Novedades + Categorías)
+4. Detalle de producto con preview de puntos
+5. "Mis Zapatos" con compras
+6. Profile con avatar + último pedido
+
+Sugerido: usar Figma para overlay con copy promocional.
+
+DoD: 6 screenshots por size subidos a App Store Connect.
+
+---
+
+### #23 Store Scanner para vendedoras (P2)
+
+Pantalla protegida con PIN para vendedoras en tienda. Cámara escanea QR → muestra perfil + permite registrar venta channel='store'.
+
+Detalle completo: ver `claude-prompts/fuxia-app-claude-code-prompts.md` Prompt 5.
+
+Sub-tareas:
+- [ ] Ruta `/store/scanner` fuera de tabs (acceso protegido)
+- [ ] PIN screen (4 dígitos por tienda)
+- [ ] expo-camera + scan formato `FX-...`
+- [ ] Lookup por `qr_code` en `loyalty_cards`
+- [ ] Bottom sheet con perfil + últimas 3 compras
+- [ ] Registrar venta `channel='store'`
+- [ ] Insertar en `qr_scans`
+- [ ] Fraud detection (`utils/fraudDetection.ts`): >3 scans/10min same store, montos > $10k MXN
+
+---
+
+### #24 useAuth como Context compartido (P2, tech-debt)
+
+Hoy cada pantalla con `useAuth()` hace queries propias → 3-4x duplicadas al cambiar tabs. Mover a `AuthProvider` Context.
+
+- [ ] Crear `AuthProvider` que expone state + actions
+- [ ] `useAuth()` pasa a ser consumer
+- [ ] Envolver `<AuthProvider>` en `app/_layout.tsx`
+- [ ] Exponer `refresh()` para recargar on-demand
+
+---
+
+### #25 Wire grid actions del Profile (P3)
+
+Tiles "Seguimiento", "Regalar", "Pagos" están sin destino. Solo "Mis Compras" funciona. Decidir:
+- Implementar (cada uno tiene su sub-spec)
+- Ocultarlos hasta tener spec
+- Reemplazarlos por links útiles
+
+---
+
+### #26 ITSAppUsesNonExemptEncryption (P2, Apple)
+
+Warning durante build iOS. Para evitar config manual cada submit:
+
+```json
+"ios": {
+  "infoPlist": {
+    "ITSAppUsesNonExemptEncryption": false
+  }
+}
+```
+
+(Solo HTTPS estándar — no usamos cripto custom)
+
+---
+
+### #27 Push notifications testing en device real (P1)
+
+Los push solo funcionan en builds nativos (no Expo Go iOS). Una vez la build esté en TestFlight:
+- [ ] Instalar TestFlight build en iPhone propio
+- [ ] Loguear → confirmar que `push_tokens` se inserta
+- [ ] Forzar webhook → confirmar que llega notificación
+
+---
+
+## 🚫 Blocked / Wait
+
+### Migrar a Supabase Auth phone-only nativo (post-MVP)
+
+Hoy creamos un `auth.user` con email fake (`{phone}@fuxia.app`) y password derivado. Funciona pero es hacky. Cuando Supabase libere mejor soporte phone-only auth, migrar.
+
+---
+
+## Cómo convertir esto a GitHub Projects
+
+1. Crear Project en https://github.com/torosilva/fuxiaapp/projects (Board template)
+2. Por cada item ⬜/🟡, **New issue** con título y body de acá
+3. Labels según prioridad (P0/P1/P2) y categoría (frontend/backend/devex/security/apple)
+4. Movés tarjetas entre `Todo` → `In Progress` → `Done`
+5. Los ✅ ya completados los podés agregar como referencia histórica en columna `Done`
