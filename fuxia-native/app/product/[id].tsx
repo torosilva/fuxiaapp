@@ -1,6 +1,9 @@
 import { StyleSheet, Image, ScrollView, TouchableOpacity, View as RNView, TextInput, Dimensions, ActivityIndicator } from 'react-native';
 import { Text, View } from '@/components/Themed';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, Stack } from 'expo-router';
+import { useAuth } from '@/lib/hooks/useAuth';
+import * as WebBrowser from 'expo-web-browser';
+import { Sparkles } from 'lucide-react-native';
 import { ArrowLeft, Heart, Star, Gift, ShoppingBag, AlertCircle } from 'lucide-react-native';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -25,6 +28,7 @@ export default function ProductDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [isGift, setIsGift] = useState(false);
+  const { customer, loyaltyCard } = useAuth();
 
   useEffect(() => {
     if (id) {
@@ -55,6 +59,7 @@ export default function ProductDetailScreen() {
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background, justifyContent: 'center' }]}>
+        <Stack.Screen options={{ headerShown: false }} />
         <ActivityIndicator size="large" color={theme.accent} />
       </View>
     );
@@ -77,6 +82,7 @@ export default function ProductDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <Stack.Screen options={{ headerShown: false }} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Header Image */}
         <RNView style={styles.imageContainer}>
@@ -162,18 +168,33 @@ export default function ProductDetailScreen() {
             </RNView>
           )}
 
-          {/* Loyalty Banner Redesign */}
-          <RNView style={styles.section}>
-            <LoyaltyCard
-              customerName="Ana García"
-              qrCode="FX-a3f8b2c1-preview-00"
-              tier="bronze"
-              totalPoints={Math.floor(Number(product.price) * 0.1)}
-              pairsCount={3}
-              pointsToNext={500 - Math.floor(Number(product.price) * 0.1)}
-              pairsToNext={3}
-            />
-          </RNView>
+          {/* Points preview for this purchase */}
+          {product.price && (
+            <RNView style={styles.pointsPreview}>
+              <Sparkles size={18} color={theme.accent} />
+              <Text style={[styles.pointsPreviewText, { color: theme.accent }]}>
+                Con esta compra ganarás{' '}
+                <Text style={{ fontWeight: '800' }}>
+                  +{Math.floor(Number(product.price) / 50) + 10} puntos
+                </Text>
+              </Text>
+            </RNView>
+          )}
+
+          {/* Loyalty Banner — real user's card */}
+          {customer && loyaltyCard && (
+            <RNView style={styles.section}>
+              <LoyaltyCard
+                customerName={customer.name}
+                qrCode={loyaltyCard.qr_code}
+                tier={loyaltyCard.tier}
+                totalPoints={loyaltyCard.total_points}
+                pairsCount={loyaltyCard.pairs_count}
+                pointsToNext={loyaltyCard.points_to_next}
+                pairsToNext={loyaltyCard.pairs_to_next}
+              />
+            </RNView>
+          )}
 
           {/* Gift Mode */}
           <RNView style={[styles.giftCard, { borderColor: theme.border }]}>
@@ -210,19 +231,27 @@ export default function ProductDetailScreen() {
             </MotiView>
           )}
 
-          <TouchableOpacity 
+          <TouchableOpacity
             disabled={isOutOfStock || (sizes.length > 0 && !selectedSize)}
+            onPress={async () => {
+              if (!product.permalink) return;
+              const url = selectedSize
+                ? `${product.permalink}?attribute_pa_size=${encodeURIComponent(selectedSize)}`
+                : product.permalink;
+              await WebBrowser.openBrowserAsync(url);
+            }}
             style={[
-              styles.buyButton, 
-              { 
+              styles.buyButton,
+              {
                 backgroundColor: isOutOfStock ? theme.muted : theme.text,
                 opacity: (sizes.length > 0 && !selectedSize) ? 0.6 : 1
               }
             ]}
+            activeOpacity={0.85}
           >
             <ShoppingBag size={20} color={theme.background} />
             <Text style={[styles.buyButtonText, { color: theme.background }]}>
-              {isOutOfStock ? 'Agotado' : 'Añadir al Carrito'}
+              {isOutOfStock ? 'Agotado' : 'Comprar en la web'}
             </Text>
           </TouchableOpacity>
         </RNView>
@@ -232,6 +261,23 @@ export default function ProductDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  pointsPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: 'rgba(205,127,50,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(205,127,50,0.2)',
+  },
+  pointsPreviewText: {
+    fontSize: 13,
+    flex: 1,
+  },
   container: {
     flex: 1,
   },

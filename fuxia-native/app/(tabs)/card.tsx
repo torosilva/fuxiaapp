@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,38 +7,84 @@ import {
   TouchableOpacity,
   Share,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MotiView } from 'moti';
+import { Redirect } from 'expo-router';
 import { Share2, ShoppingBag, Sparkles } from 'lucide-react-native';
 import { LoyaltyCard } from '@/components/LoyaltyCard';
-import { generateQRCode } from '@/lib/utils/qrGenerator';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { supabase } from '@/lib/supabase';
+import type { Channel } from '@/lib/database.types';
 
-// Placeholder data — replace with real Supabase data after auth is wired up
-const MOCK_CUSTOMER = {
-  id: 'a3f8b2c1-1234-5678-abcd-ef0123456789',
-  name: 'Ana García',
-  tier: 'bronze' as const,
-  totalPoints: 320,
-  pairsCount: 3,
-  pointsToNext: 181,
-  pairsToNext: 3,
-};
+interface RecentTx {
+  id: string;
+  date: string;
+  description: string;
+  points: number;
+  channel: Channel;
+}
 
-const MOCK_TRANSACTIONS = [
-  { id: '1', date: '12 abr 2026', description: 'Ballerinas Nude Satín', points: +70, channel: 'web' },
-  { id: '2', date: '28 mar 2026', description: 'Sandalia Tiras Doradas', points: +50, channel: 'store' },
-  { id: '3', date: '10 mar 2026', description: 'Bota Chelsea Negra', points: +90, channel: 'web' },
-  { id: '4', date: '2 feb 2026',  description: 'Flat Charol Rosa',     points: +60, channel: 'store' },
-  { id: '5', date: '15 ene 2026', description: 'Mule Leopardo',         points: +50, channel: 'web' },
-];
+const MONTHS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
-const qrCode = generateQRCode(MOCK_CUSTOMER.id);
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getDate()} ${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`;
+}
 
 export default function CardScreen() {
+  const { session, customer, loyaltyCard, isLoading } = useAuth();
+  const [transactions, setTransactions] = useState<RecentTx[]>([]);
+  const [txLoading, setTxLoading] = useState(true);
+
+  useEffect(() => {
+    if (!loyaltyCard) {
+      setTxLoading(false);
+      return;
+    }
+    loadRecentTransactions(loyaltyCard.id);
+  }, [loyaltyCard?.id]);
+
+  async function loadRecentTransactions(loyaltyCardId: string) {
+    setTxLoading(true);
+    const { data } = await supabase
+      .from('transactions')
+      .select('id, created_at, points_earned, channel, purchase_items(product_name)')
+      .eq('loyalty_card_id', loyaltyCardId)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    const mapped: RecentTx[] = (data ?? []).map((row: any) => {
+      const firstItem = row.purchase_items?.[0];
+      const extra = row.purchase_items?.length > 1 ? ` +${row.purchase_items.length - 1} más` : '';
+      return {
+        id: row.id,
+        date: formatDate(row.created_at),
+        description: firstItem ? `${firstItem.product_name}${extra}` : 'Compra',
+        points: row.points_earned,
+        channel: row.channel as Channel,
+      };
+    });
+    setTransactions(mapped);
+    setTxLoading(false);
+  }
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.center]}>
+        <ActivityIndicator color="#CD7F32" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!session || !customer || !loyaltyCard) {
+    return <Redirect href="/onboarding" />;
+  }
+
   const handleShare = async () => {
     await Share.share({
-      message: `Mi tarjeta de lealtad Fuxia Ballerinas — ${MOCK_CUSTOMER.totalPoints} puntos · Nivel ${MOCK_CUSTOMER.tier}`,
+      message: `Mi tarjeta de lealtad Fuxia Ballerinas — ${loyaltyCard.total_points} puntos · Nivel ${loyaltyCard.tier}`,
     });
   };
 
@@ -49,7 +95,6 @@ export default function CardScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
       >
-        {/* Title */}
         <View style={styles.titleRow}>
           <View>
             <Text style={styles.eyebrow}>MI TARJETA</Text>
@@ -58,52 +103,57 @@ export default function CardScreen() {
           <Sparkles size={20} color="#CD7F32" />
         </View>
 
-        {/* Card */}
         <View style={styles.cardWrapper}>
           <LoyaltyCard
-            customerName={MOCK_CUSTOMER.name}
-            qrCode={qrCode}
-            tier={MOCK_CUSTOMER.tier}
-            totalPoints={MOCK_CUSTOMER.totalPoints}
-            pairsCount={MOCK_CUSTOMER.pairsCount}
-            pointsToNext={MOCK_CUSTOMER.pointsToNext}
-            pairsToNext={MOCK_CUSTOMER.pairsToNext}
+            customerName={customer.name}
+            qrCode={loyaltyCard.qr_code}
+            tier={loyaltyCard.tier}
+            totalPoints={loyaltyCard.total_points}
+            pairsCount={loyaltyCard.pairs_count}
+            pointsToNext={loyaltyCard.points_to_next}
+            pairsToNext={loyaltyCard.pairs_to_next}
           />
         </View>
 
-        {/* Share button */}
         <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.8}>
           <Share2 size={16} color="#CD7F32" />
           <Text style={styles.shareBtnText}>Compartir tarjeta</Text>
         </TouchableOpacity>
 
-        {/* Recent movements */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <ShoppingBag size={16} color="#CD7F32" />
             <Text style={styles.sectionTitle}>Últimos movimientos</Text>
           </View>
 
-          {MOCK_TRANSACTIONS.map((tx, i) => (
-            <MotiView
-              key={tx.id}
-              from={{ opacity: 0, translateY: 10 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ delay: 100 + i * 80, type: 'timing', duration: 300 }}
-              style={styles.txRow}
-            >
-              <View style={styles.txIcon}>
-                <Text style={styles.txIconText}>
-                  {tx.channel === 'store' ? '🏪' : '🌐'}
-                </Text>
-              </View>
-              <View style={styles.txInfo}>
-                <Text style={styles.txDesc}>{tx.description}</Text>
-                <Text style={styles.txDate}>{tx.date}</Text>
-              </View>
-              <Text style={styles.txPoints}>+{tx.points} pts</Text>
-            </MotiView>
-          ))}
+          {txLoading ? (
+            <ActivityIndicator color="#CD7F32" style={{ marginTop: 16 }} />
+          ) : transactions.length === 0 ? (
+            <Text style={styles.emptyText}>
+              Tus compras aparecerán aquí cuando acumules tu primer par.
+            </Text>
+          ) : (
+            transactions.map((tx, i) => (
+              <MotiView
+                key={tx.id}
+                from={{ opacity: 0, translateY: 10 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ delay: 100 + i * 80, type: 'timing', duration: 300 }}
+                style={styles.txRow}
+              >
+                <View style={styles.txIcon}>
+                  <Text style={styles.txIconText}>
+                    {tx.channel === 'store' ? '🏪' : '🌐'}
+                  </Text>
+                </View>
+                <View style={styles.txInfo}>
+                  <Text style={styles.txDesc}>{tx.description}</Text>
+                  <Text style={styles.txDate}>{tx.date}</Text>
+                </View>
+                <Text style={styles.txPoints}>+{tx.points} pts</Text>
+              </MotiView>
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -114,6 +164,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0D0D0D',
+  },
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scroll: {
     paddingBottom: 120,
@@ -175,6 +229,13 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  emptyText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 16,
+    lineHeight: 20,
   },
   txRow: {
     flexDirection: 'row',

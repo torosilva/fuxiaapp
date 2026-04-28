@@ -6,6 +6,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID')!;
 const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN')!;
 const TWILIO_WHATSAPP_FROM = Deno.env.get('TWILIO_WHATSAPP_FROM')!; // e.g. whatsapp:+14155238886 (sandbox)
+const TWILIO_CONTENT_SID = Deno.env.get('TWILIO_CONTENT_SID')!; // approved template SID for OTP
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -24,24 +25,24 @@ function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-function normalizeMexicanPhone(phone: string): string {
-  // Mexico: +521XXXXXXXXXX → +52XXXXXXXXXX (Twilio expects 10-digit local number)
-  if (phone.startsWith('+521') && phone.length === 14) {
-    return '+52' + phone.slice(4);
+function normalizeForWhatsApp(phone: string): string {
+  // Mexico mobile on WhatsApp requires the "1" after +52. Insert it if missing.
+  if (phone.startsWith('+52') && !phone.startsWith('+521') && phone.length === 13) {
+    return '+521' + phone.slice(3);
   }
   return phone;
 }
 
 async function sendWhatsApp(to: string, code: string): Promise<void> {
-  const normalizedTo = normalizeMexicanPhone(to);
-  const toWhatsApp = `whatsapp:${normalizedTo}`;
+  const toWhatsApp = `whatsapp:${normalizeForWhatsApp(to)}`;
 
   console.log(`[whatsapp-otp] sending from=${TWILIO_WHATSAPP_FROM} to=${toWhatsApp}`);
 
   const body = new URLSearchParams({
     From: TWILIO_WHATSAPP_FROM,
     To: toWhatsApp,
-    Body: `Tu código de verificación Fuxia Ballerinas es: *${code}*\n\nVálido por 10 minutos. No lo compartas con nadie.`,
+    ContentSid: TWILIO_CONTENT_SID,
+    ContentVariables: JSON.stringify({ '1': code }),
   });
 
   const res = await fetch(
@@ -81,6 +82,20 @@ serve(async (req) => {
     body = await req.json();
   } catch {
     return json({ error: 'Invalid JSON' }, 400);
+  }
+
+  // ── CHECK PHONE ───────────────────────────────────────────────────────────
+  if (body.action === 'check_phone') {
+    const phone = body.phone?.trim();
+    if (!phone) return json({ error: 'phone requerido' }, 400);
+
+    const { data } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('phone', phone)
+      .maybeSingle();
+
+    return json({ exists: !!data });
   }
 
   // ── SEND OTP ──────────────────────────────────────────────────────────────
@@ -148,33 +163,33 @@ serve(async (req) => {
     const fakeEmail = `${phone.replace('+', '')}@fuxia.app`;
     const password = `fuxia_${phone}_${Deno.env.get('OTP_SALT') ?? 'salt'}`;
 
-    let userId: string;
-
-    const { data: existingUser } = await supabase.auth.admin.getUserByEmail(fakeEmail);
-
-    if (existingUser?.user) {
-      userId = existingUser.user.id;
-    } else {
-      const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
-        email: fakeEmail,
-        password,
-        email_confirm: true,
-        user_metadata: { phone },
-      });
-      if (createErr || !newUser.user) {
-        return json({ error: 'Error creando usuario' }, 500);
-      }
-      userId = newUser.user.id;
-    }
-
-    // Sign in to get a session token the app can use
-    const { data: session, error: signInErr } = await supabase.auth.signInWithPassword({
+    // Try to sign in first; if credentials are invalid the user doesn't exist yet.
+    let { data: session, error: signInErr } = await supabase.auth.signInWithPassword({
       email: fakeEmail,
       password,
     });
 
     if (signInErr || !session.session) {
-      return json({ error: 'Error iniciando sesión' }, 500);
+      const { error: createErr } = await supabase.auth.admin.createUser({
+        email: fakeEmail,
+        password,
+        email_confirm: true,
+        user_metadata: { phone },
+      });
+      if (createErr) {
+        console.error(`[whatsapp-otp] createUser failed: ${createErr.message}`);
+        return json({ error: 'Error creando usuario', debug: createErr.message }, 500);
+      }
+
+      const retry = await supabase.auth.signInWithPassword({
+        email: fakeEmail,
+        password,
+      });
+      if (retry.error || !retry.data.session) {
+        console.error(`[whatsapp-otp] signIn after create failed: ${retry.error?.message}`);
+        return json({ error: 'Error iniciando sesión', debug: retry.error?.message }, 500);
+      }
+      session = retry.data;
     }
 
     // Check if customer profile exists

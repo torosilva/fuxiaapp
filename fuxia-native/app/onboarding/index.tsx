@@ -1,99 +1,163 @@
-import React, { useState } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView, Image,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React from 'react';
+import { View, Text, StyleSheet, StatusBar, Image, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
 
-const COUNTRIES = [
-  { iso: 'mx', name: 'México',      code: '+52' },
-  { iso: 'co', name: 'Colombia',    code: '+57' },
-  { iso: 'gt', name: 'Guatemala',   code: '+502' },
-  { iso: 'sv', name: 'El Salvador', code: '+503' },
-  { iso: 'cr', name: 'Costa Rica',  code: '+506' },
-  { iso: 'pa', name: 'Panamá',      code: '+507' },
-  { iso: 'hn', name: 'Honduras',    code: '+504' },
-];
+const LOGO_ICON = require('../../assets/images/logo-icon.png');
+const LOGO_WORDMARK = require('../../assets/images/logo-wordmark.png');
 
-export default function CountryScreen() {
-  const [selected, setSelected] = useState<string | null>(null);
-
-  const handleSelect = (code: string) => {
-    setSelected(code);
-    setTimeout(() => router.push({ pathname: '/onboarding/phone' as any, params: { countryCode: code } }), 150);
-  };
-
+export default function WelcomeScreen() {
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <ScrollView contentContainerStyle={styles.scroll}>
+
+      <View style={styles.center}>
+        {/* Icon: entrance spring, then gentle breathing float forever */}
         <MotiView
-          from={{ opacity: 0, translateY: 20 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 600 }}
+          from={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', damping: 12, mass: 1, delay: 200 }}
+          style={styles.iconWrapper}
         >
-          <Text style={styles.eyebrow}>BIENVENIDA</Text>
-          <Text style={styles.title}>¿En qué país{'\n'}estás?</Text>
-          <Text style={styles.subtitle}>Selecciona tu país para continuar</Text>
+          <MotiView
+            from={{ translateY: 0 }}
+            animate={{ translateY: -16 }}
+            transition={{
+              type: 'timing',
+              duration: 1800,
+              loop: true,
+              repeatReverse: true,
+              delay: 1000,
+            }}
+          >
+            <Image source={LOGO_ICON} style={styles.icon} resizeMode="contain" />
+          </MotiView>
         </MotiView>
 
-        <View style={styles.grid}>
-          {COUNTRIES.map((c, i) => (
-            <MotiView
-              key={c.code}
-              from={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 100 + i * 60, type: 'spring', damping: 15 }}
-            >
-              <TouchableOpacity
-                style={[styles.countryBtn, selected === c.code && styles.countryBtnSelected]}
-                onPress={() => handleSelect(c.code)}
-                activeOpacity={0.7}
-              >
-                <Image
-                  source={{ uri: `https://flagcdn.com/w40/${c.iso}.png` }}
-                  style={styles.flag}
-                />
-                <Text style={styles.countryName}>{c.name}</Text>
-                <Text style={styles.countryCode}>{c.code}</Text>
-              </TouchableOpacity>
-            </MotiView>
-          ))}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        {/* Wordmark: slide up + fade, slight letter-space feel via scale */}
+        <MotiView
+          from={{ opacity: 0, translateY: 20, scale: 0.96 }}
+          animate={{ opacity: 1, translateY: 0, scale: 1 }}
+          transition={{ type: 'timing', duration: 700, delay: 1000 }}
+          style={styles.wordmarkWrapper}
+        >
+          <Image source={LOGO_WORDMARK} style={styles.wordmark} resizeMode="contain" />
+        </MotiView>
+
+        {/* Tagline */}
+        <MotiView
+          from={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ type: 'timing', duration: 600, delay: 1800 }}
+        >
+          <Text style={styles.tagline}>UN PAR A LA VEZ</Text>
+        </MotiView>
+      </View>
+
+      {/* CTA */}
+      <MotiView
+        from={{ opacity: 0, translateY: 24 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 500, delay: 2300 }}
+        style={styles.footer}
+      >
+        <TouchableOpacity
+          style={styles.btn}
+          onPress={() => router.push('/onboarding/country' as any)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.btnText}>CREAR CUENTA</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.btnSecondary}
+          onPress={() => router.push('/onboarding/login' as any)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.btnSecondaryText}>Ya tengo cuenta · Iniciar sesión</Text>
+        </TouchableOpacity>
+      </MotiView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0D0D0D' },
-  scroll: { padding: 24, paddingBottom: 60 },
-  eyebrow: {
-    fontSize: 10, color: '#CD7F32', fontWeight: '800',
-    letterSpacing: 3, marginBottom: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#0D0D0D',
+    paddingHorizontal: 32,
+    paddingBottom: 48,
+    paddingTop: 24,
   },
-  title: {
-    fontSize: 38, color: '#FFF', fontFamily: 'serif',
-    fontWeight: '400', lineHeight: 44, marginBottom: 8,
-  },
-  subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.4)', marginBottom: 36 },
-  grid: { gap: 12 },
-  countryBtn: {
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: '#1A1A1A',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-    flexDirection: 'row',
+  center: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 14,
   },
-  countryBtnSelected: {
-    borderColor: '#CD7F32',
-    backgroundColor: 'rgba(205,127,50,0.1)',
+  iconWrapper: {
+    marginBottom: 36,
   },
-  flag: { width: 36, height: 24, borderRadius: 3 },
-  countryName: { flex: 1, fontSize: 15, color: '#FFF', fontWeight: '600' },
-  countryCode: { fontSize: 13, color: 'rgba(255,255,255,0.35)' },
+  icon: {
+    width: 130,
+    height: 130,
+  },
+  glow: {
+    position: 'absolute',
+    top: '28%',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: '#CD7F32',
+  },
+  wordmarkWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  wordmark: {
+    width: '90%',
+    height: 44,
+  },
+  tagline: {
+    color: 'rgba(205,127,50,0.55)',
+    fontSize: 11,
+    letterSpacing: 6,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  footer: {
+    alignItems: 'center',
+  },
+  btn: {
+    backgroundColor: '#CD7F32',
+    borderRadius: 30,
+    height: 54,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 16,
+  },
+  btnText: {
+    color: '#0D0D0D',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 3,
+  },
+  btnSecondary: {
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  btnSecondaryText: {
+    color: '#CD7F32',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  hint: {
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 11,
+    textAlign: 'center',
+  },
 });

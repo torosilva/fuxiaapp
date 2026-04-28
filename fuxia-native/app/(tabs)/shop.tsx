@@ -4,25 +4,55 @@ import { Search, Filter, ShoppingBag, Heart } from 'lucide-react-native';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { MotiView } from 'moti';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { wcService, WCProduct } from '@/services/WooCommerceService';
 
 import { ProductCard } from '@/components/ProductCard';
 
-import { PremiumHeader } from '@/components/PremiumHeader';
+const CATEGORY_FILTERS: { key: string; label: string; keywords: string[] }[] = [
+  { key: 'all',        label: 'Todo',       keywords: [] },
+  { key: 'ballerinas', label: 'Ballerinas', keywords: ['ballerina', 'flat', 'plana'] },
+  { key: 'sandalias',  label: 'Sandalias',  keywords: ['sandalia', 'sandal'] },
+  { key: 'botas',      label: 'Botas',      keywords: ['bota', 'boot', 'bootie'] },
+  { key: 'outlet',     label: 'Outlet',     keywords: ['outlet', 'sale', 'rebaja'] },
+];
+
+function matchesCategory(product: WCProduct, filterKey: string): boolean {
+  if (filterKey === 'all') return true;
+  const filter = CATEGORY_FILTERS.find((f) => f.key === filterKey);
+  if (!filter) return true;
+  if (filterKey === 'outlet') {
+    // Outlet = products on sale
+    const onSale = product.sale_price && product.sale_price !== '' && product.sale_price !== product.regular_price;
+    if (onSale) return true;
+  }
+  const haystack = [
+    product.name,
+    ...(product.categories ?? []).map((c) => `${c.name} ${c.slug}`),
+  ].join(' ').toLowerCase();
+  return filter.keywords.some((k) => haystack.includes(k));
+}
 
 export default function ShopScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
-  
+  const { category } = useLocalSearchParams<{ category?: string }>();
+
   const [products, setProducts] = useState<WCProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<string>('all');
 
   useEffect(() => {
     loadProducts();
   }, []);
+
+  useEffect(() => {
+    if (category && CATEGORY_FILTERS.some((f) => f.key === category)) {
+      setActiveFilter(category);
+    }
+  }, [category]);
 
   const loadProducts = async () => {
     try {
@@ -36,13 +66,13 @@ export default function ShopScreen() {
     }
   };
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProducts = products.filter((p) => {
+    const nameMatch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return nameMatch && matchesCategory(p, activeFilter);
+  });
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <PremiumHeader transparent={false} />
       
       <RNView style={styles.header}>
         <RNView style={styles.searchBar}>
@@ -61,33 +91,56 @@ export default function ShopScreen() {
       </RNView>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <RNView style={styles.filterScroll}>
-          {['Todo', 'Ballerinas', 'Sandalias', 'Planas', 'Botas'].map((f, i) => (
-            <TouchableOpacity 
-              key={f} 
-              style={[
-                styles.filterChip, 
-                { backgroundColor: i === 0 ? theme.text : theme.soft, borderColor: theme.border }
-              ]}
-            >
-              <Text style={[styles.filterText, { color: i === 0 ? theme.background : theme.text }]}>{f}</Text>
-            </TouchableOpacity>
-          ))}
-        </RNView>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScroll}
+        >
+          {CATEGORY_FILTERS.map((f) => {
+            const active = activeFilter === f.key;
+            return (
+              <TouchableOpacity
+                key={f.key}
+                onPress={() => setActiveFilter(f.key)}
+                activeOpacity={0.7}
+                style={[
+                  styles.filterChip,
+                  {
+                    backgroundColor: active ? theme.text : theme.soft,
+                    borderColor: active ? theme.text : theme.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.filterText, { color: active ? theme.background : theme.text }]}>
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
         {loading ? (
           <RNView style={styles.loaderContainer}>
             <ActivityIndicator size="large" color={theme.accent} />
             <Text style={{ marginTop: 10, color: theme.muted }}>Cargando colección...</Text>
           </RNView>
+        ) : filteredProducts.length === 0 ? (
+          <RNView style={styles.loaderContainer}>
+            <Text style={{ color: theme.text, fontSize: 16, fontWeight: '600' }}>
+              Sin resultados
+            </Text>
+            <Text style={{ marginTop: 8, color: theme.muted, fontSize: 13, textAlign: 'center' }}>
+              Intenta con otra categoría o búsqueda.
+            </Text>
+          </RNView>
         ) : (
           <RNView style={styles.grid}>
             {filteredProducts.map((product, i) => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                index={i} 
-                fullWidth 
+              <ProductCard
+                key={product.id}
+                product={product}
+                index={i}
+                fullWidth
               />
             ))}
           </RNView>

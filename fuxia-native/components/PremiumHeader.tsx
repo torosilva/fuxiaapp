@@ -4,7 +4,7 @@ import { Search, ShoppingBag } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
 
-const LOGO_IMAGE = require('../assets/images/logo.png');
+const LOGO_IMAGE = require('../assets/images/logo-icon.png');
 
 interface PremiumHeaderProps {
   transparent?: boolean;
@@ -75,8 +75,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logo: {
-    width: 180, // Larger logo as requested
-    height: 50,
+    width: 36,
+    height: 36,
   },
   sideContainer: {
     flex: 1,

@@ -30,7 +30,6 @@ const CAT_SANDALS = require('../../assets/images/cat_sandals.png');
 const CAT_BOOTS = require('../../assets/images/cat_boots.png');
 const CAT_SALE = require('../../assets/images/cat_sale.png');
 
-import { PremiumHeader } from '@/components/PremiumHeader';
 
 export default function HomeScreen() {
   const [newArrivals, setNewArrivals] = useState<WCProduct[]>([]);
@@ -56,8 +55,6 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" />
       
-      <PremiumHeader transparent={true} />
-
       <ScrollView showsVerticalScrollIndicator={false} stickyHeaderIndices={[]} scrollEventThrottle={16}>
         
         {/* --- HERO SECTION: EDITORIAL IMPACT --- */}
@@ -144,14 +141,22 @@ export default function HomeScreen() {
           
           <View style={styles.masonryGrid}>
             <View style={styles.gridCol}>
-              <TouchableOpacity style={[styles.masonryTile, { height: 280 }]}>
+              <TouchableOpacity
+                style={[styles.masonryTile, { height: 280 }]}
+                onPress={() => router.push({ pathname: '/(tabs)/shop' as any, params: { category: 'ballerinas' } })}
+                activeOpacity={0.85}
+              >
                 <ImageBackground source={CAT_BALLERINAS} style={styles.catImage}>
                    <View style={styles.catOverlay}>
                      <Text style={styles.catLabel}>Ballerinas</Text>
                    </View>
                 </ImageBackground>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.masonryTile, { height: 180 }]}>
+              <TouchableOpacity
+                style={[styles.masonryTile, { height: 180 }]}
+                onPress={() => router.push({ pathname: '/(tabs)/shop' as any, params: { category: 'botas' } })}
+                activeOpacity={0.85}
+              >
                 <ImageBackground source={CAT_BOOTS} style={styles.catImage}>
                    <View style={styles.catOverlay}>
                      <Text style={styles.catLabel}>Botas</Text>
@@ -159,16 +164,24 @@ export default function HomeScreen() {
                 </ImageBackground>
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.gridCol}>
-              <TouchableOpacity style={[styles.masonryTile, { height: 180, marginTop: 40 }]}>
+              <TouchableOpacity
+                style={[styles.masonryTile, { height: 180, marginTop: 40 }]}
+                onPress={() => router.push({ pathname: '/(tabs)/shop' as any, params: { category: 'sandalias' } })}
+                activeOpacity={0.85}
+              >
                 <ImageBackground source={CAT_SANDALS} style={styles.catImage}>
                    <View style={styles.catOverlay}>
                      <Text style={styles.catLabel}>Sandalias</Text>
                    </View>
                 </ImageBackground>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.masonryTile, { height: 280 }]}>
+              <TouchableOpacity
+                style={[styles.masonryTile, { height: 280 }]}
+                onPress={() => router.push({ pathname: '/(tabs)/shop' as any, params: { category: 'outlet' } })}
+                activeOpacity={0.85}
+              >
                 <ImageBackground source={CAT_SALE} style={styles.catImage}>
                    <View style={styles.catOverlay}>
                      <Text style={styles.catLabel}>Outlet</Text>

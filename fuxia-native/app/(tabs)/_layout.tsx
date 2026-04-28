@@ -1,9 +1,11 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, ShoppingBag, Heart, User, CreditCard } from 'lucide-react-native';
-import { View, StyleSheet, Platform } from 'react-native';
+import { Home, ShoppingBag, Heart, User } from 'lucide-react-native';
+import { View, StyleSheet, Platform, Image } from 'react-native';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
+
+const LEAF_ICON = require('../../assets/images/logo-icon.png');
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -15,24 +17,15 @@ export default function TabLayout() {
         tabBarActiveTintColor: theme.accent,
         tabBarInactiveTintColor: 'rgba(255,255,255,0.4)',
         headerShown: false,
-        tabBarShowLabel: false, // Minimalist: No labels
+        tabBarShowLabel: false,
         tabBarStyle: {
-          position: 'absolute',
-          bottom: 25,
-          left: 20,
-          right: 20,
-          height: 65,
-          backgroundColor: 'rgba(18, 18, 18, 0.9)', // Glassmorphism Dark
-          borderRadius: 35,
-          borderTopWidth: 0,
-          elevation: 5,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.3,
-          shadowRadius: 15,
-          paddingBottom: Platform.OS === 'ios' ? 0 : 0,
-          borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.05)',
+          height: Platform.OS === 'ios' ? 88 : 70,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 10,
+          paddingTop: 10,
+          backgroundColor: '#0D0D0D',
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(255,255,255,0.08)',
+          elevation: 0,
         },
       }}>
       <Tabs.Screen
@@ -58,22 +51,21 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="wishlist"
+        name="card"
         options={{
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.activeIconContainer]}>
-              <Heart color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
-              {focused && <View style={[styles.activeDot, { backgroundColor: theme.accent }]} />}
+          tabBarIcon: ({ focused }) => (
+            <View style={[styles.fab, focused && styles.fabFocused]}>
+              <Image source={LEAF_ICON} style={styles.fabIcon} resizeMode="contain" />
             </View>
           ),
         }}
       />
       <Tabs.Screen
-        name="card"
+        name="wishlist"
         options={{
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && styles.activeIconContainer]}>
-              <CreditCard color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
+              <Heart color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
               {focused && <View style={[styles.activeDot, { backgroundColor: theme.accent }]} />}
             </View>
           ),
@@ -101,12 +93,35 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   activeIconContainer: {
-    // Optional: scale or glow
   },
   activeDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
     marginTop: 6,
-  }
+  },
+  fab: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: '#0D0D0D',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -28,
+    shadowColor: '#CD7F32',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: '#CD7F32',
+  },
+  fabFocused: {
+    backgroundColor: '#1A1A1A',
+    borderColor: '#E89148',
+  },
+  fabIcon: {
+    width: 32,
+    height: 32,
+  },
 });
