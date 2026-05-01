@@ -33,6 +33,31 @@ export interface WCProduct {
   variations: number[];
 }
 
+export interface WCCategory {
+  id: number;
+  name: string;
+  slug: string;
+  count: number;
+  image: { src: string; alt: string } | null;
+}
+
+export type WCOrderStatus =
+  | 'pending' | 'processing' | 'on-hold' | 'completed'
+  | 'cancelled' | 'refunded' | 'failed';
+
+export interface WCOrder {
+  id: number; number: string; status: WCOrderStatus;
+  date_created: string; date_modified: string;
+  date_completed: string | null; date_paid: string | null;
+  total: string; currency: string; payment_method_title: string;
+  customer_id: number;
+  billing: { first_name?: string; last_name?: string; email?: string; phone?: string; address_1?: string; city?: string; postcode?: string; country?: string; };
+  shipping: { first_name?: string; last_name?: string; address_1?: string; city?: string; postcode?: string; country?: string; };
+  shipping_lines: { method_title: string; total: string }[];
+  line_items: { id: number; name: string; sku: string; quantity: number; total: string; image?: { src: string } }[];
+  meta_data: { key: string; value: string }[];
+}
+
 export interface WCVariation {
   id: number;
   price: string;
@@ -68,6 +93,11 @@ interface StorePrices {
   sale_price: string;
   currency_minor_unit: number;
   currency_code: string;
+}
+
+interface StoreCategory {
+  id: number; name: string; slug: string; count: number;
+  image: { id: number; src: string; thumbnail: string; alt: string } | null;
 }
 
 interface StoreProduct {
@@ -147,6 +177,43 @@ class WooCommerceService {
   async getProductVariations(productId: number): Promise<WCVariation[]> {
     const variations = await wcGet<WCVariation[]>(`products/${productId}/variations`, { per_page: 100 });
     return variations ?? [];
+  }
+
+  /** Category images from fuxiaballerinas.com — UI provides local fallback if offline */
+  async getCategories(): Promise<WCCategory[]> {
+    const data = await storeGet<StoreCategory[]>('products/categories', {
+      per_page: 50,
+      hide_empty: 1,
+    });
+    if (!data) return [];
+    return data.map((c) => ({
+      id: c.id, name: c.name, slug: c.slug, count: c.count,
+      image: c.image ? { src: c.image.src, alt: c.image.alt } : null,
+    }));
+  }
+
+  async getOrdersByCustomer(opts: {
+    customerId?: number; email?: string;
+    statuses?: WCOrderStatus[]; limit?: number;
+  }): Promise<WCOrder[]> {
+    const { customerId, email, statuses, limit = 30 } = opts;
+    const params: Record<string, string | number> = {
+      per_page: Math.min(limit, 100), orderby: 'date', order: 'desc',
+    };
+    if (customerId) params.customer = customerId;
+    if (statuses?.length) params.status = statuses.join(',');
+    const orders = await wcGet<WCOrder[]>('orders', params);
+    if (!orders) return [];
+    if (customerId) return orders;
+    if (email) {
+      const lower = email.toLowerCase();
+      return orders.filter((o) => o.billing?.email?.toLowerCase() === lower);
+    }
+    return orders;
+  }
+
+  async getOrder(id: number): Promise<WCOrder | null> {
+    return wcGet<WCOrder>(`orders/${id}`);
   }
 }
 
