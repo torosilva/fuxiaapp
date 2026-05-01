@@ -3,9 +3,11 @@ import { StyleSheet, Image, TouchableOpacity, View as RNView, Dimensions } from 
 import { Text } from './Themed';
 import { MotiView } from 'moti';
 import { router } from 'expo-router';
+import { Heart } from 'lucide-react-native';
 import { WCProduct } from '@/services/WooCommerceService';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from './useColorScheme';
+import { useWishlist } from '@/lib/WishlistContext';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.42;
@@ -20,6 +22,8 @@ interface ProductCardProps {
 export const ProductCard = ({ product, index, featured, fullWidth }: ProductCardProps) => {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+  const { has, toggle } = useWishlist();
+  const liked = has(product.id);
 
   return (
     <TouchableOpacity 
@@ -48,6 +52,19 @@ export const ProductCard = ({ product, index, featured, fullWidth }: ProductCard
               <Text style={styles.stockText}>AGOTADO</Text>
             </RNView>
           )}
+
+          <TouchableOpacity
+            style={styles.heartBtn}
+            onPress={(e) => { e.stopPropagation(); toggle(product.id); }}
+            activeOpacity={0.8}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Heart
+              size={18}
+              color={liked ? '#E05C7A' : 'rgba(255,255,255,0.85)'}
+              fill={liked ? '#E05C7A' : 'transparent'}
+            />
+          </TouchableOpacity>
         </RNView>
 
         <RNView style={styles.info}>
@@ -114,6 +131,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '400',
     letterSpacing: 1,
+  },
+  heartBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   stockBadge: {
     position: 'absolute',

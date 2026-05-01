@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { WishlistProvider } from '@/lib/WishlistContext';
 
 export {
   ErrorBoundary,
@@ -50,6 +51,7 @@ function RootLayoutNav() {
   }, [session, isLoading]);
 
   return (
+    <WishlistProvider>
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -57,5 +59,6 @@ function RootLayoutNav() {
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
+    </WishlistProvider>
   );
 }

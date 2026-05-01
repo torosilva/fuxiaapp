@@ -37,9 +37,9 @@ const TIER_CONFIG: Record<Tier, {
   },
   silver: {
     label: 'Plata',
-    colors: ['#111122', '#2E2E4E', '#1A1A2E'],
-    accent: '#C0C0C0',
-    shimmer: 'rgba(192,192,192,0.35)',
+    colors: ['#1A1A1A', '#3A3A3A', '#252525'],
+    accent: '#D0D0D0',
+    shimmer: 'rgba(210,210,210,0.4)',
   },
   gold: {
     label: 'Oro',
