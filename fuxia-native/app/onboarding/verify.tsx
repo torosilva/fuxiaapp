@@ -147,10 +147,10 @@ const styles = StyleSheet.create({
   digitInput: {
     width: 46,
     height: 58,
-    borderRadius: 12,
-    backgroundColor: '#1A1A1A',
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.07)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255,255,255,0.12)',
     textAlign: 'center',
     fontSize: 24,
     fontWeight: '700',

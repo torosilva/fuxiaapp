@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView, Image,
+  View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
 
 const COUNTRIES = [
-  { iso: 'mx', name: 'México',      code: '+52' },
-  { iso: 'co', name: 'Colombia',    code: '+57' },
-  { iso: 'gt', name: 'Guatemala',   code: '+502' },
-  { iso: 'sv', name: 'El Salvador', code: '+503' },
-  { iso: 'cr', name: 'Costa Rica',  code: '+506' },
-  { iso: 'pa', name: 'Panamá',      code: '+507' },
-  { iso: 'hn', name: 'Honduras',    code: '+504' },
+  { flag: '🇲🇽', name: 'México',      code: '+52' },
+  { flag: '🇨🇴', name: 'Colombia',    code: '+57' },
+  { flag: '🇬🇹', name: 'Guatemala',   code: '+502' },
+  { flag: '🇸🇻', name: 'El Salvador', code: '+503' },
+  { flag: '🇨🇷', name: 'Costa Rica',  code: '+506' },
+  { flag: '🇵🇦', name: 'Panamá',      code: '+507' },
+  { flag: '🇭🇳', name: 'Honduras',    code: '+504' },
 ];
 
 export default function CountryScreen() {
@@ -51,10 +51,7 @@ export default function CountryScreen() {
                 onPress={() => handleSelect(c.code)}
                 activeOpacity={0.7}
               >
-                <Image
-                  source={{ uri: `https://flagcdn.com/w40/${c.iso}.png` }}
-                  style={styles.flag}
-                />
+                <Text style={styles.flag}>{c.flag}</Text>
                 <Text style={styles.countryName}>{c.name}</Text>
                 <Text style={styles.countryCode}>{c.code}</Text>
               </TouchableOpacity>
@@ -82,9 +79,9 @@ const styles = StyleSheet.create({
   countryBtn: {
     padding: 16,
     borderRadius: 16,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(255,255,255,0.08)',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
@@ -93,7 +90,7 @@ const styles = StyleSheet.create({
     borderColor: '#CD7F32',
     backgroundColor: 'rgba(205,127,50,0.1)',
   },
-  flag: { width: 36, height: 24, borderRadius: 3 },
+  flag: { fontSize: 28 },
   countryName: { flex: 1, fontSize: 15, color: '#FFF', fontWeight: '600' },
   countryCode: { fontSize: 13, color: 'rgba(255,255,255,0.35)' },
 });

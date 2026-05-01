@@ -23,6 +23,7 @@ const ALLOWED_PATTERNS: RegExp[] = [
   /^products\/\d+\/variations(\/\d+)?$/,   // products/{id}/variations[/id]
   /^products\/categories$/,
   /^products\/attributes$/,
+  /^orders(\/\d+)?$/,                      // orders, orders/{id} (GET-only via the fetch below)
 ];
 
 serve(async (req) => {

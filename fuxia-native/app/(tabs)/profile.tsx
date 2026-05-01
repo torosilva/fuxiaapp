@@ -185,9 +185,9 @@ export default function ProfileScreen() {
       <RNView style={styles.grid}>
         {[
           { icon: Package, label: 'Mis Compras', onPress: () => router.push('/purchases' as any) },
-          { icon: MapPin, label: 'Seguimiento', onPress: undefined },
+          { icon: MapPin, label: 'Seguimiento', onPress: () => router.push('/tracking' as any) },
           { icon: Gift, label: 'Regalar', onPress: undefined },
-          { icon: CreditCard, label: 'Pagos', onPress: undefined },
+          { icon: CreditCard, label: 'Pagos', onPress: () => router.push('/payments' as any) },
         ].map((item, idx) => (
           <TouchableOpacity
             key={idx}

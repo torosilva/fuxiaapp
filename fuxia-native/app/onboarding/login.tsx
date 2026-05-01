@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  StatusBar, ActivityIndicator, KeyboardAvoidingView, Platform,
+  StatusBar, ActivityIndicator, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
 import { ArrowLeft } from 'lucide-react-native';
 import { useAuth } from '@/lib/hooks/useAuth';
+
+const LOGO_ICON = require('../../assets/images/logo-icon.png');
 
 // Default to MX since it's the main market; user can edit the prefix manually if needed.
 const DEFAULT_COUNTRY_CODE = '+52';
@@ -66,6 +68,15 @@ export default function LoginScreen() {
           transition={{ type: 'timing', duration: 500 }}
           style={styles.content}
         >
+          <MotiView
+            from={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', damping: 14, delay: 100 }}
+            style={styles.logoWrapper}
+          >
+            <Image source={LOGO_ICON} style={styles.logo} resizeMode="contain" />
+          </MotiView>
+
           <Text style={styles.eyebrow}>INICIAR SESIÓN</Text>
           <Text style={styles.title}>Bienvenida{'\n'}de vuelta</Text>
           <Text style={styles.subtitle}>
@@ -137,22 +148,24 @@ const styles = StyleSheet.create({
     fontSize: 14, color: 'rgba(255,255,255,0.4)',
     marginBottom: 36, lineHeight: 20,
   },
+  logoWrapper: { alignItems: 'center', marginBottom: 28 },
+  logo: { width: 64, height: 64 },
   inputRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   codeBox: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: 'rgba(255,255,255,0.07)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14,
     paddingHorizontal: 16,
     justifyContent: 'center',
   },
   codeText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
   input: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: 'rgba(255,255,255,0.07)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14,
     paddingHorizontal: 16,
     height: 54,
     color: '#FFF',
