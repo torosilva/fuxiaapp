@@ -16,10 +16,11 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.fuxiaballerinas.app",
-      "buildNumber": "1",
+      "buildNumber": "7",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Usamos tu galería para personalizar la foto de tu tarjeta de lealtad.",
-        "NSCameraUsageDescription": "Usamos la cámara para escanear tarjetas de lealtad en tienda y para tomar la foto de tu perfil."
+        "NSCameraUsageDescription": "Usamos la cámara para escanear tarjetas de lealtad en tienda y para tomar la foto de tu perfil.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -32,7 +33,6 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.RECORD_AUDIO",
         "android.permission.RECORD_AUDIO"
       ]
     },
