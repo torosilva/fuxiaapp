@@ -42,7 +42,7 @@ export default function HomeScreen() {
   const loadHomeData = async () => {
     try {
       setLoading(true);
-      const data = await wcService.getProducts('per_page=6&status=publish&orderby=date');
+      const data = await wcService.getProducts({ per_page: 6, orderby: 'date' });
       setNewArrivals(data);
     } catch (error) {
       console.error('Error loading home data:', error);
@@ -229,9 +229,9 @@ const styles = StyleSheet.create({
   },
   
   // Hero
-  heroContainer: { 
-    width: '100%', 
-    height: width * 1.5,
+  heroContainer: {
+    width: '100%',
+    height: width * 1.1,
     backgroundColor: '#000'
   },
   heroImage: { resizeMode: 'cover', opacity: 0.85 },
@@ -324,11 +324,11 @@ const styles = StyleSheet.create({
 
   // Brand Pitch
   brandPitch: {
-    padding: 40,
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#151515',
-    marginVertical: 40,
+    marginVertical: 24,
   },
   pitchText: {
     color: '#A0A0A0',
