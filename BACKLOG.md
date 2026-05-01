@@ -1,6 +1,6 @@
 # Fuxia App — Backlog
 
-Estado actualizado al 2026-04-28. Convención:
+Estado actualizado al 2026-05-01. Convención:
 
 - **P0** bloquea / **P1** alto / **P2** medio / **P3** nice to have
 - **Status**: ✅ done · 🟡 in progress · ⬜ todo · 🚫 blocked
@@ -29,23 +29,33 @@ Estado actualizado al 2026-04-28. Convención:
 | #15 | Build iOS (IPA) | testflight profile + Distribution Certificate + Provisioning Profile |
 | #16 | Push notifications backend | tabla `push_tokens` + RLS + registro desde useAuth + push al ganar puntos / subir tier |
 | #17 | Sacar proyecto de OneDrive | movido a `C:\Users\mario\Documents\...` para evitar EAS build EACCES |
+| #18 | Build iOS subido a TestFlight | build 1.0.0(6) en App Store Connect, status "Ready to Submit", grupo "Team (Expo)" creado |
+| #19 | Twilio WhatsApp Business Sender comprado | número productivo `+5215599628645` registrado, status Online, throughput 80 mps |
+| #20 | Twilio Partner permissions sobre WABA | Twilio Inc agregado como Socio con Control total sobre WABA `1479833616977117` |
 
 ---
 
 ## 🟡 En progreso
 
-### Submit IPA a TestFlight (P0)
+### Meta Business Verification (P0, blocker para sender productivo)
 
-Build OK. Falta `eas submit` con creación del entry en App Store Connect.
+Estado actual: **"En revisión"** (Meta dice ~2 días laborables). Sin verificación, Meta rechaza la creación de WhatsApp templates con error `subCode=2388185` *"Application does not have permission for this action"*.
 
-**Próximo paso** (terminal interactiva):
-```powershell
-cd C:\Users\mario\Documents\Emprendimientos\fuxia\fuxiaapp\fuxia-native
-npx eas submit -p ios --id d13bfc89-4ec2-49b2-b8d3-338a707c4ea5
-```
-EAS pregunta si crear app en ASC → Y → llenar (Fuxia Ballerinas, SKU `fuxia-ballerinas-001`, lang es-MX). Tarda ~5min upload.
+Una vez aprobado:
+1. Crear template `fuxia_otp_es` Authentication en Twilio Content Template Builder (esta vez aprobará)
+2. Setear `TWILIO_WHATSAPP_FROM=whatsapp:+5215599628645` en Supabase secrets
+3. Setear nuevo `TWILIO_CONTENT_SID=HX...` con el SID del template aprobado
+4. Redeploy `whatsapp-otp` function
+5. Test end-to-end → cualquier número recibe OTP sin necesidad de hacer `join` al sandbox
 
-DoD: la build aparece en App Store Connect → TestFlight → Internal Testing, lista para invitar testers.
+**Mientras tanto**: app en sandbox (`whatsapp:+14155238886` + `HX229f5a04fd0510ce1b071852155d3e75`). Testers TestFlight necesitan hacer `join <palabra>` para recibir OTPs.
+
+### Invitar más testers internos a TestFlight (P1)
+
+Build subida a TestFlight. Grupo "Team (Expo)" creado pero solo 1 invite. Para abrir más:
+1. App Store Connect → TestFlight → Internal Testing → **+** → crear grupo (ej. "Familia")
+2. Add Testers por email (hasta 100, sin Apple review)
+3. Llenar **Test Information** (Beta App Description ya redactado, solo pegar; agregar email de soporte y notas para reviewer)
 
 ---
 
@@ -79,17 +89,9 @@ DoD: APK descargable + instalado en celu Android probando todo el flow.
 
 ---
 
-### #20 Migrar Twilio sandbox → WhatsApp Business sender (P1)
+### #20 Cerrar migración Twilio sandbox → producción (P1)
 
-El sandbox requiere que cada nuevo número haga `join <palabra>` antes de recibir. No escala para producción ni para testers de TestFlight.
-
-**Pasos**:
-1. Comprar número WhatsApp en Twilio Console o usar uno existente
-2. Solicitar habilitación WhatsApp Business (revisión Meta, 3-7 días)
-3. Template OTP ya aprobado (`HX229f5a04fd0510ce1b071852155d3e75`)
-4. Updatear `TWILIO_WHATSAPP_FROM` en Supabase secrets
-
-DoD: clientes nuevos reciben OTP sin `join` previo.
+Sender productivo `+5215599628645` ya comprado, registrado y aprobado por Meta como WhatsApp Sender (status Online). **Bloqueado por Meta Business Verification** (ver "En progreso"). Acción única: esperar verificación + crear template + actualizar secrets.
 
 ---
 
