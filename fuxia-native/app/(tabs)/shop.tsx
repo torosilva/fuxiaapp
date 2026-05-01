@@ -17,15 +17,19 @@ const { width } = Dimensions.get('window');
 
 // ── Fallback local images por si no hay internet ──
 const FALLBACKS: Record<string, any> = {
-  ballerina:  require('../../assets/images/cat_ballerinas.png'),
-  flat:       require('../../assets/images/cat_ballerinas.png'),
-  sandalia:   require('../../assets/images/cat_sandals.png'),
-  sandal:     require('../../assets/images/cat_sandals.png'),
-  bota:       require('../../assets/images/cat_boots.png'),
-  boot:       require('../../assets/images/cat_boots.png'),
-  outlet:     require('../../assets/images/cat_sale.png'),
-  sale:       require('../../assets/images/cat_sale.png'),
-  default:    require('../../assets/images/cat_ballerinas.png'),
+  ballerina:   require('../../assets/images/cat_ballerinas.png'),
+  ballerinas:  require('../../assets/images/cat_ballerinas.png'),
+  flat:        require('../../assets/images/cat_ballerinas.png'),
+  plana:       require('../../assets/images/cat_ballerinas.png'),
+  sandalia:    require('../../assets/images/cat_sandals.png'),
+  sandalias:   require('../../assets/images/cat_sandals.png'),
+  sandal:      require('../../assets/images/cat_sandals.png'),
+  bota:        require('../../assets/images/cat_boots.png'),
+  botas:       require('../../assets/images/cat_boots.png'),
+  boot:        require('../../assets/images/cat_boots.png'),
+  outlet:      require('../../assets/images/cat_sale.png'),
+  sale:        require('../../assets/images/cat_sale.png'),
+  default:     require('../../assets/images/cat_ballerinas.png'),
 };
 
 const FILTER_KEYS: { key: string; label: string; slugMatch: string[] }[] = [

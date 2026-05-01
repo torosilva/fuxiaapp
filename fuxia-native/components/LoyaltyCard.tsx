@@ -219,9 +219,9 @@ export const LoyaltyCard = ({
           >
             <View style={styles.patternOverlay} pointerEvents="none" />
 
-            {/* Header */}
+            {/* Tier badge arriba derecha */}
             <View style={styles.backHeader}>
-              <Image source={LOGO_WORDMARK} style={styles.backLogo} resizeMode="contain" />
+              <Text style={styles.customerName}>{customerName}</Text>
               <View style={[styles.tierBadge, { borderColor: config.accent }]}>
                 <Text style={[styles.tierLabel, { color: config.accent }]}>
                   {config.label.toUpperCase()}
@@ -229,10 +229,23 @@ export const LoyaltyCard = ({
               </View>
             </View>
 
-            {/* Body */}
+            {/* Logo en relieve centrado — watermark grande */}
+            <View style={styles.backLogoRelief} pointerEvents="none">
+              <Image
+                source={LOGO_ICON}
+                style={[styles.backLogoReliefIcon, { tintColor: config.accent }]}
+                resizeMode="contain"
+              />
+              <Image
+                source={LOGO_WORDMARK}
+                style={[styles.backLogoReliefWordmark, { tintColor: config.accent }]}
+                resizeMode="contain"
+              />
+            </View>
+
+            {/* Stats + QR abajo */}
             <View style={styles.body}>
               <View style={styles.statsCol}>
-                <Text style={styles.customerName}>{customerName}</Text>
                 <View style={styles.statRow}>
                   <View style={styles.stat}>
                     <Text style={[styles.statValue, { color: config.accent }]}>
@@ -264,7 +277,7 @@ export const LoyaltyCard = ({
               <View style={styles.qrWrapper}>
                 <QRCode
                   value={qrCode}
-                  size={86}
+                  size={82}
                   color="#FFFFFF"
                   backgroundColor="transparent"
                 />
@@ -375,9 +388,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  backLogo: {
-    width: 100,
-    height: 26,
+  backLogoRelief: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    opacity: 0.12,
+  },
+  backLogoReliefIcon: {
+    width: CARD_WIDTH * 0.45,
+    height: CARD_WIDTH * 0.45,
+  },
+  backLogoReliefWordmark: {
+    width: CARD_WIDTH * 0.7,
+    height: 36,
+    marginTop: -8,
   },
   tierBadge: {
     borderWidth: 1,

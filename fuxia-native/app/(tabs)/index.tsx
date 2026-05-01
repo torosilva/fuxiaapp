@@ -135,62 +135,7 @@ export default function HomeScreen() {
           </Text>
         </MotiView>
 
-        {/* --- CATEGORIES: MASONRY STYLE --- */}
-        <View style={[styles.section, { marginBottom: 100 }]}>
-          <Text style={styles.sectionTitleCenter}>Categorías</Text>
-          
-          <View style={styles.masonryGrid}>
-            <View style={styles.gridCol}>
-              <TouchableOpacity
-                style={[styles.masonryTile, { height: 280 }]}
-                onPress={() => router.push({ pathname: '/(tabs)/shop' as any, params: { category: 'ballerinas' } })}
-                activeOpacity={0.85}
-              >
-                <ImageBackground source={CAT_BALLERINAS} style={styles.catImage}>
-                   <View style={styles.catOverlay}>
-                     <Text style={styles.catLabel}>Ballerinas</Text>
-                   </View>
-                </ImageBackground>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.masonryTile, { height: 180 }]}
-                onPress={() => router.push({ pathname: '/(tabs)/shop' as any, params: { category: 'botas' } })}
-                activeOpacity={0.85}
-              >
-                <ImageBackground source={CAT_BOOTS} style={styles.catImage}>
-                   <View style={styles.catOverlay}>
-                     <Text style={styles.catLabel}>Botas</Text>
-                   </View>
-                </ImageBackground>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.gridCol}>
-              <TouchableOpacity
-                style={[styles.masonryTile, { height: 180, marginTop: 40 }]}
-                onPress={() => router.push({ pathname: '/(tabs)/shop' as any, params: { category: 'sandalias' } })}
-                activeOpacity={0.85}
-              >
-                <ImageBackground source={CAT_SANDALS} style={styles.catImage}>
-                   <View style={styles.catOverlay}>
-                     <Text style={styles.catLabel}>Sandalias</Text>
-                   </View>
-                </ImageBackground>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.masonryTile, { height: 280 }]}
-                onPress={() => router.push({ pathname: '/(tabs)/shop' as any, params: { category: 'outlet' } })}
-                activeOpacity={0.85}
-              >
-                <ImageBackground source={CAT_SALE} style={styles.catImage}>
-                   <View style={styles.catOverlay}>
-                     <Text style={styles.catLabel}>Outlet</Text>
-                   </View>
-                </ImageBackground>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+        <View style={{ height: 100 }} />
 
       </ScrollView>
     </SafeAreaView>
