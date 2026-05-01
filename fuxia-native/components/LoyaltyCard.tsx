@@ -331,7 +331,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
+    paddingBottom: 36,
   },
   iconWrapper: {
     shadowColor: '#CD7F32',
