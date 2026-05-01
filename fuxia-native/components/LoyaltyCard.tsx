@@ -392,17 +392,16 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
-    opacity: 0.12,
+    gap: 8,
+    opacity: 0.18,
   },
   backLogoReliefIcon: {
-    width: CARD_WIDTH * 0.45,
-    height: CARD_WIDTH * 0.45,
+    width: CARD_WIDTH * 0.22,
+    height: CARD_WIDTH * 0.22,
   },
   backLogoReliefWordmark: {
-    width: CARD_WIDTH * 0.7,
-    height: 36,
-    marginTop: -8,
+    width: CARD_WIDTH * 0.48,
+    height: 22,
   },
   tierBadge: {
     borderWidth: 1,
