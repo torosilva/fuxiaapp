@@ -1,13 +1,13 @@
 /**
- * WooCommerce proxy client. All requests go through the Supabase Edge Function
- * `woocommerce-proxy` so the consumer_key/secret never ship in the mobile bundle.
- *
- * The proxy only allows read-only GETs on product endpoints. If you need more
- * endpoints (orders, customers, etc.) extend ALLOWED_PATTERNS in the edge function.
+ * WooCommerce client. Reads use the public WC Store API (`wc/store/v1`) — no auth,
+ * exposes prices/stock. Authenticated calls (variations, future orders) go through
+ * the Supabase Edge Function `woocommerce-proxy` so the consumer_key/secret never
+ * ship in the mobile bundle.
  */
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
+const STORE_BASE = 'https://fuxiaballerinas.com/wp-json/wc/store/v1';
 const PROXY_URL = `${SUPABASE_URL}/functions/v1/woocommerce-proxy`;
 const PROXY_HEADERS = {
   'Content-Type': 'application/json',
@@ -33,14 +33,6 @@ export interface WCProduct {
   variations: number[];
 }
 
-export interface WCCategory {
-  id: number;
-  name: string;
-  slug: string;
-  count: number;
-  image: { src: string; alt: string } | null;
-}
-
 export interface WCVariation {
   id: number;
   price: string;
@@ -49,57 +41,6 @@ export interface WCVariation {
   stock_status: 'instock' | 'outofstock' | 'onbackorder';
   stock_quantity: number | null;
   attributes: { id: number; name: string; option: string }[];
-}
-
-export type WCOrderStatus =
-  | 'pending'
-  | 'processing'
-  | 'on-hold'
-  | 'completed'
-  | 'cancelled'
-  | 'refunded'
-  | 'failed';
-
-export interface WCOrder {
-  id: number;
-  number: string;
-  status: WCOrderStatus;
-  date_created: string;
-  date_modified: string;
-  date_completed: string | null;
-  date_paid: string | null;
-  total: string;
-  currency: string;
-  payment_method_title: string;
-  customer_id: number;
-  billing: {
-    first_name?: string;
-    last_name?: string;
-    email?: string;
-    phone?: string;
-    address_1?: string;
-    city?: string;
-    postcode?: string;
-    country?: string;
-  };
-  shipping: {
-    first_name?: string;
-    last_name?: string;
-    address_1?: string;
-    city?: string;
-    postcode?: string;
-    country?: string;
-  };
-  shipping_lines: { method_title: string; total: string }[];
-  line_items: {
-    id: number;
-    name: string;
-    sku: string;
-    quantity: number;
-    total: string;
-    image?: { src: string };
-  }[];
-  meta_data: { key: string; value: string }[];
 }
 
 async function wcGet<T>(path: string, params: Record<string, string | number> = {}): Promise<T | null> {
@@ -121,85 +62,91 @@ async function wcGet<T>(path: string, params: Record<string, string | number> = 
   }
 }
 
+interface StorePrices {
+  price: string;
+  regular_price: string;
+  sale_price: string;
+  currency_minor_unit: number;
+  currency_code: string;
+}
+
+interface StoreProduct {
+  id: number;
+  name: string;
+  slug: string;
+  permalink: string;
+  type: string;
+  short_description: string;
+  description: string;
+  on_sale: boolean;
+  prices: StorePrices;
+  images: { id: number; src: string; alt: string }[];
+  categories: { id: number; name: string; slug: string }[];
+  is_in_stock: boolean;
+  variations: { id: number }[];
+}
+
+function formatPrice(minor: string | undefined, decimals: number): string {
+  if (!minor) return '';
+  const n = parseInt(minor, 10);
+  if (Number.isNaN(n)) return '';
+  return decimals === 0 ? String(n) : (n / Math.pow(10, decimals)).toFixed(decimals);
+}
+
+function mapStoreProduct(s: StoreProduct): WCProduct {
+  const decimals = s.prices?.currency_minor_unit ?? 0;
+  return {
+    id: s.id,
+    name: s.name,
+    slug: s.slug,
+    permalink: s.permalink,
+    type: s.type,
+    status: 'publish',
+    description: s.description,
+    short_description: s.short_description,
+    price: formatPrice(s.prices?.price, decimals),
+    regular_price: formatPrice(s.prices?.regular_price, decimals),
+    sale_price: formatPrice(s.prices?.sale_price, decimals),
+    stock_status: s.is_in_stock ? 'instock' : 'outofstock',
+    stock_quantity: null,
+    images: s.images || [],
+    categories: s.categories || [],
+    variations: (s.variations || []).map((v) => v.id),
+  };
+}
+
+async function storeGet<T>(path: string, params: Record<string, string | number> = {}): Promise<T | null> {
+  const url = new URL(`${STORE_BASE}/${path}`);
+  for (const [k, v] of Object.entries(params)) {
+    url.searchParams.set(k, String(v));
+  }
+  try {
+    const res = await fetch(url.toString());
+    if (!res.ok) {
+      console.error(`storeGet ${path} → ${res.status}`);
+      return null;
+    }
+    return (await res.json()) as T;
+  } catch (err) {
+    console.error(`storeGet ${path} threw:`, err);
+    return null;
+  }
+}
+
 class WooCommerceService {
-  async getProducts(extraParams: Record<string, string | number> = { status: 'publish' }): Promise<WCProduct[]> {
-    const all: WCProduct[] = [];
-    // If caller explicitly sets a small per_page, respect it and skip pagination
-    const explicitLimit = extraParams.per_page ? Number(extraParams.per_page) : null;
-    if (explicitLimit && explicitLimit <= 100) {
-      const batch = await wcGet<WCProduct[]>('products', { ...extraParams });
-      return batch ?? [];
-    }
-    const perPage = 100;
-    let page = 1;
-    while (true) {
-      const batch = await wcGet<WCProduct[]>('products', {
-        ...extraParams,
-        per_page: perPage,
-        page,
-      });
-      if (!batch || batch.length === 0) break;
-      all.push(...batch);
-      if (batch.length < perPage) break;
-      page += 1;
-      if (page > 20) break; // safety cap: 2000 products max
-    }
-    return all;
+  async getProducts(params: Record<string, string | number> = {}): Promise<WCProduct[]> {
+    const data = await storeGet<StoreProduct[]>('products', { per_page: 100, ...params });
+    return (data ?? []).map(mapStoreProduct);
   }
 
   async getProduct(id: string | number): Promise<WCProduct | null> {
-    return wcGet<WCProduct>(`products/${id}`);
+    const data = await storeGet<StoreProduct>(`products/${id}`);
+    return data ? mapStoreProduct(data) : null;
   }
 
   async getProductVariations(productId: number): Promise<WCVariation[]> {
     const variations = await wcGet<WCVariation[]>(`products/${productId}/variations`, { per_page: 100 });
     return variations ?? [];
-  }
-
-  /**
-   * Pulls orders for a customer. WooCommerce REST API supports filtering by `customer`
-   * (numeric WC user id) or by `search` against billing email. We try both routes:
-   * if `customerId` is provided we use it (most reliable), otherwise we filter the
-   * full list by billing email client-side. Returns most-recent first.
-   */
-  async getOrdersByCustomer(opts: {
-    customerId?: number;
-    email?: string;
-    statuses?: WCOrderStatus[];
-    limit?: number;
-  }): Promise<WCOrder[]> {
-    const { customerId, email, statuses, limit = 30 } = opts;
-    const params: Record<string, string | number> = {
-      per_page: Math.min(limit, 100),
-      orderby: 'date',
-      order: 'desc',
-    };
-    if (customerId) params.customer = customerId;
-    if (statuses && statuses.length) params.status = statuses.join(',');
-
-    const orders = await wcGet<WCOrder[]>('orders', params);
-    if (!orders) return [];
-
-    if (customerId) return orders;
-    if (email) {
-      const lower = email.toLowerCase();
-      return orders.filter((o) => o.billing?.email?.toLowerCase() === lower);
-    }
-    return orders;
-  }
-
-  async getOrder(id: number): Promise<WCOrder | null> {
-    return wcGet<WCOrder>(`orders/${id}`);
-  }
-
-  async getCategories(): Promise<WCCategory[]> {
-    const data = await wcGet<WCCategory[]>('products/categories', {
-      per_page: 50,
-      hide_empty: 1,
-      orderby: 'count',
-      order: 'desc',
-    });
-    return data ?? [];
   }
 }
 

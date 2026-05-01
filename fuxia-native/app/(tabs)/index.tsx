@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, ImageBackground, Dimensions, ActivityIndicator } from 'react-native';
-import { ArrowRight, Sparkles } from 'lucide-react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, StatusBar, ImageBackground, Dimensions, ActivityIndicator } from 'react-native';
+import { Search, ShoppingBag, ArrowRight, Sparkles } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MotiView, MotiText } from 'moti';
@@ -9,12 +9,13 @@ import { ProductCard } from '@/components/ProductCard';
 
 const { width } = Dimensions.get('window');
 
+// Sistema de Diseño (Dark Luxury)
 const FuxiaDarkTheme = {
   colors: {
-    background: '#0D0D0D',
+    background: '#0D0D0D', // Deep black
     textPrimary: '#FFFFFF',
     textSecondary: '#A0A0A0',
-    brandGold: '#B8860B',
+    brandGold: '#B8860B', // Metallic Bronze
     brandGoldLight: '#DAA520',
     surface: '#121212',
     accent: '#B8860B',
@@ -23,6 +24,11 @@ const FuxiaDarkTheme = {
 };
 
 const HERO_IMAGE = require('../../assets/images/hero.png');
+const LOGO_IMAGE = require('../../assets/images/logo.png');
+const CAT_BALLERINAS = require('../../assets/images/cat_ballerinas.png');
+const CAT_SANDALS = require('../../assets/images/cat_sandals.png');
+const CAT_BOOTS = require('../../assets/images/cat_boots.png');
+const CAT_SALE = require('../../assets/images/cat_sale.png');
 
 
 export default function HomeScreen() {
@@ -36,7 +42,7 @@ export default function HomeScreen() {
   const loadHomeData = async () => {
     try {
       setLoading(true);
-      const data = await wcService.getProducts({ per_page: 6, status: 'publish', orderby: 'date' });
+      const data = await wcService.getProducts({ per_page: 6, orderby: 'date' });
       setNewArrivals(data);
     } catch (error) {
       console.error('Error loading home data:', error);
@@ -129,7 +135,62 @@ export default function HomeScreen() {
           </Text>
         </MotiView>
 
-        <View style={{ height: 100 }} />
+        {/* --- CATEGORIES: MASONRY STYLE --- */}
+        <View style={[styles.section, { marginBottom: 100 }]}>
+          <Text style={styles.sectionTitleCenter}>Categorías</Text>
+          
+          <View style={styles.masonryGrid}>
+            <View style={styles.gridCol}>
+              <TouchableOpacity
+                style={[styles.masonryTile, { height: 280 }]}
+                onPress={() => router.push({ pathname: '/(tabs)/shop' as any, params: { category: 'ballerinas' } })}
+                activeOpacity={0.85}
+              >
+                <ImageBackground source={CAT_BALLERINAS} style={styles.catImage}>
+                   <View style={styles.catOverlay}>
+                     <Text style={styles.catLabel}>Ballerinas</Text>
+                   </View>
+                </ImageBackground>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.masonryTile, { height: 180 }]}
+                onPress={() => router.push({ pathname: '/(tabs)/shop' as any, params: { category: 'botas' } })}
+                activeOpacity={0.85}
+              >
+                <ImageBackground source={CAT_BOOTS} style={styles.catImage}>
+                   <View style={styles.catOverlay}>
+                     <Text style={styles.catLabel}>Botas</Text>
+                   </View>
+                </ImageBackground>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.gridCol}>
+              <TouchableOpacity
+                style={[styles.masonryTile, { height: 180, marginTop: 40 }]}
+                onPress={() => router.push({ pathname: '/(tabs)/shop' as any, params: { category: 'sandalias' } })}
+                activeOpacity={0.85}
+              >
+                <ImageBackground source={CAT_SANDALS} style={styles.catImage}>
+                   <View style={styles.catOverlay}>
+                     <Text style={styles.catLabel}>Sandalias</Text>
+                   </View>
+                </ImageBackground>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.masonryTile, { height: 280 }]}
+                onPress={() => router.push({ pathname: '/(tabs)/shop' as any, params: { category: 'outlet' } })}
+                activeOpacity={0.85}
+              >
+                <ImageBackground source={CAT_SALE} style={styles.catImage}>
+                   <View style={styles.catOverlay}>
+                     <Text style={styles.catLabel}>Outlet</Text>
+                   </View>
+                </ImageBackground>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
 
       </ScrollView>
     </SafeAreaView>
@@ -168,9 +229,9 @@ const styles = StyleSheet.create({
   },
   
   // Hero
-  heroContainer: { 
-    width: '100%', 
-    height: width * 1.5,
+  heroContainer: {
+    width: '100%',
+    height: width * 1.1,
     backgroundColor: '#000'
   },
   heroImage: { resizeMode: 'cover', opacity: 0.85 },
@@ -263,11 +324,11 @@ const styles = StyleSheet.create({
 
   // Brand Pitch
   brandPitch: {
-    padding: 40,
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#151515',
-    marginVertical: 40,
+    marginVertical: 24,
   },
   pitchText: {
     color: '#A0A0A0',
@@ -279,4 +340,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 
+  // Masonry Grid
+  masonryGrid: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 15,
+  },
+  gridCol: {
+    flex: 1,
+    gap: 15,
+  },
+  masonryTile: {
+    width: '100%',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  catImage: {
+    flex: 1,
+  },
+  catOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 10,
+  },
+  catLabel: {
+    color: '#FFF',
+    fontSize: 18,
+    fontFamily: 'serif',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    fontWeight: '400',
+    textAlign: 'center',
+  }
 });
