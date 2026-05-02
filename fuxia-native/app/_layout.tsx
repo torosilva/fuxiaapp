@@ -50,6 +50,9 @@ function RootLayoutNav() {
     }
   }, [session, isLoading]);
 
+  // Don't render tabs at all until auth is resolved — prevents hero.png flash
+  if (isLoading) return null;
+
   return (
     <WishlistProvider>
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

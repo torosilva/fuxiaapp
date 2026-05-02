@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MotiView } from 'moti';
 import { Redirect } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Share2, ShoppingBag, Sparkles } from 'lucide-react-native';
 import { LoyaltyCard } from '@/components/LoyaltyCard';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -34,9 +35,16 @@ function formatDate(iso: string): string {
 }
 
 export default function CardScreen() {
-  const { session, customer, loyaltyCard, isLoading } = useAuth();
+  const { session, customer, loyaltyCard, isLoading, refresh } = useAuth();
   const [transactions, setTransactions] = useState<RecentTx[]>([]);
   const [txLoading, setTxLoading] = useState(true);
+
+  // Refresh loyalty card data every time the tab gets focus
+  useFocusEffect(
+    React.useCallback(() => {
+      refresh();
+    }, [])
+  );
 
   useEffect(() => {
     if (!loyaltyCard) {

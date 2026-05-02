@@ -246,20 +246,14 @@ export const LoyaltyCard = ({
             {/* Stats + QR abajo */}
             <View style={styles.body}>
               <View style={styles.statsCol}>
-                <View style={styles.statRow}>
-                  <View style={styles.stat}>
-                    <Text style={[styles.statValue, { color: config.accent }]}>
-                      {totalPoints.toLocaleString()}
-                    </Text>
-                    <Text style={styles.statLabel}>PUNTOS</Text>
-                  </View>
-                  <View style={styles.statDivider} />
-                  <View style={styles.stat}>
-                    <Text style={[styles.statValue, { color: config.accent }]}>
-                      {pairsCount}
-                    </Text>
-                    <Text style={styles.statLabel}>PARES</Text>
-                  </View>
+                <View style={styles.statStack}>
+                  <Text style={[styles.statValue, { color: config.accent }]}>
+                    {totalPoints.toLocaleString()}
+                  </Text>
+                  <Text style={styles.statLabel}>PUNTOS</Text>
+                  <Text style={[styles.statValueSmall, { color: config.accent }]}>
+                    {pairsCount} pares
+                  </Text>
                 </View>
                 <View style={styles.progressWrapper}>
                   <View style={styles.progressBg}>
@@ -434,16 +428,20 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 10,
   },
-  statRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  statStack: {
     marginBottom: 10,
   },
-  stat: { alignItems: 'flex-start' },
   statValue: {
     fontSize: 22,
     fontWeight: '300',
     letterSpacing: 1,
+  },
+  statValueSmall: {
+    fontSize: 12,
+    fontWeight: '300',
+    letterSpacing: 0.5,
+    marginTop: 4,
+    opacity: 0.75,
   },
   statLabel: {
     color: 'rgba(255,255,255,0.5)',
@@ -451,12 +449,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 2,
     marginTop: 1,
-  },
-  statDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    marginHorizontal: 14,
   },
   progressWrapper: { gap: 5 },
   progressBg: {
