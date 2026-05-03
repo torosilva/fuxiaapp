@@ -160,8 +160,8 @@ export const LoyaltyCard = ({
             {/* Logo icon centrado grande */}
             <View style={styles.frontCenter}>
               <MotiView
-                from={{ scale: 0.85, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
+                from={{ scale: 0.85 }}
+                animate={{ scale: 1 }}
                 transition={{ type: 'spring', damping: 12, delay: 400 }}
                 style={styles.iconWrapper}
               >
