@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import type { Tier } from '@/lib/database.types';
 import { registerPushToken } from '@/lib/notifications';
 import { detectDeviceCountry, syncFromCustomer } from '@/lib/CountryService';
+import { wcService } from '@/services/WooCommerceService';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -35,6 +36,8 @@ export interface Customer {
   email?: string;
   avatar_url?: string | null;
   country?: string | null;
+  birthday?: string | null;
+  wc_customer_id?: number | null;
 }
 
 export interface LoyaltyCardData {
@@ -63,7 +66,6 @@ export function useAuth() {
   });
 
   useEffect(() => {
-    // Load persisted session on mount
     loadSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -95,13 +97,28 @@ export function useAuth() {
 
     const { data: customer } = await supabase
       .from('customers')
-      .select('id, phone, name, email, avatar_url, country')
+      .select('id, phone, name, email, avatar_url, country, birthday, wc_customer_id')
       .eq('phone', phone)
       .single();
 
-    // Align local currency cache with what's saved on the user's profile.
     if (customer?.country) {
       await syncFromCustomer(customer.country);
+    }
+
+    // Auto-link WC account in background if not yet linked and email is available.
+    if (customer && !customer.wc_customer_id && customer.email) {
+      wcService
+        .findOrCreateWCCustomer(customer.email, customer.name, customer.phone)
+        .then((wcId) => {
+          if (wcId) {
+            supabase
+              .from('customers')
+              .update({ wc_customer_id: wcId })
+              .eq('id', customer.id)
+              .then(() => {});
+          }
+        })
+        .catch(() => {});
     }
 
     let loyaltyCard: LoyaltyCardData | null = null;
@@ -125,7 +142,6 @@ export function useAuth() {
 
     setState({ session, customer: customer ?? null, loyaltyCard, isLoading: false });
 
-    // Fire-and-forget push registration. Fails silently on simulator / denied perms.
     if (customer?.id) {
       registerPushToken(customer.id).catch(() => {});
     }
@@ -161,7 +177,6 @@ export function useAuth() {
     const data = await res.json();
     if (!res.ok) return { error: data.error };
 
-    // Set session in Supabase client
     await supabase.auth.setSession({
       access_token: data.session.access_token,
       refresh_token: data.session.refresh_token,
@@ -170,17 +185,37 @@ export function useAuth() {
     return { isNewUser: data.isNewUser };
   }
 
-  async function createProfile(phone: string, name: string, email?: string): Promise<{ error?: string }> {
+  async function createProfile(
+    phone: string,
+    name: string,
+    email: string,
+    birthday?: string,
+  ): Promise<{ error?: string }> {
     const country = detectDeviceCountry();
+
+    // Find or create the WooCommerce customer account.
+    let wc_customer_id: number | null = null;
+    try {
+      wc_customer_id = await wcService.findOrCreateWCCustomer(email, name, phone);
+    } catch {
+      // Non-fatal — user can still use the app without WC linking.
+    }
+
     const { data: customer, error } = await supabase
       .from('customers')
-      .insert({ phone, name, email: email ?? null, country })
+      .insert({
+        phone,
+        name,
+        email,
+        country,
+        birthday: birthday ?? null,
+        wc_customer_id,
+      })
       .select('id')
       .single();
 
     if (error || !customer) return { error: 'Error creando perfil' };
 
-    // Generate QR and loyalty card
     const shortId = phone.replace('+', '').slice(-8).padStart(8, '0');
     const qrCode = `FX-${shortId}-${Date.now().toString(36)}-00`;
 

@@ -94,6 +94,25 @@ async function wcGet<T>(path: string, params: Record<string, string | number> = 
   }
 }
 
+async function wcPost<T>(path: string, body: Record<string, unknown>): Promise<T | null> {
+  try {
+    const res = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: PROXY_HEADERS,
+      body: JSON.stringify({ path, method: 'POST', body }),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`wcPost ${path} → ${res.status} ${errText}`);
+      return null;
+    }
+    return (await res.json()) as T;
+  } catch (err) {
+    console.error(`wcPost ${path} threw:`, err);
+    return null;
+  }
+}
+
 interface StorePrices {
   price: string;
   regular_price: string;
@@ -252,6 +271,22 @@ class WooCommerceService {
 
   async getOrder(id: number): Promise<WCOrder | null> {
     return wcGet<WCOrder>(`orders/${id}`);
+  }
+
+  /** Find an existing WC customer by email, or create one. Returns wc_customer_id or null on failure. */
+  async findOrCreateWCCustomer(email: string, name: string, phone: string): Promise<number | null> {
+    const found = await wcGet<{ id: number }[]>('customers', { email, per_page: 1 });
+    if (found && found.length > 0) return found[0].id;
+
+    const [firstName, ...rest] = name.trim().split(' ');
+    const lastName = rest.join(' ');
+    const created = await wcPost<{ id: number }>('customers', {
+      email,
+      first_name: firstName,
+      last_name: lastName,
+      billing: { first_name: firstName, last_name: lastName, email, phone },
+    });
+    return created?.id ?? null;
   }
 }
 

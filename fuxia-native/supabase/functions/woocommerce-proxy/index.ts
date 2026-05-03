@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
-const WC_URL = Deno.env.get('WC_URL')!;                    // e.g. https://fuxiaballerinas.com/wp-json/wc/v3
+const WC_URL = Deno.env.get('WC_URL')!;
 const WC_CONSUMER_KEY = Deno.env.get('WC_CONSUMER_KEY')!;
 const WC_CONSUMER_SECRET = Deno.env.get('WC_CONSUMER_SECRET')!;
 
@@ -17,29 +17,44 @@ function json(data: unknown, status = 200) {
   });
 }
 
-// Only allow read-only GET calls to safe paths. Blocks order mutations, customer PII dumps, etc.
-const ALLOWED_PATTERNS: RegExp[] = [
-  /^products(\/\d+)?$/,                    // products, products/{id}
-  /^products\/\d+\/variations(\/\d+)?$/,   // products/{id}/variations[/id]
+const ALLOWED_GET: RegExp[] = [
+  /^products(\/\d+)?$/,
+  /^products\/\d+\/variations(\/\d+)?$/,
   /^products\/categories$/,
   /^products\/attributes$/,
-  /^orders(\/\d+)?$/,                      // orders, orders/{id} (GET-only via the fetch below)
+  /^orders(\/\d+)?$/,
+  /^customers$/, // search by email
+];
+
+const ALLOWED_POST: RegExp[] = [
+  /^customers$/, // create customer
 ];
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
-  let body: { path: string; params?: Record<string, string | number> };
+  let body: {
+    path: string;
+    params?: Record<string, string | number>;
+    method?: string;
+    body?: Record<string, unknown>;
+  };
   try {
     body = await req.json();
   } catch {
     return json({ error: 'Invalid JSON' }, 400);
   }
 
-  const path = (body.path ?? '').replace(/^\/+|\/+$/g, ''); // trim slashes
+  const path = (body.path ?? '').replace(/^\/+|\/+$/g, '');
+  const wcMethod = (body.method ?? 'GET').toUpperCase();
 
-  if (!ALLOWED_PATTERNS.some((re) => re.test(path))) {
+  const allowed =
+    wcMethod === 'POST'
+      ? ALLOWED_POST.some((re) => re.test(path))
+      : ALLOWED_GET.some((re) => re.test(path));
+
+  if (!allowed) {
     return json({ error: 'Path not allowed', path }, 403);
   }
 
@@ -47,14 +62,26 @@ serve(async (req) => {
   url.searchParams.set('consumer_key', WC_CONSUMER_KEY);
   url.searchParams.set('consumer_secret', WC_CONSUMER_SECRET);
 
-  for (const [k, v] of Object.entries(body.params ?? {})) {
-    url.searchParams.set(k, String(v));
+  if (wcMethod === 'GET') {
+    for (const [k, v] of Object.entries(body.params ?? {})) {
+      url.searchParams.set(k, String(v));
+    }
   }
 
-  const res = await fetch(url.toString(), { method: 'GET' });
-  const text = await res.text();
-  const headers = { 'Content-Type': 'application/json', ...CORS };
+  const fetchOptions: RequestInit =
+    wcMethod === 'POST'
+      ? {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body.body ?? {}),
+        }
+      : { method: 'GET' };
 
-  // WooCommerce returns JSON; pass through status.
-  return new Response(text, { status: res.status, headers });
+  const res = await fetch(url.toString(), fetchOptions);
+  const text = await res.text();
+
+  return new Response(text, {
+    status: res.status,
+    headers: { 'Content-Type': 'application/json', ...CORS },
+  });
 });
