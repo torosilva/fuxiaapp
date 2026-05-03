@@ -122,6 +122,7 @@ interface StoreProduct {
   categories: { id: number; name: string; slug: string }[];
   is_in_stock: boolean;
   variations: { id: number }[];
+  attributes?: { id: number; name: string; value: string }[];
 }
 
 function formatPrice(minor: string | undefined, decimals: number): string {
@@ -129,6 +130,19 @@ function formatPrice(minor: string | undefined, decimals: number): string {
   const n = parseInt(minor, 10);
   if (Number.isNaN(n)) return '';
   return decimals === 0 ? String(n) : (n / Math.pow(10, decimals)).toFixed(decimals);
+}
+
+function mapStoreVariation(s: StoreProduct): WCVariation {
+  const decimals = s.prices?.currency_minor_unit ?? 0;
+  return {
+    id: s.id,
+    price: formatPrice(s.prices?.price, decimals),
+    regular_price: formatPrice(s.prices?.regular_price, decimals),
+    sale_price: formatPrice(s.prices?.sale_price, decimals),
+    stock_status: s.is_in_stock ? 'instock' : 'outofstock',
+    stock_quantity: null,
+    attributes: (s.attributes ?? []).map((a) => ({ id: a.id, name: a.name, option: a.value ?? '' })),
+  };
 }
 
 function mapStoreProduct(s: StoreProduct): WCProduct {
@@ -195,9 +209,12 @@ class WooCommerceService {
     return data ? mapStoreProduct(data) : null;
   }
 
-  async getProductVariations(productId: number): Promise<WCVariation[]> {
-    const variations = await wcGet<WCVariation[]>(`products/${productId}/variations`, { per_page: 100 });
-    return variations ?? [];
+  async getProductVariations(productId: number, variationIds: number[] = []): Promise<WCVariation[]> {
+    if (variationIds.length === 0) return [];
+    const results = await Promise.all(
+      variationIds.slice(0, 30).map((vid) => storeGet<StoreProduct>(`products/${vid}`)),
+    );
+    return results.filter(Boolean).map((v) => mapStoreVariation(v!));
   }
 
   /** Category images from fuxiaballerinas.com — UI provides local fallback if offline */

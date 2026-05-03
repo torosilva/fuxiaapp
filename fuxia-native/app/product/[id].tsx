@@ -45,7 +45,7 @@ export default function ProductDetailScreen() {
     if (productData) {
       setProduct(productData);
       if (productData.variations.length > 0) {
-        const variationData = await wcService.getProductVariations(productData.id);
+        const variationData = await wcService.getProductVariations(productData.id, productData.variations);
         setVariations(variationData);
       }
     }
