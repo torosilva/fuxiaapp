@@ -4,6 +4,7 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import type { Tier } from '@/lib/database.types';
 import { registerPushToken } from '@/lib/notifications';
+import { detectDeviceCountry, syncFromCustomer } from '@/lib/CountryService';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -33,6 +34,7 @@ export interface Customer {
   name: string;
   email?: string;
   avatar_url?: string | null;
+  country?: string | null;
 }
 
 export interface LoyaltyCardData {
@@ -93,9 +95,14 @@ export function useAuth() {
 
     const { data: customer } = await supabase
       .from('customers')
-      .select('id, phone, name, email, avatar_url')
+      .select('id, phone, name, email, avatar_url, country')
       .eq('phone', phone)
       .single();
+
+    // Align local currency cache with what's saved on the user's profile.
+    if (customer?.country) {
+      await syncFromCustomer(customer.country);
+    }
 
     let loyaltyCard: LoyaltyCardData | null = null;
 
@@ -164,9 +171,10 @@ export function useAuth() {
   }
 
   async function createProfile(phone: string, name: string, email?: string): Promise<{ error?: string }> {
+    const country = detectDeviceCountry();
     const { data: customer, error } = await supabase
       .from('customers')
-      .insert({ phone, name, email: email ?? null })
+      .insert({ phone, name, email: email ?? null, country })
       .select('id')
       .single();
 

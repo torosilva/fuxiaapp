@@ -15,6 +15,7 @@ import { ArrowLeft, TrendingUp, Wallet, Calendar } from 'lucide-react-native';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import type { Channel } from '@/lib/database.types';
+import { formatMoney } from '@/lib/CountryService';
 
 interface Tx {
   id: string;
@@ -27,8 +28,6 @@ interface Tx {
 
 const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-const formatMoney = (n: number, currency = 'MXN') =>
-  `$${n.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${currency}`;
 
 const monthKey = (iso: string) => {
   const d = new Date(iso);

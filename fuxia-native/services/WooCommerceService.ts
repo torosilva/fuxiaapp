@@ -3,7 +3,12 @@
  * exposes prices/stock. Authenticated calls (variations, future orders) go through
  * the Supabase Edge Function `woocommerce-proxy` so the consumer_key/secret never
  * ship in the mobile bundle.
+ *
+ * Multi-currency: every Store API call is decorated with `wcpbc-manual-country`
+ * (WCPBC plugin) so users in CO/US/etc. see the right prices instead of MXN.
  */
+import { getCountry } from '@/lib/CountryService';
+
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
@@ -26,6 +31,8 @@ export interface WCProduct {
   price: string;
   regular_price: string;
   sale_price: string;
+  currency_code: string;
+  currency_symbol: string;
   stock_status: 'instock' | 'outofstock' | 'onbackorder';
   stock_quantity: number | null;
   images: { id: number; src: string; alt: string }[];
@@ -93,6 +100,7 @@ interface StorePrices {
   sale_price: string;
   currency_minor_unit: number;
   currency_code: string;
+  currency_symbol: string;
 }
 
 interface StoreCategory {
@@ -137,6 +145,8 @@ function mapStoreProduct(s: StoreProduct): WCProduct {
     price: formatPrice(s.prices?.price, decimals),
     regular_price: formatPrice(s.prices?.regular_price, decimals),
     sale_price: formatPrice(s.prices?.sale_price, decimals),
+    currency_code: s.prices?.currency_code ?? 'MXN',
+    currency_symbol: s.prices?.currency_symbol ?? '$',
     stock_status: s.is_in_stock ? 'instock' : 'outofstock',
     stock_quantity: null,
     images: s.images || [],
@@ -150,6 +160,9 @@ async function storeGet<T>(path: string, params: Record<string, string | number>
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, String(v));
   }
+  // Tell the WCPBC plugin which country's prices/currency to return.
+  const country = await getCountry();
+  url.searchParams.set('wcpbc-manual-country', country);
   try {
     const res = await fetch(url.toString());
     if (!res.ok) {
@@ -161,6 +174,14 @@ async function storeGet<T>(path: string, params: Record<string, string | number>
     console.error(`storeGet ${path} threw:`, err);
     return null;
   }
+}
+
+/** Append the WCPBC country param to a permalink so the web shows the same currency. */
+export async function withCountryParam(url: string): Promise<string> {
+  if (!url) return url;
+  const country = await getCountry();
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}wcpbc-manual-country=${country}`;
 }
 
 class WooCommerceService {

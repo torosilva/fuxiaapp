@@ -9,7 +9,8 @@ import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useState, useEffect } from 'react';
 import { MotiView } from 'moti';
-import { wcService, WCProduct, WCVariation } from '@/services/WooCommerceService';
+import { wcService, WCProduct, WCVariation, withCountryParam } from '@/services/WooCommerceService';
+import { formatMoney } from '@/lib/CountryService';
 import { LoyaltyCard } from '@/components/LoyaltyCard';
 import { TryOnModal } from '@/components/TryOnModal';
 
@@ -105,7 +106,9 @@ export default function ProductDetailScreen() {
                 {product.categories[0]?.name || 'Colección'}
               </Text>
             </RNView>
-            <Text style={styles.price}>${product.price}</Text>
+            <Text style={styles.price}>
+              {formatMoney(product.price, product.currency_code, product.currency_symbol)}
+            </Text>
           </RNView>
 
           {/* Description */}
@@ -259,9 +262,10 @@ export default function ProductDetailScreen() {
             disabled={isOutOfStock || (sizes.length > 0 && !selectedSize)}
             onPress={async () => {
               if (!product.permalink) return;
-              const url = selectedSize
+              const base = selectedSize
                 ? `${product.permalink}?attribute_pa_size=${encodeURIComponent(selectedSize)}`
                 : product.permalink;
+              const url = await withCountryParam(base);
               await WebBrowser.openBrowserAsync(url);
             }}
             style={[

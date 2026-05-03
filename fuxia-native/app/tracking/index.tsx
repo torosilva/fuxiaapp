@@ -15,6 +15,7 @@ import { MotiView } from 'moti';
 import { ArrowLeft, Package, Truck, CheckCircle2, Clock, ExternalLink } from 'lucide-react-native';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { wcService, WCOrder, WCOrderStatus } from '@/services/WooCommerceService';
+import { formatMoney } from '@/lib/CountryService';
 
 const TRACKING_STATUSES: WCOrderStatus[] = ['pending', 'processing', 'on-hold'];
 
@@ -50,8 +51,6 @@ const formatDate = (iso: string) => {
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-const formatMoney = (n: number, currency = 'MXN') =>
-  `$${n.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${currency}`;
 
 interface TrackingMeta {
   trackingNumber: string | null;

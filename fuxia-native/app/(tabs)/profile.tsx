@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Image, ScrollView, TouchableOpacity, View as RNView, ActivityIndicator } from 'react-native';
 import { Text, View } from '@/components/Themed';
-import { User as UserIcon, Package, MapPin, Gift, CreditCard, ChevronRight, CheckCircle2, LogOut, Camera } from 'lucide-react-native';
+import { User as UserIcon, Package, MapPin, Gift, CreditCard, ChevronRight, CheckCircle2, LogOut, Camera, Globe } from 'lucide-react-native';
 import { Alert } from 'react-native';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -10,6 +10,14 @@ import { Redirect, router } from 'expo-router';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
+import { CountryPicker } from '@/components/CountryPicker';
+import {
+  getCountry,
+  getCountryMeta,
+  setCountry,
+  subscribeCountry,
+  type CountryCode,
+} from '@/lib/CountryService';
 
 const SANDALS_IMAGE = require('../../assets/images/sandals.png');
 
@@ -34,6 +42,25 @@ export default function ProfileScreen() {
   const theme = Colors[colorScheme ?? 'light'];
   const { session, customer, loyaltyCard, isLoading, signOut, refresh } = useAuth();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [country, setCountryState] = useState<CountryCode>('MX');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const countryMeta = getCountryMeta(country);
+
+  useEffect(() => {
+    let mounted = true;
+    getCountry().then((c) => mounted && setCountryState(c));
+    const unsub = subscribeCountry((c) => mounted && setCountryState(c));
+    return () => {
+      mounted = false;
+      unsub();
+    };
+  }, []);
+
+  const handleSelectCountry = async (code: CountryCode) => {
+    setPickerOpen(false);
+    if (code === country) return;
+    await setCountry(code, customer?.id);
+  };
 
   const handlePickAvatar = async () => {
     if (!customer || !session) return;
@@ -229,6 +256,24 @@ export default function ProfileScreen() {
         )}
       </RNView>
 
+      <RNView style={styles.section}>
+        <Text style={styles.sectionTitle}>Preferencias</Text>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => setPickerOpen(true)}
+          style={[styles.prefRow, { backgroundColor: theme.soft }]}
+        >
+          <Globe size={20} color={theme.text} />
+          <RNView style={{ flex: 1 }}>
+            <Text style={styles.prefLabel}>País de envío</Text>
+            <Text style={[styles.prefValue, { color: theme.muted }]}>
+              {countryMeta.flag}  {countryMeta.name} · {countryMeta.currency}
+            </Text>
+          </RNView>
+          <ChevronRight size={18} color={theme.muted} />
+        </TouchableOpacity>
+      </RNView>
+
       <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.7}>
         <LogOut size={16} color="#FF6B6B" />
         <Text style={styles.signOutText}>Cerrar sesión</Text>
@@ -239,6 +284,13 @@ export default function ProfileScreen() {
       </TouchableOpacity>
 
       <RNView style={{ height: 100 }} />
+
+      <CountryPicker
+        visible={pickerOpen}
+        current={country}
+        onSelect={handleSelectCountry}
+        onClose={() => setPickerOpen(false)}
+      />
     </ScrollView>
   );
 }
@@ -418,6 +470,23 @@ const styles = StyleSheet.create({
   },
   trackFill: {
     height: '100%',
+  },
+  prefRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+  },
+  prefLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  prefValue: {
+    fontSize: 12,
+    marginTop: 2,
+    letterSpacing: 0.5,
   },
   signOutBtn: {
     flexDirection: 'row',

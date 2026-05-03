@@ -8,6 +8,7 @@ import { WCProduct } from '@/services/WooCommerceService';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from './useColorScheme';
 import { useWishlist } from '@/lib/WishlistContext';
+import { formatMoney } from '@/lib/CountryService';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.42;
@@ -75,7 +76,7 @@ export const ProductCard = ({ product, index, featured, fullWidth }: ProductCard
             {product.name}
           </Text>
           <Text style={[styles.price, { color: '#D1D1D1' }]}>
-            ${product.price} MXN
+            {formatMoney(product.price, product.currency_code, product.currency_symbol)}
           </Text>
         </RNView>
       </MotiView>
