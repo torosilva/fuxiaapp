@@ -30,19 +30,19 @@ const TIER_CONFIG: Record<Tier, {
   shimmer: string;
 }> = {
   bronze: {
-    label: 'Bronce',
+    label: 'Bronze',
     colors: ['#2A1000', '#7A3B00', '#3D1C00'],
     accent: '#CD7F32',
     shimmer: 'rgba(205,127,50,0.35)',
   },
   silver: {
-    label: 'Plata',
+    label: 'Silver',
     colors: ['#1A1A1A', '#3A3A3A', '#252525'],
     accent: '#D0D0D0',
     shimmer: 'rgba(210,210,210,0.4)',
   },
   gold: {
-    label: 'Oro',
+    label: 'Gold',
     colors: ['#1C0E00', '#5C3800', '#2C1A00'],
     accent: '#FFD700',
     shimmer: 'rgba(255,215,0,0.35)',
@@ -120,7 +120,7 @@ export const LoyaltyCard = ({
     tier === 'gold'
       ? 'Nivel máximo · Hilo Gold'
       : pointsToNext && pointsToNext > 0
-      ? `${pointsToNext} pts para ${tier === 'bronze' ? 'Silver' : 'Gold'}`
+      ? `${pointsToNext} pts · next: ${tier === 'bronze' ? 'Silver' : 'Gold'}`
       : 'Lista para subir de nivel';
 
   const progressPercent =

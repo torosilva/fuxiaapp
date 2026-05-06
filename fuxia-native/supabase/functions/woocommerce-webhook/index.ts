@@ -53,13 +53,13 @@ async function verifySignature(body: string, signatureB64: string): Promise<bool
   return computed === signatureB64;
 }
 
-function computeTier(points: number, pairs: number): Tier {
-  if (pairs >= 13 || points >= 1201) return 'gold';
-  if (pairs >= 6 || points >= 501) return 'silver';
+function computeTier(points: number): Tier {
+  if (points >= 900) return 'gold';
+  if (points >= 300) return 'silver';
   return 'bronze';
 }
 
-const TIER_NAME_ES: Record<Tier, string> = { bronze: 'Bronce', silver: 'Plata', gold: 'Oro' };
+const TIER_LABEL: Record<Tier, string> = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold' };
 
 async function sendPushToCustomer(
   supabase: ReturnType<typeof createClient>,
@@ -203,7 +203,7 @@ serve(async (req) => {
 
   const amount = parseFloat(order.total);
   const pairs = order.line_items.reduce((sum, it) => sum + it.quantity, 0);
-  const points = Math.floor(amount / 50) + pairs * 10;
+  const points = pairs * 100; // 100 pts per pair — Programa Hilo
 
   const { data: tx, error: txErr } = await supabase
     .from('transactions')
@@ -240,7 +240,7 @@ serve(async (req) => {
 
   const newPoints = card.total_points + points;
   const newPairs = card.pairs_count + pairs;
-  const newTier = computeTier(newPoints, newPairs);
+  const newTier = computeTier(newPoints);
 
   await supabase
     .from('loyalty_cards')
@@ -264,15 +264,15 @@ serve(async (req) => {
       type: 'tier_upgrade',
       threshold_points: newPoints,
       product_sku: tierCfg?.reward_sku ?? null,
-      description: tierCfg?.reward_description ?? `Subiste a nivel ${newTier}`,
+      description: tierCfg?.reward_description ?? `Subiste a nivel ${TIER_LABEL[newTier]}`,
     });
 
     await sendPushToCustomer(
       supabase,
       customer.id,
       customer.name,
-      `¡Subiste a nivel ${TIER_NAME_ES[newTier]}! ✨`,
-      `{name}, tu recompensa de ${TIER_NAME_ES[newTier]} te espera. ${tierCfg?.reward_description ?? ''}`.trim(),
+      `¡Subiste a nivel ${TIER_LABEL[newTier]}! ✨`,
+      `{name}, tu recompensa de ${TIER_LABEL[newTier]} te espera. ${tierCfg?.reward_description ?? ''}`.trim(),
       { type: 'tier_upgrade', tier: newTier },
     );
   } else if (points > 0) {

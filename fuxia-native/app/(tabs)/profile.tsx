@@ -234,6 +234,10 @@ export default function ProfileScreen() {
         <Text style={styles.signOutText}>Cerrar sesión</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity onPress={() => router.push('/privacy' as any)} style={styles.privacyLink}>
+        <Text style={styles.privacyText}>Política de Privacidad</Text>
+      </TouchableOpacity>
+
       <RNView style={{ height: 100 }} />
     </ScrollView>
   );
@@ -433,5 +437,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 1,
+  },
+  privacyLink: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  privacyText: {
+    color: 'rgba(255,255,255,0.25)',
+    fontSize: 11,
+    letterSpacing: 0.5,
   },
 });
