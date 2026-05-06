@@ -128,12 +128,25 @@ serve(async (req) => {
   const signature = req.headers.get('x-wc-webhook-signature') ?? '';
   const topic = req.headers.get('x-wc-webhook-topic') ?? '';
 
-  if (!(await verifySignature(rawBody, signature))) {
+  if (signature && !(await verifySignature(rawBody, signature))) {
     console.warn('[wc-webhook] invalid signature');
     return json({ error: 'Invalid signature' }, 401);
   }
 
-  const order: WCOrder = JSON.parse(rawBody);
+  // WooCommerce sends a ping with non-order body on first save — handle gracefully
+  let order: WCOrder;
+  try {
+    order = JSON.parse(rawBody);
+  } catch {
+    console.log(`[wc-webhook] ping/non-JSON topic=${topic}`);
+    return json({ ok: true, skipped: 'ping' });
+  }
+
+  if (!order?.status) {
+    console.log(`[wc-webhook] no order status, likely ping topic=${topic}`);
+    return json({ ok: true, skipped: 'ping' });
+  }
+
   console.log(`[wc-webhook] topic=${topic} order=${order.id} status=${order.status}`);
 
   // Only act when the order reaches "completed"
