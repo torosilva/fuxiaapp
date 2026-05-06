@@ -14,8 +14,8 @@ const fnHeaders = {
 };
 
 const TIER_THRESHOLDS: { tier: Tier; min_points: number; min_pairs: number }[] = [
-  { tier: 'silver', min_points: 501,  min_pairs: 6  },
-  { tier: 'gold',   min_points: 1201, min_pairs: 13 },
+  { tier: 'silver', min_points: 300, min_pairs: 3 },
+  { tier: 'gold',   min_points: 900, min_pairs: 9 },
 ];
 
 function computeTierProgress(tier: Tier, total_points: number, pairs_count: number) {

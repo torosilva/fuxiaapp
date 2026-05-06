@@ -118,15 +118,15 @@ export const LoyaltyCard = ({
   /* Computed values */
   const progressLabel =
     tier === 'gold'
-      ? 'Nivel máximo'
+      ? 'Nivel máximo · Hilo Gold'
       : pointsToNext && pointsToNext > 0
-      ? `${pointsToNext} pts para ${tier === 'bronze' ? 'Plata' : 'Oro'}`
+      ? `${pointsToNext} pts para ${tier === 'bronze' ? 'Silver' : 'Gold'}`
       : 'Lista para subir de nivel';
 
   const progressPercent =
     tier === 'gold' ? 1
-    : tier === 'bronze' ? Math.min(1, totalPoints / 501)
-    : Math.min(1, totalPoints / 1201);
+    : tier === 'bronze' ? Math.min(1, totalPoints / 300)
+    : Math.min(1, totalPoints / 900);
 
   return (
     <MotiView
