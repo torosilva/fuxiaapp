@@ -11,6 +11,7 @@ import { useState, useEffect } from 'react';
 import { MotiView } from 'moti';
 import { wcService, WCProduct, WCVariation } from '@/services/WooCommerceService';
 import { LoyaltyCard } from '@/components/LoyaltyCard';
+import { TryOnModal } from '@/components/TryOnModal';
 
 const { width } = Dimensions.get('window');
 
@@ -28,6 +29,7 @@ export default function ProductDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [isGift, setIsGift] = useState(false);
+  const [tryOnVisible, setTryOnVisible] = useState(false);
   const { customer, loyaltyCard } = useAuth();
 
   useEffect(() => {
@@ -168,6 +170,18 @@ export default function ProductDetailScreen() {
             </RNView>
           )}
 
+          {/* Try-On Button */}
+          {product.images[0] && (
+            <TouchableOpacity
+              style={styles.tryOnBtn}
+              onPress={() => setTryOnVisible(true)}
+              activeOpacity={0.85}
+            >
+              <Sparkles size={16} color="#0D0D0D" />
+              <Text style={styles.tryOnBtnText}>✨ Pruébatelo con IA</Text>
+            </TouchableOpacity>
+          )}
+
           {/* Points preview for this purchase */}
           {product.price && (
             <RNView style={styles.pointsPreview}>
@@ -179,6 +193,16 @@ export default function ProductDetailScreen() {
                 </Text>
               </Text>
             </RNView>
+          )}
+
+          {/* Try-On Modal */}
+          {product.images[0] && (
+            <TryOnModal
+              visible={tryOnVisible}
+              onClose={() => setTryOnVisible(false)}
+              productImage={product.images[0].src}
+              productName={product.name}
+            />
           )}
 
           {/* Loyalty Banner — real user's card */}
@@ -261,6 +285,14 @@ export default function ProductDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  tryOnBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, backgroundColor: '#CD7F32', borderRadius: 30,
+    paddingVertical: 14, marginHorizontal: 20, marginBottom: 14,
+  },
+  tryOnBtnText: {
+    color: '#0D0D0D', fontSize: 14, fontWeight: '800', letterSpacing: 0.5,
+  },
   pointsPreview: {
     flexDirection: 'row',
     alignItems: 'center',
