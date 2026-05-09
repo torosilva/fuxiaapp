@@ -42,6 +42,7 @@ export default function ProfileScreen() {
   const theme = Colors[colorScheme ?? 'light'];
   const { session, customer, loyaltyCard, isLoading, signOut, refresh } = useAuth();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarVersion, setAvatarVersion] = useState(0);
   const [country, setCountryState] = useState<CountryCode>('MX');
   const [pickerOpen, setPickerOpen] = useState(false);
   const countryMeta = getCountryMeta(country);
@@ -102,6 +103,7 @@ export default function ProfileScreen() {
       if (updateErr) throw updateErr;
 
       await refresh();
+      setAvatarVersion(v => v + 1); // force Image re-render
     } catch (err: any) {
       Alert.alert('Error', err?.message ?? 'No se pudo subir la foto.');
     } finally {
@@ -173,7 +175,11 @@ export default function ProfileScreen() {
           style={[styles.avatarContainer, { borderColor: theme.accent, backgroundColor: theme.soft }]}
         >
           {customer.avatar_url ? (
-            <Image source={{ uri: customer.avatar_url }} style={styles.avatarImage} />
+            <Image
+              key={avatarVersion}
+              source={{ uri: customer.avatar_url }}
+              style={styles.avatarImage}
+            />
           ) : (
             <Text style={[styles.avatarInitials, { color: theme.accent }]}>
               {customer.name

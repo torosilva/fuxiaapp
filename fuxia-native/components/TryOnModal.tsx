@@ -53,6 +53,22 @@ export function TryOnModal({ visible, onClose, productImage, productName }: TryO
 
   const pickAndRun = async (fromCamera: boolean) => {
     try {
+      if (fromCamera) {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          setErrorMsg('Necesitamos permiso para usar la cámara. Actívalo en Configuración > Fuxia.');
+          setStep('error');
+          return;
+        }
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          setErrorMsg('Necesitamos permiso para acceder a tu galería. Actívalo en Configuración > Fuxia.');
+          setStep('error');
+          return;
+        }
+      }
+
       const result = fromCamera
         ? await ImagePicker.launchCameraAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
