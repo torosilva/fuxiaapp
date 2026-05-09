@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, StatusBar, ImageBackground, Dimensions, ActivityIndicator } from 'react-native';
-import { Search, ShoppingBag, ArrowRight, Sparkles } from 'lucide-react-native';
+import { Search, ShoppingBag, ArrowRight, Sparkles, MessageCircle } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MotiView, MotiText } from 'moti';
@@ -138,6 +138,14 @@ export default function HomeScreen() {
         <View style={{ height: 100 }} />
 
       </ScrollView>
+
+      <TouchableOpacity
+        style={styles.hiloFab}
+        onPress={() => router.push('/hilo')}
+        activeOpacity={0.85}
+      >
+        <MessageCircle size={24} color="#0D0D0D" strokeWidth={2} />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -318,5 +326,21 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     fontWeight: '400',
     textAlign: 'center',
-  }
+  },
+  hiloFab: {
+    position: 'absolute',
+    bottom: 110,
+    right: 20,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#CD7F32',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#CD7F32',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 8,
+  },
 });

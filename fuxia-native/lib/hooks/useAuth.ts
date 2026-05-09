@@ -97,7 +97,7 @@ export function useAuth() {
 
     const { data: customer } = await supabase
       .from('customers')
-      .select('id, phone, name, email, avatar_url, country, birthday, wc_customer_id')
+      .select('id, phone, name, email, avatar_url, country')
       .eq('phone', phone)
       .single();
 
