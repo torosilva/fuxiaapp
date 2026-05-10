@@ -5,11 +5,12 @@ import {
   ActivityIndicator, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { X, Send } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'https://hilo.hilolabs.ai';
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
 type MessageRole = 'user' | 'assistant' | 'system';
 interface Message {
@@ -46,26 +47,21 @@ export default function HiloScreen() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/v1/chat/web`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/hilo-chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-App-Platform': 'mobile',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
           user_id: userId.current,
           message: userMsg.content,
-          metadata: {
-            source: 'mobile_app',
-            os: Platform.OS,
-            app_version: '1.0.0',
-          },
         }),
       });
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? `HTTP ${response.status}`);
+
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
 
       if (data.escalate) {
@@ -77,7 +73,7 @@ export default function HiloScreen() {
     } catch {
       setMessages(prev => [
         ...prev,
-        { role: 'assistant', content: 'Tuve un problema de conexión. Inténtalo de nuevo o escríbenos por WhatsApp.' },
+        { role: 'assistant', content: 'Tuve un problema de conexión. Inténtalo de nuevo o escríbenos por WhatsApp al +52 1 55 XXXX XXXX.' },
       ]);
     } finally {
       setLoading(false);
@@ -112,7 +108,8 @@ export default function HiloScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle="light-content" />
 
       <View style={styles.header}>
@@ -130,7 +127,7 @@ export default function HiloScreen() {
       <KeyboardAvoidingView
         style={styles.chatArea}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 25}
       >
         <FlatList
           ref={flatListRef}
@@ -140,6 +137,7 @@ export default function HiloScreen() {
           contentContainerStyle={styles.messagesList}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         />
 
         {loading && (
@@ -270,6 +268,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 12,
     paddingVertical: 10,
+    paddingBottom: Platform.OS === 'ios' ? 16 : 10,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.07)',
     backgroundColor: '#0D0D0D',

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, StatusBar, ImageBackground, Dimensions, ActivityIndicator } from 'react-native';
-import { Search, ShoppingBag, ArrowRight, Sparkles, MessageCircle } from 'lucide-react-native';
+import { ArrowRight, Sparkles } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MotiView, MotiText } from 'moti';
@@ -23,12 +23,8 @@ const FuxiaDarkTheme = {
   spacing: { s: 8, m: 16, l: 24, xl: 32 }
 };
 
-const HERO_IMAGE = require('../../assets/images/hero.png');
+const HERO_IMAGE_URI = 'https://fuxiaballerinas.com/wp-content/uploads/2025/12/Mafalda-estoperoles.jpg';
 const LOGO_IMAGE = require('../../assets/images/logo.png');
-const CAT_BALLERINAS = require('../../assets/images/cat_ballerinas.png');
-const CAT_SANDALS = require('../../assets/images/cat_sandals.png');
-const CAT_BOOTS = require('../../assets/images/cat_boots.png');
-const CAT_SALE = require('../../assets/images/cat_sale.png');
 
 
 export default function HomeScreen() {
@@ -58,8 +54,8 @@ export default function HomeScreen() {
       <ScrollView showsVerticalScrollIndicator={false} stickyHeaderIndices={[]} scrollEventThrottle={16}>
         
         {/* --- HERO SECTION: EDITORIAL IMPACT --- */}
-        <ImageBackground 
-          source={HERO_IMAGE} 
+        <ImageBackground
+          source={{ uri: HERO_IMAGE_URI }}
           style={styles.heroContainer}
           imageStyle={styles.heroImage}
         >
@@ -138,14 +134,6 @@ export default function HomeScreen() {
         <View style={{ height: 100 }} />
 
       </ScrollView>
-
-      <TouchableOpacity
-        style={styles.hiloFab}
-        onPress={() => router.push('/hilo')}
-        activeOpacity={0.85}
-      >
-        <MessageCircle size={24} color="#0D0D0D" strokeWidth={2} />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }

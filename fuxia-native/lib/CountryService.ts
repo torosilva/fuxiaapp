@@ -18,18 +18,26 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Localization from 'expo-localization';
 import { supabase } from '@/lib/supabase';
 
+/**
+ * mxn_rate: how many MXN equals 1 unit of this currency.
+ * Used to normalize points (1 pt = 1 MXN equivalent).
+ * Examples:
+ *   MXN: 1 MXN  = 1 MXN  → rate 1
+ *   USD: 1 USD  ≈ 17 MXN → rate 17
+ *   COP: 1 COP  ≈ 0.0067 MXN (150 COP = 1 MXN) → rate 0.0067
+ */
 export const SUPPORTED_COUNTRIES = [
-  { code: 'MX', name: 'México',         flag: '🇲🇽', currency: 'MXN' },
-  { code: 'CO', name: 'Colombia',       flag: '🇨🇴', currency: 'COP' },
-  { code: 'US', name: 'Estados Unidos', flag: '🇺🇸', currency: 'USD' },
-  { code: 'CA', name: 'Canadá',         flag: '🇨🇦', currency: 'USD' },
-  { code: 'GT', name: 'Guatemala',      flag: '🇬🇹', currency: 'USD' },
-  { code: 'SV', name: 'El Salvador',    flag: '🇸🇻', currency: 'USD' },
-  { code: 'CL', name: 'Chile',          flag: '🇨🇱', currency: 'USD' },
-  { code: 'AR', name: 'Argentina',      flag: '🇦🇷', currency: 'USD' },
-  { code: 'PA', name: 'Panamá',         flag: '🇵🇦', currency: 'USD' },
-  { code: 'CR', name: 'Costa Rica',     flag: '🇨🇷', currency: 'USD' },
-  { code: 'PE', name: 'Perú',           flag: '🇵🇪', currency: 'USD' },
+  { code: 'MX', name: 'México',         flag: '🇲🇽', currency: 'MXN', mxn_rate: 1        },
+  { code: 'CO', name: 'Colombia',       flag: '🇨🇴', currency: 'COP', mxn_rate: 1 / 150  },
+  { code: 'US', name: 'Estados Unidos', flag: '🇺🇸', currency: 'USD', mxn_rate: 17       },
+  { code: 'CA', name: 'Canadá',         flag: '🇨🇦', currency: 'USD', mxn_rate: 17       },
+  { code: 'GT', name: 'Guatemala',      flag: '🇬🇹', currency: 'USD', mxn_rate: 17       },
+  { code: 'SV', name: 'El Salvador',    flag: '🇸🇻', currency: 'USD', mxn_rate: 17       },
+  { code: 'CL', name: 'Chile',          flag: '🇨🇱', currency: 'USD', mxn_rate: 17       },
+  { code: 'AR', name: 'Argentina',      flag: '🇦🇷', currency: 'USD', mxn_rate: 17       },
+  { code: 'PA', name: 'Panamá',         flag: '🇵🇦', currency: 'USD', mxn_rate: 17       },
+  { code: 'CR', name: 'Costa Rica',     flag: '🇨🇷', currency: 'USD', mxn_rate: 17       },
+  { code: 'PE', name: 'Perú',           flag: '🇵🇪', currency: 'USD', mxn_rate: 17       },
 ] as const;
 
 export type CountryCode = typeof SUPPORTED_COUNTRIES[number]['code'];
@@ -111,6 +119,19 @@ export function getCountryMeta(code: CountryCode) {
  * (es-MX → comma, es-CO → period, etc). Currency code is appended so the user
  * can tell MXN $2,700 from USD $160 (both use the `$` glyph).
  */
+/**
+ * Converts a product price to loyalty points.
+ * Rule: 1 punto por cada peso MXN equivalente.
+ * COP gets divided by 150 to normalize. USD multiplied by 17.
+ */
+export function priceToPoints(price: number | string, currencyCode: string): number {
+  const n = typeof price === 'string' ? Number(price) : price;
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  const country = SUPPORTED_COUNTRIES.find((c) => c.currency === currencyCode);
+  const rate = country?.mxn_rate ?? 1;
+  return Math.round(n * rate);
+}
+
 export function formatMoney(
   amount: number | string,
   currency: string,

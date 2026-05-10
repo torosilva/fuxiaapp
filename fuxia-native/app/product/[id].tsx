@@ -10,7 +10,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { useState, useEffect } from 'react';
 import { MotiView } from 'moti';
 import { wcService, WCProduct, WCVariation, withCountryParam } from '@/services/WooCommerceService';
-import { formatMoney } from '@/lib/CountryService';
+import { formatMoney, priceToPoints } from '@/lib/CountryService';
 import { LoyaltyCard } from '@/components/LoyaltyCard';
 import { TryOnModal } from '@/components/TryOnModal';
 
@@ -192,7 +192,7 @@ export default function ProductDetailScreen() {
               <Text style={[styles.pointsPreviewText, { color: theme.accent }]}>
                 Con esta compra ganarás{' '}
                 <Text style={{ fontWeight: '800' }}>
-                  +{Math.floor(Number(product.price) / 50) + 10} puntos
+                  +{priceToPoints(product.price, product.currency_code ?? 'MXN').toLocaleString()} puntos
                 </Text>
               </Text>
             </RNView>

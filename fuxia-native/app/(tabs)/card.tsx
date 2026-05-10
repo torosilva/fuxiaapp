@@ -13,7 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MotiView } from 'moti';
 import { Redirect } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Share2, ShoppingBag, Sparkles } from 'lucide-react-native';
+import { Share2, ShoppingBag, Sparkles, MessageCircle } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { LoyaltyCard } from '@/components/LoyaltyCard';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -128,6 +129,15 @@ export default function CardScreen() {
           <Text style={styles.shareBtnText}>Compartir tarjeta</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.contactBtn}
+          onPress={() => router.push('/hilo' as any)}
+          activeOpacity={0.85}
+        >
+          <MessageCircle size={18} color="#0D0D0D" />
+          <Text style={styles.contactBtnText}>Contáctanos · Hilo</Text>
+        </TouchableOpacity>
+
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <ShoppingBag size={16} color="#CD7F32" />
@@ -223,6 +233,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 1,
+  },
+  contactBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginHorizontal: 24,
+    marginTop: -8,
+    marginBottom: 32,
+    paddingVertical: 16,
+    borderRadius: 30,
+    backgroundColor: '#CD7F32',
+  },
+  contactBtnText: {
+    color: '#0D0D0D',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   section: {
     paddingHorizontal: 24,
