@@ -8,7 +8,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import { X, Send } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/hooks/useAuth';
 
+const HILO_URL = 'https://hilo.hilolabs.ai/api/v1/chat/web';
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
@@ -19,6 +22,7 @@ interface Message {
 }
 
 export default function HiloScreen() {
+  const { customer } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: '¡Hola! Soy Hilo 💛 ¿En qué puedo ayudarte hoy?' },
   ]);
@@ -47,15 +51,26 @@ export default function HiloScreen() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/hilo-chat`, {
+      // Get fresh JWT for the logged-in user
+      const { data: { session } } = await supabase.auth.getSession();
+      const jwt = session?.access_token ?? SUPABASE_ANON_KEY;
+
+      // Try hilolabs.ai first
+      const response = await fetch(HILO_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'X-App-Platform': 'mobile',
+          'Authorization': `Bearer ${jwt}`,
         },
         body: JSON.stringify({
           user_id: userId.current,
           message: userMsg.content,
+          metadata: {
+            source: 'mobile_app',
+            app_version: '1.0.0',
+            ...(customer?.email ? { user_email: customer.email } : {}),
+          },
         }),
       });
 
@@ -71,10 +86,30 @@ export default function HiloScreen() {
         ]);
       }
     } catch {
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: 'Tuve un problema de conexión. Inténtalo de nuevo o escríbenos por WhatsApp al +52 1 55 XXXX XXXX.' },
-      ]);
+      // Fallback to Supabase KB function
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/hilo-chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ user_id: userId.current, message: userMsg.content }),
+        });
+        const data = await res.json();
+        setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+        if (data.escalate) {
+          setMessages(prev => [...prev, {
+            role: 'system',
+            content: 'Te conectaremos con el equipo. Una persona te escribirá por WhatsApp en breve.',
+          }]);
+        }
+      } catch {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'Tuve un problema de conexión. Inténtalo de nuevo o escríbenos a hola@fuxiaballerinas.com 💛',
+        }]);
+      }
     } finally {
       setLoading(false);
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
