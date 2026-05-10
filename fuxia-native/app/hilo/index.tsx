@@ -29,16 +29,22 @@ export default function HiloScreen() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const userId = useRef<string | null>(null);
+  const conversationId = useRef<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     (async () => {
+      // Load or create anonymous user ID
       let id = await AsyncStorage.getItem('fuxia_anon_id');
       if (!id) {
         id = `mobile_anon_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
         await AsyncStorage.setItem('fuxia_anon_id', id);
       }
       userId.current = id;
+
+      // Restore previous conversation_id so Hilo recuerda el contexto
+      const savedConvId = await AsyncStorage.getItem('hilo_conversation_id');
+      if (savedConvId) conversationId.current = savedConvId;
     })();
   }, []);
 
@@ -66,6 +72,7 @@ export default function HiloScreen() {
         body: JSON.stringify({
           user_id: userId.current,
           message: userMsg.content,
+          ...(conversationId.current ? { conversation_id: conversationId.current } : {}),
           metadata: {
             source: 'mobile_app',
             app_version: '1.0.0',
@@ -76,6 +83,12 @@ export default function HiloScreen() {
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? `HTTP ${response.status}`);
+
+      // Persist conversation_id for memory between sessions
+      if (data.conversation_id) {
+        conversationId.current = data.conversation_id;
+        await AsyncStorage.setItem('hilo_conversation_id', data.conversation_id);
+      }
 
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
 
