@@ -10,7 +10,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { useState, useEffect } from 'react';
 import { MotiView } from 'moti';
 import { wcService, WCProduct, WCVariation, withCountryParam } from '@/services/WooCommerceService';
-import { formatMoney, priceToPoints } from '@/lib/CountryService';
+import { formatMoney } from '@/lib/CountryService';
 import { LoyaltyCard } from '@/components/LoyaltyCard';
 import { TryOnModal } from '@/components/TryOnModal';
 
@@ -186,17 +186,14 @@ export default function ProductDetailScreen() {
           )}
 
           {/* Points preview for this purchase */}
-          {product.price && (
-            <RNView style={styles.pointsPreview}>
-              <Sparkles size={18} color={theme.accent} />
-              <Text style={[styles.pointsPreviewText, { color: theme.accent }]}>
-                Con esta compra ganarás{' '}
-                <Text style={{ fontWeight: '800' }}>
-                  +{priceToPoints(product.price, product.currency_code ?? 'MXN').toLocaleString()} puntos
-                </Text>
-              </Text>
-            </RNView>
-          )}
+          <RNView style={styles.pointsPreview}>
+            <Sparkles size={18} color={theme.accent} />
+            <Text style={[styles.pointsPreviewText, { color: theme.accent }]}>
+              Con esta compra ganarás{' '}
+              <Text style={{ fontWeight: '800' }}>+100 puntos Hilo</Text>
+              {' '}en tu tarjeta de lealtad
+            </Text>
+          </RNView>
 
           {/* Try-On Modal */}
           {product.images[0] && (

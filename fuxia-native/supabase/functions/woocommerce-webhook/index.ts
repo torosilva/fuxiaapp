@@ -59,6 +59,27 @@ function computeTier(points: number): Tier {
   return 'bronze';
 }
 
+/**
+ * Convierte el total de la orden a puntos MXN equivalentes.
+ * Regla KB: 1 punto por cada peso MXN gastado.
+ * COP: 150 COP = 1 MXN → rate 1/150
+ * USD: 1 USD ≈ 17 MXN → rate 17
+ */
+function orderToPoints(total: number, currency: string): number {
+  const rates: Record<string, number> = {
+    MXN: 1,
+    USD: 17,
+    CAD: 13,
+    COP: 1 / 150,
+    CLP: 1 / 55,
+    ARS: 1 / 60,
+    GTQ: 2.2,
+    PEN: 4.5,
+  };
+  const rate = rates[currency.toUpperCase()] ?? 1;
+  return Math.round(total * rate);
+}
+
 const TIER_LABEL: Record<Tier, string> = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold' };
 
 async function sendPushToCustomer(
@@ -216,7 +237,8 @@ serve(async (req) => {
 
   const amount = parseFloat(order.total);
   const pairs = order.line_items.reduce((sum, it) => sum + it.quantity, 0);
-  const points = pairs * 100; // 100 pts per pair — Programa Hilo
+  // 1 punto por cada peso MXN gastado (KB Programa Hilo)
+  const points = orderToPoints(amount, order.currency ?? 'MXN');
 
   const { data: tx, error: txErr } = await supabase
     .from('transactions')
