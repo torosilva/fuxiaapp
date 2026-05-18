@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Image, ScrollView, TouchableOpacity, View as RNView, ActivityIndicator } from 'react-native';
 import { Text, View } from '@/components/Themed';
-import { User as UserIcon, Package, MapPin, Gift, CreditCard, ChevronRight, CheckCircle2, LogOut, Camera, Globe } from 'lucide-react-native';
+import { User as UserIcon, Package, MapPin, Gift, CreditCard, ChevronRight, CheckCircle2, LogOut, Camera, Globe, Settings, Store } from 'lucide-react-native';
 import { Alert } from 'react-native';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -274,6 +274,34 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </RNView>
 
+      {/* Quick-access section */}
+      <RNView style={[styles.section, { marginTop: 24 }]}>
+        <Text style={styles.sectionTitle}>Accesos</Text>
+        <RNView style={styles.accessRow}>
+          <TouchableOpacity
+            style={[styles.accessCard, { backgroundColor: theme.soft, borderColor: theme.border }]}
+            onPress={() => router.push('/claim' as any)}
+            activeOpacity={0.8}
+          >
+            <Store size={22} color={theme.accent} />
+            <Text style={styles.accessLabel}>Reclamar puntos</Text>
+            <Text style={[styles.accessSub, { color: theme.muted }]}>Código de tienda</Text>
+          </TouchableOpacity>
+
+          {(customer as any).role === 'admin' && (
+            <TouchableOpacity
+              style={[styles.accessCard, { backgroundColor: theme.soft, borderColor: theme.border }]}
+              onPress={() => router.push('/admin' as any)}
+              activeOpacity={0.8}
+            >
+              <Settings size={22} color={theme.accent} />
+              <Text style={styles.accessLabel}>Panel Admin</Text>
+              <Text style={[styles.accessSub, { color: theme.muted }]}>Canales y ventas</Text>
+            </TouchableOpacity>
+          )}
+        </RNView>
+      </RNView>
+
       <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.7}>
         <LogOut size={16} color="#FF6B6B" />
         <Text style={styles.signOutText}>Cerrar sesión</Text>
@@ -487,6 +515,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
     letterSpacing: 0.5,
+  },
+  accessRow: {
+    flexDirection: 'row',
+    gap: 14,
+    flexWrap: 'wrap',
+    marginBottom: 8,
+  },
+  accessCard: {
+    flex: 1,
+    minWidth: '45%',
+    padding: 18,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    gap: 8,
+  },
+  accessLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  accessSub: {
+    fontSize: 11,
+    textAlign: 'center',
   },
   signOutBtn: {
     flexDirection: 'row',
