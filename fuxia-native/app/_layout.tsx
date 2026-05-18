@@ -63,6 +63,7 @@ function RootLayoutNav() {
         <Stack.Screen name="hilo" options={{ headerShown: false, presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="admin" options={{ headerShown: false }} />
         <Stack.Screen name="vendedora" options={{ headerShown: false }} />
+        <Stack.Screen name="vendedora/sales-today" options={{ headerShown: false }} />
         <Stack.Screen name="claim" options={{ headerShown: false }} />
       </Stack>
     </ThemeProvider>
