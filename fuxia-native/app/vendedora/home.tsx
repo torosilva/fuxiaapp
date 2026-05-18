@@ -76,15 +76,23 @@ export default function VendedoraHomeScreen() {
           from={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: 'timing', duration: 400, delay: 100 }}
-          style={styles.counterCard}
         >
-          <Text style={styles.counterLabel}>Ventas de hoy</Text>
-          {salesCount === null ? (
-            <ActivityIndicator color="#B8860B" />
-          ) : (
-            <Text style={styles.counterValue}>{salesCount}</Text>
-          )}
-          <Text style={styles.counterSub}>ventas registradas</Text>
+          <TouchableOpacity
+            style={styles.counterCard}
+            activeOpacity={0.8}
+            onPress={() => router.push({
+              pathname: '/vendedora/sales-today' as any,
+              params: { channelId, channelName },
+            })}
+          >
+            <Text style={styles.counterLabel}>Ventas de hoy</Text>
+            {salesCount === null ? (
+              <ActivityIndicator color="#B8860B" />
+            ) : (
+              <Text style={styles.counterValue}>{salesCount}</Text>
+            )}
+            <Text style={styles.counterSub}>toca para ver detalle</Text>
+          </TouchableOpacity>
         </MotiView>
 
         {/* Actions */}

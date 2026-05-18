@@ -55,29 +55,27 @@ export default function AdminHomeScreen() {
       supabase.from('offline_sales').select('channel_id, total').not('channel_id', 'is', null),
     ]);
 
-    if (channelsRes.data) setChannels(channelsRes.data as Channel[]);
+    const chData = (channelsRes.data ?? []) as Channel[];
+    if (chData.length) setChannels(chData);
     if (staffRes.data) setStaff(staffRes.data as unknown as Staff[]);
 
-    // Build per-channel summaries client-side
-    if (channelsRes.data && inventoryRes.data && salesRes.data) {
-      const inv = inventoryRes.data as { channel_id: string; stock: number; sold: number }[];
-      const sales = salesRes.data as { channel_id: string; total: number }[];
+    // Build per-channel summaries — treat null results as empty arrays
+    const inv = (inventoryRes.data ?? []) as { channel_id: string; stock: number; sold: number }[];
+    const sales = (salesRes.data ?? []) as { channel_id: string; total: number }[];
 
-      const built: ChannelSummary[] = (channelsRes.data as Channel[]).map((ch) => {
-        const chInv = inv.filter((i) => i.channel_id === ch.id);
-        const chSales = sales.filter((s) => s.channel_id === ch.id);
-        return {
-          channel_id: ch.id,
-          channel_name: ch.name,
-          total_stock: chInv.reduce((s, i) => s + (i.stock ?? 0), 0),
-          total_sold: chInv.reduce((s, i) => s + (i.sold ?? 0), 0),
-          total_revenue: chSales.reduce((s, v) => s + Number(v.total ?? 0), 0),
-          sales_count: chSales.length,
-        };
-      }).filter((s) => s.total_stock > 0 || s.sales_count > 0);
-
-      setSummaries(built);
-    }
+    const built: ChannelSummary[] = chData.map((ch) => {
+      const chInv = inv.filter((i) => i.channel_id === ch.id);
+      const chSales = sales.filter((s) => s.channel_id === ch.id);
+      return {
+        channel_id: ch.id,
+        channel_name: ch.name,
+        total_stock: chInv.reduce((s, i) => s + (i.stock ?? 0), 0),
+        total_sold: chInv.reduce((s, i) => s + (i.sold ?? 0), 0),
+        total_revenue: chSales.reduce((s, v) => s + Number(v.total ?? 0), 0),
+        sales_count: chSales.length,
+      };
+    });
+    setSummaries(built);
 
     setLoading(false);
   }, []);
@@ -101,7 +99,7 @@ export default function AdminHomeScreen() {
           <Text style={styles.title}>Panel Admin</Text>
 
           {/* Resumen de ventas */}
-          {summaries.length > 0 && (
+          {summaries.length > 0 && !loading && (
             <MotiView
               from={{ opacity: 0, translateY: 12 }}
               animate={{ opacity: 1, translateY: 0 }}
