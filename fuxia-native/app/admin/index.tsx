@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { MotiView } from 'moti';
 import { Plus, Store, ShoppingBag, User } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
@@ -47,9 +47,7 @@ export default function AdminHomeScreen() {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useFocusEffect(fetchData);
 
   return (
     <SafeAreaView style={styles.container}>
