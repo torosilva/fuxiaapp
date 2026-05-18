@@ -288,15 +288,17 @@ export default function ProfileScreen() {
             <Text style={[styles.accessSub, { color: theme.muted }]}>Código de tienda</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.accessCard, { backgroundColor: theme.soft, borderColor: theme.border }]}
-            onPress={() => router.push('/vendedora' as any)}
-            activeOpacity={0.8}
-          >
-            <ShoppingBag size={22} color={theme.accent} />
-            <Text style={styles.accessLabel}>Modo Vendedora</Text>
-            <Text style={[styles.accessSub, { color: theme.muted }]}>Registrar ventas</Text>
-          </TouchableOpacity>
+          {((customer as any).role === 'staff' || (customer as any).role === 'admin') && (
+            <TouchableOpacity
+              style={[styles.accessCard, { backgroundColor: theme.soft, borderColor: theme.border }]}
+              onPress={() => router.push('/vendedora' as any)}
+              activeOpacity={0.8}
+            >
+              <ShoppingBag size={22} color={theme.accent} />
+              <Text style={styles.accessLabel}>Modo Vendedora</Text>
+              <Text style={[styles.accessSub, { color: theme.muted }]}>Registrar ventas</Text>
+            </TouchableOpacity>
+          )}
 
           {(customer as any).role === 'admin' && (
             <TouchableOpacity
