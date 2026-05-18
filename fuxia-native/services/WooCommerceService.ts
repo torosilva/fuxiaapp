@@ -275,7 +275,8 @@ class WooCommerceService {
 
   /** Find an existing WC customer by email, or create one. Returns wc_customer_id or null on failure. */
   async findOrCreateWCCustomer(email: string, name: string, phone: string): Promise<number | null> {
-    const found = await wcGet<{ id: number }[]>('customers', { email, per_page: 1 });
+    // role=all finds any WP user (admins, editors, etc.), not just customers
+    const found = await wcGet<{ id: number }[]>('customers', { email, per_page: 1, role: 'all' });
     if (found && found.length > 0) return found[0].id;
 
     const [firstName, ...rest] = name.trim().split(' ');
