@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Image, ScrollView, TouchableOpacity, View as RNView, ActivityIndicator } from 'react-native';
 import { Text, View } from '@/components/Themed';
-import { User as UserIcon, Package, MapPin, Gift, CreditCard, ChevronRight, CheckCircle2, LogOut, Camera, Globe, Settings, Store } from 'lucide-react-native';
+import { User as UserIcon, Package, MapPin, Gift, CreditCard, ChevronRight, CheckCircle2, LogOut, Camera, Globe, Settings, Store, ShoppingBag } from 'lucide-react-native';
 import { Alert } from 'react-native';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -286,6 +286,16 @@ export default function ProfileScreen() {
             <Store size={22} color={theme.accent} />
             <Text style={styles.accessLabel}>Reclamar puntos</Text>
             <Text style={[styles.accessSub, { color: theme.muted }]}>Código de tienda</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.accessCard, { backgroundColor: theme.soft, borderColor: theme.border }]}
+            onPress={() => router.push('/vendedora' as any)}
+            activeOpacity={0.8}
+          >
+            <ShoppingBag size={22} color={theme.accent} />
+            <Text style={styles.accessLabel}>Modo Vendedora</Text>
+            <Text style={[styles.accessSub, { color: theme.muted }]}>Registrar ventas</Text>
           </TouchableOpacity>
 
           {(customer as any).role === 'admin' && (
