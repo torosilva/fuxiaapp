@@ -4,7 +4,7 @@ import {
   KeyboardAvoidingView, Platform, StyleSheet,
   ActivityIndicator, StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { X, Send } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,6 +18,7 @@ interface Message {
 }
 
 export default function HiloScreen() {
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: '¡Hola! Soy Hilo 💛 ¿En qué puedo ayudarte hoy?' },
   ]);
@@ -112,7 +113,7 @@ export default function HiloScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" />
 
       <View style={styles.header}>
@@ -130,7 +131,7 @@ export default function HiloScreen() {
       <KeyboardAvoidingView
         style={styles.chatArea}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
+        keyboardVerticalOffset={0}
       >
         <FlatList
           ref={flatListRef}
@@ -153,7 +154,7 @@ export default function HiloScreen() {
           </View>
         )}
 
-        <View style={styles.inputBar}>
+        <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
           <TextInput
             style={styles.input}
             value={input}
@@ -269,7 +270,8 @@ const styles = StyleSheet.create({
   inputBar: {
     flexDirection: 'row',
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingTop: 10,
+    paddingBottom: 10,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.07)',
     backgroundColor: '#0D0D0D',
