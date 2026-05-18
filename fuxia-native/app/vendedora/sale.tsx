@@ -24,8 +24,14 @@ import {
   Phone,
   CheckCircle2,
   RefreshCcw,
+  QrCode,
+  Zap,
 } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
+import QRScanner from '@/components/QRScanner';
+
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
 interface InventoryItem {
   id: string;
@@ -69,6 +75,10 @@ export default function VendedoraSaleScreen() {
   const [phone, setPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [saleCode, setSaleCode] = useState('');
+  const [scanning, setScanning] = useState(false);
+  const [scannedQR, setScannedQR] = useState<string | null>(null);
+  const [scannedName, setScannedName] = useState<string | null>(null);
+  const [immediatePoints, setImmediatePoints] = useState<number>(0);
 
   const fetchInventory = useCallback(async () => {
     if (!channelId) return;
@@ -124,6 +134,12 @@ export default function VendedoraSaleScreen() {
   const total = cartItems.reduce((sum, it) => sum + it.price * it.quantity, 0);
   const totalPairs = cartItems.reduce((sum, it) => sum + it.quantity, 0);
 
+  const handleQRScanned = (qrCode: string) => {
+    setScanning(false);
+    setScannedQR(qrCode);
+    setStep('confirm');
+  };
+
   const handleConfirm = async () => {
     if (cartItems.length === 0) {
       Alert.alert('Carrito vacío', 'Agrega al menos un producto.');
@@ -132,7 +148,6 @@ export default function VendedoraSaleScreen() {
 
     setSubmitting(true);
     try {
-      const code = generateCode(6);
       const items = cartItems.map((it) => ({
         inventory_id: it.id,
         product_name: it.product_name,
@@ -142,27 +157,49 @@ export default function VendedoraSaleScreen() {
         unit_price: it.price,
       }));
 
-      const { error: saleErr } = await supabase.from('offline_sales').insert({
-        code,
-        channel_id: channelId ?? null,
-        staff_id: staffId ?? null,
-        customer_phone: phone.trim() ? `+52${phone.replace(/\D/g, '')}` : null,
-        items,
-        total,
-        points_earned: totalPairs * 100,
-      });
-      if (saleErr) throw saleErr;
-
-      // Decrement sold count for each item
+      // Decrement sold count
       const decrements = cartItems.map((it) =>
-        supabase
-          .from('channel_inventory')
-          .update({ sold: it.sold + it.quantity })
-          .eq('id', it.id),
+        supabase.from('channel_inventory').update({ sold: it.sold + it.quantity }).eq('id', it.id),
       );
       await Promise.all(decrements);
 
-      setSaleCode(code);
+      if (scannedQR) {
+        // Flujo QR: puntos inmediatos vía edge function
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/claim-sale`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            action: 'scan_qr',
+            qr_code: scannedQR,
+            items,
+            total,
+            channel_id: channelId ?? null,
+            staff_id: staffId ?? null,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? 'Error al acreditar puntos');
+        setScannedName(data.customer_name ?? null);
+        setImmediatePoints(data.points_earned ?? totalPairs * 100);
+      } else {
+        // Flujo código: clienta reclama después
+        const code = generateCode(6);
+        const { error: saleErr } = await supabase.from('offline_sales').insert({
+          code,
+          channel_id: channelId ?? null,
+          staff_id: staffId ?? null,
+          customer_phone: phone.trim() ? `+52${phone.replace(/\D/g, '')}` : null,
+          items,
+          total,
+          points_earned: totalPairs * 100,
+        });
+        if (saleErr) throw saleErr;
+        setSaleCode(code);
+      }
+
       setStep('success');
     } catch (err: any) {
       Alert.alert('Error', err?.message ?? 'No se pudo registrar la venta.');
@@ -175,6 +212,9 @@ export default function VendedoraSaleScreen() {
     setCart(new Map());
     setPhone('');
     setSaleCode('');
+    setScannedQR(null);
+    setScannedName(null);
+    setImmediatePoints(0);
     setStep('products');
     fetchInventory();
   };
@@ -302,7 +342,7 @@ export default function VendedoraSaleScreen() {
             <TouchableOpacity onPress={() => setStep('products')} style={styles.backBtn} activeOpacity={0.7}>
               <ArrowLeft size={20} color="#B8860B" />
             </TouchableOpacity>
-            <Text style={styles.stepLabel}>Paso 2 — Teléfono</Text>
+            <Text style={styles.stepLabel}>Paso 2 — Clienta</Text>
           </View>
 
           <MotiView
@@ -311,10 +351,33 @@ export default function VendedoraSaleScreen() {
             transition={{ type: 'timing', duration: 350 }}
             style={styles.phoneStep}
           >
-            <Text style={styles.phoneTitle}>¿La clienta tiene{'\n'}la app?</Text>
+            <Text style={styles.phoneTitle}>¿Tiene la app{'\n'}Fuxia?</Text>
+
+            {/* Opción A: escanear QR */}
+            <TouchableOpacity
+              style={styles.scanQRBtn}
+              onPress={() => setScanning(true)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.scanQRIcon}>
+                <QrCode size={28} color="#B8860B" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.scanQRTitle}>Escanear QR de la app</Text>
+                <Text style={styles.scanQRSub}>Puntos acreditados al instante</Text>
+              </View>
+              <Zap size={18} color="#B8860B" />
+            </TouchableOpacity>
+
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>o</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Opción B: teléfono / código */}
             <Text style={styles.phoneSub}>
-              Ingresa su número para que gane puntos al reclamar.{'\n'}
-              <Text style={{ color: 'rgba(255,255,255,0.3)' }}>Puedes omitirlo si no tiene la app.</Text>
+              Ingresa su número y se genera un código para reclamar después.
             </Text>
 
             <View style={styles.phoneInputRow}>
@@ -337,7 +400,7 @@ export default function VendedoraSaleScreen() {
               onPress={() => setStep('confirm')}
               activeOpacity={0.85}
             >
-              <Text style={styles.nextBtnText}>Continuar</Text>
+              <Text style={styles.nextBtnText}>Continuar con código</Text>
               <ArrowRight size={18} color="#0D0D0D" />
             </TouchableOpacity>
 
@@ -346,10 +409,16 @@ export default function VendedoraSaleScreen() {
               onPress={() => { setPhone(''); setStep('confirm'); }}
               activeOpacity={0.7}
             >
-              <Text style={styles.skipBtnText}>Omitir — sin app</Text>
+              <Text style={styles.skipBtnText}>No tiene la app — omitir</Text>
             </TouchableOpacity>
           </MotiView>
         </KeyboardAvoidingView>
+
+        <QRScanner
+          visible={scanning}
+          onScan={handleQRScanned}
+          onClose={() => setScanning(false)}
+        />
       </SafeAreaView>
     );
   }
@@ -397,14 +466,19 @@ export default function VendedoraSaleScreen() {
               <Text style={styles.confirmTotalValue}>${total.toFixed(2)} MXN</Text>
             </View>
 
-            {phone ? (
+            {scannedQR ? (
+              <View style={styles.phoneChip}>
+                <QrCode size={14} color="#B8860B" />
+                <Text style={styles.phoneChipText}>QR escaneado — puntos inmediatos</Text>
+              </View>
+            ) : phone ? (
               <View style={styles.phoneChip}>
                 <Phone size={14} color="#B8860B" />
                 <Text style={styles.phoneChipText}>+52 {phone}</Text>
               </View>
             ) : (
               <View style={styles.phoneChip}>
-                <Text style={styles.phoneChipTextMuted}>Sin teléfono registrado</Text>
+                <Text style={styles.phoneChipTextMuted}>Sin teléfono — generará código</Text>
               </View>
             )}
 
@@ -443,18 +517,31 @@ export default function VendedoraSaleScreen() {
         <CheckCircle2 size={56} color="#4CAF50" />
         <Text style={styles.successTitle}>¡Venta registrada!</Text>
 
-        <View style={styles.codeCard}>
-          <Text style={styles.codeLabel}>CÓDIGO DE PUNTOS</Text>
-          <Text style={styles.codeValue}>{saleCode}</Text>
-        </View>
-
-        <Text style={styles.codeInstructions}>
-          Díselo a tu clienta para que reclame{'\n'}sus puntos en la app
-        </Text>
-
-        <Text style={styles.pointsEarned}>
-          +{totalPairs * 100} puntos al reclamar
-        </Text>
+        {scannedQR ? (
+          // Flujo QR: puntos inmediatos
+          <View style={styles.codeCard}>
+            <Zap size={28} color="#B8860B" style={{ marginBottom: 8 }} />
+            <Text style={styles.codeLabel}>PUNTOS ACREDITADOS</Text>
+            <Text style={styles.codeValue}>+{immediatePoints}</Text>
+            {scannedName && (
+              <Text style={styles.codeInstructions}>a {scannedName} ✓</Text>
+            )}
+          </View>
+        ) : (
+          // Flujo código
+          <>
+            <View style={styles.codeCard}>
+              <Text style={styles.codeLabel}>CÓDIGO DE PUNTOS</Text>
+              <Text style={styles.codeValue}>{saleCode}</Text>
+            </View>
+            <Text style={styles.codeInstructions}>
+              Díselo a tu clienta para que reclame{'\n'}sus puntos en la app
+            </Text>
+            <Text style={styles.pointsEarned}>
+              +{totalPairs * 100} puntos al reclamar
+            </Text>
+          </>
+        )}
 
         <TouchableOpacity
           style={styles.newSaleBtn}
@@ -847,5 +934,50 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#0D0D0D',
     fontWeight: '800',
+  },
+  scanQRBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: 'rgba(184,134,11,0.4)',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 20,
+  },
+  scanQRIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(184,134,11,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scanQRTitle: {
+    fontSize: 15,
+    color: '#fff',
+    fontWeight: '700',
+  },
+  scanQRSub: {
+    fontSize: 12,
+    color: '#B8860B',
+    marginTop: 2,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  dividerText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.3)',
+    fontWeight: '600',
   },
 });
