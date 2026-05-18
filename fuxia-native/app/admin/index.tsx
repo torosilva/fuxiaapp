@@ -47,7 +47,11 @@ export default function AdminHomeScreen() {
     setLoading(false);
   }, []);
 
-  useFocusEffect(fetchData);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData]),
+  );
 
   return (
     <SafeAreaView style={styles.container}>
