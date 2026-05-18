@@ -1,8 +1,10 @@
+SET search_path = public;
+
 -- Add role to customers
-ALTER TABLE customers ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'staff', 'admin'));
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'staff', 'admin'));
 
 -- Sales channels (tienda física / bazar)
-CREATE TABLE IF NOT EXISTS channels (
+CREATE TABLE IF NOT EXISTS public.channels (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('store', 'bazar')),
@@ -13,19 +15,19 @@ CREATE TABLE IF NOT EXISTS channels (
 );
 
 -- Staff / vendedoras
-CREATE TABLE IF NOT EXISTS staff (
+CREATE TABLE IF NOT EXISTS public.staff (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   pin TEXT NOT NULL,
-  channel_id UUID REFERENCES channels(id) ON DELETE SET NULL,
+  channel_id UUID REFERENCES public.channels(id) ON DELETE SET NULL,
   active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Channel inventory (independent from WooCommerce)
-CREATE TABLE IF NOT EXISTS channel_inventory (
+CREATE TABLE IF NOT EXISTS public.channel_inventory (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  channel_id UUID REFERENCES channels(id) ON DELETE CASCADE,
+  channel_id UUID REFERENCES public.channels(id) ON DELETE CASCADE,
   product_name TEXT NOT NULL,
   sku TEXT,
   size TEXT NOT NULL,
@@ -37,13 +39,13 @@ CREATE TABLE IF NOT EXISTS channel_inventory (
 );
 
 -- Offline sales with claim codes
-CREATE TABLE IF NOT EXISTS offline_sales (
+CREATE TABLE IF NOT EXISTS public.offline_sales (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   code TEXT UNIQUE NOT NULL,
-  channel_id UUID REFERENCES channels(id),
-  staff_id UUID REFERENCES staff(id),
+  channel_id UUID REFERENCES public.channels(id),
+  staff_id UUID REFERENCES public.staff(id),
   customer_phone TEXT,
-  customer_id UUID REFERENCES customers(id),
+  customer_id UUID REFERENCES public.customers(id),
   items JSONB NOT NULL,
   total DECIMAL(10,2) NOT NULL,
   points_earned INTEGER DEFAULT 0,
