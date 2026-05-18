@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { MotiView } from 'moti';
 import { ShoppingCart, Package, LogOut, Store, ShoppingBag } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
@@ -25,19 +25,19 @@ export default function VendedoraHomeScreen() {
 
   const [salesCount, setSalesCount] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (!channelId) return;
-    (async () => {
+  useFocusEffect(
+    useCallback(() => {
+      if (!channelId) return;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const { count } = await supabase
+      supabase
         .from('offline_sales')
         .select('id', { count: 'exact', head: true })
         .eq('channel_id', channelId)
-        .gte('created_at', today.toISOString());
-      setSalesCount(count ?? 0);
-    })();
-  }, [channelId]);
+        .gte('created_at', today.toISOString())
+        .then(({ count }) => setSalesCount(count ?? 0));
+    }, [channelId]),
+  );
 
   const handleExit = () => {
     router.replace('/vendedora' as any);
