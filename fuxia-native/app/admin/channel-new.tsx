@@ -154,10 +154,17 @@ export default function ChannelNewScreen() {
                   <TextInput
                     style={styles.input}
                     value={eventDate}
-                    onChangeText={setEventDate}
+                    onChangeText={(text) => {
+                      // Strip non-digits then auto-insert slashes
+                      const digits = text.replace(/\D/g, '');
+                      let formatted = digits;
+                      if (digits.length > 2) formatted = digits.slice(0, 2) + '/' + digits.slice(2);
+                      if (digits.length > 4) formatted = formatted.slice(0, 5) + '/' + digits.slice(4, 8);
+                      setEventDate(formatted);
+                    }}
                     placeholder="DD/MM/YYYY"
                     placeholderTextColor="rgba(255,255,255,0.25)"
-                    keyboardType="numeric"
+                    keyboardType="number-pad"
                     maxLength={10}
                   />
                 </View>
