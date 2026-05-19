@@ -32,9 +32,6 @@ export const SUPPORTED_COUNTRIES = [
   { code: 'PE', name: 'Perú',           flag: '🇵🇪', currency: 'USD' },
 ] as const;
 
-// Countries with actual WooCommerce WCPBC pricing configured on the server.
-// Any other country falls back to USD — don't auto-sync those, use MX default.
-const WC_CONFIGURED: CountryCode[] = ['MX'];
 
 export type CountryCode = typeof SUPPORTED_COUNTRIES[number]['code'];
 
@@ -100,12 +97,10 @@ export async function setCountry(code: CountryCode, customerId?: string): Promis
 /** Called from useAuth after loading the customer row, to align local cache. */
 export async function syncFromCustomer(country: string | null | undefined) {
   if (!isSupported(country)) return;
-  // Only trust countries that have WC prices configured — others default to MX
-  const effective: CountryCode = WC_CONFIGURED.includes(country) ? country : DEFAULT_COUNTRY;
-  if (_cached === effective) return;
-  _cached = effective;
-  await AsyncStorage.setItem(STORAGE_KEY, effective);
-  for (const fn of _listeners) fn(effective);
+  if (_cached === country) return;
+  _cached = country;
+  await AsyncStorage.setItem(STORAGE_KEY, country);
+  for (const fn of _listeners) fn(country);
 }
 
 export function subscribeCountry(fn: (c: CountryCode) => void): () => void {
