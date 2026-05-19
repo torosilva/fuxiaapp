@@ -6,41 +6,86 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
-import { ArrowLeft, Users, Copy, Share2, CheckCircle } from 'lucide-react-native';
+import { ArrowLeft, Users, Copy, Share2, CheckCircle, Sparkles } from 'lucide-react-native';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 
-interface Referral {
+interface ReferralEntry {
+  id: string;
   name: string;
-  created_at: string;
+  phone: string;
+  joined_at: string;
   has_purchase: boolean;
+  bonus?: {
+    pts: number;
+    before: number;
+    after: number;
+    applied_at: string;
+  };
+}
+
+function parseNotes(notes: string | null): { pts: number; before: number; after: number } | null {
+  if (!notes?.startsWith('referral_bonus|')) return null;
+  const get = (key: string) => {
+    const m = notes.match(new RegExp(`${key}:(\\d+)`));
+    return m ? parseInt(m[1], 10) : 0;
+  };
+  return { pts: get('pts'), before: get('before'), after: get('after') };
+}
+
+const MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+function fmt(iso: string) {
+  const d = new Date(iso);
+  return `${d.getDate()} ${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 export default function ReferralScreen() {
-  const { customer } = useAuth();
-  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const { customer, loyaltyCard } = useAuth();
+  const [entries, setEntries] = useState<ReferralEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  const code = customer?.referral_code ?? '';
+  const code = (customer as any)?.referral_code ?? '';
 
   useEffect(() => {
-    if (!customer?.id) { setLoading(false); return; }
+    if (!customer?.id || !loyaltyCard?.id) { setLoading(false); return; }
     (async () => {
-      const { data } = await supabase
-        .from('customers')
-        .select('name, created_at, loyalty_cards(total_points)')
-        .eq('referred_by', customer.id);
-      if (data) {
-        setReferrals(data.map((r: any) => ({
-          name: r.name,
-          created_at: r.created_at,
-          has_purchase: (r.loyalty_cards?.total_points ?? 0) > 0,
-        })));
+      const [referredsRes, bonusTxsRes] = await Promise.all([
+        supabase
+          .from('customers')
+          .select('id, name, phone, created_at, loyalty_cards(total_points)')
+          .eq('referred_by', customer.id),
+        supabase
+          .from('transactions')
+          .select('notes, created_at')
+          .eq('loyalty_card_id', loyaltyCard.id)
+          .like('notes', 'referral_bonus|%'),
+      ]);
+
+      // Build phone → bonus map from transactions
+      const bonusByPhone: Record<string, { pts: number; before: number; after: number; applied_at: string }> = {};
+      for (const tx of bonusTxsRes.data ?? []) {
+        const parsed = parseNotes(tx.notes);
+        if (!parsed) continue;
+        const phoneMatch = tx.notes?.match(/phone:(\+?\d+)/);
+        if (phoneMatch) {
+          bonusByPhone[phoneMatch[1]] = { ...parsed, applied_at: tx.created_at };
+        }
       }
+
+      const mapped: ReferralEntry[] = (referredsRes.data ?? []).map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        phone: r.phone,
+        joined_at: r.created_at,
+        has_purchase: (r.loyalty_cards?.total_points ?? 0) > 0,
+        bonus: bonusByPhone[r.phone],
+      }));
+
+      setEntries(mapped);
       setLoading(false);
     })();
-  }, [customer?.id]);
+  }, [customer?.id, loyaltyCard?.id]);
 
   const handleCopy = () => {
     Clipboard.setString(code);
@@ -50,15 +95,11 @@ export default function ReferralScreen() {
 
   const handleShare = () => {
     Share.share({
-      message: `¡Únete a Fuxia Ballerinas! Usa mi código de referida *${code}* al registrarte. Yo gano puntos dobles en mi próxima compra cuando hagas la tuya 👠✨\nDescarga la app: fuxiaballerinas.com`,
+      message: `¡Únete a Fuxia Ballerinas! Usa mi código *${code}* al registrarte en la app. Yo gano puntos dobles cuando hagas tu primera compra 👠✨\nDescarga la app: fuxiaballerinas.com`,
     });
   };
 
-  const MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  const fmt = (iso: string) => {
-    const d = new Date(iso);
-    return `${d.getDate()} ${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`;
-  };
+  const totalBonusEarned = entries.reduce((s, e) => s + (e.bonus?.pts ?? 0), 0);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -70,11 +111,27 @@ export default function ReferralScreen() {
         </TouchableOpacity>
 
         <MotiView from={{ opacity: 0, translateY: 16 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 400 }}>
+
           <Text style={styles.eyebrow}>PROGRAMA REFERIDOS</Text>
           <Text style={styles.title}>Refiere y{'\n'}gana doble</Text>
           <Text style={styles.subtitle}>
-            Cuando una amiga use tu código y haga su primera compra, tú ganas el doble de puntos en esa misma compra.
+            Cuando tu referida haga su primera compra, tú ganas el doble de puntos de esa venta automáticamente.
           </Text>
+
+          {/* Bonus earned banner */}
+          {totalBonusEarned > 0 && (
+            <MotiView
+              from={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: 'timing', duration: 400 }}
+              style={styles.bonusBanner}
+            >
+              <Sparkles size={20} color="#CD7F32" />
+              <Text style={styles.bonusBannerText}>
+                Has ganado <Text style={styles.bonusBannerPts}>+{totalBonusEarned} pts</Text> en bonos de referidos
+              </Text>
+            </MotiView>
+          )}
 
           {/* Code card */}
           <View style={styles.codeCard}>
@@ -82,9 +139,7 @@ export default function ReferralScreen() {
             <Text style={styles.codeText}>{code || '———'}</Text>
             <View style={styles.codeActions}>
               <TouchableOpacity style={styles.codeBtn} onPress={handleCopy} activeOpacity={0.8}>
-                {copied
-                  ? <CheckCircle size={16} color="#4CAF50" />
-                  : <Copy size={16} color="#CD7F32" />}
+                {copied ? <CheckCircle size={16} color="#4CAF50" /> : <Copy size={16} color="#CD7F32" />}
                 <Text style={[styles.codeBtnText, copied && { color: '#4CAF50' }]}>
                   {copied ? 'Copiado' : 'Copiar'}
                 </Text>
@@ -102,7 +157,7 @@ export default function ReferralScreen() {
             {[
               { n: '1', text: 'Comparte tu código con una amiga' },
               { n: '2', text: 'Ella lo ingresa al registrarse en la app' },
-              { n: '3', text: 'Cuando ella haga su primera compra, tú ganas el doble de puntos de esa venta' },
+              { n: '3', text: 'Cuando haga su primera compra, tú recibes el mismo número de puntos que ella ganó (2× en total)' },
             ].map(step => (
               <View key={step.n} style={styles.step}>
                 <View style={styles.stepNum}>
@@ -114,37 +169,72 @@ export default function ReferralScreen() {
           </View>
 
           {/* Referrals list */}
-          <Text style={styles.sectionTitle}>Mis referidas</Text>
+          <Text style={styles.sectionTitle}>
+            Mis referidas{entries.length > 0 ? ` (${entries.length})` : ''}
+          </Text>
+
           {loading
             ? <ActivityIndicator color="#CD7F32" style={{ marginTop: 20 }} />
-            : referrals.length === 0
-              ? <View style={styles.emptyCard}>
+            : entries.length === 0
+              ? (
+                <View style={styles.emptyCard}>
                   <Users size={28} color="rgba(255,255,255,0.15)" />
                   <Text style={styles.emptyText}>Aún no has referido a nadie.{'\n'}¡Comparte tu código!</Text>
                 </View>
-              : referrals.map((r, i) => (
-                  <MotiView
-                    key={i}
-                    from={{ opacity: 0, translateX: -10 }}
-                    animate={{ opacity: 1, translateX: 0 }}
-                    transition={{ type: 'timing', duration: 300, delay: i * 60 }}
-                  >
-                    <View style={styles.referralRow}>
-                      <View style={styles.referralAvatar}>
-                        <Text style={styles.referralInitial}>{r.name?.[0]?.toUpperCase() ?? '?'}</Text>
+              )
+              : entries.map((entry, i) => (
+                <MotiView
+                  key={entry.id}
+                  from={{ opacity: 0, translateY: 10 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{ type: 'timing', duration: 300, delay: i * 70 }}
+                >
+                  <View style={styles.entryCard}>
+                    {/* Header row */}
+                    <View style={styles.entryHeader}>
+                      <View style={styles.entryAvatar}>
+                        <Text style={styles.entryInitial}>{entry.name?.[0]?.toUpperCase() ?? '?'}</Text>
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.referralName}>{r.name}</Text>
-                        <Text style={styles.referralDate}>Se unió el {fmt(r.created_at)}</Text>
+                        <Text style={styles.entryName}>{entry.name}</Text>
+                        <Text style={styles.entryDate}>Se unió el {fmt(entry.joined_at)}</Text>
                       </View>
-                      <View style={[styles.referralBadge, r.has_purchase ? styles.badgeActive : styles.badgePending]}>
-                        <Text style={[styles.referralBadgeText, r.has_purchase ? styles.badgeActiveText : styles.badgePendingText]}>
-                          {r.has_purchase ? '2× activo' : 'Pendiente'}
+                      <View style={[styles.statusBadge, entry.bonus ? styles.badgeDone : entry.has_purchase ? styles.badgeWait : styles.badgePending]}>
+                        <Text style={[styles.statusText, entry.bonus ? styles.textDone : entry.has_purchase ? styles.textWait : styles.textPending]}>
+                          {entry.bonus ? '2× aplicado' : entry.has_purchase ? 'Procesando' : 'Sin compra aún'}
                         </Text>
                       </View>
                     </View>
-                  </MotiView>
-                ))}
+
+                    {/* Bonus detail */}
+                    {entry.bonus && (
+                      <View style={styles.bonusDetail}>
+                        <View style={styles.bonusRow}>
+                          <Text style={styles.bonusLabel}>Bono aplicado</Text>
+                          <Text style={styles.bonusDate}>{fmt(entry.bonus.applied_at)}</Text>
+                        </View>
+                        <View style={styles.pointsFlow}>
+                          <View style={styles.pointsBox}>
+                            <Text style={styles.pointsBoxLabel}>Antes</Text>
+                            <Text style={styles.pointsBoxValue}>{entry.bonus.before}</Text>
+                            <Text style={styles.pointsBoxUnit}>pts</Text>
+                          </View>
+                          <View style={styles.pointsArrow}>
+                            <Text style={styles.pointsArrowText}>+{entry.bonus.pts} pts</Text>
+                            <Text style={styles.pointsArrowSub}>bono 2×</Text>
+                          </View>
+                          <View style={[styles.pointsBox, styles.pointsBoxAfter]}>
+                            <Text style={styles.pointsBoxLabel}>Después</Text>
+                            <Text style={[styles.pointsBoxValue, styles.pointsBoxValueAfter]}>{entry.bonus.after}</Text>
+                            <Text style={styles.pointsBoxUnit}>pts</Text>
+                          </View>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                </MotiView>
+              ))
+          }
 
           <View style={{ height: 60 }} />
         </MotiView>
@@ -163,11 +253,19 @@ const styles = StyleSheet.create({
   },
   eyebrow: { fontSize: 10, color: '#CD7F32', fontWeight: '800', letterSpacing: 3, marginBottom: 8 },
   title: { fontSize: 36, color: '#fff', fontFamily: 'serif', fontWeight: '400', lineHeight: 42, marginBottom: 12 },
-  subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 21, marginBottom: 32 },
+  subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 21, marginBottom: 24 },
+  bonusBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: 'rgba(205,127,50,0.1)',
+    borderWidth: 1, borderColor: 'rgba(205,127,50,0.25)',
+    borderRadius: 14, padding: 14, marginBottom: 20,
+  },
+  bonusBannerText: { fontSize: 14, color: 'rgba(255,255,255,0.7)', flex: 1 },
+  bonusBannerPts: { color: '#CD7F32', fontWeight: '800' },
   codeCard: {
     backgroundColor: '#1A1A1A', borderRadius: 20,
     borderWidth: 1, borderColor: 'rgba(205,127,50,0.2)',
-    padding: 24, alignItems: 'center', marginBottom: 20,
+    padding: 24, alignItems: 'center', marginBottom: 16,
   },
   codeLabel: { fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: '800', letterSpacing: 3, marginBottom: 12 },
   codeText: { fontSize: 36, color: '#CD7F32', fontWeight: '800', letterSpacing: 6, marginBottom: 20 },
@@ -182,42 +280,69 @@ const styles = StyleSheet.create({
   stepsCard: {
     backgroundColor: '#1A1A1A', borderRadius: 16,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
-    padding: 20, marginBottom: 32,
+    padding: 20, marginBottom: 28,
   },
-  stepsTitle: { fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: '600', marginBottom: 16 },
-  step: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, marginBottom: 14 },
+  stepsTitle: { fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: '600', marginBottom: 14 },
+  step: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
   stepNum: {
-    width: 26, height: 26, borderRadius: 13,
+    width: 24, height: 24, borderRadius: 12,
     backgroundColor: 'rgba(205,127,50,0.15)',
     justifyContent: 'center', alignItems: 'center', marginTop: 1,
   },
-  stepNumText: { fontSize: 12, color: '#CD7F32', fontWeight: '800' },
-  stepText: { flex: 1, fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 20 },
-  sectionTitle: { fontSize: 18, color: '#fff', fontWeight: '600', marginBottom: 16 },
+  stepNumText: { fontSize: 11, color: '#CD7F32', fontWeight: '800' },
+  stepText: { flex: 1, fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 19 },
+  sectionTitle: { fontSize: 18, color: '#fff', fontWeight: '600', marginBottom: 14 },
   emptyCard: {
     backgroundColor: '#1A1A1A', borderRadius: 16,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
     padding: 32, alignItems: 'center', gap: 12,
   },
   emptyText: { color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', lineHeight: 20 },
-  referralRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: '#1A1A1A', borderRadius: 14,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
-    padding: 14, marginBottom: 10,
+  // Entry card
+  entryCard: {
+    backgroundColor: '#1A1A1A', borderRadius: 16,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)',
+    padding: 16, marginBottom: 12,
   },
-  referralAvatar: {
+  entryHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  entryAvatar: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(205,127,50,0.15)',
     justifyContent: 'center', alignItems: 'center',
   },
-  referralInitial: { fontSize: 16, color: '#CD7F32', fontWeight: '700' },
-  referralName: { fontSize: 14, color: '#fff', fontWeight: '600' },
-  referralDate: { fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 },
-  referralBadge: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
-  badgeActive: { backgroundColor: 'rgba(76,175,80,0.15)' },
+  entryInitial: { fontSize: 16, color: '#CD7F32', fontWeight: '700' },
+  entryName: { fontSize: 14, color: '#fff', fontWeight: '600' },
+  entryDate: { fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 },
+  statusBadge: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
+  badgeDone: { backgroundColor: 'rgba(76,175,80,0.15)' },
+  badgeWait: { backgroundColor: 'rgba(255,193,7,0.12)' },
   badgePending: { backgroundColor: 'rgba(255,255,255,0.06)' },
-  referralBadgeText: { fontSize: 11, fontWeight: '700' },
-  badgeActiveText: { color: '#4CAF50' },
-  badgePendingText: { color: 'rgba(255,255,255,0.35)' },
+  statusText: { fontSize: 11, fontWeight: '700' },
+  textDone: { color: '#4CAF50' },
+  textWait: { color: '#FFC107' },
+  textPending: { color: 'rgba(255,255,255,0.3)' },
+  // Bonus detail
+  bonusDetail: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+  },
+  bonusRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  bonusLabel: { fontSize: 12, color: '#4CAF50', fontWeight: '700' },
+  bonusDate: { fontSize: 11, color: 'rgba(255,255,255,0.35)' },
+  pointsFlow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12, padding: 14,
+  },
+  pointsBox: { alignItems: 'center', flex: 1 },
+  pointsBoxAfter: {},
+  pointsBoxLabel: { fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: '700', letterSpacing: 1, marginBottom: 4 },
+  pointsBoxValue: { fontSize: 22, color: 'rgba(255,255,255,0.6)', fontWeight: '700' },
+  pointsBoxValueAfter: { color: '#4CAF50' },
+  pointsBoxUnit: { fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 },
+  pointsArrow: { alignItems: 'center', paddingHorizontal: 8 },
+  pointsArrowText: { fontSize: 14, color: '#CD7F32', fontWeight: '800' },
+  pointsArrowSub: { fontSize: 10, color: 'rgba(205,127,50,0.6)', marginTop: 2 },
 });

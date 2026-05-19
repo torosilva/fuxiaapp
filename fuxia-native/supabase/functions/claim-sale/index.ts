@@ -123,7 +123,7 @@ async function creditPoints(
           points_earned: bonusPoints,
           pairs_in_order: 0,
           channel: 'store',
-          notes: `Bono referido: ${customerPhone}`,
+          notes: `referral_bonus|phone:${customerPhone}|before:${referrerCard.total_points}|after:${referrerNewPoints}|pts:${bonusPoints}`,
         });
         await supabase.from('loyalty_cards').update({
           total_points: referrerNewPoints,
