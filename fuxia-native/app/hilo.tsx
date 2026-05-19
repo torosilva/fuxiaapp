@@ -6,11 +6,12 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { X, Send, Heart } from 'lucide-react-native';
+import { X, Send, Heart, Sparkles } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { wcService, WCProduct } from '@/services/WooCommerceService';
 import { useWishlist } from '@/lib/WishlistContext';
 import { formatMoney } from '@/lib/CountryService';
+import { TryOnModal } from '@/components/TryOnModal';
 
 const API_URL = 'https://hilo.hilolabs.ai';
 
@@ -39,9 +40,16 @@ function cleanText(text: string): string {
 }
 
 // ── Product mini-card rendered inside chat ────────────────────────────────────
-function ProductMiniCard({ product }: { product: WCProduct }) {
+function ProductMiniCard({
+  product,
+  onTryOn,
+}: {
+  product: WCProduct;
+  onTryOn: (product: WCProduct) => void;
+}) {
   const { has, toggle } = useWishlist();
   const liked = has(product.id);
+  const hasImage = !!product.images[0]?.src;
 
   return (
     <TouchableOpacity
@@ -49,15 +57,29 @@ function ProductMiniCard({ product }: { product: WCProduct }) {
       onPress={() => router.push(`/product/${product.id}` as any)}
       activeOpacity={0.88}
     >
-      {product.images[0]
+      {hasImage
         ? <Image source={{ uri: product.images[0].src }} style={cardStyles.image} />
         : <View style={[cardStyles.image, cardStyles.imagePlaceholder]} />}
+
       <View style={cardStyles.info}>
         <Text style={cardStyles.name} numberOfLines={2}>{product.name}</Text>
         <Text style={cardStyles.price}>
           {formatMoney(product.price, product.currency_code, product.currency_symbol)}
         </Text>
       </View>
+
+      {/* Try-on button — only if product has an image */}
+      {hasImage && (
+        <TouchableOpacity
+          style={cardStyles.tryOnBtn}
+          onPress={(e) => { e.stopPropagation(); onTryOn(product); }}
+          activeOpacity={0.85}
+        >
+          <Sparkles size={10} color="#0D0D0D" />
+          <Text style={cardStyles.tryOnText}>Pruébatelo</Text>
+        </TouchableOpacity>
+      )}
+
       <TouchableOpacity
         style={cardStyles.heartBtn}
         onPress={(e) => { e.stopPropagation(); toggle(product.id); }}
@@ -85,9 +107,16 @@ const cardStyles = StyleSheet.create({
   },
   image: { width: '100%', height: 120, resizeMode: 'cover' },
   imagePlaceholder: { backgroundColor: '#333' },
-  info: { padding: 10, paddingBottom: 8 },
+  info: { padding: 10, paddingBottom: 6 },
   name: { color: '#fff', fontSize: 12, fontWeight: '600', lineHeight: 16, marginBottom: 4 },
   price: { color: '#CD7F32', fontSize: 12, fontWeight: '700' },
+  tryOnBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 4, backgroundColor: '#CD7F32',
+    marginHorizontal: 10, marginBottom: 10,
+    borderRadius: 20, paddingVertical: 6,
+  },
+  tryOnText: { color: '#0D0D0D', fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
   heartBtn: {
     position: 'absolute', top: 8, right: 8,
     width: 28, height: 28, borderRadius: 14,
@@ -105,8 +134,8 @@ export default function HiloScreen() {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  // msgIdx → array of WCProduct fetched for that message
   const [msgProducts, setMsgProducts] = useState<Record<number, WCProduct[] | 'loading'>>({});
+  const [tryOnProduct, setTryOnProduct] = useState<WCProduct | null>(null);
   const userId = useRef<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
@@ -224,7 +253,13 @@ export default function HiloScreen() {
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={{ paddingRight: 16 }}
                       >
-                        {products.map(p => <ProductMiniCard key={p.id} product={p} />)}
+                        {products.map(p => (
+                          <ProductMiniCard
+                            key={p.id}
+                            product={p}
+                            onTryOn={setTryOnProduct}
+                          />
+                        ))}
                       </ScrollView>
                     )
                     : null}
@@ -317,6 +352,15 @@ export default function HiloScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {tryOnProduct && (
+        <TryOnModal
+          visible={!!tryOnProduct}
+          onClose={() => setTryOnProduct(null)}
+          productImage={tryOnProduct.images[0]?.src ?? ''}
+          productName={tryOnProduct.name}
+        />
+      )}
     </SafeAreaView>
   );
 }
