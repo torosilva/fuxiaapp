@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Image, ScrollView, TouchableOpacity, View as RNView, ActivityIndicator, Modal } from 'react-native';
 import { Text, View } from '@/components/Themed';
-import { User as UserIcon, Package, MapPin, Gift, CreditCard, ChevronRight, CheckCircle2, LogOut, Camera, Globe, Settings, Store, ShoppingBag, X } from 'lucide-react-native';
+import { User as UserIcon, Package, MapPin, Users, BarChart2, ChevronRight, CheckCircle2, LogOut, Camera, Globe, Settings, Store, ShoppingBag, X } from 'lucide-react-native';
 import { Alert } from 'react-native';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -227,8 +227,8 @@ export default function ProfileScreen() {
         {[
           { icon: Package, label: 'Mis Compras', onPress: () => router.push('/purchases' as any) },
           { icon: MapPin, label: 'Seguimiento', onPress: () => router.push('/tracking' as any) },
-          { icon: Gift, label: 'Regalar', onPress: undefined },
-          { icon: CreditCard, label: 'Pagos', onPress: () => router.push('/payments' as any) },
+          { icon: Users, label: 'Referir', onPress: () => router.push('/referral' as any) },
+          { icon: BarChart2, label: 'Beneficios', onPress: () => router.push('/payments' as any) },
         ].map((item, idx) => (
           <TouchableOpacity
             key={idx}

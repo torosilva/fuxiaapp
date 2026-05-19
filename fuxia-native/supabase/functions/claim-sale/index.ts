@@ -91,6 +91,49 @@ async function creditPoints(
     points_earned: pointsEarned,
   }).eq('id', saleId);
 
+  // ── Referral bonus: if this is the customer's first transaction,
+  //    give the referrer double points (same amount again) ──────────────────
+  const { count: txCount } = await supabase
+    .from('transactions')
+    .select('id', { count: 'exact', head: true })
+    .eq('loyalty_card_id', card.id);
+
+  if ((txCount ?? 0) === 1) {
+    const { data: cust } = await supabase
+      .from('customers')
+      .select('referred_by')
+      .eq('id', customerId)
+      .single();
+
+    if (cust?.referred_by) {
+      const { data: referrerCard } = await supabase
+        .from('loyalty_cards')
+        .select('id, total_points, pairs_count, tier')
+        .eq('customer_id', cust.referred_by)
+        .single();
+
+      if (referrerCard) {
+        const bonusPoints = pointsEarned;
+        const referrerNewPoints = referrerCard.total_points + bonusPoints;
+        await supabase.from('transactions').insert({
+          loyalty_card_id: referrerCard.id,
+          wc_order_id: null,
+          amount: 0,
+          currency: 'MXN',
+          points_earned: bonusPoints,
+          pairs_in_order: 0,
+          channel: 'store',
+          notes: `Bono referido: ${customerPhone}`,
+        });
+        await supabase.from('loyalty_cards').update({
+          total_points: referrerNewPoints,
+          tier: computeTier(referrerNewPoints),
+          updated_at: new Date().toISOString(),
+        }).eq('id', referrerCard.id);
+      }
+    }
+  }
+
   return { ok: true, points_earned: pointsEarned, new_total_points: newPoints, tier: newTier };
 }
 
