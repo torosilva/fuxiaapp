@@ -35,6 +35,7 @@ export const SUPPORTED_COUNTRIES = [
 export type CountryCode = typeof SUPPORTED_COUNTRIES[number]['code'];
 
 const STORAGE_KEY = '@fuxia/country';
+const MIGRATION_KEY = '@fuxia/country_migrated_v1';
 const DEFAULT_COUNTRY: CountryCode = 'MX';
 
 export function isSupported(code: string | null | undefined): code is CountryCode {
@@ -58,6 +59,13 @@ const _listeners = new Set<(c: CountryCode) => void>();
 export async function getCountry(): Promise<CountryCode> {
   if (_cached) return _cached;
   try {
+    // One-time migration: old versions stored the device locale (en-US → 'US').
+    // Clear it so users who never explicitly chose a country default to MX.
+    const migrated = await AsyncStorage.getItem(MIGRATION_KEY);
+    if (!migrated) {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+      await AsyncStorage.setItem(MIGRATION_KEY, '1');
+    }
     const stored = await AsyncStorage.getItem(STORAGE_KEY);
     if (isSupported(stored)) {
       _cached = stored;
@@ -72,7 +80,7 @@ export async function getCountry(): Promise<CountryCode> {
 
 /** Last known country without async — only safe after at least one getCountry() call. */
 export function getCountrySync(): CountryCode {
-  return _cached ?? detectDeviceCountry();
+  return _cached ?? DEFAULT_COUNTRY;
 }
 
 /** User-driven change (selector in profile). Persists to AsyncStorage and Supabase. */
