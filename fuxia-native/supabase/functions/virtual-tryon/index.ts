@@ -30,7 +30,9 @@ serve(async (req) => {
     return json({ error: 'Invalid JSON' }, 400);
   }
 
-  const { human_image, garment_image, category = 'shoes' } = body;
+  const { human_image, garment_image } = body;
+  // fashn/tryon only accepts upper_body | lower_body | dresses — shoes maps to lower_body
+  const category = 'lower_body';
   if (!human_image || !garment_image) {
     return json({ error: 'human_image and garment_image son requeridos' }, 400);
   }
