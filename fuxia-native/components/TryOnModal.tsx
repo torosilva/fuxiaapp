@@ -43,7 +43,7 @@ export function TryOnModal({ visible, onClose, productImage, productName }: TryO
   const pickAndRun = async (fromCamera: boolean) => {
     try {
       const pickerOptions: ImagePicker.ImagePickerOptions = {
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'] as any,
         quality: 0.75,
         allowsEditing: false,
         base64: true,
