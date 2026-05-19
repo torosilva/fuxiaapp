@@ -4,7 +4,7 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import type { Tier } from '@/lib/database.types';
 import { registerPushToken } from '@/lib/notifications';
-import { detectDeviceCountry, syncFromCustomer } from '@/lib/CountryService';
+import { syncFromCustomer } from '@/lib/CountryService';
 import { wcService } from '@/services/WooCommerceService';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
@@ -192,7 +192,7 @@ export function useAuth() {
     birthday?: string,
     referralCode?: string,
   ): Promise<{ error?: string }> {
-    const country = detectDeviceCountry();
+    const country = 'MX';
 
     // Find or create the WooCommerce customer account.
     let wc_customer_id: number | null = null;
