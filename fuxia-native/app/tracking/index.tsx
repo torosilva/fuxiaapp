@@ -16,6 +16,22 @@ import { ArrowLeft, Package, Truck, CheckCircle2, Clock, ExternalLink } from 'lu
 import { useAuth } from '@/lib/hooks/useAuth';
 import { wcService, WCOrder, WCOrderStatus } from '@/services/WooCommerceService';
 import { formatMoney } from '@/lib/CountryService';
+import { supabase } from '@/lib/supabase';
+
+interface StoreTx {
+  id: string;
+  created_at: string;
+  points_earned: number;
+  first_item: string;
+}
+
+interface UnclaimedSale {
+  id: string;
+  created_at: string;
+  code: string;
+  first_item: string;
+  total: number;
+}
 
 const TRACKING_STATUSES: WCOrderStatus[] = ['pending', 'processing', 'on-hold'];
 
@@ -69,8 +85,10 @@ function extractTrackingMeta(order: WCOrder): TrackingMeta {
 }
 
 export default function TrackingScreen() {
-  const { session, customer, isLoading } = useAuth();
+  const { session, customer, loyaltyCard, isLoading } = useAuth();
   const [orders, setOrders] = useState<WCOrder[]>([]);
+  const [storeTxs, setStoreTxs] = useState<StoreTx[]>([]);
+  const [unclaimedSales, setUnclaimedSales] = useState<UnclaimedSale[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
@@ -78,17 +96,56 @@ export default function TrackingScreen() {
     if (!customer) return;
     (async () => {
       setLoading(true);
-      const wcCustomerId = (customer as any).wc_customer_id;
-      const data = await wcService.getOrdersByCustomer({
-        customerId: wcCustomerId ?? undefined,
-        email: customer.email ?? undefined,
-        statuses: TRACKING_STATUSES,
-        limit: 30,
-      });
-      setOrders(data);
+      const [wcData, txRes, unclaimedRes] = await Promise.all([
+        wcService.getOrdersByCustomer({
+          customerId: (customer as any).wc_customer_id ?? undefined,
+          email: customer.email ?? undefined,
+          statuses: TRACKING_STATUSES,
+          limit: 30,
+        }),
+        loyaltyCard?.id
+          ? supabase
+              .from('transactions')
+              .select('id, created_at, points_earned, purchase_items(product_name)')
+              .eq('loyalty_card_id', loyaltyCard.id)
+              .eq('channel', 'store')
+              .order('created_at', { ascending: false })
+              .limit(10)
+          : Promise.resolve({ data: [] }),
+        customer.phone
+          ? supabase
+              .from('offline_sales')
+              .select('id, created_at, code, items, total')
+              .eq('customer_phone', customer.phone)
+              .is('claimed_at', null)
+              .order('created_at', { ascending: false })
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      setOrders(wcData);
+
+      setStoreTxs(
+        ((txRes as any).data ?? []).map((r: any) => ({
+          id: r.id,
+          created_at: r.created_at,
+          points_earned: r.points_earned,
+          first_item: r.purchase_items?.[0]?.product_name ?? 'Compra en tienda',
+        }))
+      );
+
+      setUnclaimedSales(
+        ((unclaimedRes as any).data ?? []).map((r: any) => ({
+          id: r.id,
+          created_at: r.created_at,
+          code: r.code,
+          first_item: r.items?.[0]?.product_name ?? 'Compra en tienda',
+          total: r.total ?? 0,
+        }))
+      );
+
       setLoading(false);
     })();
-  }, [customer?.id]);
+  }, [customer?.id, loyaltyCard?.id]);
 
   if (isLoading) {
     return (
@@ -129,22 +186,14 @@ export default function TrackingScreen() {
         <View style={styles.center}>
           <ActivityIndicator color="#CD7F32" />
         </View>
-      ) : orders.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Package size={36} color="rgba(205,127,50,0.4)" />
-          <Text style={styles.emptyTitle}>Sin pedidos en camino</Text>
-          <Text style={styles.emptySubtitle}>
-            Cuando tengas un pedido en proceso, vas a ver el estado de envío acá en tiempo real.
-          </Text>
-          {!customer.email && (
-            <Text style={[styles.emptySubtitle, { marginTop: 16, color: 'rgba(205,127,50,0.6)' }]}>
-              Tip: agregá tu email en el perfil para que podamos vincular tus pedidos del sitio.
-            </Text>
-          )}
-        </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {orders.map((o, i) => {
+
+          {/* ── Pedidos web (WooCommerce) ── */}
+          {orders.length > 0 && (
+            <>
+              <Text style={styles.sectionLabel}>PEDIDOS EN LÍNEA</Text>
+              {orders.map((o, i) => {
             const stage = STATUS_STAGE[o.status] ?? 0;
             const isOpen = expanded.has(o.id);
             const tracking = extractTrackingMeta(o);
@@ -261,7 +310,92 @@ export default function TrackingScreen() {
                 </TouchableOpacity>
               </MotiView>
             );
-          })}
+            })}
+            </>
+          )}
+
+          {/* ── Puntos pendientes de reclamar ── */}
+          {unclaimedSales.length > 0 && (
+            <>
+              <Text style={[styles.sectionLabel, { marginTop: orders.length > 0 ? 24 : 0 }]}>
+                PUNTOS PENDIENTES
+              </Text>
+              {unclaimedSales.map((sale, i) => (
+                <MotiView
+                  key={sale.id}
+                  from={{ opacity: 0, translateY: 10 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{ type: 'timing', duration: 300, delay: i * 60 }}
+                  style={[styles.orderCard, styles.pendingCard]}
+                >
+                  <View style={styles.orderHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.orderTitle}>{sale.first_item}</Text>
+                      <Text style={styles.orderDate}>{formatDate(sale.created_at)}</Text>
+                    </View>
+                    <View style={[styles.statusBadge, styles.pendingBadge]}>
+                      <Clock size={11} color="#FFC107" />
+                      <Text style={[styles.statusText, { color: '#FFC107' }]}>Puntos pendientes</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.pendingHint}>
+                    Tienes una compra sin reclamar. Ingresa el código que te dio la vendedora para acumular tus puntos.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.claimBtn}
+                    onPress={() => router.push('/claim' as any)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.claimBtnText}>Reclamar puntos ahora →</Text>
+                  </TouchableOpacity>
+                </MotiView>
+              ))}
+            </>
+          )}
+
+          {/* ── Compras en tienda ya reclamadas ── */}
+          {storeTxs.length > 0 && (
+            <>
+              <Text style={[styles.sectionLabel, { marginTop: 24 }]}>COMPRAS EN TIENDA</Text>
+              {storeTxs.map((tx, i) => (
+                <MotiView
+                  key={tx.id}
+                  from={{ opacity: 0, translateY: 10 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{ type: 'timing', duration: 300, delay: i * 50 }}
+                  style={styles.orderCard}
+                >
+                  <View style={styles.orderHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.orderTitle}>{tx.first_item}</Text>
+                      <Text style={styles.orderDate}>{formatDate(tx.created_at)}</Text>
+                    </View>
+                    <View style={[styles.statusBadge, styles.deliveredBadge]}>
+                      <CheckCircle2 size={11} color="#4CAF50" />
+                      <Text style={[styles.statusText, { color: '#4CAF50' }]}>Entregado</Text>
+                    </View>
+                  </View>
+                  <View style={styles.pointsRow}>
+                    <Text style={styles.pointsRowText}>Puntos acumulados</Text>
+                    <Text style={styles.pointsRowValue}>+{tx.points_earned} pts</Text>
+                  </View>
+                </MotiView>
+              ))}
+            </>
+          )}
+
+          {/* Empty state when nothing at all */}
+          {orders.length === 0 && storeTxs.length === 0 && unclaimedSales.length === 0 && (
+            <View style={styles.emptyState}>
+              <Package size={36} color="rgba(205,127,50,0.4)" />
+              <Text style={styles.emptyTitle}>Sin pedidos aún</Text>
+              <Text style={styles.emptySubtitle}>
+                Tus pedidos en línea y compras en tienda aparecerán aquí.
+              </Text>
+            </View>
+          )}
+
+          <View style={{ height: 60 }} />
         </ScrollView>
       )}
     </SafeAreaView>
@@ -380,4 +514,31 @@ const styles = StyleSheet.create({
   },
   itemName: { color: 'rgba(255,255,255,0.7)', fontSize: 12, flex: 1 },
   itemQty: { color: '#CD7F32', fontSize: 12, fontWeight: '600' },
+  sectionLabel: {
+    fontSize: 10, color: 'rgba(255,255,255,0.3)',
+    fontWeight: '800', letterSpacing: 2, marginBottom: 12,
+  },
+  pendingCard: {
+    borderColor: 'rgba(255,193,7,0.2)',
+    backgroundColor: 'rgba(255,193,7,0.04)',
+  },
+  pendingBadge: { backgroundColor: 'rgba(255,193,7,0.12)' },
+  deliveredBadge: { backgroundColor: 'rgba(76,175,80,0.12)' },
+  pendingHint: {
+    fontSize: 12, color: 'rgba(255,255,255,0.4)',
+    lineHeight: 18, marginBottom: 12,
+  },
+  claimBtn: {
+    backgroundColor: 'rgba(255,193,7,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,193,7,0.3)',
+    borderRadius: 10, paddingVertical: 10, alignItems: 'center',
+  },
+  claimBtnText: { color: '#FFC107', fontSize: 13, fontWeight: '700' },
+  pointsRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginTop: 10, paddingTop: 10,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)',
+  },
+  pointsRowText: { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
+  pointsRowValue: { fontSize: 13, color: '#CD7F32', fontWeight: '700' },
 });
