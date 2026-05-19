@@ -37,11 +37,11 @@ serve(async (req) => {
     return json({ error: 'human_image and garment_image son requeridos' }, 400);
   }
 
-  // Start prediction on Replicate using fashn/tryon model
+  // Start prediction on Replicate using fashn/tryon deployment
   let startRes: Response;
   let prediction: Record<string, unknown>;
   try {
-    startRes = await fetch('https://api.replicate.com/v1/models/fashn/tryon/predictions', {
+    startRes = await fetch('https://api.replicate.com/v1/deployments/fashn/tryon/predictions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
