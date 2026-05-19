@@ -4,10 +4,12 @@
  * the Supabase Edge Function `woocommerce-proxy` so the consumer_key/secret never
  * ship in the mobile bundle.
  *
- * Multi-currency: every Store API call is decorated with `wcpbc-manual-country`
- * (WCPBC plugin) so users in CO/US/etc. see the right prices instead of MXN.
+ * Multi-currency: by default we let WCPBC decide via Cloudflare's CF-IPCountry
+ * (same path the web uses), so the user's IP picks the currency. Only when the
+ * user explicitly chose a country in the in-app selector do we override with
+ * `wcpbc-manual-country`.
  */
-import { getCountry } from '@/lib/CountryService';
+import { getCountryOverride } from '@/lib/CountryService';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -87,7 +89,14 @@ async function wcGet<T>(path: string, params: Record<string, string | number> = 
       console.error(`wcGet ${path} → ${res.status} ${errText}`);
       return null;
     }
-    return (await res.json()) as T;
+    const text = await res.text();
+    // WP/WC sometimes returns an HTML login/error page (e.g. invalid consumer
+    // key, plugin redirect) with a 200 status. Detect and surface clearly.
+    if (text.trimStart().startsWith('<')) {
+      console.warn(`wcGet ${path}: WC returned HTML (likely auth/proxy config issue)`);
+      return null;
+    }
+    return JSON.parse(text) as T;
   } catch (err) {
     console.error(`wcGet ${path} threw:`, err);
     return null;
@@ -193,9 +202,8 @@ async function storeGet<T>(path: string, params: Record<string, string | number>
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, String(v));
   }
-  // Tell the WCPBC plugin which country's prices/currency to return.
-  const country = await getCountry();
-  url.searchParams.set('wcpbc-manual-country', country);
+  const override = await getCountryOverride();
+  if (override) url.searchParams.set('wcpbc-manual-country', override);
   try {
     const res = await fetch(url.toString());
     if (!res.ok) {
@@ -209,12 +217,13 @@ async function storeGet<T>(path: string, params: Record<string, string | number>
   }
 }
 
-/** Append the WCPBC country param to a permalink so the web shows the same currency. */
+/** Append the WCPBC country param to a permalink only when the user picked one explicitly. */
 export async function withCountryParam(url: string): Promise<string> {
   if (!url) return url;
-  const country = await getCountry();
+  const override = await getCountryOverride();
+  if (!override) return url;
   const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}wcpbc-manual-country=${country}`;
+  return `${url}${sep}wcpbc-manual-country=${override}`;
 }
 
 class WooCommerceService {
@@ -280,13 +289,39 @@ class WooCommerceService {
 
     const [firstName, ...rest] = name.trim().split(' ');
     const lastName = rest.join(' ');
-    const created = await wcPost<{ id: number }>('customers', {
-      email,
-      first_name: firstName,
-      last_name: lastName,
-      billing: { first_name: firstName, last_name: lastName, email, phone },
-    });
-    return created?.id ?? null;
+    // Inline create so we can recognise the expected "email already exists"
+    // response (the customer is in WC, the GET lookup just failed upstream)
+    // without logging it as an error on every login.
+    try {
+      const res = await fetch(PROXY_URL, {
+        method: 'POST',
+        headers: PROXY_HEADERS,
+        body: JSON.stringify({
+          path: 'customers',
+          method: 'POST',
+          body: {
+            email,
+            first_name: firstName,
+            last_name: lastName,
+            billing: { first_name: firstName, last_name: lastName, email, phone },
+          },
+        }),
+      });
+      if (res.ok) {
+        const created = (await res.json()) as { id: number };
+        return created?.id ?? null;
+      }
+      const errText = await res.text();
+      if (errText.includes('registration-error-email-exists')) {
+        console.warn(`WC customer ${email} exists but lookup failed; skipping link.`);
+        return null;
+      }
+      console.error(`wcPost customers → ${res.status} ${errText}`);
+      return null;
+    } catch (err) {
+      console.error('wcPost customers threw:', err);
+      return null;
+    }
   }
 }
 

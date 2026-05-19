@@ -43,6 +43,16 @@ export const SUPPORTED_COUNTRIES = [
 export type CountryCode = typeof SUPPORTED_COUNTRIES[number]['code'];
 
 const STORAGE_KEY = '@fuxia/country';
+/**
+ * `OVERRIDE_KEY` is set ONLY when the user explicitly picks a country in the
+ * selector. It is the single source of truth for sending `wcpbc-manual-country`
+ * to the Store API. Without it, the API call carries no override and WCPBC
+ * decides via Cloudflare's CF-IPCountry — same as the website.
+ *
+ * Kept distinct from `STORAGE_KEY` (UI preference) so that `syncFromCustomer`
+ * and locale detection never accidentally force a currency on the API.
+ */
+const OVERRIDE_KEY = '@fuxia/country_override';
 const DEFAULT_COUNTRY: CountryCode = 'MX';
 
 export function isSupported(code: string | null | undefined): code is CountryCode {
@@ -84,10 +94,27 @@ export function getCountrySync(): CountryCode {
   return _cached ?? detectDeviceCountry();
 }
 
+/**
+ * Returns the explicit country override the user picked in the selector, or
+ * `null` if none. Only this drives the `wcpbc-manual-country` param on API
+ * calls — when null, WCPBC auto-detects via Cloudflare and the user's IP.
+ */
+export async function getCountryOverride(): Promise<CountryCode | null> {
+  try {
+    const v = await AsyncStorage.getItem(OVERRIDE_KEY);
+    return isSupported(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 /** User-driven change (selector in profile). Persists to AsyncStorage and Supabase. */
 export async function setCountry(code: CountryCode, customerId?: string): Promise<void> {
   _cached = code;
-  await AsyncStorage.setItem(STORAGE_KEY, code);
+  await AsyncStorage.multiSet([
+    [STORAGE_KEY, code],
+    [OVERRIDE_KEY, code],
+  ]);
   if (customerId) {
     await supabase.from('customers').update({ country: code }).eq('id', customerId);
   }
