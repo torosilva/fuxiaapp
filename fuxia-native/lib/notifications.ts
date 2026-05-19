@@ -3,20 +3,25 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { supabase } from '@/lib/supabase';
 
-// expo-notifications is not available in Expo Go SDK 53+; guard all usage.
+// expo-notifications remote push was removed from Expo Go in SDK 53.
+// Skip the require entirely in Expo Go to avoid the error overlay.
+const isExpoGo = Constants.appOwnership === 'expo';
 let Notifications: typeof import('expo-notifications') | null = null;
-try {
-  Notifications = require('expo-notifications');
-  Notifications!.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-    }),
-  });
-} catch {
-  // Running in Expo Go — push notifications unavailable
+
+if (!isExpoGo) {
+  try {
+    Notifications = require('expo-notifications');
+    Notifications!.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
+    });
+  } catch {
+    // dev build without notifications configured
+  }
 }
 
 export async function registerPushToken(customerId: string): Promise<string | null> {
