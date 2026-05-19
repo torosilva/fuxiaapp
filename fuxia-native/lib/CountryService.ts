@@ -66,9 +66,8 @@ export async function getCountry(): Promise<CountryCode> {
   } catch {
     // AsyncStorage failures should not block product loading
   }
-  const detected = detectDeviceCountry();
-  _cached = detected;
-  return detected;
+  _cached = DEFAULT_COUNTRY;
+  return DEFAULT_COUNTRY;
 }
 
 /** Last known country without async — only safe after at least one getCountry() call. */
