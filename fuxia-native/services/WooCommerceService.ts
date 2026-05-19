@@ -196,13 +196,19 @@ async function storeGet<T>(path: string, params: Record<string, string | number>
   // Tell the WCPBC plugin which country's prices/currency to return.
   const country = await getCountry();
   url.searchParams.set('wcpbc-manual-country', country);
+  console.log(`[WC] ${path} country=${country} url=${url.toString().slice(0, 120)}`);
   try {
     const res = await fetch(url.toString());
     if (!res.ok) {
       console.error(`storeGet ${path} → ${res.status}`);
       return null;
     }
-    return (await res.json()) as T;
+    const json = (await res.json()) as T;
+    const first = Array.isArray(json) ? (json as any[])[0] : json;
+    if (first?.prices?.currency_code) {
+      console.log(`[WC] ${path} → currency=${first.prices.currency_code}`);
+    }
+    return json;
   } catch (err) {
     console.error(`storeGet ${path} threw:`, err);
     return null;

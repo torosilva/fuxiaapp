@@ -8,7 +8,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { MotiView } from 'moti';
 import { ArrowLeft, ChevronDown, ChevronRight, Package } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
-import wcService from '@/services/WooCommerceService';
+import { wcService } from '@/services/WooCommerceService';
 
 const TEMPLATE = [
   {

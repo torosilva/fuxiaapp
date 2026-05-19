@@ -20,7 +20,7 @@ import {
 } from '@/lib/CountryService';
 
 import { LoyaltyCard } from '@/components/LoyaltyCard';
-import wcService from '@/services/WooCommerceService';
+import { wcService } from '@/services/WooCommerceService';
 
 interface LatestOrder {
   id: string;
