@@ -8,7 +8,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router';
 import { X, Send, Heart } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import wcService, { WCProduct } from '@/services/WooCommerceService';
+import { wcService, WCProduct } from '@/services/WooCommerceService';
 import { useWishlist } from '@/lib/WishlistContext';
 import { formatMoney } from '@/lib/CountryService';
 
