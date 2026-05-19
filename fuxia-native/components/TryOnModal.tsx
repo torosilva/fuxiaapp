@@ -72,9 +72,14 @@ export function TryOnModal({ visible, onClose, productImage, productName }: TryO
         body: JSON.stringify({ human_image, garment_image, category: 'shoes' }),
       });
 
-      const data = await res.json();
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(`Error de conexión (HTTP ${res.status}). Verifica tu internet.`);
+      }
 
-      if (!res.ok) throw new Error(data.error ?? 'Error al procesar');
+      if (!res.ok) throw new Error(data?.error ?? `Error ${res.status} al procesar`);
 
       // If already done
       if (data.status === 'succeeded' && data.output) {
