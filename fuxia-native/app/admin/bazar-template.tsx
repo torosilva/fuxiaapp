@@ -8,6 +8,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { MotiView } from 'moti';
 import { ArrowLeft, ChevronDown, ChevronRight, Package } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
+import wcService from '@/services/WooCommerceService';
 
 const TEMPLATE = [
   {
@@ -111,6 +112,18 @@ export default function BazarTemplateScreen() {
     }
 
     setSaving(true);
+
+    // Fetch one WC image per model (4 lookups, run in parallel)
+    const imageResults = await Promise.all(
+      TEMPLATE.map(m => wcService.getProducts({ search: m.model, per_page: 1 }))
+    );
+    const modelImages: Record<string, string | null> = Object.fromEntries(
+      TEMPLATE.map((m, i) => [m.model, imageResults[i]?.[0]?.images[0]?.src ?? null])
+    );
+    for (const row of rows) {
+      row.image_url = modelImages[row.product_name as string] ?? null;
+    }
+
     const { error } = await supabase.from('channel_inventory').insert(rows);
     setSaving(false);
 

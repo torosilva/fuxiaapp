@@ -7,6 +7,7 @@ import {
   StatusBar,
   ActivityIndicator,
   ScrollView,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -22,6 +23,7 @@ interface InventoryItem {
   price: number;
   stock: number;
   sold: number;
+  image_url: string | null;
 }
 
 export default function VendedoraInventoryScreen() {
@@ -38,7 +40,7 @@ export default function VendedoraInventoryScreen() {
     setLoading(true);
     const { data } = await supabase
       .from('channel_inventory')
-      .select('id, product_name, size, color, price, stock, sold')
+      .select('id, product_name, size, color, price, stock, sold, image_url')
       .eq('channel_id', channelId)
       .order('product_name');
     if (data) setInventory(data as InventoryItem[]);
@@ -99,6 +101,11 @@ export default function VendedoraInventoryScreen() {
                   transition={{ type: 'timing', duration: 300, delay: idx * 50 }}
                 >
                   <View style={styles.itemCard}>
+                    {item.image_url
+                      ? <Image source={{ uri: item.image_url }} style={styles.itemImage} />
+                      : <View style={styles.itemImagePlaceholder}>
+                          <Image source={require('../../../assets/images/logo-icon.png')} style={{ width: 28, height: 28, opacity: 0.3 }} resizeMode="contain" />
+                        </View>}
                     <View style={styles.itemBody}>
                       <Text style={styles.itemName}>{item.product_name}</Text>
                       <Text style={styles.itemMeta}>
@@ -180,9 +187,22 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    padding: 16,
+    padding: 12,
     marginBottom: 10,
-    gap: 14,
+    gap: 12,
+  },
+  itemImage: {
+    width: 52,
+    height: 52,
+    borderRadius: 10,
+  },
+  itemImagePlaceholder: {
+    width: 52,
+    height: 52,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   itemBody: {
     flex: 1,
