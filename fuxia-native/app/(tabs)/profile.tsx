@@ -250,7 +250,9 @@ export default function ProfileScreen() {
           <RNView style={[styles.orderCard, { backgroundColor: theme.soft }]}>
             {latestOrder.product_image
               ? <Image source={{ uri: latestOrder.product_image }} style={styles.orderImage} />
-              : <RNView style={[styles.orderImage, { backgroundColor: theme.border }]} />}
+              : <RNView style={[styles.orderImage, styles.orderImagePlaceholder, { backgroundColor: theme.soft }]}>
+                  <Image source={require('../../assets/images/logo-icon.png')} style={{ width: 36, height: 36, opacity: 0.35 }} resizeMode="contain" />
+                </RNView>}
             <RNView style={styles.orderInfo}>
               <RNView style={styles.orderHeader}>
                 <Text style={styles.orderStatus}>{latestOrder.first_item}</Text>
@@ -509,6 +511,10 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 12,
+  },
+  orderImagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   orderInfo: {
     flex: 1,
