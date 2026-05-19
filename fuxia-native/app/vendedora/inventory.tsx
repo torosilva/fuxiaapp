@@ -104,7 +104,7 @@ export default function VendedoraInventoryScreen() {
                     {item.image_url
                       ? <Image source={{ uri: item.image_url }} style={styles.itemImage} />
                       : <View style={styles.itemImagePlaceholder}>
-                          <Image source={require('../../../assets/images/logo-icon.png')} style={{ width: 28, height: 28, opacity: 0.3 }} resizeMode="contain" />
+                          <Image source={require('../../assets/images/logo-icon.png')} style={{ width: 28, height: 28, opacity: 0.3 }} resizeMode="contain" />
                         </View>}
                     <View style={styles.itemBody}>
                       <Text style={styles.itemName}>{item.product_name}</Text>
