@@ -4,12 +4,15 @@
  * the Supabase Edge Function `woocommerce-proxy` so the consumer_key/secret never
  * ship in the mobile bundle.
  *
- * Multi-currency: by default we let WCPBC decide via Cloudflare's CF-IPCountry
- * (same path the web uses), so the user's IP picks the currency. Only when the
- * user explicitly chose a country in the in-app selector do we override with
- * `wcpbc-manual-country`.
+ * Multi-currency: WCPBC's Store API integration is inconsistent — the `/products`
+ * list endpoint returns USD when no country is specified, while `/products/{id}`
+ * returns MXN (the store's base). To avoid that mismatch we ALWAYS send
+ * `wcpbc-manual-country` on every call: the user's explicit pick from the selector
+ * if any, otherwise 'MX' (store's home country).
  */
 import { getCountryOverride } from '@/lib/CountryService';
+
+const STORE_DEFAULT_COUNTRY = 'MX';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -202,34 +205,27 @@ async function storeGet<T>(path: string, params: Record<string, string | number>
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, String(v));
   }
-  const override = await getCountryOverride();
-  if (override) url.searchParams.set('wcpbc-manual-country', override);
+  const country = (await getCountryOverride()) ?? STORE_DEFAULT_COUNTRY;
+  url.searchParams.set('wcpbc-manual-country', country);
   try {
     const res = await fetch(url.toString());
     if (!res.ok) {
       console.error(`storeGet ${path} → ${res.status}`);
       return null;
     }
-    const data = (await res.json()) as T;
-    if (__DEV__) {
-      const first = Array.isArray(data) ? (data as unknown as StoreProduct[])[0] : (data as unknown as StoreProduct);
-      const cc = first?.prices?.currency_code;
-      console.log(`[storeGet] override=${override ?? 'none'} → ${cc ?? '?'} | ${url.toString()}`);
-    }
-    return data;
+    return (await res.json()) as T;
   } catch (err) {
     console.error(`storeGet ${path} threw:`, err);
     return null;
   }
 }
 
-/** Append the WCPBC country param to a permalink only when the user picked one explicitly. */
+/** Append the WCPBC country param to a permalink so the web shows the same currency the app does. */
 export async function withCountryParam(url: string): Promise<string> {
   if (!url) return url;
-  const override = await getCountryOverride();
-  if (!override) return url;
+  const country = (await getCountryOverride()) ?? STORE_DEFAULT_COUNTRY;
   const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}wcpbc-manual-country=${override}`;
+  return `${url}${sep}wcpbc-manual-country=${country}`;
 }
 
 class WooCommerceService {
