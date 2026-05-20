@@ -197,8 +197,12 @@ async function storeGet<T>(path: string, params: Record<string, string | number>
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, String(v));
   }
-  const country = (await getCountryOverride()) ?? detectDeviceCountry();
+  const override = await getCountryOverride();
+  const country = override ?? detectDeviceCountry();
   url.searchParams.set('wcpbc-manual-country', country);
+  if (__DEV__) {
+    console.log(`[storeGet] override=${override ?? 'none'} → country=${country} | ${path}`);
+  }
   try {
     const res = await fetch(url.toString());
     if (!res.ok) {
