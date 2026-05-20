@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,86 +11,91 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router, Stack } from 'expo-router';
 import { MotiView } from 'moti';
-import { ArrowLeft, TrendingUp, Wallet, Calendar } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Award,
+  Gift,
+  Truck,
+  Sparkles,
+  Crown,
+  Cake,
+  Users,
+  Check,
+} from 'lucide-react-native';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { supabase } from '@/lib/supabase';
-import type { Channel } from '@/lib/database.types';
-import { formatMoney } from '@/lib/CountryService';
 
-interface Tx {
-  id: string;
-  created_at: string;
-  amount: number;
-  currency: string;
-  channel: Channel;
-  wc_order_id: number | null;
+type Tier = 'bronze' | 'silver' | 'gold';
+
+interface TierSpec {
+  key: Tier;
+  name: string;
+  minPoints: number;
+  minPairs: number;
+  color: string;
+  perks: { icon: any; label: string }[];
 }
 
-const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const TIERS: TierSpec[] = [
+  {
+    key: 'bronze',
+    name: 'Bronze',
+    minPoints: 0,
+    minPairs: 0,
+    color: '#CD7F32',
+    perks: [
+      { icon: Sparkles, label: 'Acumulación de puntos en todas tus compras' },
+      { icon: Gift, label: 'Acceso a la tarjeta de lealtad digital' },
+      { icon: Users, label: 'Programa de referidos 2× activo' },
+    ],
+  },
+  {
+    key: 'silver',
+    name: 'Silver',
+    minPoints: 300,
+    minPairs: 3,
+    color: '#C0C0C0',
+    perks: [
+      { icon: Sparkles, label: 'Todo lo de Bronze' },
+      { icon: Gift, label: '5% de descuento permanente en tienda y web' },
+      { icon: Truck, label: 'Envío gratis en pedidos mayores a $1,500 MXN' },
+      { icon: Cake, label: 'Regalo de cumpleaños · 50 puntos extra' },
+    ],
+  },
+  {
+    key: 'gold',
+    name: 'Gold',
+    minPoints: 900,
+    minPairs: 9,
+    color: '#FFD700',
+    perks: [
+      { icon: Sparkles, label: 'Todo lo de Silver' },
+      { icon: Gift, label: '10% de descuento permanente' },
+      { icon: Truck, label: 'Envío gratis en TODAS tus compras' },
+      { icon: Crown, label: 'Acceso anticipado a nuevas colecciones (48 h antes)' },
+      { icon: Cake, label: 'Regalo de cumpleaños · 100 puntos + sorpresa física' },
+      { icon: Award, label: 'Atención personalizada vía Hilo prioritario' },
+    ],
+  },
+];
 
+export default function BeneficiosScreen() {
+  const { session, customer, loyaltyCard, isLoading } = useAuth();
 
-const monthKey = (iso: string) => {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-};
+  const currentTier: Tier = loyaltyCard?.tier ?? 'bronze';
+  const totalPoints = loyaltyCard?.total_points ?? 0;
+  const pairsCount = loyaltyCard?.pairs_count ?? 0;
 
-const monthLabel = (key: string) => {
-  const [y, m] = key.split('-');
-  return `${MONTHS_ES[Number(m) - 1]} ${y}`;
-};
+  const { current, next, progress } = useMemo(() => {
+    const idx = TIERS.findIndex((t) => t.key === currentTier);
+    const cur = TIERS[idx];
+    const nxt = idx < TIERS.length - 1 ? TIERS[idx + 1] : null;
+    if (!nxt) return { current: cur, next: null, progress: 1 };
 
-export default function PaymentsScreen() {
-  const { session, customer, isLoading } = useAuth();
-  const [txs, setTxs] = useState<Tx[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!customer) return;
-    (async () => {
-      setLoading(true);
-      const { data: card } = await supabase
-        .from('loyalty_cards')
-        .select('id')
-        .eq('customer_id', customer.id)
-        .single();
-      if (!card) {
-        setLoading(false);
-        return;
-      }
-      const { data } = await supabase
-        .from('transactions')
-        .select('id, created_at, amount, currency, channel, wc_order_id')
-        .eq('loyalty_card_id', card.id)
-        .order('created_at', { ascending: false });
-      setTxs(data ?? []);
-      setLoading(false);
-    })();
-  }, [customer?.id]);
-
-  const stats = useMemo(() => {
-    const total = txs.reduce((sum, t) => sum + Number(t.amount), 0);
-    const orders = txs.length;
-    const avg = orders > 0 ? total / orders : 0;
-
-    const now = new Date();
-    const thisKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const lastDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastKey = `${lastDate.getFullYear()}-${String(lastDate.getMonth() + 1).padStart(2, '0')}`;
-
-    const thisMonth = txs.filter((t) => monthKey(t.created_at) === thisKey).reduce((s, t) => s + Number(t.amount), 0);
-    const lastMonth = txs.filter((t) => monthKey(t.created_at) === lastKey).reduce((s, t) => s + Number(t.amount), 0);
-
-    const byMonth = new Map<string, number>();
-    for (const t of txs) {
-      const k = monthKey(t.created_at);
-      byMonth.set(k, (byMonth.get(k) ?? 0) + Number(t.amount));
-    }
-    const monthly = Array.from(byMonth.entries())
-      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
-      .slice(0, 6);
-
-    return { total, orders, avg, thisMonth, lastMonth, monthly, currency: txs[0]?.currency ?? 'MXN' };
-  }, [txs]);
+    const pointsProgress = Math.min(1, totalPoints / nxt.minPoints);
+    const pairsProgress = Math.min(1, pairsCount / nxt.minPairs);
+    const best = Math.max(pointsProgress, pairsProgress);
+    return { current: cur, next: nxt, progress: best };
+  }, [currentTier, totalPoints, pairsCount]);
 
   if (isLoading) {
     return (
@@ -112,121 +117,119 @@ export default function PaymentsScreen() {
           <ArrowLeft size={22} color="#FFF" />
         </TouchableOpacity>
         <View>
-          <Text style={styles.eyebrow}>RESUMEN</Text>
-          <Text style={styles.title}>Pagos</Text>
+          <Text style={styles.eyebrow}>TU PROGRAMA DE LEALTAD</Text>
+          <Text style={styles.title}>Beneficios</Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
 
-      {loading ? (
-        <View style={styles.center}><ActivityIndicator color="#CD7F32" /></View>
-      ) : txs.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>Sin movimientos todavía</Text>
-          <Text style={styles.emptySubtitle}>
-            Cada compra que hagas en fuxiaballerinas.com aparecerá acá.
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Current tier hero */}
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 400 }}
+          style={[styles.heroCard, { borderColor: current.color + '55' }]}
+        >
+          <View style={[styles.tierBadge, { backgroundColor: current.color + '22', borderColor: current.color }]}>
+            <Crown size={14} color={current.color} />
+            <Text style={[styles.tierBadgeText, { color: current.color }]}>NIVEL {current.name.toUpperCase()}</Text>
+          </View>
+          <Text style={styles.heroSubtitle}>Hola, {customer.name?.split(' ')[0] ?? 'tú'}</Text>
+          <Text style={styles.heroPoints}>
+            {totalPoints} <Text style={styles.heroPointsLabel}>puntos · {pairsCount} {pairsCount === 1 ? 'par' : 'pares'}</Text>
           </Text>
-        </View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {/* Hero card: total spent */}
-          <MotiView
-            from={{ opacity: 0, translateY: 12 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 400 }}
-            style={styles.heroCard}
-          >
-            <Text style={styles.heroLabel}>TOTAL EN FUXIA</Text>
-            <Text style={styles.heroAmount}>
-              {formatMoney(stats.total, stats.currency)}
-            </Text>
-            <Text style={styles.heroMeta}>
-              {stats.orders} {stats.orders === 1 ? 'compra' : 'compras'} · ticket promedio {formatMoney(stats.avg, stats.currency)}
-            </Text>
-          </MotiView>
 
-          {/* This month vs last month */}
-          <View style={styles.statsRow}>
-            <MotiView
-              from={{ opacity: 0, translateY: 12 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: 'timing', duration: 400, delay: 100 }}
-              style={styles.statCard}
-            >
-              <Calendar size={16} color="#CD7F32" />
-              <Text style={styles.statLabel}>Este mes</Text>
-              <Text style={styles.statValue}>{formatMoney(stats.thisMonth, stats.currency)}</Text>
-            </MotiView>
-            <MotiView
-              from={{ opacity: 0, translateY: 12 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: 'timing', duration: 400, delay: 150 }}
-              style={styles.statCard}
-            >
-              <TrendingUp size={16} color="#CD7F32" />
-              <Text style={styles.statLabel}>Mes pasado</Text>
-              <Text style={styles.statValue}>{formatMoney(stats.lastMonth, stats.currency)}</Text>
-            </MotiView>
-          </View>
-
-          {/* Monthly breakdown */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Wallet size={16} color="#CD7F32" />
-              <Text style={styles.sectionTitle}>Por mes</Text>
+          {next && (
+            <View style={styles.progressWrap}>
+              <View style={styles.progressTrack}>
+                <View
+                  style={[styles.progressFill, { width: `${progress * 100}%`, backgroundColor: next.color }]}
+                />
+              </View>
+              <Text style={styles.progressText}>
+                {Math.max(0, next.minPoints - totalPoints)} puntos o {Math.max(0, next.minPairs - pairsCount)}{' '}
+                {next.minPairs - pairsCount === 1 ? 'par' : 'pares'} para{' '}
+                <Text style={{ color: next.color, fontWeight: '800' }}>{next.name}</Text>
+              </Text>
             </View>
-            {stats.monthly.map(([key, amount], i) => {
-              const max = Math.max(...stats.monthly.map(([, a]) => a));
-              const widthPct = max > 0 ? (amount / max) * 100 : 0;
-              return (
-                <MotiView
-                  key={key}
-                  from={{ opacity: 0, translateX: -10 }}
-                  animate={{ opacity: 1, translateX: 0 }}
-                  transition={{ type: 'timing', duration: 350, delay: 200 + i * 60 }}
-                  style={styles.monthRow}
-                >
-                  <Text style={styles.monthLabel}>{monthLabel(key)}</Text>
-                  <View style={styles.monthBarTrack}>
-                    <View style={[styles.monthBarFill, { width: `${widthPct}%` }]} />
+          )}
+
+          {!next && (
+            <View style={styles.maxTierBox}>
+              <Sparkles size={14} color="#FFD700" />
+              <Text style={styles.maxTierText}>Llegaste al nivel más alto. Gracias por ser parte de Fuxia.</Text>
+            </View>
+          )}
+        </MotiView>
+
+        {/* All tiers list with perks */}
+        {TIERS.map((tier, i) => {
+          const reached = TIERS.findIndex((t) => t.key === currentTier) >= i;
+          const isCurrent = tier.key === currentTier;
+          return (
+            <MotiView
+              key={tier.key}
+              from={{ opacity: 0, translateY: 12 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 400, delay: 100 + i * 80 }}
+              style={[styles.tierCard, isCurrent && { borderColor: tier.color, borderWidth: 1.5 }]}
+            >
+              <View style={styles.tierHeader}>
+                <View style={[styles.tierDot, { backgroundColor: tier.color }]} />
+                <Text style={[styles.tierName, { color: tier.color }]}>{tier.name}</Text>
+                {isCurrent && (
+                  <View style={styles.currentChip}>
+                    <Text style={styles.currentChipText}>TU NIVEL</Text>
                   </View>
-                  <Text style={styles.monthAmount}>{formatMoney(amount, stats.currency)}</Text>
-                </MotiView>
-              );
-            })}
-          </View>
+                )}
+                {!isCurrent && reached && (
+                  <View style={styles.reachedChip}>
+                    <Check size={10} color="#0D0D0D" strokeWidth={3} />
+                  </View>
+                )}
+              </View>
+              <Text style={styles.tierReq}>
+                Desde {tier.minPoints} puntos o {tier.minPairs} {tier.minPairs === 1 ? 'par' : 'pares'}
+              </Text>
+              <View style={styles.perks}>
+                {tier.perks.map((p, idx) => {
+                  const Icon = p.icon;
+                  return (
+                    <View key={idx} style={styles.perkRow}>
+                      <Icon size={14} color={tier.color} />
+                      <Text style={styles.perkText}>{p.label}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </MotiView>
+          );
+        })}
 
-          {/* Recent transactions */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Wallet size={16} color="#CD7F32" />
-              <Text style={styles.sectionTitle}>Últimos movimientos</Text>
-            </View>
-            {txs.slice(0, 8).map((t, i) => (
-              <MotiView
-                key={t.id}
-                from={{ opacity: 0, translateY: 8 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: 'timing', duration: 300, delay: 100 + i * 40 }}
-                style={styles.txRow}
-              >
-                <View style={styles.txIcon}>
-                  <Text style={styles.txIconText}>
-                    {t.channel === 'store' ? '🏪' : '🌐'}
-                  </Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.txTitle}>
-                    {t.wc_order_id ? `Pedido #${t.wc_order_id}` : 'Compra en tienda'}
-                  </Text>
-                  <Text style={styles.txDate}>{new Date(t.created_at).toLocaleDateString('es-MX')}</Text>
-                </View>
-                <Text style={styles.txAmount}>{formatMoney(Number(t.amount), t.currency)}</Text>
-              </MotiView>
-            ))}
+        {/* Referral mini-block */}
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 400, delay: 400 }}
+          style={styles.referralCard}
+        >
+          <Users size={20} color="#CD7F32" />
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.referralTitle}>Bonus por referidas</Text>
+            <Text style={styles.referralSubtitle}>
+              Cuando una amiga compra usando tu código, recibís 2× sus puntos como bonus.
+            </Text>
           </View>
-        </ScrollView>
-      )}
+          <TouchableOpacity style={styles.referralBtn} onPress={() => router.push('/referral' as any)}>
+            <Text style={styles.referralBtnText}>Ver</Text>
+          </TouchableOpacity>
+        </MotiView>
+
+        <Text style={styles.disclaimer}>
+          Los beneficios pueden actualizarse. Términos completos en fuxiaballerinas.com/lealtad.
+        </Text>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -252,59 +255,89 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 20, color: '#FFFFFF', fontFamily: 'serif', textAlign: 'center' },
   scroll: { padding: 20, paddingBottom: 140 },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
-  emptyTitle: { color: '#FFF', fontSize: 18, fontFamily: 'serif', marginBottom: 8, textAlign: 'center' },
-  emptySubtitle: { color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center', lineHeight: 20 },
+
+  // Hero
   heroCard: {
     backgroundColor: '#1A1A1A',
     borderRadius: 24,
-    padding: 24,
-    marginBottom: 16,
+    padding: 22,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(205,127,50,0.2)',
   },
-  heroLabel: {
-    color: '#CD7F32', fontSize: 10, fontWeight: '800',
-    letterSpacing: 3, marginBottom: 8,
+  tierBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 20, borderWidth: 1, marginBottom: 12,
   },
-  heroAmount: {
-    color: '#FFF', fontSize: 36, fontFamily: 'serif', fontWeight: '400', marginBottom: 8,
+  tierBadgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 2 },
+  heroSubtitle: { color: 'rgba(255,255,255,0.6)', fontSize: 13, marginBottom: 4 },
+  heroPoints: { color: '#FFF', fontSize: 32, fontFamily: 'serif', fontWeight: '400', marginBottom: 16 },
+  heroPointsLabel: { color: 'rgba(255,255,255,0.45)', fontSize: 14 },
+  progressWrap: { marginTop: 4 },
+  progressTrack: {
+    height: 6, backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 3, overflow: 'hidden', marginBottom: 8,
   },
-  heroMeta: { color: 'rgba(255,255,255,0.5)', fontSize: 12 },
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 16,
-    padding: 14,
+  progressFill: { height: '100%', borderRadius: 3 },
+  progressText: { color: 'rgba(255,255,255,0.6)', fontSize: 12, lineHeight: 18 },
+  maxTierBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: 'rgba(255,215,0,0.08)',
+    borderRadius: 12, padding: 12, marginTop: 8,
+  },
+  maxTierText: { color: 'rgba(255,255,255,0.75)', fontSize: 12, flex: 1, lineHeight: 16 },
+
+  // Tier cards
+  tierCard: {
+    backgroundColor: '#161616',
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)',
-    gap: 6,
   },
-  statLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '600', letterSpacing: 1 },
-  statValue: { color: '#FFF', fontSize: 16, fontWeight: '700' },
-  section: { marginBottom: 24 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  sectionTitle: { color: '#FFF', fontSize: 14, fontWeight: '600' },
-  monthRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  monthLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 11, width: 95 },
-  monthBarTrack: {
-    flex: 1, height: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden',
+  tierHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6,
   },
-  monthBarFill: { height: '100%', backgroundColor: '#CD7F32', borderRadius: 4 },
-  monthAmount: { color: '#FFF', fontSize: 11, fontWeight: '700', minWidth: 90, textAlign: 'right' },
-  txRow: {
+  tierDot: { width: 10, height: 10, borderRadius: 5 },
+  tierName: { fontSize: 16, fontWeight: '700', flex: 1 },
+  currentChip: {
+    backgroundColor: '#CD7F32',
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
+  },
+  currentChipText: { color: '#0D0D0D', fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  reachedChip: {
+    width: 20, height: 20, borderRadius: 10,
+    backgroundColor: '#CD7F32',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  tierReq: { color: 'rgba(255,255,255,0.4)', fontSize: 11, marginBottom: 12, letterSpacing: 0.5 },
+  perks: { gap: 10 },
+  perkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  perkText: { color: 'rgba(255,255,255,0.82)', fontSize: 13, flex: 1, lineHeight: 19 },
+
+  // Referral block
+  referralCard: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 18,
+    padding: 16,
+    marginTop: 8,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(205,127,50,0.2)',
     flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)',
   },
-  txIcon: {
-    width: 34, height: 34, borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+  referralTitle: { color: '#FFF', fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  referralSubtitle: { color: 'rgba(255,255,255,0.5)', fontSize: 12, lineHeight: 16 },
+  referralBtn: {
+    backgroundColor: '#CD7F32', borderRadius: 18,
+    paddingHorizontal: 14, paddingVertical: 8,
   },
-  txIconText: { fontSize: 14 },
-  txTitle: { color: '#FFF', fontSize: 13, fontWeight: '500' },
-  txDate: { color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 },
-  txAmount: { color: '#CD7F32', fontSize: 13, fontWeight: '700' },
+  referralBtnText: { color: '#0D0D0D', fontSize: 12, fontWeight: '800' },
+
+  disclaimer: {
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 11, textAlign: 'center', lineHeight: 16, marginTop: 4,
+  },
 });
