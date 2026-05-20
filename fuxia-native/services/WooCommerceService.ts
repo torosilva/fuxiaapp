@@ -9,8 +9,8 @@
  * respects the store's base. To avoid that mismatch we ALWAYS send
  * `wcpbc-manual-country`. Priority:
  *   1. User's explicit pick from the country selector (if any).
- *   2. Device region from OS settings (es-MX → MX, en-US → US, es-CO → CO…).
- *   3. 'MX' as last-resort fallback (store base country) if region unsupported.
+ *   2. Device region from OS settings (MX → MX, US → US, CO → CO…).
+ *   3. 'US' (USD) as international fallback when the region isn't supported.
  */
 import { getCountryOverride, detectDeviceCountry } from '@/lib/CountryService';
 

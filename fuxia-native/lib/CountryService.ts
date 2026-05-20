@@ -53,7 +53,14 @@ const STORAGE_KEY = '@fuxia/country';
  * and locale detection never accidentally force a currency on the API.
  */
 const OVERRIDE_KEY = '@fuxia/country_override';
-const DEFAULT_COUNTRY: CountryCode = 'MX';
+/**
+ * Last-resort fallback when the device region isn't one of the WCPBC-configured
+ * countries. We pick 'US' (USD) because it's the universal international
+ * currency — a customer in, say, Japan or Germany sees USD pricing rather
+ * than MXN, which would confuse them. Mexican customers always resolve to
+ * 'MX' first via regionCode = 'MX'.
+ */
+const DEFAULT_COUNTRY: CountryCode = 'US';
 
 export function isSupported(code: string | null | undefined): code is CountryCode {
   return !!code && SUPPORTED_COUNTRIES.some((c) => c.code === code);
