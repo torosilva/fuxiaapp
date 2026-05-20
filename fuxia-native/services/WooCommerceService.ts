@@ -6,13 +6,13 @@
  *
  * Multi-currency: WCPBC's Store API integration is inconsistent — the `/products`
  * list endpoint returns USD when no country is specified, while `/products/{id}`
- * returns MXN (the store's base). To avoid that mismatch we ALWAYS send
- * `wcpbc-manual-country` on every call: the user's explicit pick from the selector
- * if any, otherwise 'MX' (store's home country).
+ * respects the store's base. To avoid that mismatch we ALWAYS send
+ * `wcpbc-manual-country`. Priority:
+ *   1. User's explicit pick from the country selector (if any).
+ *   2. Device region from OS settings (es-MX → MX, en-US → US, es-CO → CO…).
+ *   3. 'MX' as last-resort fallback (store base country) if region unsupported.
  */
-import { getCountryOverride } from '@/lib/CountryService';
-
-const STORE_DEFAULT_COUNTRY = 'MX';
+import { getCountryOverride, detectDeviceCountry } from '@/lib/CountryService';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -205,7 +205,7 @@ async function storeGet<T>(path: string, params: Record<string, string | number>
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, String(v));
   }
-  const country = (await getCountryOverride()) ?? STORE_DEFAULT_COUNTRY;
+  const country = (await getCountryOverride()) ?? detectDeviceCountry();
   url.searchParams.set('wcpbc-manual-country', country);
   try {
     const res = await fetch(url.toString());
@@ -223,7 +223,7 @@ async function storeGet<T>(path: string, params: Record<string, string | number>
 /** Append the WCPBC country param to a permalink so the web shows the same currency the app does. */
 export async function withCountryParam(url: string): Promise<string> {
   if (!url) return url;
-  const country = (await getCountryOverride()) ?? STORE_DEFAULT_COUNTRY;
+  const country = (await getCountryOverride()) ?? detectDeviceCountry();
   const sep = url.includes('?') ? '&' : '?';
   return `${url}${sep}wcpbc-manual-country=${country}`;
 }
