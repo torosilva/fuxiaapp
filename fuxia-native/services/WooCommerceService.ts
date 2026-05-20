@@ -4,10 +4,14 @@
  * the Supabase Edge Function `woocommerce-proxy` so the consumer_key/secret never
  * ship in the mobile bundle.
  *
- * Multi-currency: every Store API call is decorated with `wcpbc-manual-country`
- * (WCPBC plugin) so users in CO/US/etc. see the right prices instead of MXN.
+ * Multi-currency: WCPBC's Store API is inconsistent — the `/products` list endpoint
+ * returns USD when no country is specified, while `/products/{id}` respects the
+ * store's base. To avoid that mismatch we ALWAYS send `wcpbc-manual-country`:
+ *   1. User's explicit pick from the country selector (if any).
+ *   2. Device region from OS settings (MX → MX, US → US, CO → CO…).
+ *   3. 'US' (USD) as international fallback when the region isn't supported.
  */
-import { getCountry } from '@/lib/CountryService';
+import { getCountryOverride, detectDeviceCountry } from '@/lib/CountryService';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -193,32 +197,25 @@ async function storeGet<T>(path: string, params: Record<string, string | number>
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, String(v));
   }
-  // Tell the WCPBC plugin which country's prices/currency to return.
-  const country = await getCountry();
+  const country = (await getCountryOverride()) ?? detectDeviceCountry();
   url.searchParams.set('wcpbc-manual-country', country);
   try {
-    const res = await fetch(url.toString(), {
-      headers: {
-        // WCPBC plugin reads this cookie to determine currency on the Store API
-        'Cookie': `wcpbc-manual-country=${country}`,
-      },
-    });
+    const res = await fetch(url.toString());
     if (!res.ok) {
       console.error(`storeGet ${path} → ${res.status}`);
       return null;
     }
-    const json = (await res.json()) as T;
-    return json;
+    return (await res.json()) as T;
   } catch (err) {
     console.error(`storeGet ${path} threw:`, err);
     return null;
   }
 }
 
-/** Append the WCPBC country param to a permalink so the web shows the same currency. */
+/** Append the WCPBC country param to a permalink so the web shows the same currency as the app. */
 export async function withCountryParam(url: string): Promise<string> {
   if (!url) return url;
-  const country = await getCountry();
+  const country = (await getCountryOverride()) ?? detectDeviceCountry();
   const sep = url.includes('?') ? '&' : '?';
   return `${url}${sep}wcpbc-manual-country=${country}`;
 }
