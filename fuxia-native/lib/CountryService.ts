@@ -59,15 +59,10 @@ export function isSupported(code: string | null | undefined): code is CountryCod
 
 export function detectDeviceCountry(): CountryCode {
   try {
-    const locales = Localization.getLocales();
-    const region = locales[0]?.regionCode?.toUpperCase();
-    if (__DEV__) {
-      console.log(`[detectDeviceCountry] locales[0]=`, JSON.stringify(locales[0]));
-      console.log(`[detectDeviceCountry] region=${region} supported=${isSupported(region)} → ${isSupported(region) ? region : DEFAULT_COUNTRY}`);
-    }
+    const region = Localization.getLocales()[0]?.regionCode?.toUpperCase();
     if (isSupported(region)) return region;
-  } catch (err) {
-    if (__DEV__) console.log('[detectDeviceCountry] threw:', err);
+  } catch {
+    // expo-localization can throw on non-iOS dev hosts; fall through to default
   }
   return DEFAULT_COUNTRY;
 }

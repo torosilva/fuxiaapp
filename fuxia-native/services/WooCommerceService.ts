@@ -200,23 +200,17 @@ async function storeGet<T>(path: string, params: Record<string, string | number>
   const override = await getCountryOverride();
   const country = override ?? detectDeviceCountry();
   url.searchParams.set('wcpbc-manual-country', country);
-  if (__DEV__) {
-    console.log(`[storeGet] REQ override=${override ?? 'none'} country=${country} | ${url.toString()}`);
-  }
   try {
+    // Android's HTTP client (OkHttp) caches GET responses by URL. If the first
+    // request was made with a different country override, switching country
+    // serves the stale response. Force a fresh fetch every time so WCPBC's
+    // per-country pricing always reflects the current selection.
     const res = await fetch(url.toString(), { cache: 'no-store' as RequestCache });
     if (!res.ok) {
       console.error(`storeGet ${path} → ${res.status}`);
       return null;
     }
-    const data = (await res.json()) as T;
-    if (__DEV__) {
-      const first = Array.isArray(data) ? (data as unknown as StoreProduct[])[0] : (data as unknown as StoreProduct);
-      const cc = first?.prices?.currency_code;
-      const price = first?.prices?.price;
-      console.log(`[storeGet] RES currency=${cc ?? '?'} price=${price ?? '?'} | ${path}`);
-    }
-    return data;
+    return (await res.json()) as T;
   } catch (err) {
     console.error(`storeGet ${path} threw:`, err);
     return null;
