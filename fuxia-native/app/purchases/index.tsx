@@ -92,10 +92,11 @@ export default function PurchaseHistoryScreen() {
     return Array.from(map.entries());
   }, [purchases]);
 
-  const totalPairs = useMemo(
-    () => purchases.reduce((sum, p) => sum + p.items.reduce((s, i) => s + i.quantity, 0), 0),
-    [purchases],
-  );
+  // Source of truth is the loyalty card's pairs_count maintained by the WC webhook.
+  // Falling back to items.quantity would show 0 for older transactions that don't
+  // have purchase_items rows linked (pre-webhook era), even though the user
+  // genuinely has pairs counted.
+  const totalPairs = loyaltyCard?.pairs_count ?? 0;
 
   if (isLoading) {
     return (
