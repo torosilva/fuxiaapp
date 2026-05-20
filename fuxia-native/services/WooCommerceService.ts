@@ -210,7 +210,13 @@ async function storeGet<T>(path: string, params: Record<string, string | number>
       console.error(`storeGet ${path} → ${res.status}`);
       return null;
     }
-    return (await res.json()) as T;
+    const data = (await res.json()) as T;
+    if (__DEV__) {
+      const first = Array.isArray(data) ? (data as unknown as StoreProduct[])[0] : (data as unknown as StoreProduct);
+      const cc = first?.prices?.currency_code;
+      console.log(`[storeGet] override=${override ?? 'none'} → ${cc ?? '?'} | ${url.toString()}`);
+    }
+    return data;
   } catch (err) {
     console.error(`storeGet ${path} threw:`, err);
     return null;
