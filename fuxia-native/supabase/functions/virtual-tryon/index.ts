@@ -37,11 +37,13 @@ serve(async (req) => {
     return json({ error: 'human_image and garment_image son requeridos' }, 400);
   }
 
-  // Start prediction on Replicate using fashn/tryon deployment
+  // Start prediction on Replicate using the public fashn/tryon model.
+  // /v1/deployments/ is reserved for user-owned deployments (404 for public models);
+  // /v1/models/{owner}/{name}/predictions is the right path for public models.
   let startRes: Response;
   let prediction: Record<string, unknown>;
   try {
-    startRes = await fetch('https://api.replicate.com/v1/deployments/fashn/tryon/predictions', {
+    startRes = await fetch('https://api.replicate.com/v1/models/fashn/tryon/predictions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
