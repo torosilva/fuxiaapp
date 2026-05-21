@@ -11,8 +11,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { wcService, WCProduct } from '@/services/WooCommerceService';
 import { useWishlist } from '@/lib/WishlistContext';
 import { formatMoney } from '@/lib/CountryService';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 const API_URL = 'https://hilo.hilolabs.ai';
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
 type MessageRole = 'user' | 'assistant' | 'system';
 interface Message {
@@ -103,6 +106,7 @@ const cardStyles = StyleSheet.create({
 
 export default function HiloScreen() {
   const insets = useSafeAreaInsets();
+  const { customer } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: '¡Hola! Soy Hilo 💛 ¿En qué puedo ayudarte hoy?' },
   ]);
@@ -174,6 +178,32 @@ export default function HiloScreen() {
       });
 
       if (data.escalate) {
+        // Fire the real escalation: insert support_tickets row + WhatsApp the team.
+        // We capture the conversation context as it is BEFORE adding the system
+        // confirmation, so the staff sees what the customer actually said.
+        const userText = userMsg.content;
+        const userTopic = userText.length > 80 ? userText.slice(0, 80) + '…' : userText;
+        const conversationSnapshot = [...messages, userMsg, { role: 'assistant' as const, content: botText }];
+        try {
+          await fetch(`${SUPABASE_URL}/functions/v1/escalate-to-staff`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              customer_id: customer?.id ?? null,
+              customer_phone: customer?.phone ?? null,
+              customer_name: customer?.name ?? null,
+              last_messages: conversationSnapshot.slice(-6),
+              topic: userTopic,
+            }),
+          });
+        } catch (err) {
+          // Don't break the user-facing flow if the notification fails — the
+          // ticket itself is the source of truth; staff can also poll the panel.
+          console.error('[hilo] escalate-to-staff threw:', err);
+        }
         setMessages(prev => [
           ...prev,
           { role: 'system', content: 'Te conectaremos con el equipo. Una persona te escribirá por WhatsApp en breve.' },

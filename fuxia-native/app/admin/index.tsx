@@ -1,12 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, StatusBar, ActivityIndicator,
+  TouchableOpacity, StatusBar, ActivityIndicator, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { MotiView } from 'moti';
-import { Plus, Store, ShoppingBag, User, TrendingUp } from 'lucide-react-native';
+import { Plus, Store, ShoppingBag, User, TrendingUp, LifeBuoy, Check } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 
 interface ChannelRow {
@@ -29,18 +29,29 @@ interface Staff {
   channels: { name: string } | null;
 }
 
+interface SupportTicket {
+  id: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+  topic: string | null;
+  created_at: string;
+  status: 'open' | 'in_progress' | 'resolved';
+}
+
 export default function AdminHomeScreen() {
   const [channels, setChannels] = useState<ChannelRow[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [chRes, staffRes, invRes, salesRes] = await Promise.all([
+    const [chRes, staffRes, invRes, salesRes, ticketsRes] = await Promise.all([
       supabase.from('channels').select('id, name, type, location, active').order('created_at', { ascending: false }),
       supabase.from('staff').select('id, name, channel_id, active, channels(name)').order('created_at', { ascending: false }),
       supabase.from('channel_inventory').select('channel_id, stock, sold'),
       supabase.from('offline_sales').select('channel_id, total').not('channel_id', 'is', null),
+      supabase.from('support_tickets').select('id, customer_name, customer_phone, topic, created_at, status').neq('status', 'resolved').order('created_at', { ascending: false }).limit(20),
     ]);
 
     const rawChannels = (chRes.data ?? []) as { id: string; name: string; type: 'store' | 'bazar'; location: string | null; active: boolean }[];
@@ -61,7 +72,16 @@ export default function AdminHomeScreen() {
 
     setChannels(merged);
     if (staffRes.data) setStaff(staffRes.data as unknown as Staff[]);
+    if (ticketsRes.data) setTickets(ticketsRes.data as SupportTicket[]);
     setLoading(false);
+  }, []);
+
+  const resolveTicket = useCallback(async (id: string) => {
+    setTickets((prev) => prev.filter((t) => t.id !== id));
+    await supabase
+      .from('support_tickets')
+      .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+      .eq('id', id);
   }, []);
 
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
@@ -106,8 +126,49 @@ export default function AdminHomeScreen() {
             </MotiView>
           )}
 
+          {/* Tickets de soporte pendientes (de Hilo chat) */}
+          {tickets.length > 0 && (
+            <>
+              <View style={[styles.sectionHeader, { marginTop: 28 }]}>
+                <View style={styles.ticketsHeaderLeft}>
+                  <LifeBuoy size={16} color="#E05C7A" />
+                  <Text style={styles.sectionTitle}>Tickets pendientes</Text>
+                  <View style={styles.ticketCount}>
+                    <Text style={styles.ticketCountText}>{tickets.length}</Text>
+                  </View>
+                </View>
+              </View>
+              {tickets.map((t) => (
+                <View key={t.id} style={styles.ticketCard}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.ticketName}>
+                      {t.customer_name ?? 'Cliente'}
+                      {t.customer_phone ? ` · ${t.customer_phone}` : ''}
+                    </Text>
+                    {t.topic && <Text style={styles.ticketTopic} numberOfLines={2}>{t.topic}</Text>}
+                    <Text style={styles.ticketDate}>{new Date(t.created_at).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</Text>
+                  </View>
+                  <View style={styles.ticketActions}>
+                    {t.customer_phone && (
+                      <TouchableOpacity
+                        onPress={() => Linking.openURL(`https://wa.me/${t.customer_phone!.replace(/[^\d]/g, '')}`)}
+                        style={styles.ticketWaBtn}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={styles.ticketWaText}>WhatsApp</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity onPress={() => resolveTicket(t.id)} style={styles.ticketResolveBtn} activeOpacity={0.85}>
+                      <Check size={14} color="#0D0D0D" strokeWidth={3} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </>
+          )}
+
           {/* Canales con stats */}
-          <View style={[styles.sectionHeader, { marginTop: channels.length > 0 && !loading ? 28 : 0 }]}>
+          <View style={[styles.sectionHeader, { marginTop: 28 }]}>
             <Text style={styles.sectionTitle}>Canales</Text>
             <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/admin/channel-new' as any)} activeOpacity={0.8}>
               <Plus size={16} color="#0D0D0D" />
@@ -235,4 +296,33 @@ const styles = StyleSheet.create({
   dotInactive: { backgroundColor: 'rgba(255,255,255,0.2)' },
   emptyCard: { backgroundColor: '#1A1A1A', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 24, alignItems: 'center', marginBottom: 10 },
   emptyText: { color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center' },
+  ticketsHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  ticketCount: {
+    backgroundColor: '#E05C7A',
+    minWidth: 22, height: 22, borderRadius: 11,
+    paddingHorizontal: 6,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  ticketCountText: { color: '#FFF', fontSize: 11, fontWeight: '800' },
+  ticketCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#1A1A1A',
+    borderRadius: 14,
+    padding: 14, marginBottom: 8,
+    borderWidth: 1, borderColor: 'rgba(224,92,122,0.25)',
+  },
+  ticketName: { color: '#FFF', fontSize: 13, fontWeight: '700', marginBottom: 2 },
+  ticketTopic: { color: 'rgba(255,255,255,0.65)', fontSize: 12, marginBottom: 4, lineHeight: 16 },
+  ticketDate: { color: 'rgba(255,255,255,0.35)', fontSize: 10 },
+  ticketActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 10 },
+  ticketWaBtn: {
+    backgroundColor: '#25D366',
+    paddingHorizontal: 10, paddingVertical: 7, borderRadius: 14,
+  },
+  ticketWaText: { color: '#FFF', fontSize: 11, fontWeight: '700' },
+  ticketResolveBtn: {
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: '#CD7F32',
+    justifyContent: 'center', alignItems: 'center',
+  },
 });
