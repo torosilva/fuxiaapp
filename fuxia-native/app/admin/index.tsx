@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { MotiView } from 'moti';
-import { Plus, Store, ShoppingBag, User, TrendingUp, LifeBuoy, Check } from 'lucide-react-native';
+import { Plus, Store, ShoppingBag, User, TrendingUp, LifeBuoy, Check, ArrowLeft } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 
 interface ChannelRow {
@@ -95,6 +95,9 @@ export default function AdminHomeScreen() {
       <StatusBar barStyle="light-content" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <MotiView from={{ opacity: 0, translateY: 16 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 400 }}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.8}>
+            <ArrowLeft size={22} color="#FFF" />
+          </TouchableOpacity>
           <Text style={styles.eyebrow}>FUXIA BALLERINAS</Text>
           <Text style={styles.title}>Panel Admin</Text>
 
@@ -255,6 +258,12 @@ export default function AdminHomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0D0D0D' },
   scroll: { padding: 24 },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 16,
+  },
   eyebrow: { fontSize: 10, color: '#B8860B', fontWeight: '800', letterSpacing: 3, marginBottom: 4 },
   title: { fontSize: 32, color: '#fff', fontWeight: '700', marginBottom: 32 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
