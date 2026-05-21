@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { X, Send, Heart } from 'lucide-react-native';
+import { ArrowLeft, Send, Heart } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { wcService, WCProduct } from '@/services/WooCommerceService';
 import { useWishlist } from '@/lib/WishlistContext';
@@ -292,7 +292,7 @@ export default function HiloScreen() {
 
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-          <X size={22} color="rgba(255,255,255,0.7)" />
+          <ArrowLeft size={22} color="#FFF" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerDot} />
@@ -368,7 +368,8 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(205,127,50,0.15)',
   },
   closeBtn: {
-    width: 40, height: 40,
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.05)',
     justifyContent: 'center', alignItems: 'center',
   },
   headerCenter: { flex: 1, alignItems: 'center' },
