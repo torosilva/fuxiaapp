@@ -38,6 +38,18 @@ interface SupportTicket {
   status: 'open' | 'in_progress' | 'resolved';
 }
 
+/** wa.me link with a pre-written, editable message so the staff doesn't lose
+ *  the ticket context when they open the chat with the customer. */
+function buildWhatsAppUrl(t: SupportTicket): string {
+  const phone = (t.customer_phone ?? '').replace(/[^\d]/g, '');
+  const firstName = t.customer_name?.split(' ')[0];
+  const greeting = `Hola${firstName ? ' ' + firstName : ''}, te escribimos de Fuxia Ballerinas 👠`;
+  const context = t.topic ? `\n\nVimos tu mensaje: "${t.topic}".` : '';
+  const closing = `\n\n¿Cómo podemos ayudarte a resolverlo?`;
+  const text = encodeURIComponent(`${greeting}${context}${closing}`);
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
 export default function AdminHomeScreen() {
   const [channels, setChannels] = useState<ChannelRow[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -154,7 +166,7 @@ export default function AdminHomeScreen() {
                   <View style={styles.ticketActions}>
                     {t.customer_phone && (
                       <TouchableOpacity
-                        onPress={() => Linking.openURL(`https://wa.me/${t.customer_phone!.replace(/[^\d]/g, '')}`)}
+                        onPress={() => Linking.openURL(buildWhatsAppUrl(t))}
                         style={styles.ticketWaBtn}
                         activeOpacity={0.85}
                       >
