@@ -152,18 +152,29 @@ export default function HiloScreen() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/v1/chat/web`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-App-Platform': 'mobile',
-        },
-        body: JSON.stringify({
-          user_id: userId.current,
-          message: userMsg.content,
-          metadata: { source: 'mobile_app', os: Platform.OS, app_version: '1.0.0' },
-        }),
-      });
+      // Hilo a veces tarda 15-20s (chequea inventario de varios productos en
+      // serie). Damos 90s antes de cortar, así una respuesta lenta no se
+      // confunde con un fallo de red.
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 90000);
+      let response: Response;
+      try {
+        response = await fetch(`${API_URL}/api/v1/chat/web`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-App-Platform': 'mobile',
+          },
+          body: JSON.stringify({
+            user_id: userId.current,
+            message: userMsg.content,
+            metadata: { source: 'mobile_app', os: Platform.OS, app_version: '1.0.0' },
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
@@ -210,9 +221,12 @@ export default function HiloScreen() {
         ]);
       }
     } catch {
+      // Restauramos lo que escribió el cliente para que pueda reenviar con un
+      // toque, sin retipear. Hilo falló (lento o caído), no se creó ticket.
+      setInput(userMsg.content);
       setMessages(prev => [
         ...prev,
-        { role: 'assistant', content: 'Tuve un problema de conexión. Inténtalo de nuevo o escríbenos por WhatsApp.' },
+        { role: 'system', content: 'No pudimos enviar tu mensaje (la conexión tardó demasiado). Tu texto quedó listo abajo para reintentar, o escríbenos por WhatsApp.' },
       ]);
     } finally {
       setLoading(false);
