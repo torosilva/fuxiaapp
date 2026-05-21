@@ -27,7 +27,11 @@ CREATE INDEX IF NOT EXISTS idx_support_tickets_customer
 -- RLS: read for admins, insert from the edge function (service role bypasses).
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
 
+-- Las policies se DROP-ean primero para que la migración sea idempotente
+-- (se puede correr varias veces sin "policy already exists").
+
 -- Admins can see and update all tickets.
+DROP POLICY IF EXISTS "admins read tickets" ON public.support_tickets;
 CREATE POLICY "admins read tickets" ON public.support_tickets
   FOR SELECT
   USING (
@@ -37,6 +41,7 @@ CREATE POLICY "admins read tickets" ON public.support_tickets
     )
   );
 
+DROP POLICY IF EXISTS "admins update tickets" ON public.support_tickets;
 CREATE POLICY "admins update tickets" ON public.support_tickets
   FOR UPDATE
   USING (
@@ -47,6 +52,7 @@ CREATE POLICY "admins update tickets" ON public.support_tickets
   );
 
 -- Customers can read their own tickets (so app could show "tu ticket está abierto" if we ever expose it).
+DROP POLICY IF EXISTS "customers read own tickets" ON public.support_tickets;
 CREATE POLICY "customers read own tickets" ON public.support_tickets
   FOR SELECT
   USING (customer_id = auth.uid()::uuid);
