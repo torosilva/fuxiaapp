@@ -29,11 +29,14 @@ interface Staff {
   channels: { name: string } | null;
 }
 
+interface ChatMessage { role: 'user' | 'assistant' | 'system'; content: string; }
+
 interface SupportTicket {
   id: string;
   customer_name: string | null;
   customer_phone: string | null;
   topic: string | null;
+  last_messages: ChatMessage[];
   created_at: string;
   status: 'open' | 'in_progress' | 'resolved';
 }
@@ -54,6 +57,7 @@ export default function AdminHomeScreen() {
   const [channels, setChannels] = useState<ChannelRow[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -63,7 +67,7 @@ export default function AdminHomeScreen() {
       supabase.from('staff').select('id, name, channel_id, active, channels(name)').order('created_at', { ascending: false }),
       supabase.from('channel_inventory').select('channel_id, stock, sold'),
       supabase.from('offline_sales').select('channel_id, total').not('channel_id', 'is', null),
-      supabase.from('support_tickets').select('id, customer_name, customer_phone, topic, created_at, status').neq('status', 'resolved').order('created_at', { ascending: false }).limit(20),
+      supabase.from('support_tickets').select('id, customer_name, customer_phone, topic, last_messages, created_at, status').neq('status', 'resolved').order('created_at', { ascending: false }).limit(20),
     ]);
 
     const rawChannels = (chRes.data ?? []) as { id: string; name: string; type: 'store' | 'bazar'; location: string | null; active: boolean }[];
@@ -153,32 +157,58 @@ export default function AdminHomeScreen() {
                   </View>
                 </View>
               </View>
-              {tickets.map((t) => (
-                <View key={t.id} style={styles.ticketCard}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.ticketName}>
-                      {t.customer_name ?? 'Cliente'}
-                      {t.customer_phone ? ` · ${t.customer_phone}` : ''}
-                    </Text>
-                    {t.topic && <Text style={styles.ticketTopic} numberOfLines={2}>{t.topic}</Text>}
-                    <Text style={styles.ticketDate}>{new Date(t.created_at).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</Text>
-                  </View>
-                  <View style={styles.ticketActions}>
-                    {t.customer_phone && (
+              {tickets.map((t) => {
+                const isExpanded = expandedTicket === t.id;
+                const convo = Array.isArray(t.last_messages) ? t.last_messages : [];
+                return (
+                  <View key={t.id} style={styles.ticketCard}>
+                    <View style={styles.ticketTopRow}>
                       <TouchableOpacity
-                        onPress={() => Linking.openURL(buildWhatsAppUrl(t))}
-                        style={styles.ticketWaBtn}
-                        activeOpacity={0.85}
+                        style={{ flex: 1 }}
+                        activeOpacity={0.7}
+                        onPress={() => setExpandedTicket(isExpanded ? null : t.id)}
                       >
-                        <Text style={styles.ticketWaText}>WhatsApp</Text>
+                        <Text style={styles.ticketName}>
+                          {t.customer_name ?? 'Cliente'}
+                          {t.customer_phone ? ` · ${t.customer_phone}` : ''}
+                        </Text>
+                        {t.topic && <Text style={styles.ticketTopic} numberOfLines={isExpanded ? undefined : 2}>{t.topic}</Text>}
+                        <Text style={styles.ticketDate}>
+                          {new Date(t.created_at).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          {convo.length > 0 ? `  ·  ${isExpanded ? 'ocultar' : 'ver conversación'}` : ''}
+                        </Text>
                       </TouchableOpacity>
+                      <View style={styles.ticketActions}>
+                        {t.customer_phone && (
+                          <TouchableOpacity
+                            onPress={() => Linking.openURL(buildWhatsAppUrl(t))}
+                            style={styles.ticketWaBtn}
+                            activeOpacity={0.85}
+                          >
+                            <Text style={styles.ticketWaText}>WhatsApp</Text>
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity onPress={() => resolveTicket(t.id)} style={styles.ticketResolveBtn} activeOpacity={0.85}>
+                          <Check size={14} color="#0D0D0D" strokeWidth={3} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {isExpanded && convo.length > 0 && (
+                      <View style={styles.ticketConvo}>
+                        {convo.map((m, i) => (
+                          <View key={i} style={styles.convoMsg}>
+                            <Text style={styles.convoRole}>
+                              {m.role === 'user' ? '👤 Cliente' : m.role === 'assistant' ? '🤖 Hilo' : '⚙️ Sistema'}
+                            </Text>
+                            <Text style={styles.convoText}>{m.content}</Text>
+                          </View>
+                        ))}
+                      </View>
                     )}
-                    <TouchableOpacity onPress={() => resolveTicket(t.id)} style={styles.ticketResolveBtn} activeOpacity={0.85}>
-                      <Check size={14} color="#0D0D0D" strokeWidth={3} />
-                    </TouchableOpacity>
                   </View>
-                </View>
-              ))}
+                );
+              })}
             </>
           )}
 
@@ -326,16 +356,24 @@ const styles = StyleSheet.create({
   },
   ticketCountText: { color: '#FFF', fontSize: 11, fontWeight: '800' },
   ticketCard: {
-    flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#1A1A1A',
     borderRadius: 14,
     padding: 14, marginBottom: 8,
     borderWidth: 1, borderColor: 'rgba(224,92,122,0.25)',
   },
+  ticketTopRow: { flexDirection: 'row', alignItems: 'center' },
   ticketName: { color: '#FFF', fontSize: 13, fontWeight: '700', marginBottom: 2 },
   ticketTopic: { color: 'rgba(255,255,255,0.65)', fontSize: 12, marginBottom: 4, lineHeight: 16 },
   ticketDate: { color: 'rgba(255,255,255,0.35)', fontSize: 10 },
   ticketActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 10 },
+  ticketConvo: {
+    marginTop: 12, paddingTop: 12,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
+    gap: 10,
+  },
+  convoMsg: { gap: 2 },
+  convoRole: { color: '#B8860B', fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
+  convoText: { color: 'rgba(255,255,255,0.8)', fontSize: 12, lineHeight: 17 },
   ticketWaBtn: {
     backgroundColor: '#25D366',
     paddingHorizontal: 10, paddingVertical: 7, borderRadius: 14,
