@@ -123,10 +123,10 @@ export default function HomeScreen() {
         </View>
 
         {/* --- BRAND STORY / DIVIDER --- */}
-        <MotiView 
+        <MotiView
           from={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 1000 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1000, delay: 800 }}
           style={styles.brandPitch}
         >
           <Sparkles size={18} color={FuxiaDarkTheme.colors.brandGold} />
@@ -135,7 +135,7 @@ export default function HomeScreen() {
           </Text>
         </MotiView>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 24 }} />
 
       </ScrollView>
 
