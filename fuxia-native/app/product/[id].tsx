@@ -181,7 +181,7 @@ export default function ProductDetailScreen() {
               <Text style={[styles.pointsPreviewText, { color: theme.accent }]}>
                 Con esta compra ganarás{' '}
                 <Text style={{ fontWeight: '800' }}>
-                  +{Math.floor(Number(product.price) / 50) + 10} puntos
+                  +100 puntos por par
                 </Text>
               </Text>
             </RNView>
