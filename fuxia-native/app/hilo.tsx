@@ -352,9 +352,9 @@ export default function HiloScreen() {
             placeholderTextColor="rgba(255,255,255,0.2)"
             onSubmitEditing={send}
             editable={!loading}
-            multiline
             maxLength={4000}
             returnKeyType="send"
+            blurOnSubmit={false}
           />
           <TouchableOpacity
             onPress={send}
