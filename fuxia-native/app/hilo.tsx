@@ -6,11 +6,10 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft, Send, Heart } from 'lucide-react-native';
+import { ArrowLeft, Send, Heart, ChevronRight } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { wcService, WCProduct } from '@/services/WooCommerceService';
 import { useWishlist } from '@/lib/WishlistContext';
-import { formatMoney } from '@/lib/CountryService';
 import { useAuth } from '@/lib/hooks/useAuth';
 
 const API_URL = 'https://hilo.hilolabs.ai';
@@ -59,9 +58,10 @@ function ProductMiniCard({ product }: { product: WCProduct }) {
 
       <View style={cardStyles.info}>
         <Text style={cardStyles.name} numberOfLines={2}>{product.name}</Text>
-        <Text style={cardStyles.price}>
-          {formatMoney(product.price, product.currency_code, product.currency_symbol)}
-        </Text>
+        <View style={cardStyles.ctaRow}>
+          <Text style={cardStyles.cta}>Ver producto</Text>
+          <ChevronRight size={12} color="#CD7F32" />
+        </View>
       </View>
 
       <TouchableOpacity
@@ -91,9 +91,10 @@ const cardStyles = StyleSheet.create({
   },
   image: { width: '100%', height: 120, resizeMode: 'cover' },
   imagePlaceholder: { backgroundColor: '#333' },
-  info: { padding: 10, paddingBottom: 6 },
-  name: { color: '#fff', fontSize: 12, fontWeight: '600', lineHeight: 16, marginBottom: 4 },
-  price: { color: '#CD7F32', fontSize: 12, fontWeight: '700', marginBottom: 4 },
+  info: { padding: 10, paddingBottom: 10 },
+  name: { color: '#fff', fontSize: 12, fontWeight: '600', lineHeight: 16, marginBottom: 6 },
+  ctaRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  cta: { color: '#CD7F32', fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
   heartBtn: {
     position: 'absolute', top: 8, right: 8,
     width: 28, height: 28, borderRadius: 14,
