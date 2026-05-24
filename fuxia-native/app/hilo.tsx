@@ -351,6 +351,9 @@ export default function HiloScreen() {
             placeholder="Escribe tu pregunta..."
             placeholderTextColor="rgba(255,255,255,0.2)"
             onSubmitEditing={send}
+            onKeyPress={(e: any) => {
+              if (e?.nativeEvent?.key === 'Enter') send();
+            }}
             editable={!loading}
             maxLength={4000}
             returnKeyType="send"
