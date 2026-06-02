@@ -14,9 +14,9 @@
       "backgroundColor": "#0D0D0D"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.fuxiaballerinas.app",
-      "buildNumber": "8",
+      "buildNumber": "9",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Usamos tu galería para personalizar la foto de tu tarjeta de lealtad.",
         "NSCameraUsageDescription": "Usamos la cámara para escanear tarjetas de lealtad en tienda y para tomar la foto de tu perfil.",

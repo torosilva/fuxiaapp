@@ -127,6 +127,9 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: 'center',
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
   },
   btn: {
     backgroundColor: '#CD7F32',

@@ -137,7 +137,13 @@ export default function CompleteProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0D0D0D' },
-  scroll: { padding: 24, paddingBottom: 60 },
+  scroll: {
+    padding: 24,
+    paddingBottom: 60,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+  },
   eyebrow: {
     fontSize: 10, color: '#CD7F32', fontWeight: '800',
     letterSpacing: 3, marginBottom: 8, marginTop: 20,

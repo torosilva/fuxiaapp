@@ -94,7 +94,14 @@ export default function PhoneScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0D0D0D' },
   kav: { flex: 1 },
-  content: { flex: 1, padding: 24, justifyContent: 'center' },
+  content: {
+    flex: 1,
+    padding: 24,
+    justifyContent: 'center',
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+  },
   eyebrow: {
     fontSize: 10, color: '#CD7F32', fontWeight: '800',
     letterSpacing: 3, marginBottom: 8,

@@ -135,7 +135,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     justifyContent: 'center', alignItems: 'center',
   },
-  content: { flex: 1, padding: 24, justifyContent: 'center' },
+  content: {
+    flex: 1,
+    padding: 24,
+    justifyContent: 'center',
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+  },
   eyebrow: {
     fontSize: 10, color: '#CD7F32', fontWeight: '800',
     letterSpacing: 3, marginBottom: 8,
