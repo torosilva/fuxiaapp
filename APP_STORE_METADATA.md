@@ -111,8 +111,8 @@ Pantallas a capturar (4-8 screenshots):
 | **Beta App Feedback Email** | soporte@fuxiaballerinas.com _(crear)_ |
 | **Marketing URL** | https://fuxiaballerinas.com |
 | **Privacy Policy URL** | https://fuxiaballerinas.com/privacy |
-| **Demo account** | Phone: `+1 555 555 5555` — Code: `555555`. This is a review-bypass account that authenticates as a seeded demo user without needing WhatsApp. |
-| **Notes for reviewer** | "Sign in is done via OTP. For App Review, we provide a bypass account so you do not need WhatsApp installed: enter phone `+1 555 555 5555` (US 555 reserved test number) and any code `555555`. This will authenticate as a seeded demo user with sample loyalty data so you can explore all app features. No real WhatsApp message is sent for this account. This bypass exists only for App Review and is gated by a non-discoverable phone number. Regular users authenticate via WhatsApp OTP. The app is a loyalty rewards client for an existing e-commerce site (fuxiaballerinas.com) — no in-app payments." |
+| **Demo account** | Country: México 🇲🇽 — Phone: `5555555555` — Code: `555555`. This is a review-bypass account that authenticates as a seeded demo user without needing WhatsApp. |
+| **Notes for reviewer** | "Sign in is done via OTP. For App Review, we provide a bypass account so you do not need WhatsApp installed. Steps: (1) Tap 'CREAR CUENTA' on welcome screen. (2) Select 'México 🇲🇽' on the country picker. (3) On the phone screen, enter exactly `5555555555` (ten fives). (4) On the verification code screen, enter `555555` (six fives). This will authenticate as a seeded demo user (Toro Silva) with sample loyalty data — purchases history, points, tier progress — so you can explore all app features. No real WhatsApp message is sent for this account. This bypass exists only for App Review and is gated by a non-discoverable phone number. Regular users authenticate via real WhatsApp OTP. The app is a loyalty rewards client for an existing e-commerce site (fuxiaballerinas.com) — no in-app payments." |
 
 ---
 

@@ -9,9 +9,9 @@ const TWILIO_WHATSAPP_FROM = Deno.env.get('TWILIO_WHATSAPP_FROM')!; // e.g. what
 const TWILIO_CONTENT_SID = Deno.env.get('TWILIO_CONTENT_SID')!; // approved template SID for OTP
 
 // App Store reviewer bypass — lets Apple log in without WhatsApp installed.
-// Reviewer enters REVIEW_BYPASS_PHONE on the phone screen, then REVIEW_BYPASS_CODE on verify.
-// Authenticates as REVIEW_DEMO_PHONE (the seeded test user with loyalty data).
-const REVIEW_BYPASS_PHONE = Deno.env.get('REVIEW_BYPASS_PHONE') ?? '+15555555555';
+// Reviewer selects México 🇲🇽 in the country picker, enters 5555555555 on phone screen,
+// then REVIEW_BYPASS_CODE on verify. Authenticates as REVIEW_DEMO_PHONE (seeded user).
+const REVIEW_BYPASS_PHONE = Deno.env.get('REVIEW_BYPASS_PHONE') ?? '+525555555555';
 const REVIEW_BYPASS_CODE = Deno.env.get('REVIEW_BYPASS_CODE') ?? '555555';
 const REVIEW_DEMO_PHONE = Deno.env.get('REVIEW_DEMO_PHONE') ?? '+525543412939';
 
