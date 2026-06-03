@@ -85,7 +85,6 @@ export default function VerifyScreen() {
         <Text style={styles.subtitle}>
           Enviamos un código de 6 dígitos a{'\n'}
           <Text style={{ color: '#CD7F32' }}>{phone}</Text>
-          {'\n'}por WhatsApp
         </Text>
 
         <View style={styles.codeRow}>

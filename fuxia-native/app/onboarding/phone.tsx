@@ -47,9 +47,9 @@ export default function PhoneScreen() {
           style={styles.content}
         >
           <Text style={styles.eyebrow}>PASO 2 DE 3</Text>
-          <Text style={styles.title}>Tu número{'\n'}de WhatsApp</Text>
+          <Text style={styles.title}>Tu número{'\n'}de teléfono</Text>
           <Text style={styles.subtitle}>
-            Te enviaremos un código de verificación por WhatsApp
+            Te enviaremos un código de verificación de 6 dígitos
           </Text>
 
           <View style={styles.inputRow}>
@@ -78,12 +78,12 @@ export default function PhoneScreen() {
           >
             {loading
               ? <ActivityIndicator color="#0D0D0D" />
-              : <Text style={styles.btnText}>Enviar código por WhatsApp</Text>
+              : <Text style={styles.btnText}>Enviar código de verificación</Text>
             }
           </TouchableOpacity>
 
           <Text style={styles.hint}>
-            Al continuar aceptas recibir mensajes de WhatsApp de Fuxia Ballerinas
+            Al continuar aceptas recibir mensajes de Fuxia Ballerinas con tu código de acceso
           </Text>
         </MotiView>
       </KeyboardAvoidingView>

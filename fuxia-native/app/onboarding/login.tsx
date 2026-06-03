@@ -80,7 +80,7 @@ export default function LoginScreen() {
           <Text style={styles.eyebrow}>INICIAR SESIÓN</Text>
           <Text style={styles.title}>Bienvenida{'\n'}de vuelta</Text>
           <Text style={styles.subtitle}>
-            Ingresa tu número de WhatsApp y te enviamos el código.
+            Ingresa tu número de teléfono y te enviamos el código.
           </Text>
 
           <View style={styles.inputRow}>

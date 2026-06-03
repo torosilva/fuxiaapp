@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Image, ScrollView, TouchableOpacity, View as RNView, ActivityIndicator } from 'react-native';
 import { Text, View } from '@/components/Themed';
-import { User as UserIcon, Package, MapPin, Gift, CreditCard, ChevronRight, CheckCircle2, LogOut, Camera, Globe } from 'lucide-react-native';
+import { User as UserIcon, Package, MapPin, Gift, CreditCard, ChevronRight, CheckCircle2, LogOut, Camera, Globe, Trash2 } from 'lucide-react-native';
 import { Alert } from 'react-native';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -40,7 +40,8 @@ const formatDate = (iso: string) => {
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
-  const { session, customer, loyaltyCard, isLoading, signOut, refresh } = useAuth();
+  const { session, customer, loyaltyCard, isLoading, signOut, deleteAccount, refresh } = useAuth();
+  const [deleting, setDeleting] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarVersion, setAvatarVersion] = useState(0);
   const [country, setCountryState] = useState<CountryCode>('MX');
@@ -123,6 +124,43 @@ export default function ProfileScreen() {
           onPress: async () => {
             await signOut();
             router.replace('/onboarding');
+          },
+        },
+      ],
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Borrar cuenta',
+      'Esta acción es permanente y no se puede deshacer. Se borrarán tu perfil, tu tarjeta de lealtad, tus puntos y todo tu historial de compras.\n\n¿Estás seguro?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Borrar cuenta',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Confirmar borrado',
+              'Esta es tu última oportunidad. Tu cuenta y todos tus datos se borrarán de forma permanente.',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Borrar definitivamente',
+                  style: 'destructive',
+                  onPress: async () => {
+                    setDeleting(true);
+                    const { error } = await deleteAccount();
+                    setDeleting(false);
+                    if (error) {
+                      Alert.alert('Error', error);
+                      return;
+                    }
+                    router.replace('/onboarding');
+                  },
+                },
+              ],
+            );
           },
         },
       ],
@@ -283,6 +321,19 @@ export default function ProfileScreen() {
       <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.7}>
         <LogOut size={16} color="#FF6B6B" />
         <Text style={styles.signOutText}>Cerrar sesión</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.deleteAccountBtn}
+        onPress={handleDeleteAccount}
+        disabled={deleting}
+        activeOpacity={0.7}
+      >
+        {deleting
+          ? <ActivityIndicator color="#FF3B30" size="small" />
+          : <Trash2 size={16} color="#FF3B30" />
+        }
+        <Text style={styles.deleteAccountText}>{deleting ? 'Borrando...' : 'Borrar cuenta'}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => router.push('/privacy' as any)} style={styles.privacyLink}>
@@ -506,6 +557,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,107,107,0.3)',
     backgroundColor: 'rgba(255,107,107,0.05)',
+  },
+  deleteAccountBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginHorizontal: 20,
+    marginTop: 12,
+    paddingVertical: 14,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(255,59,48,0.5)',
+    backgroundColor: 'rgba(255,59,48,0.08)',
+  },
+  deleteAccountText: {
+    color: '#FF3B30',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   signOutText: {
     color: '#FF6B6B',
