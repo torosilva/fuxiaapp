@@ -189,9 +189,6 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingBottom: 120,
-    width: '100%',
-    maxWidth: 600,
-    alignSelf: 'center',
   },
   titleRow: {
     flexDirection: 'row',
