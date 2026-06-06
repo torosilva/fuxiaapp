@@ -211,6 +211,7 @@ export default function ProfileScreen() {
   }
 
   return (
+    <>
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
       <RNView style={styles.header}>
         {/* Avatar: tap to view fullscreen, badge to edit */}
@@ -395,30 +396,31 @@ export default function ProfileScreen() {
       </TouchableOpacity>
 
       <RNView style={{ height: 100 }} />
-
-      {/* Avatar fullscreen modal */}
-      <Modal visible={avatarModalVisible} transparent animationType="fade" onRequestClose={() => setAvatarModalVisible(false)}>
-        <TouchableOpacity
-          style={styles.avatarModal}
-          activeOpacity={1}
-          onPress={() => setAvatarModalVisible(false)}
-        >
-          {customer.avatar_url && (
-            <Image source={{ uri: customer.avatar_url }} style={styles.avatarModalImage} resizeMode="contain" />
-          )}
-          <TouchableOpacity style={styles.avatarModalClose} onPress={() => setAvatarModalVisible(false)}>
-            <X size={22} color="#fff" />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-
-      <CountryPicker
-        visible={pickerOpen}
-        current={country}
-        onSelect={handleSelectCountry}
-        onClose={() => setPickerOpen(false)}
-      />
     </ScrollView>
+
+    {/* Avatar fullscreen modal */}
+    <Modal visible={avatarModalVisible} transparent animationType="fade" onRequestClose={() => setAvatarModalVisible(false)}>
+      <TouchableOpacity
+        style={styles.avatarModal}
+        activeOpacity={1}
+        onPress={() => setAvatarModalVisible(false)}
+      >
+        {customer.avatar_url && (
+          <Image source={{ uri: customer.avatar_url }} style={styles.avatarModalImage} resizeMode="contain" />
+        )}
+        <TouchableOpacity style={styles.avatarModalClose} onPress={() => setAvatarModalVisible(false)}>
+          <X size={22} color="#fff" />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+
+    <CountryPicker
+      visible={pickerOpen}
+      current={country}
+      onSelect={handleSelectCountry}
+      onClose={() => setPickerOpen(false)}
+    />
+    </>
   );
 }
 
