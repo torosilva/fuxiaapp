@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { wcService, WCProduct } from '@/services/WooCommerceService';
 import { useWishlist } from '@/lib/WishlistContext';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { supabase } from '@/lib/supabase';
 
 const API_URL = 'https://hilo.hilolabs.ai';
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
@@ -115,6 +116,7 @@ export default function HiloScreen() {
   const [loading, setLoading] = useState(false);
   const [msgProducts, setMsgProducts] = useState<Record<number, WCProduct[] | 'loading'>>({});
   const userId = useRef<string | null>(null);
+  const conversationId = useRef<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -125,6 +127,10 @@ export default function HiloScreen() {
         await AsyncStorage.setItem('fuxia_anon_id', id);
       }
       userId.current = id;
+
+      // Restore previous conversation_id so Hilo recuerda el contexto
+      const savedConvId = await AsyncStorage.getItem('hilo_conversation_id');
+      if (savedConvId) conversationId.current = savedConvId;
     })();
   }, []);
 
@@ -164,6 +170,10 @@ export default function HiloScreen() {
       // Hilo a veces tarda 15-20s (chequea inventario de varios productos en
       // serie). Damos 90s antes de cortar, así una respuesta lenta no se
       // confunde con un fallo de red.
+      // Get fresh JWT for the logged-in user so Hilo can identify them
+      const { data: { session } } = await supabase.auth.getSession();
+      const jwt = session?.access_token ?? SUPABASE_ANON_KEY;
+
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 90000);
       let response: Response;
@@ -173,11 +183,18 @@ export default function HiloScreen() {
           headers: {
             'Content-Type': 'application/json',
             'X-App-Platform': 'mobile',
+            'Authorization': `Bearer ${jwt}`,
           },
           body: JSON.stringify({
             user_id: userId.current,
             message: userMsg.content,
-            metadata: { source: 'mobile_app', os: Platform.OS, app_version: '1.0.0' },
+            ...(conversationId.current ? { conversation_id: conversationId.current } : {}),
+            metadata: {
+              source: 'mobile_app',
+              os: Platform.OS,
+              app_version: '1.0.0',
+              ...(customer?.email ? { user_email: customer.email } : {}),
+            },
           }),
           signal: controller.signal,
         });
@@ -188,6 +205,12 @@ export default function HiloScreen() {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       const botText: string = data.response;
+
+      // Persist conversation_id for memory between sessions
+      if (data.conversation_id) {
+        conversationId.current = data.conversation_id;
+        AsyncStorage.setItem('hilo_conversation_id', data.conversation_id).catch(() => {});
+      }
 
       setMessages(prev => {
         const next = [...prev, { role: 'assistant' as MessageRole, content: botText }];
