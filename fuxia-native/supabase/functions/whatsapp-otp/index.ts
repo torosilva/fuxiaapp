@@ -6,7 +6,17 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID')!;
 const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN')!;
 const TWILIO_WHATSAPP_FROM = Deno.env.get('TWILIO_WHATSAPP_FROM')!; // e.g. whatsapp:+14155238886 (sandbox)
-const TWILIO_CONTENT_SID = Deno.env.get('TWILIO_CONTENT_SID')!; // approved template SID for OTP
+const TWILIO_CONTENT_SID = Deno.env.get('TWILIO_CONTENT_SID')!; // approved WhatsApp template SID
+// Optional SMS sender. When set, OTP is sent via SMS first; WhatsApp is only used as fallback.
+// Format: a Twilio-purchased SMS-capable number, e.g. "+15551234567".
+const TWILIO_SMS_FROM = Deno.env.get('TWILIO_SMS_FROM') ?? '';
+
+// App Store reviewer bypass — lets Apple log in without any messaging app installed.
+// Reviewer selects México 🇲🇽 in the country picker, enters 5555555555 on phone screen,
+// then REVIEW_BYPASS_CODE on verify. Authenticates as REVIEW_DEMO_PHONE (seeded user).
+const REVIEW_BYPASS_PHONE = Deno.env.get('REVIEW_BYPASS_PHONE') ?? '+525555555555';
+const REVIEW_BYPASS_CODE = Deno.env.get('REVIEW_BYPASS_CODE') ?? '555555';
+const REVIEW_DEMO_PHONE = Deno.env.get('REVIEW_DEMO_PHONE') ?? '+525543412939';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -33,18 +43,7 @@ function normalizeForWhatsApp(phone: string): string {
   return phone;
 }
 
-async function sendWhatsApp(to: string, code: string): Promise<void> {
-  const toWhatsApp = `whatsapp:${normalizeForWhatsApp(to)}`;
-
-  console.log(`[whatsapp-otp] sending from=${TWILIO_WHATSAPP_FROM} to=${toWhatsApp}`);
-
-  const body = new URLSearchParams({
-    From: TWILIO_WHATSAPP_FROM,
-    To: toWhatsApp,
-    ContentSid: TWILIO_CONTENT_SID,
-    ContentVariables: JSON.stringify({ '1': code }),
-  });
-
+async function twilioRequest(body: URLSearchParams): Promise<{ ok: boolean; status: number; text: string }> {
   const res = await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
     {
@@ -56,20 +55,49 @@ async function sendWhatsApp(to: string, code: string): Promise<void> {
       body,
     },
   );
+  const text = await res.text();
+  return { ok: res.ok, status: res.status, text };
+}
 
-  const responseText = await res.text();
-  console.log(`[whatsapp-otp] twilio status=${res.status} body=${responseText}`);
+async function sendSMS(to: string, code: string): Promise<void> {
+  const body = new URLSearchParams({
+    From: TWILIO_SMS_FROM,
+    To: to,
+    Body: `Tu código Fuxia Ballerinas: ${code}\n\nNo lo compartas con nadie.`,
+  });
+  console.log(`[otp] sending SMS from=${TWILIO_SMS_FROM} to=${to}`);
+  const { ok, status, text } = await twilioRequest(body);
+  console.log(`[otp] twilio SMS status=${status} body=${text}`);
+  if (!ok) throw new Error(`Twilio SMS ${status}: ${text}`);
+}
 
-  if (!res.ok) {
-    throw new Error(`Twilio ${res.status}: ${responseText}`);
+async function sendWhatsApp(to: string, code: string): Promise<void> {
+  const toWhatsApp = `whatsapp:${normalizeForWhatsApp(to)}`;
+  const body = new URLSearchParams({
+    From: TWILIO_WHATSAPP_FROM,
+    To: toWhatsApp,
+    ContentSid: TWILIO_CONTENT_SID,
+    ContentVariables: JSON.stringify({ '1': code }),
+  });
+  console.log(`[otp] sending WhatsApp from=${TWILIO_WHATSAPP_FROM} to=${toWhatsApp}`);
+  const { ok, status, text } = await twilioRequest(body);
+  console.log(`[otp] twilio WhatsApp status=${status} body=${text}`);
+  if (!ok) throw new Error(`Twilio WhatsApp ${status}: ${text}`);
+}
+
+// Sends the OTP via SMS when TWILIO_SMS_FROM is configured. Falls back to WhatsApp on SMS failure
+// or when no SMS sender is available, so existing users keep working.
+async function sendOtp(to: string, code: string): Promise<{ channel: 'sms' | 'whatsapp' }> {
+  if (TWILIO_SMS_FROM) {
+    try {
+      await sendSMS(to, code);
+      return { channel: 'sms' };
+    } catch (err) {
+      console.warn(`[otp] SMS failed, falling back to WhatsApp: ${err instanceof Error ? err.message : err}`);
+    }
   }
-
-  try {
-    const parsed = JSON.parse(responseText);
-    console.log(`[whatsapp-otp] twilio sid=${parsed.sid} status=${parsed.status}`);
-  } catch {
-    // non-JSON response, already logged above
-  }
+  await sendWhatsApp(to, code);
+  return { channel: 'whatsapp' };
 }
 
 serve(async (req) => {
@@ -89,10 +117,13 @@ serve(async (req) => {
     const phone = body.phone?.trim();
     if (!phone) return json({ error: 'phone requerido' }, 400);
 
+    // Bypass for App Store review: report demo user as existing.
+    const lookupPhone = phone === REVIEW_BYPASS_PHONE ? REVIEW_DEMO_PHONE : phone;
+
     const { data } = await supabase
       .from('customers')
       .select('id')
-      .eq('phone', phone)
+      .eq('phone', lookupPhone)
       .maybeSingle();
 
     return json({ exists: !!data });
@@ -103,6 +134,12 @@ serve(async (req) => {
     const phone = body.phone?.trim();
     if (!phone || !/^\+\d{7,15}$/.test(phone)) {
       return json({ error: 'Número de teléfono inválido. Usa formato E.164: +521234567890' }, 400);
+    }
+
+    // Bypass for App Store review: short-circuit without calling Twilio.
+    if (phone === REVIEW_BYPASS_PHONE) {
+      console.log('[whatsapp-otp] review bypass: send acknowledged for', phone);
+      return json({ success: true, message: 'Código enviado por WhatsApp' });
     }
 
     // Rate-limit: max 3 codes per phone in the last 10 minutes
@@ -122,14 +159,13 @@ serve(async (req) => {
     await supabase.from('otp_verifications').insert({ phone, code, expires_at });
 
     try {
-      await sendWhatsApp(phone, code);
+      const result = await sendOtp(phone, code);
+      return json({ success: true, channel: result.channel });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error(`[whatsapp-otp] send failed for phone=${phone}: ${message}`);
-      return json({ error: 'No se pudo enviar el mensaje. Verifica el número.', debug: message }, 502);
+      console.error(`[otp] send failed for phone=${phone}: ${message}`);
+      return json({ error: 'No se pudo enviar el código. Verifica el número.', debug: message }, 502);
     }
-
-    return json({ success: true, message: 'Código enviado por WhatsApp' });
   }
 
   // ── VERIFY OTP ────────────────────────────────────────────────────────────
@@ -141,27 +177,39 @@ serve(async (req) => {
       return json({ error: 'phone y code son requeridos' }, 400);
     }
 
-    const { data: otpRow } = await supabase
-      .from('otp_verifications')
-      .select('*')
-      .eq('phone', phone)
-      .eq('code', code)
-      .eq('used', false)
-      .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (!otpRow) {
+    // Bypass for App Store review: skip OTP lookup, authenticate as the demo user.
+    const isReviewBypass = phone === REVIEW_BYPASS_PHONE && code === REVIEW_BYPASS_CODE;
+    if (phone === REVIEW_BYPASS_PHONE && code !== REVIEW_BYPASS_CODE) {
       return json({ error: 'Código incorrecto o expirado' }, 401);
     }
 
-    // Mark OTP as used
-    await supabase.from('otp_verifications').update({ used: true }).eq('id', otpRow.id);
+    const authPhone = isReviewBypass ? REVIEW_DEMO_PHONE : phone;
+
+    if (!isReviewBypass) {
+      const { data: otpRow } = await supabase
+        .from('otp_verifications')
+        .select('*')
+        .eq('phone', phone)
+        .eq('code', code)
+        .eq('used', false)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!otpRow) {
+        return json({ error: 'Código incorrecto o expirado' }, 401);
+      }
+
+      // Mark OTP as used
+      await supabase.from('otp_verifications').update({ used: true }).eq('id', otpRow.id);
+    } else {
+      console.log('[whatsapp-otp] review bypass: authenticating as', authPhone);
+    }
 
     // Get or create Supabase auth user (email derived from phone for internal use)
-    const fakeEmail = `${phone.replace('+', '')}@fuxia.app`;
-    const password = `fuxia_${phone}_${Deno.env.get('OTP_SALT') ?? 'salt'}`;
+    const fakeEmail = `${authPhone.replace('+', '')}@fuxia.app`;
+    const password = `fuxia_${authPhone}_${Deno.env.get('OTP_SALT') ?? 'salt'}`;
 
     // Try to sign in first; if credentials are invalid the user doesn't exist yet.
     let { data: session, error: signInErr } = await supabase.auth.signInWithPassword({
@@ -174,7 +222,7 @@ serve(async (req) => {
         email: fakeEmail,
         password,
         email_confirm: true,
-        user_metadata: { phone },
+        user_metadata: { phone: authPhone },
       });
       if (createErr) {
         console.error(`[whatsapp-otp] createUser failed: ${createErr.message}`);
@@ -196,7 +244,7 @@ serve(async (req) => {
     const { data: customer } = await supabase
       .from('customers')
       .select('id, name')
-      .eq('phone', phone)
+      .eq('phone', authPhone)
       .single();
 
     return json({

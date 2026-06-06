@@ -111,8 +111,8 @@ Pantallas a capturar (4-8 screenshots):
 | **Beta App Feedback Email** | soporte@fuxiaballerinas.com _(crear)_ |
 | **Marketing URL** | https://fuxiaballerinas.com |
 | **Privacy Policy URL** | https://fuxiaballerinas.com/privacy |
-| **Demo account** | Phone: `+525543412939` (Mario Silva test user). Apple reviewer puede requerir OTP — responder rápido al mensaje de WhatsApp. |
-| **Notes for reviewer** | "This app uses WhatsApp OTP via Twilio for login. Reviewer: please ask the testing contact (see support email) for an OTP during review. The app is a loyalty rewards client for an existing e-commerce site (fuxiaballerinas.com) — no in-app payments." |
+| **Demo account** | Country: México 🇲🇽 — Phone: `5555555555` — Code: `555555`. Pre-seeded review account. NO third-party app required to receive the code. |
+| **Notes for reviewer** | "AUTHENTICATION (no WhatsApp or any other app required for review):\n\nThe app authenticates users via SMS OTP. For App Review specifically, we provide a bypass demo account so no SMS is sent and no external app is needed. Steps:\n\n1. Tap 'CREAR CUENTA' on the welcome screen.\n2. Select 'México 🇲🇽' on the country picker.\n3. On the phone screen, enter exactly `5555555555` (ten fives).\n4. Tap 'Enviar código de verificación'.\n5. On the verification code screen, enter `555555` (six fives).\n\nThis authenticates as a pre-seeded demo user (Toro Silva) with sample loyalty data — purchases, points, tier progress — so you can explore every feature. No SMS, WhatsApp, email, or any other external message is sent for this account. The bypass is gated by a non-discoverable phone number and exists only for App Review.\n\nACCOUNT DELETION (Guideline 5.1.1(v)):\nAfter signing in, go to the Profile tab → scroll to the bottom → tap 'Borrar cuenta'. You will see two confirmation dialogs and then the account, loyalty card, transactions, and all related data are permanently deleted via our `delete-account` Supabase Edge Function. The user is signed out and returned to the welcome screen.\n\nThe app is a loyalty rewards client for an existing e-commerce site (fuxiaballerinas.com) — no in-app payments." |
 
 ---
 

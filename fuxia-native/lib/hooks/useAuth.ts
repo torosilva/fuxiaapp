@@ -236,5 +236,24 @@ export function useAuth() {
     await AsyncStorage.removeItem('supabase.auth.token');
   }
 
-  return { ...state, checkPhone, sendOTP, verifyOTP, createProfile, signOut, refresh: loadSession };
+  async function deleteAccount(): Promise<{ error?: string }> {
+    const { data: { session: current } } = await supabase.auth.getSession();
+    if (!current) return { error: 'No hay sesión activa' };
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${current.access_token}`,
+      },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { error: data.error ?? 'No se pudo borrar la cuenta' };
+
+    await supabase.auth.signOut();
+    await AsyncStorage.removeItem('supabase.auth.token');
+    return {};
+  }
+
+  return { ...state, checkPhone, sendOTP, verifyOTP, createProfile, signOut, deleteAccount, refresh: loadSession };
 }

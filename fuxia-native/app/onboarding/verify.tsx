@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { MotiView } from 'moti';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useResponsive, FORM_MAX_WIDTH } from '@/lib/responsive';
 
 const CODE_LENGTH = 6;
 
@@ -18,6 +19,8 @@ export default function VerifyScreen() {
   const [countdown, setCountdown] = useState(60);
   const inputRefs = useRef<TextInput[]>([]);
   const { verifyOTP, sendOTP } = useAuth();
+  const { isTablet } = useResponsive();
+  const digitSize = isTablet ? { width: 64, height: 78, fontSize: 32, borderRadius: 18 } : { width: 46, height: 58, fontSize: 24, borderRadius: 14 };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -82,7 +85,6 @@ export default function VerifyScreen() {
         <Text style={styles.subtitle}>
           Enviamos un código de 6 dígitos a{'\n'}
           <Text style={{ color: '#CD7F32' }}>{phone}</Text>
-          {'\n'}por WhatsApp
         </Text>
 
         <View style={styles.codeRow}>
@@ -90,7 +92,16 @@ export default function VerifyScreen() {
             <TextInput
               key={i}
               ref={r => { if (r) inputRefs.current[i] = r; }}
-              style={[styles.digitInput, d && styles.digitFilled]}
+              style={[
+                styles.digitInput,
+                {
+                  width: digitSize.width,
+                  height: digitSize.height,
+                  fontSize: digitSize.fontSize,
+                  borderRadius: digitSize.borderRadius,
+                },
+                d && styles.digitFilled,
+              ]}
               value={d}
               onChangeText={t => handleDigit(t, i)}
               onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, i)}
@@ -125,7 +136,14 @@ export default function VerifyScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0D0D0D' },
-  content: { flex: 1, padding: 24, justifyContent: 'center' },
+  content: {
+    flex: 1,
+    padding: 24,
+    justifyContent: 'center',
+    width: '100%',
+    maxWidth: FORM_MAX_WIDTH,
+    alignSelf: 'center',
+  },
   eyebrow: {
     fontSize: 10, color: '#CD7F32', fontWeight: '800',
     letterSpacing: 3, marginBottom: 8,
@@ -145,14 +163,10 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   digitInput: {
-    width: 46,
-    height: 58,
-    borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.07)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
     textAlign: 'center',
-    fontSize: 24,
     fontWeight: '700',
     color: '#FFF',
   },

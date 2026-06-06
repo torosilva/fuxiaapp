@@ -80,7 +80,7 @@ export default function LoginScreen() {
           <Text style={styles.eyebrow}>INICIAR SESIÓN</Text>
           <Text style={styles.title}>Bienvenida{'\n'}de vuelta</Text>
           <Text style={styles.subtitle}>
-            Ingresa tu número de WhatsApp y te enviamos el código.
+            Ingresa tu número de teléfono y te enviamos el código.
           </Text>
 
           <View style={styles.inputRow}>
@@ -135,7 +135,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     justifyContent: 'center', alignItems: 'center',
   },
-  content: { flex: 1, padding: 24, justifyContent: 'center' },
+  content: {
+    flex: 1,
+    padding: 24,
+    justifyContent: 'center',
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+  },
   eyebrow: {
     fontSize: 10, color: '#CD7F32', fontWeight: '800',
     letterSpacing: 3, marginBottom: 8,

@@ -29,7 +29,7 @@ export default function PrivacyPolicyScreen() {
         </Section>
 
         <Section title="2. Datos que recopilamos">
-          {`• Nombre y correo electrónico — para identificarte y comunicarnos contigo.\n• Número de teléfono — para enviarte tu código de acceso (OTP) y notificaciones por WhatsApp.\n• Historial de compras — para calcular tus puntos del Programa Hilo y mostrarte tus pedidos.\n• Foto de perfil — si decides cargarla, se almacena de forma segura.\n• Token de notificaciones push — para enviarte alertas de tu pedido y puntos acumulados.\n• Dirección de envío — para completar la entrega de tus pedidos.`}
+          {`• Nombre y correo electrónico — para identificarte y comunicarnos contigo.\n• Número de teléfono — para enviarte tu código de acceso (OTP) por SMS y notificaciones.\n• Historial de compras — para calcular tus puntos del Programa Hilo y mostrarte tus pedidos.\n• Foto de perfil — si decides cargarla, se almacena de forma segura.\n• Token de notificaciones push — para enviarte alertas de tu pedido y puntos acumulados.\n• Dirección de envío — para completar la entrega de tus pedidos.`}
         </Section>
 
         <Section title="3. Cómo usamos tus datos">
@@ -37,7 +37,7 @@ export default function PrivacyPolicyScreen() {
         </Section>
 
         <Section title="4. Con quién compartimos tu información">
-          {`Tus datos no se venden a terceros. Solo los compartimos con:\n• Supabase — almacenamiento seguro de datos (servidores en EE.UU. bajo certificación SOC 2).\n• Stripe / Mercado Pago — procesamiento de pagos certificado PCI-DSS.\n• Twilio — envío de mensajes WhatsApp y OTP.\n• DHL / FedEx — datos de envío necesarios para la entrega.\n• WooCommerce — sincronización de pedidos del sitio web.`}
+          {`Tus datos no se venden a terceros. Solo los compartimos con:\n• Supabase — almacenamiento seguro de datos (servidores en EE.UU. bajo certificación SOC 2).\n• Stripe / Mercado Pago — procesamiento de pagos certificado PCI-DSS.\n• Twilio — envío de tu código de acceso (OTP) por SMS.\n• DHL / FedEx — datos de envío necesarios para la entrega.\n• WooCommerce — sincronización de pedidos del sitio web.`}
         </Section>
 
         <Section title="5. Seguridad">
