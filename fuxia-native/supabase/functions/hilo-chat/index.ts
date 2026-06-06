@@ -212,6 +212,28 @@ const KB: { keywords: string[]; answer: string; escalate?: boolean }[] = [
     answer: 'Para pedidos a Estados Unidos y Canadá el cobro es automáticamente en dólares. Para pedidos en México el cobro es en pesos mexicanos.',
   },
 
+  // ── OCASIONES / EVENTOS ──────────────────────────────────────────────────────
+  {
+    keywords: ['boda', 'casamiento', 'matrimonio', 'novia', 'damas de honor', 'wedding'],
+    answer: '¡Qué emoción! 💛 Para una boda te recomiendo nuestras ballerinas con detalles delicados (estoperoles, perlas o moños) en tonos neutros como nude, dorado o blanco. La colección Mafalda y la Fuxia Essence tienen modelos perfectos para boda. ¿Quieres que te muestre opciones específicas o prefieres algún color en particular?',
+  },
+  {
+    keywords: ['evento', 'fiesta', 'gala', 'cocktail', 'cóctel', 'ocasión especial', 'graduación', 'xv años', 'quince años', 'bautizo'],
+    answer: 'Para eventos especiales nuestras ballerinas con acabados premium (estoperoles metálicos, perlas, terciopelo) son ideales — cómodas para bailar toda la noche sin lastimar. ¿Qué tipo de evento es y qué color buscas? Te recomiendo opciones.',
+  },
+  {
+    keywords: ['oficina', 'trabajo', 'office', 'profesional', 'corporativo', 'ejecutiva'],
+    answer: 'Para la oficina te recomiendo nuestros modelos clásicos en negro, nude o camel — elegantes, cómodos y combinables con cualquier outfit profesional. Nuestras ballerinas tipo "Paula" o "Sandalia clásica" son los favoritos para uso diario laboral.',
+  },
+  {
+    keywords: ['diario', 'todos los dias', 'todos los días', 'casual', 'caminar', 'andar'],
+    answer: 'Para uso diario te recomiendo nuestras ballerinas con suela acolchada — vienen en colores básicos (negro, nude, camel, blanco) que combinan con todo. Son tan cómodas que las puedes traer 10 horas sin cansarte.',
+  },
+  {
+    keywords: ['regalo', 'regalar', 'gift'],
+    answer: '¡Qué linda idea! 🎁 Tenemos tarjetas de regalo digitales por cualquier monto, o si conoces la talla puedes elegir cualquier modelo. Para regalo te recomiendo opciones en colores versátiles (nude, negro) o nuestros modelos más populares. ¿Quieres que te ayude a elegir?',
+  },
+
   // ── BAZARES / TIENDA ─────────────────────────────────────────────────────────
   {
     keywords: ['bazar', 'tienda física', 'ver en persona', 'probar', 'dónde comprar físico'],
