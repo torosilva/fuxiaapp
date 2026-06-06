@@ -212,7 +212,13 @@ export default function ProfileScreen() {
 
   return (
     <>
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
+      showsVerticalScrollIndicator={true}
+      bounces={true}
+      alwaysBounceVertical={true}
+    >
       <RNView style={styles.header}>
         {/* Avatar: tap to view fullscreen, badge to edit */}
         <RNView style={[styles.avatarContainer, { borderColor: theme.accent, backgroundColor: theme.soft }]}>
