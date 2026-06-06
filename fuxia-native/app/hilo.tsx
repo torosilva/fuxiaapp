@@ -145,7 +145,15 @@ export default function HiloScreen() {
   }, []);
 
   const send = async () => {
-    if (!input.trim() || loading || !userId.current) return;
+    if (!input.trim() || loading) return;
+
+    // userId may not have hydrated from AsyncStorage yet — generate one
+    // synchronously so the user can send right after opening the chat.
+    if (!userId.current) {
+      const fallback = `mobile_anon_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      userId.current = fallback;
+      AsyncStorage.setItem('fuxia_anon_id', fallback).catch(() => {});
+    }
 
     const userMsg: Message = { role: 'user', content: input.trim() };
     setMessages(prev => [...prev, userMsg]);
