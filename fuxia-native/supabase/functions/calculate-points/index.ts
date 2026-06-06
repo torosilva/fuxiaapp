@@ -1,62 +1,61 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
+/**
+ * Calcula puntos de lealtad para una orden.
+ *
+ * Regla oficial Fuxia: **100 puntos por cada par**. El monto no influye —
+ * todos los pares valen lo mismo en puntos para que el cliente no se confunda
+ * y el equipo de tienda pueda calcular en la cabeza.
+ *
+ * El campo `amount` queda en el body request por compatibilidad con clientes
+ * existentes que aún lo mandan, pero se ignora en el cálculo. Si querés
+ * volver a una fórmula híbrida en el futuro, este es el lugar.
+ */
+
 interface RequestBody {
-  amount: number;      // total en MXN
+  amount?: number;     // total en moneda local — actualmente IGNORADO
   pairs_count: number; // número de pares en la orden
 }
 
 interface ResponseBody {
   points_earned: number;
-  breakdown: {
-    points_from_amount: number;
-    points_from_pairs: number;
-  };
+  breakdown: { points_per_pair: number; pairs: number };
+}
+
+const POINTS_PER_PAIR = 100;
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...CORS },
+  });
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
-    });
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
   try {
-    const { amount, pairs_count }: RequestBody = await req.json();
+    const body: RequestBody = await req.json();
 
-    if (typeof amount !== 'number' || amount < 0) {
-      return new Response(JSON.stringify({ error: 'amount must be a non-negative number' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    if (typeof body.pairs_count !== 'number' || body.pairs_count < 0) {
+      return json({ error: 'pairs_count must be a non-negative number' }, 400);
     }
 
-    if (typeof pairs_count !== 'number' || pairs_count < 0) {
-      return new Response(JSON.stringify({ error: 'pairs_count must be a non-negative number' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    const pairs = Math.floor(body.pairs_count);
+    const points_earned = pairs * POINTS_PER_PAIR;
 
-    const points_from_amount = Math.floor(amount / 50);
-    const points_from_pairs = pairs_count * 10;
-    const points_earned = points_from_amount + points_from_pairs;
-
-    const body: ResponseBody = {
+    const resp: ResponseBody = {
       points_earned,
-      breakdown: { points_from_amount, points_from_pairs },
+      breakdown: { points_per_pair: POINTS_PER_PAIR, pairs },
     };
-
-    return new Response(JSON.stringify(body), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+    return json(resp);
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid request body' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return json({ error: 'Invalid request body' }, 400);
   }
 });

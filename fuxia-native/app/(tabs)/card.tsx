@@ -11,10 +11,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MotiView } from 'moti';
-import { Redirect } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Share2, ShoppingBag, Sparkles, MessageCircle } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { Share2, ShoppingBag, MessageCircle } from 'lucide-react-native';
 import { LoyaltyCard } from '@/components/LoyaltyCard';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -109,7 +108,13 @@ export default function CardScreen() {
             <Text style={styles.eyebrow}>MI TARJETA</Text>
             <Text style={styles.title}>Lealtad Fuxia</Text>
           </View>
-          <Sparkles size={20} color="#CD7F32" />
+          <TouchableOpacity
+            onPress={() => router.push('/hilo')}
+            style={styles.chatBtn}
+            activeOpacity={0.7}
+          >
+            <MessageCircle size={20} color="#CD7F32" />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.cardWrapper}>
@@ -309,5 +314,13 @@ const styles = StyleSheet.create({
     color: '#CD7F32',
     fontSize: 13,
     fontWeight: '700',
+  },
+  chatBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(205,127,50,0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

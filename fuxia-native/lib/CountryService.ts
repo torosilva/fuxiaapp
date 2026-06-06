@@ -3,16 +3,22 @@
  *
  * The WooCommerce store at fuxiaballerinas.com runs the "WooCommerce Price
  * Based on Country" plugin (Oscar Gare). It expects the country code via the
- * `wcpbc-manual-country` query param. The web auto-detects via Cloudflare's
- * `CF-IPCountry` header, but native fetch from React Native does not always
- * trigger that path, so we pass the country explicitly on every API call.
+ * `wcpbc-manual-country` query param.
  *
- * Resolution order on first read:
- *   1. AsyncStorage (last user choice / synced from profile)
- *   2. Device locale (expo-localization) if it maps to a supported country
- *   3. 'MX' (the store default)
+ * WCPBC's Store API integration is inconsistent — `/products` (list) returns
+ * USD when no country is specified, while `/products/{id}` (single) respects
+ * the store's base. To get the same currency in both, the app ALWAYS sends
+ * the param. The country it sends is resolved this way:
  *
- * After first read the value is cached in memory and broadcast to subscribers.
+ *   1. `getCountryOverride()` — set ONLY by the in-app selector (explicit pick).
+ *   2. `detectDeviceCountry()` — device region from OS settings.
+ *   3. `DEFAULT_COUNTRY` ('US' / USD) — international fallback when the
+ *      device region is not one of the WCPBC-configured countries.
+ *
+ * `STORAGE_KEY` ('@fuxia/country') is the UI preference cache. `OVERRIDE_KEY`
+ * ('@fuxia/country_override') is the API override. They are kept separate so
+ * that `syncFromCustomer` (which reads Supabase's stored country) never
+ * accidentally forces a currency on the API — only the selector does that.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Localization from 'expo-localization';
@@ -40,10 +46,20 @@ export const SUPPORTED_COUNTRIES = [
   { code: 'PE', name: 'Perú',           flag: '🇵🇪', currency: 'USD', mxn_rate: 17       },
 ] as const;
 
+
 export type CountryCode = typeof SUPPORTED_COUNTRIES[number]['code'];
 
 const STORAGE_KEY = '@fuxia/country';
-const DEFAULT_COUNTRY: CountryCode = 'MX';
+const OVERRIDE_KEY = '@fuxia/country_override';
+const MIGRATION_KEY = '@fuxia/country_migrated_v1';
+/**
+ * Last-resort fallback when the device region isn't one of the WCPBC-configured
+ * countries. We pick 'US' (USD) because it's the universal international
+ * currency — a customer in, say, Japan or Germany sees USD pricing rather
+ * than MXN, which would only confuse them. Mexican users resolve to 'MX'
+ * first via regionCode = 'MX'.
+ */
+const DEFAULT_COUNTRY: CountryCode = 'US';
 
 export function isSupported(code: string | null | undefined): code is CountryCode {
   return !!code && SUPPORTED_COUNTRIES.some((c) => c.code === code);
@@ -66,6 +82,13 @@ const _listeners = new Set<(c: CountryCode) => void>();
 export async function getCountry(): Promise<CountryCode> {
   if (_cached) return _cached;
   try {
+    // One-time migration: old versions stored the device locale (en-US → 'US').
+    // Clear the legacy STORAGE_KEY so the new override architecture decides.
+    const migrated = await AsyncStorage.getItem(MIGRATION_KEY);
+    if (!migrated) {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+      await AsyncStorage.setItem(MIGRATION_KEY, '1');
+    }
     const stored = await AsyncStorage.getItem(STORAGE_KEY);
     if (isSupported(stored)) {
       _cached = stored;
@@ -84,10 +107,27 @@ export function getCountrySync(): CountryCode {
   return _cached ?? detectDeviceCountry();
 }
 
+/**
+ * Returns the explicit country override the user picked in the selector, or
+ * `null` if none. Only this drives the `wcpbc-manual-country` param sent to
+ * the Store API — when null, the caller falls back to `detectDeviceCountry()`.
+ */
+export async function getCountryOverride(): Promise<CountryCode | null> {
+  try {
+    const v = await AsyncStorage.getItem(OVERRIDE_KEY);
+    return isSupported(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 /** User-driven change (selector in profile). Persists to AsyncStorage and Supabase. */
 export async function setCountry(code: CountryCode, customerId?: string): Promise<void> {
   _cached = code;
-  await AsyncStorage.setItem(STORAGE_KEY, code);
+  await AsyncStorage.multiSet([
+    [STORAGE_KEY, code],
+    [OVERRIDE_KEY, code],
+  ]);
   if (customerId) {
     await supabase.from('customers').update({ country: code }).eq('id', customerId);
   }

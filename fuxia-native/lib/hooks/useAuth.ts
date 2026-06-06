@@ -97,7 +97,7 @@ export function useAuth() {
 
     const { data: customer } = await supabase
       .from('customers')
-      .select('id, phone, name, email, avatar_url, country, role')
+      .select('id, phone, name, email, avatar_url, country, role, referral_code')
       .eq('phone', phone)
       .single();
 
@@ -190,6 +190,7 @@ export function useAuth() {
     name: string,
     email: string,
     birthday?: string,
+    referralCode?: string,
   ): Promise<{ error?: string }> {
     const country = detectDeviceCountry();
 
@@ -201,6 +202,21 @@ export function useAuth() {
       // Non-fatal — user can still use the app without WC linking.
     }
 
+    // Resolve referrer
+    let referred_by: string | null = null;
+    if (referralCode) {
+      const { data: referrer } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('referral_code', referralCode)
+        .maybeSingle();
+      if (referrer) referred_by = referrer.id;
+    }
+
+    // Generate a unique 8-char referral code for this new user
+    const newReferralCode = Math.random().toString(36).slice(2, 6).toUpperCase() +
+      Math.random().toString(36).slice(2, 6).toUpperCase().slice(0, 4);
+
     const { data: customer, error } = await supabase
       .from('customers')
       .insert({
@@ -210,6 +226,8 @@ export function useAuth() {
         country,
         birthday: birthday ?? null,
         wc_customer_id,
+        referral_code: newReferralCode,
+        referred_by,
       })
       .select('id')
       .single();

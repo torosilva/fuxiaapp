@@ -113,20 +113,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#333',
   },
   info: {
-    marginTop: 12,
+    marginTop: 7,
   },
   category: {
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: 2,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   name: {
     fontSize: 15,
     fontWeight: '600',
     fontFamily: 'serif',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   price: {
     fontSize: 13,

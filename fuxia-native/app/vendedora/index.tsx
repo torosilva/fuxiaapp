@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
-import { Store, ShoppingBag, Delete } from 'lucide-react-native';
+import { Store, ShoppingBag, Delete, ArrowLeft } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 
@@ -142,6 +142,9 @@ export default function VendedoraLoginScreen() {
           transition={{ type: 'timing', duration: 400 }}
           style={styles.step}
         >
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.8}>
+            <ArrowLeft size={22} color="#FFF" />
+          </TouchableOpacity>
           <Text style={styles.eyebrow}>FUXIA BALLERINAS</Text>
           <Text style={styles.title}>Selecciona{'\n'}tu canal</Text>
 
@@ -278,6 +281,12 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     paddingTop: 20,
+  },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 16,
   },
   eyebrow: {
     fontSize: 10,

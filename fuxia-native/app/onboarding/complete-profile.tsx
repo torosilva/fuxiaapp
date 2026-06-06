@@ -29,6 +29,7 @@ export default function CompleteProfileScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [birthday, setBirthday] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { createProfile } = useAuth();
@@ -43,7 +44,7 @@ export default function CompleteProfileScreen() {
     if (!emailValid) { setError('Ingresa un email válido'); return; }
     setError('');
     setLoading(true);
-    const result = await createProfile(phone, name.trim(), email.trim(), birthdayIso);
+    const result = await createProfile(phone, name.trim(), email.trim(), birthdayIso, referralCode.trim().toUpperCase() || undefined);
     setLoading(false);
     if (result.error) {
       setError(result.error);
@@ -99,6 +100,21 @@ export default function CompleteProfileScreen() {
               <Text style={styles.fieldHint}>
                 Necesario para vincular tus compras en fuxiaballerinas.com
               </Text>
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.label}>CÓDIGO DE REFERIDA <Text style={styles.optional}>(opcional)</Text></Text>
+              <TextInput
+                style={styles.input}
+                value={referralCode}
+                onChangeText={t => setReferralCode(t.toUpperCase())}
+                placeholder="Ej: AB12CD34"
+                placeholderTextColor="rgba(255,255,255,0.2)"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={8}
+              />
+              <Text style={styles.fieldHint}>Si alguien te recomendó la app, ingresa su código</Text>
             </View>
 
             <View style={styles.field}>

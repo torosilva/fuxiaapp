@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Image, ScrollView, TouchableOpacity, View as RNView, ActivityIndicator } from 'react-native';
+import { StyleSheet, Image, ScrollView, TouchableOpacity, View as RNView, ActivityIndicator, Modal } from 'react-native';
 import { Text, View } from '@/components/Themed';
-import { User as UserIcon, Package, MapPin, Gift, CreditCard, ChevronRight, CheckCircle2, LogOut, Camera, Globe, Settings, Store, Trash2 } from 'lucide-react-native';
+import { User as UserIcon, Package, MapPin, Gift, CreditCard, Users, BarChart2, ChevronRight, CheckCircle2, LogOut, Camera, Globe, Settings, Store, ShoppingBag, X, Trash2 } from 'lucide-react-native';
 import { Alert } from 'react-native';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -19,9 +19,8 @@ import {
   type CountryCode,
 } from '@/lib/CountryService';
 
-const SANDALS_IMAGE = require('../../assets/images/sandals.png');
-
 import { LoyaltyCard } from '@/components/LoyaltyCard';
+import { wcService } from '@/services/WooCommerceService';
 
 interface LatestOrder {
   id: string;
@@ -29,6 +28,7 @@ interface LatestOrder {
   created_at: string;
   first_item: string;
   points_earned: number;
+  product_image: string | null;
 }
 
 const MONTHS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -44,6 +44,7 @@ export default function ProfileScreen() {
   const [deleting, setDeleting] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarVersion, setAvatarVersion] = useState(0);
+  const [avatarModalVisible, setAvatarModalVisible] = useState(false);
   const [country, setCountryState] = useState<CountryCode>('MX');
   const [pickerOpen, setPickerOpen] = useState(false);
   const countryMeta = getCountryMeta(country);
@@ -180,12 +181,18 @@ export default function ProfileScreen() {
         .maybeSingle();
       if (data) {
         const firstName = (data as any).purchase_items?.[0]?.product_name ?? 'Compra';
+        let productImage: string | null = null;
+        if (firstName !== 'Compra') {
+          const products = await wcService.getProducts({ search: firstName, per_page: 1 });
+          productImage = products[0]?.images[0]?.src ?? null;
+        }
         setLatestOrder({
           id: data.id,
           wc_order_id: data.wc_order_id,
           created_at: data.created_at,
           first_item: firstName,
           points_earned: data.points_earned,
+          product_image: productImage,
         });
       }
     })();
@@ -206,35 +213,38 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
       <RNView style={styles.header}>
-        <TouchableOpacity
-          onPress={handlePickAvatar}
-          disabled={uploadingAvatar}
-          activeOpacity={0.8}
-          style={[styles.avatarContainer, { borderColor: theme.accent, backgroundColor: theme.soft }]}
-        >
-          {customer.avatar_url ? (
-            <Image
-              key={avatarVersion}
-              source={{ uri: customer.avatar_url }}
-              style={styles.avatarImage}
-            />
-          ) : (
-            <Text style={[styles.avatarInitials, { color: theme.accent }]}>
-              {customer.name
-                .split(' ')
-                .map((p) => p[0])
-                .filter(Boolean)
-                .slice(0, 2)
-                .join('')
-                .toUpperCase()}
-            </Text>
-          )}
-          <RNView style={[styles.avatarBadge, { backgroundColor: theme.accent }]}>
+        {/* Avatar: tap to view fullscreen, badge to edit */}
+        <RNView style={[styles.avatarContainer, { borderColor: theme.accent, backgroundColor: theme.soft }]}>
+          <TouchableOpacity
+            onPress={() => customer.avatar_url && setAvatarModalVisible(true)}
+            activeOpacity={customer.avatar_url ? 0.8 : 1}
+            style={{ width: 76, height: 76, borderRadius: 38, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}
+          >
+            {customer.avatar_url ? (
+              <Image key={avatarVersion} source={{ uri: customer.avatar_url }} style={styles.avatarImage} />
+            ) : (
+              <Text style={[styles.avatarInitials, { color: theme.accent }]}>
+                {customer.name
+                  .split(' ')
+                  .map((p) => p[0])
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .join('')
+                  .toUpperCase()}
+              </Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handlePickAvatar}
+            disabled={uploadingAvatar}
+            activeOpacity={0.8}
+            style={[styles.avatarBadge, { backgroundColor: theme.accent }]}
+          >
             {uploadingAvatar
               ? <ActivityIndicator size="small" color={theme.background} />
               : <Camera size={14} color={theme.background} />}
-          </RNView>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </RNView>
         <Text style={styles.userName}>{customer.name}</Text>
         <Text style={[styles.userEmail, { color: theme.muted }]}>{customer.email ?? customer.phone}</Text>
       </RNView>
@@ -257,8 +267,8 @@ export default function ProfileScreen() {
         {[
           { icon: Package, label: 'Mis Compras', onPress: () => router.push('/purchases' as any) },
           { icon: MapPin, label: 'Seguimiento', onPress: () => router.push('/tracking' as any) },
-          { icon: Gift, label: 'Regalar', onPress: undefined },
-          { icon: CreditCard, label: 'Pagos', onPress: () => router.push('/payments' as any) },
+          { icon: Users, label: 'Referir', onPress: () => router.push('/referral' as any) },
+          { icon: BarChart2, label: 'Beneficios', onPress: () => router.push('/payments' as any) },
         ].map((item, idx) => (
           <TouchableOpacity
             key={idx}
@@ -278,7 +288,11 @@ export default function ProfileScreen() {
         <Text style={styles.sectionTitle}>Último Pedido</Text>
         {latestOrder ? (
           <RNView style={[styles.orderCard, { backgroundColor: theme.soft }]}>
-            <Image source={SANDALS_IMAGE} style={styles.orderImage} />
+            {latestOrder.product_image
+              ? <Image source={{ uri: latestOrder.product_image }} style={styles.orderImage} />
+              : <RNView style={[styles.orderImage, styles.orderImagePlaceholder, { backgroundColor: theme.soft }]}>
+                  <Image source={require('../../assets/images/logo-icon.png')} style={{ width: 36, height: 36, opacity: 0.35 }} resizeMode="contain" />
+                </RNView>}
             <RNView style={styles.orderInfo}>
               <RNView style={styles.orderHeader}>
                 <Text style={styles.orderStatus}>{latestOrder.first_item}</Text>
@@ -332,6 +346,18 @@ export default function ProfileScreen() {
             <Text style={[styles.accessSub, { color: theme.muted }]}>Código de tienda</Text>
           </TouchableOpacity>
 
+          {((customer as any).role === 'staff' || (customer as any).role === 'admin') && (
+            <TouchableOpacity
+              style={[styles.accessCard, { backgroundColor: theme.soft, borderColor: theme.border }]}
+              onPress={() => router.push('/vendedora' as any)}
+              activeOpacity={0.8}
+            >
+              <ShoppingBag size={22} color={theme.accent} />
+              <Text style={styles.accessLabel}>Modo Vendedora</Text>
+              <Text style={[styles.accessSub, { color: theme.muted }]}>Registrar ventas</Text>
+            </TouchableOpacity>
+          )}
+
           {(customer as any).role === 'admin' && (
             <TouchableOpacity
               style={[styles.accessCard, { backgroundColor: theme.soft, borderColor: theme.border }]}
@@ -369,6 +395,22 @@ export default function ProfileScreen() {
       </TouchableOpacity>
 
       <RNView style={{ height: 100 }} />
+
+      {/* Avatar fullscreen modal */}
+      <Modal visible={avatarModalVisible} transparent animationType="fade" onRequestClose={() => setAvatarModalVisible(false)}>
+        <TouchableOpacity
+          style={styles.avatarModal}
+          activeOpacity={1}
+          onPress={() => setAvatarModalVisible(false)}
+        >
+          {customer.avatar_url && (
+            <Image source={{ uri: customer.avatar_url }} style={styles.avatarModalImage} resizeMode="contain" />
+          )}
+          <TouchableOpacity style={styles.avatarModalClose} onPress={() => setAvatarModalVisible(false)}>
+            <X size={22} color="#fff" />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       <CountryPicker
         visible={pickerOpen}
@@ -523,6 +565,10 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 12,
   },
+  orderImagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   orderInfo: {
     flex: 1,
   },
@@ -643,5 +689,27 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.25)',
     fontSize: 11,
     letterSpacing: 0.5,
+  },
+  avatarModal: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarModalImage: {
+    width: '90%',
+    height: '70%',
+    borderRadius: 20,
+  },
+  avatarModalClose: {
+    position: 'absolute',
+    top: 56,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

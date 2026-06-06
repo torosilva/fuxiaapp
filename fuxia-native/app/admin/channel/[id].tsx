@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { MotiView } from 'moti';
-import { ArrowLeft, Plus, Package, X } from 'lucide-react-native';
+import { ArrowLeft, Plus, Package, X, ClipboardList } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 
 interface Channel {
@@ -170,6 +170,18 @@ export default function ChannelDetailScreen() {
             ) : null}
             <View style={[styles.statusDot, channel?.active ? styles.dotActive : styles.dotInactive]} />
           </View>
+
+          {/* Bazar template shortcut */}
+          {channel?.type === 'bazar' && (
+            <TouchableOpacity
+              style={styles.templateBtn}
+              onPress={() => router.push({ pathname: '/admin/bazar-template' as any, params: { channelId: id, channelName: channel.name } })}
+              activeOpacity={0.8}
+            >
+              <ClipboardList size={18} color="#B8860B" />
+              <Text style={styles.templateBtnText}>Cargar plantilla de inventario</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Inventory section */}
           <View style={styles.sectionHeader}>
@@ -407,6 +419,13 @@ const styles = StyleSheet.create({
   },
   dotActive: { backgroundColor: '#4CAF50' },
   dotInactive: { backgroundColor: 'rgba(255,255,255,0.2)' },
+  templateBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: 'rgba(184,134,11,0.1)',
+    borderWidth: 1, borderColor: 'rgba(184,134,11,0.3)',
+    borderRadius: 14, padding: 14, marginBottom: 28,
+  },
+  templateBtnText: { fontSize: 14, color: '#B8860B', fontWeight: '700' },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',

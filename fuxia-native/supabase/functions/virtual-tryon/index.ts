@@ -1,6 +1,14 @@
+/**
+ * Virtual try-on proxy → FASHN AI (api.fashn.ai).
+ *
+ * The mobile app POSTs { human_image, garment_image, category? } here.
+ * We call FASHN's /v1/run, which is async — it returns an `id` we then poll
+ * via the sibling `virtual-tryon-status` function.
+ *
+ * Requires FASHN_API_KEY in Supabase secrets (Project → Settings → Edge
+ * Functions → Secrets). Get a key at https://app.fashn.ai/api.
+ */
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-
-const REPLICATE_API_TOKEN = Deno.env.get('REPLICATE_API_TOKEN')!;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -19,6 +27,12 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
+  const FASHN_API_KEY = Deno.env.get('FASHN_API_KEY');
+  if (!FASHN_API_KEY) {
+    console.error('[tryon] FASHN_API_KEY not set in Supabase secrets');
+    return json({ error: 'Servicio no configurado. Contacta al administrador.' }, 503);
+  }
+
   let body: { human_image: string; garment_image: string; category?: string };
   try {
     body = await req.json();
@@ -26,47 +40,63 @@ serve(async (req) => {
     return json({ error: 'Invalid JSON' }, 400);
   }
 
-  const { human_image, garment_image, category = 'shoes' } = body;
+  const { human_image, garment_image } = body;
   if (!human_image || !garment_image) {
-    return json({ error: 'human_image and garment_image are required' }, 400);
+    return json({ error: 'human_image and garment_image son requeridos' }, 400);
   }
 
-  // Start prediction on Replicate using fashn/tryon model
-  const startRes = await fetch('https://api.replicate.com/v1/models/fashn/tryon/predictions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'wait=30', // wait up to 30s for result
-    },
-    body: JSON.stringify({
-      input: {
-        model_image: human_image,
-        garment_image,
-        category,
-        garment_photo_type: 'auto',
-        long_top: false,
-      },
-    }),
-  });
+  // FASHN's categories are 'tops' | 'bottoms' | 'one-pieces' | 'auto'.
+  // There is no 'shoes' category — 'auto' lets the model infer the garment type.
+  const category = 'auto';
 
-  const prediction = await startRes.json();
+  let startRes: Response;
+  let prediction: Record<string, unknown>;
+  try {
+    startRes = await fetch('https://api.fashn.ai/v1/run', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${FASHN_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model_name: 'tryon-v1.6',
+        inputs: {
+          model_image: human_image,
+          garment_image,
+          category,
+          mode: 'balanced',
+          garment_photo_type: 'auto',
+          moderation_level: 'permissive',
+          num_samples: 1,
+          output_format: 'jpeg',
+        },
+      }),
+    });
+    prediction = await startRes.json();
+  } catch (err) {
+    console.error('[tryon] fetch error:', err);
+    return json({ error: 'No se pudo conectar con el servicio de IA. Intenta de nuevo.' }, 502);
+  }
 
   if (!startRes.ok) {
-    console.error('[tryon] replicate error:', JSON.stringify(prediction));
-    return json({ error: 'Replicate error', detail: prediction }, 500);
+    const detail = (prediction as any)?.error?.message
+      ?? (prediction as any)?.message
+      ?? JSON.stringify(prediction);
+    console.error('[tryon] fashn error:', startRes.status, detail);
+    if (startRes.status === 401 || startRes.status === 403) {
+      return json({ error: 'API key de FASHN inválida. Contacta al administrador.' }, 503);
+    }
+    if (startRes.status === 422 || startRes.status === 400) {
+      return json({ error: `La imagen no pudo ser procesada: ${detail}` }, 422);
+    }
+    return json({ error: `Error del servicio de IA (${startRes.status}): ${detail}` }, 500);
   }
 
-  // If still processing, return prediction ID for polling
-  if (prediction.status === 'starting' || prediction.status === 'processing') {
-    return json({ id: prediction.id, status: prediction.status });
+  // FASHN's /run returns { id } and processing happens async — caller polls /status.
+  const id = (prediction as any)?.id;
+  if (!id) {
+    console.error('[tryon] no id in response:', prediction);
+    return json({ error: 'Respuesta inesperada del servicio', detail: prediction }, 500);
   }
-
-  // Completed synchronously
-  if (prediction.status === 'succeeded') {
-    const output = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
-    return json({ status: 'succeeded', output });
-  }
-
-  return json({ error: 'Prediction failed', detail: prediction }, 500);
+  return json({ id, status: 'starting' });
 });

@@ -25,17 +25,6 @@ interface TryOnModalProps {
 
 type Step = 'pick' | 'loading' | 'result' | 'error';
 
-async function imageToBase64(uri: string): Promise<string> {
-  const res = await fetch(uri);
-  const blob = await res.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
-
 export function TryOnModal({ visible, onClose, productImage, productName }: TryOnModalProps) {
   const [step, setStep] = useState<Step>('pick');
   const [resultUrl, setResultUrl] = useState<string | null>(null);
@@ -69,32 +58,28 @@ export function TryOnModal({ visible, onClose, productImage, productName }: TryO
         }
       }
 
+      const pickerOptions: ImagePicker.ImagePickerOptions = {
+        mediaTypes: ['images'] as any,
+        quality: 0.75,
+        allowsEditing: false,
+        base64: true,
+      };
+
       const result = fromCamera
-        ? await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            quality: 0.8,
-            allowsEditing: false,
-          })
-        : await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            quality: 0.8,
-            allowsEditing: false,
-          });
+        ? await ImagePicker.launchCameraAsync(pickerOptions)
+        : await ImagePicker.launchImageLibraryAsync(pickerOptions);
 
       if (result.canceled || !result.assets[0]) return;
 
-      const uri = result.assets[0].uri;
-      setUserPhotoUri(uri);
+      const asset = result.assets[0];
+      if (!asset.base64) throw new Error('No se pudo leer la imagen');
+
+      setUserPhotoUri(asset.uri);
       setStep('loading');
 
-      // Convert both images to base64 data URIs
-      const [humanB64, garmentB64] = await Promise.all([
-        imageToBase64(uri),
-        imageToBase64(productImage),
-      ]);
-
-      const human_image = `data:image/jpeg;base64,${humanB64}`;
-      const garment_image = `data:image/jpeg;base64,${garmentB64}`;
+      // Human image as base64 data URI; garment image as URL (Replicate accepts both)
+      const human_image = `data:image/jpeg;base64,${asset.base64}`;
+      const garment_image = productImage; // URL passed directly
 
       // Start try-on
       const res = await fetch(`${SUPABASE_URL}/functions/v1/virtual-tryon`, {
@@ -103,9 +88,14 @@ export function TryOnModal({ visible, onClose, productImage, productName }: TryO
         body: JSON.stringify({ human_image, garment_image, category: 'shoes' }),
       });
 
-      const data = await res.json();
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(`Error de conexión (HTTP ${res.status}). Verifica tu internet.`);
+      }
 
-      if (!res.ok) throw new Error(data.error ?? 'Error al procesar');
+      if (!res.ok) throw new Error(data?.error ?? `Error ${res.status} al procesar`);
 
       // If already done
       if (data.status === 'succeeded' && data.output) {

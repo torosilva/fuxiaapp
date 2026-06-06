@@ -12,7 +12,6 @@ import { MotiView } from 'moti';
 import { wcService, WCProduct, WCVariation, withCountryParam } from '@/services/WooCommerceService';
 import { formatMoney } from '@/lib/CountryService';
 import { LoyaltyCard } from '@/components/LoyaltyCard';
-import { TryOnModal } from '@/components/TryOnModal';
 
 const { width } = Dimensions.get('window');
 
@@ -30,7 +29,6 @@ export default function ProductDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [isGift, setIsGift] = useState(false);
-  const [tryOnVisible, setTryOnVisible] = useState(false);
   const { customer, loyaltyCard } = useAuth();
 
   useEffect(() => {
@@ -173,37 +171,22 @@ export default function ProductDetailScreen() {
             </RNView>
           )}
 
-          {/* Try-On Button */}
-          {product.images[0] && (
-            <TouchableOpacity
-              style={styles.tryOnBtn}
-              onPress={() => setTryOnVisible(true)}
-              activeOpacity={0.85}
-            >
-              <Sparkles size={16} color="#0D0D0D" />
-              <Text style={styles.tryOnBtnText}>✨ Pruébatelo con IA</Text>
-            </TouchableOpacity>
-          )}
+          {/* Try-On Button — hidden until we pick a proper shoe-specific provider
+              (FASHN/Replicate/Nano Banana don't do shoes well; thenewblack/WEARFITS pending). */}
 
           {/* Points preview for this purchase */}
-          <RNView style={styles.pointsPreview}>
-            <Sparkles size={18} color={theme.accent} />
-            <Text style={[styles.pointsPreviewText, { color: theme.accent }]}>
-              Con esta compra ganarás{' '}
-              <Text style={{ fontWeight: '800' }}>+100 puntos Hilo</Text>
-              {' '}en tu tarjeta de lealtad
-            </Text>
-          </RNView>
-
-          {/* Try-On Modal */}
-          {product.images[0] && (
-            <TryOnModal
-              visible={tryOnVisible}
-              onClose={() => setTryOnVisible(false)}
-              productImage={product.images[0].src}
-              productName={product.name}
-            />
+          {product.price && (
+            <RNView style={styles.pointsPreview}>
+              <Sparkles size={18} color={theme.accent} />
+              <Text style={[styles.pointsPreviewText, { color: theme.accent }]}>
+                Con esta compra ganarás{' '}
+                <Text style={{ fontWeight: '800' }}>
+                  +100 puntos por par
+                </Text>
+              </Text>
+            </RNView>
           )}
+
 
           {/* Loyalty Banner — real user's card */}
           {customer && loyaltyCard && (
@@ -286,14 +269,6 @@ export default function ProductDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  tryOnBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, backgroundColor: '#CD7F32', borderRadius: 30,
-    paddingVertical: 14, marginHorizontal: 20, marginBottom: 14,
-  },
-  tryOnBtnText: {
-    color: '#0D0D0D', fontSize: 14, fontWeight: '800', letterSpacing: 0.5,
-  },
   pointsPreview: {
     flexDirection: 'row',
     alignItems: 'center',

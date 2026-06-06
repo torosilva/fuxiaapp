@@ -4,10 +4,14 @@
  * the Supabase Edge Function `woocommerce-proxy` so the consumer_key/secret never
  * ship in the mobile bundle.
  *
- * Multi-currency: every Store API call is decorated with `wcpbc-manual-country`
- * (WCPBC plugin) so users in CO/US/etc. see the right prices instead of MXN.
+ * Multi-currency: WCPBC's Store API is inconsistent — the `/products` list endpoint
+ * returns USD when no country is specified, while `/products/{id}` respects the
+ * store's base. To avoid that mismatch we ALWAYS send `wcpbc-manual-country`:
+ *   1. User's explicit pick from the country selector (if any).
+ *   2. Device region from OS settings (MX → MX, US → US, CO → CO…).
+ *   3. 'US' (USD) as international fallback when the region isn't supported.
  */
-import { getCountry } from '@/lib/CountryService';
+import { getCountryOverride, detectDeviceCountry } from '@/lib/CountryService';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -193,11 +197,15 @@ async function storeGet<T>(path: string, params: Record<string, string | number>
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, String(v));
   }
-  // Tell the WCPBC plugin which country's prices/currency to return.
-  const country = await getCountry();
+  const override = await getCountryOverride();
+  const country = override ?? detectDeviceCountry();
   url.searchParams.set('wcpbc-manual-country', country);
   try {
-    const res = await fetch(url.toString());
+    // Android's HTTP client (OkHttp) caches GET responses by URL. If the first
+    // request was made with a different country override, switching country
+    // serves the stale response. Force a fresh fetch every time so WCPBC's
+    // per-country pricing always reflects the current selection.
+    const res = await fetch(url.toString(), { cache: 'no-store' as RequestCache });
     if (!res.ok) {
       console.error(`storeGet ${path} → ${res.status}`);
       return null;
@@ -209,10 +217,10 @@ async function storeGet<T>(path: string, params: Record<string, string | number>
   }
 }
 
-/** Append the WCPBC country param to a permalink so the web shows the same currency. */
+/** Append the WCPBC country param to a permalink so the web shows the same currency as the app. */
 export async function withCountryParam(url: string): Promise<string> {
   if (!url) return url;
-  const country = await getCountry();
+  const country = (await getCountryOverride()) ?? detectDeviceCountry();
   const sep = url.includes('?') ? '&' : '?';
   return `${url}${sep}wcpbc-manual-country=${country}`;
 }
@@ -275,7 +283,8 @@ class WooCommerceService {
 
   /** Find an existing WC customer by email, or create one. Returns wc_customer_id or null on failure. */
   async findOrCreateWCCustomer(email: string, name: string, phone: string): Promise<number | null> {
-    const found = await wcGet<{ id: number }[]>('customers', { email, per_page: 1 });
+    // role=all finds any WP user (admins, editors, etc.), not just customers
+    const found = await wcGet<{ id: number }[]>('customers', { email, per_page: 1, role: 'all' });
     if (found && found.length > 0) return found[0].id;
 
     const [firstName, ...rest] = name.trim().split(' ');
