@@ -211,7 +211,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <>
+    <RNView style={{ flex: 1, backgroundColor: theme.background }}>
     <ScrollView
       style={[styles.container, { backgroundColor: theme.background }]}
       contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
@@ -426,7 +426,7 @@ export default function ProfileScreen() {
       onSelect={handleSelectCountry}
       onClose={() => setPickerOpen(false)}
     />
-    </>
+    </RNView>
   );
 }
 
