@@ -59,8 +59,6 @@ serve(async (req) => {
   }
 
   const url = new URL(`${WC_URL}/${path}`);
-  url.searchParams.set('consumer_key', WC_CONSUMER_KEY);
-  url.searchParams.set('consumer_secret', WC_CONSUMER_SECRET);
 
   if (wcMethod === 'GET') {
     for (const [k, v] of Object.entries(body.params ?? {})) {
@@ -68,14 +66,23 @@ serve(async (req) => {
     }
   }
 
+  // Use Basic Auth instead of query params — SiteGround WAF blocks credentials in URLs
+  const basicAuth = btoa(`${WC_CONSUMER_KEY}:${WC_CONSUMER_SECRET}`);
+
   const fetchOptions: RequestInit =
     wcMethod === 'POST'
       ? {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${basicAuth}`,
+          },
           body: JSON.stringify(body.body ?? {}),
         }
-      : { method: 'GET' };
+      : {
+          method: 'GET',
+          headers: { 'Authorization': `Basic ${basicAuth}` },
+        };
 
   const res = await fetch(url.toString(), fetchOptions);
   const text = await res.text();
