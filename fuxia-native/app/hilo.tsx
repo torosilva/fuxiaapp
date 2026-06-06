@@ -328,7 +328,7 @@ export default function HiloScreen() {
       <KeyboardAvoidingView
         style={styles.chatArea}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 50 : 0}
       >
         <FlatList
           ref={flatListRef}
