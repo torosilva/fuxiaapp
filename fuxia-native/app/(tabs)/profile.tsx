@@ -211,14 +211,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <RNView style={{ flex: 1, backgroundColor: theme.background }}>
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.background }]}
-      contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
-      showsVerticalScrollIndicator={true}
-      bounces={true}
-      alwaysBounceVertical={true}
-    >
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
       <RNView style={styles.header}>
         {/* Avatar: tap to view fullscreen, badge to edit */}
         <RNView style={[styles.avatarContainer, { borderColor: theme.accent, backgroundColor: theme.soft }]}>
@@ -402,31 +395,30 @@ export default function ProfileScreen() {
       </TouchableOpacity>
 
       <RNView style={{ height: 100 }} />
-    </ScrollView>
 
-    {/* Avatar fullscreen modal */}
-    <Modal visible={avatarModalVisible} transparent animationType="fade" onRequestClose={() => setAvatarModalVisible(false)}>
-      <TouchableOpacity
-        style={styles.avatarModal}
-        activeOpacity={1}
-        onPress={() => setAvatarModalVisible(false)}
-      >
-        {customer.avatar_url && (
-          <Image source={{ uri: customer.avatar_url }} style={styles.avatarModalImage} resizeMode="contain" />
-        )}
-        <TouchableOpacity style={styles.avatarModalClose} onPress={() => setAvatarModalVisible(false)}>
-          <X size={22} color="#fff" />
+      {/* Avatar fullscreen modal */}
+      <Modal visible={avatarModalVisible} transparent animationType="fade" onRequestClose={() => setAvatarModalVisible(false)}>
+        <TouchableOpacity
+          style={styles.avatarModal}
+          activeOpacity={1}
+          onPress={() => setAvatarModalVisible(false)}
+        >
+          {customer.avatar_url && (
+            <Image source={{ uri: customer.avatar_url }} style={styles.avatarModalImage} resizeMode="contain" />
+          )}
+          <TouchableOpacity style={styles.avatarModalClose} onPress={() => setAvatarModalVisible(false)}>
+            <X size={22} color="#fff" />
+          </TouchableOpacity>
         </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
+      </Modal>
 
-    <CountryPicker
-      visible={pickerOpen}
-      current={country}
-      onSelect={handleSelectCountry}
-      onClose={() => setPickerOpen(false)}
-    />
-    </RNView>
+      <CountryPicker
+        visible={pickerOpen}
+        current={country}
+        onSelect={handleSelectCountry}
+        onClose={() => setPickerOpen(false)}
+      />
+    </ScrollView>
   );
 }
 
