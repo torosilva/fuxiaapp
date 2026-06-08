@@ -5,6 +5,8 @@ import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -54,6 +56,8 @@ function RootLayoutNav() {
   if (isLoading) return null;
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+    <SafeAreaProvider>
     <WishlistProvider>
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
@@ -67,5 +71,7 @@ function RootLayoutNav() {
       </Stack>
     </ThemeProvider>
     </WishlistProvider>
+    </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
