@@ -51,7 +51,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" />
       
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} stickyHeaderIndices={[]} scrollEventThrottle={16}>
+      <ScrollView showsVerticalScrollIndicator={false} stickyHeaderIndices={[]} scrollEventThrottle={16}>
         
         {/* --- HERO SECTION: EDITORIAL IMPACT --- */}
         <ImageBackground
