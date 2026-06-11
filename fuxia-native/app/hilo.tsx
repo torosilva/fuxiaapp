@@ -173,6 +173,7 @@ export default function HiloScreen() {
       // Get fresh JWT for the logged-in user so Hilo can identify them
       const { data: { session } } = await supabase.auth.getSession();
       const jwt = session?.access_token ?? SUPABASE_ANON_KEY;
+      console.log('[hilo] sending to', `${API_URL}/api/v1/chat/web`, 'jwt prefix:', jwt.slice(0, 20));
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 90000);
@@ -202,8 +203,11 @@ export default function HiloScreen() {
         clearTimeout(timeout);
       }
 
+      const rawBody = await response.text();
+      console.log('[hilo] response status:', response.status, 'body:', rawBody.slice(0, 500));
+
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
+      const data = JSON.parse(rawBody);
       const botText: string = data.response;
 
       // Persist conversation_id for memory between sessions
