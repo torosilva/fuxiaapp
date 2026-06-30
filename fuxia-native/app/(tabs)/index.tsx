@@ -23,7 +23,7 @@ const FuxiaDarkTheme = {
   spacing: { s: 8, m: 16, l: 24, xl: 32 }
 };
 
-const HERO_IMAGE_URI = 'https://fuxiaballerinas.com/wp-content/uploads/2025/12/Mafalda-estoperoles.jpg';
+const HERO_IMAGE_URI = 'https://fuxiaballerinas.com/wp-content/uploads/2026/06/Mafalda-estoperoles.jpg';
 const LOGO_IMAGE = require('../../assets/images/logo.png');
 
 

@@ -59,7 +59,9 @@
           "photosPermission": "Usamos tu galería para personalizar la foto de tu tarjeta de lealtad."
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "expo-web-browser",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

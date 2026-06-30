@@ -148,34 +148,65 @@ export function useAuth() {
   }
 
   async function checkPhone(phone: string): Promise<{ exists: boolean; error?: string }> {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/whatsapp-otp`, {
-      method: 'POST',
-      headers: fnHeaders,
-      body: JSON.stringify({ action: 'check_phone', phone }),
-    });
-    const data = await res.json();
-    if (!res.ok) return { exists: false, error: data.error };
+    let res: Response;
+    try {
+      res = await fetch(`${SUPABASE_URL}/functions/v1/whatsapp-otp`, {
+        method: 'POST',
+        headers: fnHeaders,
+        body: JSON.stringify({ action: 'check_phone', phone }),
+      });
+    } catch {
+      return { exists: false, error: 'Error de conexión. Verifica tu internet e intenta de nuevo.' };
+    }
+
+    const data = await res.json().catch(() => ({} as { error?: string }));
+
+    // A non-OK response is a server/config error (404 = function not deployed, 401 = bad key,
+    // 5xx = crash). It does NOT mean the account is missing — surface a real error so the UI
+    // never masquerades a backend failure as "no encontramos una cuenta".
+    if (!res.ok) {
+      return {
+        exists: false,
+        error: data.error ?? `No pudimos verificar el número (error ${res.status}). Intenta de nuevo.`,
+      };
+    }
+
     return { exists: !!data.exists };
   }
 
   async function sendOTP(phone: string): Promise<{ error?: string }> {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/whatsapp-otp`, {
-      method: 'POST',
-      headers: fnHeaders,
-      body: JSON.stringify({ action: 'send', phone }),
-    });
-    const data = await res.json();
-    return res.ok ? {} : { error: data.error };
+    let res: Response;
+    try {
+      res = await fetch(`${SUPABASE_URL}/functions/v1/whatsapp-otp`, {
+        method: 'POST',
+        headers: fnHeaders,
+        body: JSON.stringify({ action: 'send', phone }),
+      });
+    } catch {
+      return { error: 'Error de conexión. Verifica tu internet e intenta de nuevo.' };
+    }
+    const data = await res.json().catch(() => ({} as { error?: string }));
+    if (res.ok) return {};
+    return { error: data.error ?? `No se pudo enviar el código (error ${res.status}). Intenta de nuevo.` };
   }
 
   async function verifyOTP(phone: string, code: string): Promise<{ isNewUser?: boolean; error?: string }> {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/whatsapp-otp`, {
-      method: 'POST',
-      headers: fnHeaders,
-      body: JSON.stringify({ action: 'verify', phone, code }),
-    });
-    const data = await res.json();
-    if (!res.ok) return { error: data.error };
+    let res: Response;
+    try {
+      res = await fetch(`${SUPABASE_URL}/functions/v1/whatsapp-otp`, {
+        method: 'POST',
+        headers: fnHeaders,
+        body: JSON.stringify({ action: 'verify', phone, code }),
+      });
+    } catch {
+      return { error: 'Error de conexión. Verifica tu internet e intenta de nuevo.' };
+    }
+    const data = await res.json().catch(() => ({} as { error?: string; session?: any; isNewUser?: boolean }));
+    if (!res.ok) return { error: data.error ?? `No se pudo verificar el código (error ${res.status}). Intenta de nuevo.` };
+
+    if (!data.session?.access_token || !data.session?.refresh_token) {
+      return { error: 'Respuesta inválida del servidor. Intenta de nuevo.' };
+    }
 
     await supabase.auth.setSession({
       access_token: data.session.access_token,

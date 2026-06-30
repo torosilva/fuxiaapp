@@ -13,7 +13,7 @@ import { useWishlist } from '@/lib/WishlistContext';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 
-const API_URL = 'https://hilo.hilolabs.ai';
+const API_URL = 'https://web-production-8cc5a.up.railway.app';
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
