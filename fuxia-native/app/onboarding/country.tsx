@@ -1,73 +1,98 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView,
+  Text, StyleSheet, TouchableOpacity, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
-
-const COUNTRIES = [
-  { flag: '🇲🇽', name: 'México',      code: '+52' },
-  { flag: '🇨🇴', name: 'Colombia',    code: '+57' },
-  { flag: '🇬🇹', name: 'Guatemala',   code: '+502' },
-  { flag: '🇸🇻', name: 'El Salvador', code: '+503' },
-  { flag: '🇨🇷', name: 'Costa Rica',  code: '+506' },
-  { flag: '🇵🇦', name: 'Panamá',      code: '+507' },
-  { flag: '🇭🇳', name: 'Honduras',    code: '+504' },
-];
+import { CountryPicker } from 'react-native-country-codes-picker';
 
 export default function CountryScreen() {
-  const [selected, setSelected] = useState<string | null>(null);
+  const [showPicker, setShowPicker] = useState(false);
+  const [selected, setSelected] = useState<{ flag: string; code: string; name: string } | null>(null);
 
-  const handleSelect = (code: string) => {
-    setSelected(code);
-    setTimeout(() => router.push({ pathname: '/onboarding/phone' as any, params: { countryCode: code } }), 150);
+  const handleSelect = (item: any) => {
+    const country = {
+      flag: item.flag,
+      code: item.dial_code,
+      name: (item.name && (item.name.es || item.name.en)) || item.code,
+    };
+    setSelected(country);
+    setShowPicker(false);
+    setTimeout(
+      () => router.push({ pathname: '/onboarding/phone' as any, params: { countryCode: country.code } }),
+      150
+    );
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <MotiView
-          from={{ opacity: 0, translateY: 20 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 600 }}
-        >
-          <Text style={styles.eyebrow}>BIENVENIDA</Text>
-          <Text style={styles.title}>¿En qué país{'\n'}estás?</Text>
-          <Text style={styles.subtitle}>Selecciona tu país para continuar</Text>
-        </MotiView>
+      <MotiView
+        from={{ opacity: 0, translateY: 20 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 600 }}
+        style={styles.content}
+      >
+        <Text style={styles.eyebrow}>BIENVENIDA</Text>
+        <Text style={styles.title}>¿En qué país{'\n'}estás?</Text>
+        <Text style={styles.subtitle}>Selecciona tu país para continuar</Text>
 
-        <View style={styles.grid}>
-          {COUNTRIES.map((c, i) => (
-            <MotiView
-              key={c.code}
-              from={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 100 + i * 60, type: 'spring', damping: 15 }}
-            >
-              <TouchableOpacity
-                style={[styles.countryBtn, selected === c.code && styles.countryBtnSelected]}
-                onPress={() => handleSelect(c.code)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.flag}>{c.flag}</Text>
-                <Text style={styles.countryName}>{c.name}</Text>
-                <Text style={styles.countryCode}>{c.code}</Text>
-              </TouchableOpacity>
-            </MotiView>
-          ))}
-        </View>
-      </ScrollView>
+        <TouchableOpacity
+          style={styles.pickerBtn}
+          onPress={() => setShowPicker(true)}
+          activeOpacity={0.7}
+        >
+          {selected ? (
+            <>
+              <Text style={styles.flag}>{selected.flag}</Text>
+              <Text style={styles.countryName}>{selected.name}</Text>
+              <Text style={styles.countryCode}>{selected.code}</Text>
+            </>
+          ) : (
+            <Text style={styles.placeholder}>Toca para elegir tu país</Text>
+          )}
+        </TouchableOpacity>
+      </MotiView>
+
+      <CountryPicker
+        show={showPicker}
+        lang="es"
+        pickerButtonOnPress={handleSelect}
+        onBackdropPress={() => setShowPicker(false)}
+        style={{
+          modal: { height: 500, backgroundColor: '#1A1A1A' },
+          backdrop: { backgroundColor: 'rgba(0,0,0,0.6)' },
+          line: { backgroundColor: 'rgba(255,255,255,0.1)' },
+          itemsList: { backgroundColor: '#1A1A1A' },
+          textInput: {
+            color: '#FFF',
+            backgroundColor: 'rgba(255,255,255,0.06)',
+            borderRadius: 12,
+            paddingHorizontal: 16,
+            height: 48,
+          },
+          countryButtonStyles: {
+            backgroundColor: 'transparent',
+            borderBottomWidth: 1,
+            borderBottomColor: 'rgba(255,255,255,0.06)',
+          },
+          dialCode: { color: '#CD7F32', fontWeight: '600' },
+          countryName: { color: '#FFF' },
+          countryMessageContainer: { backgroundColor: '#1A1A1A' },
+          searchMessageText: { color: 'rgba(255,255,255,0.5)' },
+        }}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0D0D0D' },
-  scroll: {
+  content: {
+    flex: 1,
     padding: 24,
-    paddingBottom: 60,
+    justifyContent: 'center',
     width: '100%',
     maxWidth: 480,
     alignSelf: 'center',
@@ -81,8 +106,7 @@ const styles = StyleSheet.create({
     fontWeight: '400', lineHeight: 44, marginBottom: 8,
   },
   subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.4)', marginBottom: 36 },
-  grid: { gap: 12 },
-  countryBtn: {
+  pickerBtn: {
     padding: 16,
     borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.06)',
@@ -91,12 +115,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-  },
-  countryBtnSelected: {
-    borderColor: '#CD7F32',
-    backgroundColor: 'rgba(205,127,50,0.1)',
+    minHeight: 60,
   },
   flag: { fontSize: 28 },
   countryName: { flex: 1, fontSize: 15, color: '#FFF', fontWeight: '600' },
   countryCode: { fontSize: 13, color: 'rgba(255,255,255,0.35)' },
+  placeholder: {
+    flex: 1,
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.5)',
+    textAlign: 'center',
+  },
 });
