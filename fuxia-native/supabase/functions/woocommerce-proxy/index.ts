@@ -17,13 +17,16 @@ function json(data: unknown, status = 200) {
   });
 }
 
+// NOTA (Fase 0): se removió `orders` de la whitelist. Antes cualquiera con la
+// anon key podía pedir los pedidos de TODA la tienda (PII de todas las
+// clientas). El rastreo de pedidos ahora va por la edge function `my-orders`,
+// que exige el JWT del usuario y filtra por su identidad.
 const ALLOWED_GET: RegExp[] = [
   /^products(\/\d+)?$/,
   /^products\/\d+\/variations(\/\d+)?$/,
   /^products\/categories$/,
   /^products\/attributes$/,
-  /^orders(\/\d+)?$/,
-  /^customers$/, // search by email
+  /^customers$/, // find-or-create de cuenta WC al registrar (solo por email exacto)
 ];
 
 const ALLOWED_POST: RegExp[] = [

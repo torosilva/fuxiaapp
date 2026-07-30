@@ -32,7 +32,10 @@ function json(data: unknown, status = 200) {
 }
 
 function generateCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  // CSPRNG en vez de Math.random (predecible). 6 dígitos.
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return (100000 + (buf[0] % 900000)).toString();
 }
 
 function normalizeForWhatsApp(phone: string): string {
@@ -186,11 +189,12 @@ serve(async (req) => {
     const authPhone = isReviewBypass ? REVIEW_DEMO_PHONE : phone;
 
     if (!isReviewBypass) {
+      // Traer el código vigente más reciente para este teléfono (sin filtrar por
+      // code) para poder contar intentos fallidos y frenar fuerza bruta.
       const { data: otpRow } = await supabase
         .from('otp_verifications')
         .select('*')
         .eq('phone', phone)
-        .eq('code', code)
         .eq('used', false)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
@@ -201,7 +205,20 @@ serve(async (req) => {
         return json({ error: 'Código incorrecto o expirado' }, 401);
       }
 
-      // Mark OTP as used
+      // Límite de intentos: máx 5 por código. Al excederse, se invalida.
+      if ((otpRow.attempts ?? 0) >= 5) {
+        await supabase.from('otp_verifications').update({ used: true }).eq('id', otpRow.id);
+        return json({ error: 'Demasiados intentos. Solicita un código nuevo.' }, 429);
+      }
+
+      if (otpRow.code !== code) {
+        await supabase.from('otp_verifications')
+          .update({ attempts: (otpRow.attempts ?? 0) + 1 })
+          .eq('id', otpRow.id);
+        return json({ error: 'Código incorrecto o expirado' }, 401);
+      }
+
+      // Correcto → marcar como usado.
       await supabase.from('otp_verifications').update({ used: true }).eq('id', otpRow.id);
     } else {
       console.log('[whatsapp-otp] review bypass: authenticating as', authPhone);
@@ -243,9 +260,16 @@ serve(async (req) => {
     // Check if customer profile exists
     const { data: customer } = await supabase
       .from('customers')
-      .select('id, name')
+      .select('id, name, auth_user_id')
       .eq('phone', authPhone)
       .single();
+
+    // Vincular customer ↔ auth user si aún no lo está (requerido por RLS).
+    if (customer && !customer.auth_user_id && session.session?.user?.id) {
+      await supabase.from('customers')
+        .update({ auth_user_id: session.session.user.id })
+        .eq('id', customer.id);
+    }
 
     return json({
       success: true,

@@ -14,6 +14,7 @@ export interface Database {
           country: string;
           wc_customer_id: number | null;
           avatar_url: string | null;
+          auth_user_id: string | null;
           created_at: string;
         };
         Insert: Omit<Database['public']['Tables']['customers']['Row'], 'id' | 'created_at'> & { id?: string; created_at?: string };

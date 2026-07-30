@@ -75,6 +75,14 @@ interface TrackingMeta {
 }
 
 function extractTrackingMeta(order: WCOrder): TrackingMeta {
+  // La edge function my-orders ya trae el tracking extraído.
+  if (order.tracking) {
+    return {
+      trackingNumber: order.tracking.tracking_number,
+      trackingProvider: order.tracking.tracking_provider,
+      trackingUrl: order.tracking.tracking_url,
+    };
+  }
   const map = new Map(order.meta_data?.map((m) => [m.key.toLowerCase(), m.value]) ?? []);
   const trackingNumber =
     map.get('_tracking_number') ?? map.get('tracking_number') ?? map.get('_aftership_tracking_number') ?? null;
@@ -97,9 +105,7 @@ export default function TrackingScreen() {
     (async () => {
       setLoading(true);
       const [wcData, txRes, unclaimedRes] = await Promise.all([
-        wcService.getOrdersByCustomer({
-          customerId: (customer as any).wc_customer_id ?? undefined,
-          email: customer.email ?? undefined,
+        wcService.getMyOrders({
           statuses: TRACKING_STATUSES,
           limit: 30,
         }),

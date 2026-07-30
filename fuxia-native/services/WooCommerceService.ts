@@ -12,6 +12,7 @@
  *   3. 'US' (USD) as international fallback when the region isn't supported.
  */
 import { getCountryOverride, detectDeviceCountry } from '@/lib/CountryService';
+import { supabase } from '@/lib/supabase';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -66,7 +67,9 @@ export interface WCOrder {
   shipping: { first_name?: string; last_name?: string; address_1?: string; city?: string; postcode?: string; country?: string; };
   shipping_lines: { method_title: string; total: string }[];
   line_items: { id: number; name: string; sku: string; quantity: number; total: string; image?: { src: string } }[];
-  meta_data: { key: string; value: string }[];
+  meta_data?: { key: string; value: string }[];
+  /** Presente cuando viene de la edge function my-orders (rastreo ya extraído). */
+  tracking?: { tracking_number: string | null; tracking_provider: string | null; tracking_url: string | null };
 }
 
 export interface WCVariation {
@@ -257,28 +260,31 @@ class WooCommerceService {
     }));
   }
 
-  async getOrdersByCustomer(opts: {
-    customerId?: number; email?: string;
-    statuses?: WCOrderStatus[]; limit?: number;
-  }): Promise<WCOrder[]> {
-    const { customerId, email, statuses, limit = 30 } = opts;
-    const params: Record<string, string | number> = {
-      per_page: Math.min(limit, 100), orderby: 'date', order: 'desc',
-    };
-    if (customerId) params.customer = customerId;
-    if (statuses?.length) params.status = statuses.join(',');
-    const orders = await wcGet<WCOrder[]>('orders', params);
-    if (!orders) return [];
-    if (customerId) return orders;
-    if (email) {
-      const lower = email.toLowerCase();
-      return orders.filter((o) => o.billing?.email?.toLowerCase() === lower);
+  /**
+   * Pedidos de la clienta autenticada, via la edge function `my-orders`.
+   * SEGURO: exige el JWT del usuario y WooCommerce se consulta server-side con
+   * SU identidad. Reemplaza al viejo getOrdersByCustomer que descargaba órdenes
+   * de toda la tienda y filtraba en el cliente.
+   */
+  async getMyOrders(opts: { statuses?: WCOrderStatus[]; limit?: number } = {}): Promise<WCOrder[]> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return [];
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/my-orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ statuses: opts.statuses, limit: opts.limit ?? 30 }),
+      });
+      if (!res.ok) {
+        console.error(`getMyOrders → ${res.status}`);
+        return [];
+      }
+      const data = await res.json();
+      return (data?.orders ?? []) as WCOrder[];
+    } catch (err) {
+      console.error('getMyOrders threw:', err);
+      return [];
     }
-    return orders;
-  }
-
-  async getOrder(id: number): Promise<WCOrder | null> {
-    return wcGet<WCOrder>(`orders/${id}`);
   }
 
   /** Find an existing WC customer by email, or create one. Returns wc_customer_id or null on failure. */

@@ -97,9 +97,19 @@ export function useAuth() {
 
     const { data: customer } = await supabase
       .from('customers')
-      .select('id, phone, name, email, avatar_url, country, role, referral_code')
+      .select('id, phone, name, email, avatar_url, country, role, referral_code, wc_customer_id, auth_user_id')
       .eq('phone', phone)
       .single();
+
+    // El vínculo customer ↔ auth_user_id lo hace la edge function whatsapp-otp
+    // con service role al verificar (bajo RLS el cliente no puede enlazar una
+    // fila aún sin auth_user_id). No intentarlo aquí.
+
+    // Retro-crédito: acreditar compras web que llegaron antes del registro.
+    fetch(`${SUPABASE_URL}/functions/v1/link-orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+    }).catch(() => {});
 
     if (customer?.country) {
       await syncFromCustomer(customer.country);
@@ -248,6 +258,11 @@ export function useAuth() {
     const newReferralCode = Math.random().toString(36).slice(2, 6).toUpperCase() +
       Math.random().toString(36).slice(2, 6).toUpperCase().slice(0, 4);
 
+    // La sesión ya existe (verifyOTP la creó). Necesitamos el auth user id para
+    // poblar auth_user_id — sin esto, RLS bloquearía el insert.
+    const { data: { session: activeSession } } = await supabase.auth.getSession();
+    const authUserId = activeSession?.user?.id ?? null;
+
     const { data: customer, error } = await supabase
       .from('customers')
       .insert({
@@ -259,7 +274,8 @@ export function useAuth() {
         wc_customer_id,
         referral_code: newReferralCode,
         referred_by,
-      })
+        auth_user_id: authUserId,
+      } as any)
       .select('id')
       .single();
 
@@ -275,6 +291,14 @@ export function useAuth() {
       pairs_count: 0,
       tier: 'bronze',
     });
+
+    // Retro-crédito de compras web previas al registro (fire-and-forget).
+    if (activeSession?.access_token) {
+      fetch(`${SUPABASE_URL}/functions/v1/link-orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${activeSession.access_token}` },
+      }).catch(() => {});
+    }
 
     await loadSession();
     return {};
