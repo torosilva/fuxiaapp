@@ -232,7 +232,7 @@ export function useAuth() {
     email: string,
     birthday?: string,
     referralCode?: string,
-  ): Promise<{ error?: string }> {
+  ): Promise<{ error?: string; retro?: { linked: number; points: number; pairs: number; newTotal: number } }> {
     const country = detectDeviceCountry();
 
     // Find or create the WooCommerce customer account.
@@ -292,16 +292,27 @@ export function useAuth() {
       tier: 'bronze',
     });
 
-    // Retro-crédito de compras web previas al registro (fire-and-forget).
+    // Retro-crédito: acreditar compras web previas al registro. Esperamos la
+    // respuesta (antes era fire-and-forget) para poder mostrar el "wow": cuántas
+    // compras encontramos y cuántos puntos sumó. Si falla, no bloquea el registro.
+    let retro: { linked: number; points: number; pairs: number; newTotal: number } | undefined;
     if (activeSession?.access_token) {
-      fetch(`${SUPABASE_URL}/functions/v1/link-orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${activeSession.access_token}` },
-      }).catch(() => {});
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/link-orders`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${activeSession.access_token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.linked > 0) {
+            retro = { linked: data.linked, points: data.points, pairs: data.pairs, newTotal: data.new_total_points };
+          }
+        }
+      } catch { /* seguimos sin wow */ }
     }
 
     await loadSession();
-    return {};
+    return { retro };
   }
 
   async function signOut() {

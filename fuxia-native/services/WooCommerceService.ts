@@ -171,6 +171,46 @@ function mapStoreVariation(s: StoreProduct): WCVariation {
   };
 }
 
+// ── Overrides de imagen (Supabase) ────────────────────────────────────────
+// Mapa wc_product_id -> image_url que vos controlás (bucket Supabase u otra URL),
+// para no depender de que la foto exista en WordPress. Se cachea en memoria por
+// unos minutos para no consultar en cada fetch de productos.
+let _overridesCache: { at: number; map: Map<number, string> } | null = null;
+const OVERRIDES_TTL_MS = 5 * 60 * 1000;
+
+async function getImageOverrides(): Promise<Map<number, string>> {
+  if (_overridesCache && Date.now() - _overridesCache.at < OVERRIDES_TTL_MS) {
+    return _overridesCache.map;
+  }
+  try {
+    const { data, error } = await supabase
+      .from('product_image_overrides')
+      .select('wc_product_id, image_url');
+    const map = new Map<number, string>();
+    if (!error && data) {
+      for (const r of data as { wc_product_id: number; image_url: string }[]) {
+        if (r.image_url) map.set(r.wc_product_id, r.image_url);
+      }
+    }
+    _overridesCache = { at: Date.now(), map };
+    return map;
+  } catch (err) {
+    console.error('getImageOverrides threw:', err);
+    return _overridesCache?.map ?? new Map();
+  }
+}
+
+// Prepende el override (si existe) para que `images[0]` sea la foto elegida por
+// nosotros; conserva las de la web como respaldo.
+function applyImageOverride(p: WCProduct, overrides: Map<number, string>): WCProduct {
+  const url = overrides.get(p.id);
+  if (!url) return p;
+  return {
+    ...p,
+    images: [{ id: -1, src: url, alt: p.name }, ...p.images.filter((i) => i.src !== url)],
+  };
+}
+
 function mapStoreProduct(s: StoreProduct): WCProduct {
   const decimals = s.prices?.currency_minor_unit ?? 0;
   return {
@@ -230,13 +270,19 @@ export async function withCountryParam(url: string): Promise<string> {
 
 class WooCommerceService {
   async getProducts(params: Record<string, string | number> = {}): Promise<WCProduct[]> {
-    const data = await storeGet<StoreProduct[]>('products', { per_page: 100, ...params });
-    return (data ?? []).map(mapStoreProduct);
+    const [data, overrides] = await Promise.all([
+      storeGet<StoreProduct[]>('products', { per_page: 100, ...params }),
+      getImageOverrides(),
+    ]);
+    return (data ?? []).map(mapStoreProduct).map((p) => applyImageOverride(p, overrides));
   }
 
   async getProduct(id: string | number): Promise<WCProduct | null> {
-    const data = await storeGet<StoreProduct>(`products/${id}`);
-    return data ? mapStoreProduct(data) : null;
+    const [data, overrides] = await Promise.all([
+      storeGet<StoreProduct>(`products/${id}`),
+      getImageOverrides(),
+    ]);
+    return data ? applyImageOverride(mapStoreProduct(data), overrides) : null;
   }
 
   async getProductVariations(productId: number, variationIds: number[] = []): Promise<WCVariation[]> {

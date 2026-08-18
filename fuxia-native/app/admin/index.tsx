@@ -117,6 +117,15 @@ export default function AdminHomeScreen() {
           <Text style={styles.eyebrow}>FUXIA BALLERINAS</Text>
           <Text style={styles.title}>Panel Admin</Text>
 
+          <TouchableOpacity
+            onPress={() => router.push('/admin/puntos' as any)}
+            activeOpacity={0.85}
+            style={{ backgroundColor: '#1A1A1A', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(184,134,11,0.35)', padding: 18, marginTop: 12, marginBottom: 4 }}
+          >
+            <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>💳  Clientas y puntos</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>Buscar clientas · agregar o quitar puntos manualmente</Text>
+          </TouchableOpacity>
+
           {/* Global summary */}
           {!loading && channels.length > 0 && (
             <MotiView from={{ opacity: 0, translateY: 8 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 350 }}>

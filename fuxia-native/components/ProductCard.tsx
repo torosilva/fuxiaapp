@@ -1,10 +1,11 @@
 import React from 'react';
-import { StyleSheet, Image, TouchableOpacity, View as RNView, Dimensions } from 'react-native';
+import { StyleSheet, TouchableOpacity, View as RNView, Dimensions } from 'react-native';
 import { Text } from './Themed';
 import { MotiView } from 'moti';
 import { router } from 'expo-router';
 import { Heart } from 'lucide-react-native';
 import { WCProduct } from '@/services/WooCommerceService';
+import { ProductImage } from './ProductImage';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from './useColorScheme';
 import { useWishlist } from '@/lib/WishlistContext';
@@ -42,11 +43,7 @@ export const ProductCard = ({ product, index, featured, fullWidth }: ProductCard
         transition={{ delay: index * 100, type: 'timing', duration: 500 }}
       >
         <RNView style={[styles.imageContainer, { backgroundColor: '#1A1A1A' }]}>
-          {product.images[0] ? (
-            <Image source={{ uri: product.images[0].src }} style={styles.image} />
-          ) : (
-            <RNView style={styles.placeholder} />
-          )}
+          <ProductImage uri={product.images[0]?.src} style={styles.image} />
           
           {product.stock_status === 'outofstock' && (
             <RNView style={styles.stockBadge}>

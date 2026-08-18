@@ -48,6 +48,17 @@ export default function CompleteProfileScreen() {
     setLoading(false);
     if (result.error) {
       setError(result.error);
+    } else if (result.retro) {
+      // Encontramos compras web previas → momento "wow" antes del home.
+      router.replace({
+        pathname: '/celebrate-points' as any,
+        params: {
+          title: '¡Te estábamos esperando!',
+          added: String(result.retro.points),
+          total: String(result.retro.newTotal),
+          found: String(result.retro.linked),
+        },
+      });
     } else {
       router.replace('/(tabs)');
     }

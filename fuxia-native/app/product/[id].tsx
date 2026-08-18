@@ -1,4 +1,4 @@
-import { StyleSheet, Image, ScrollView, TouchableOpacity, View as RNView, TextInput, Dimensions, ActivityIndicator } from 'react-native';
+import { StyleSheet, ScrollView, TouchableOpacity, View as RNView, TextInput, Dimensions, ActivityIndicator } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -10,6 +10,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { useState, useEffect } from 'react';
 import { MotiView } from 'moti';
 import { wcService, WCProduct, WCVariation, withCountryParam } from '@/services/WooCommerceService';
+import { ProductImage } from '@/components/ProductImage';
 import { formatMoney } from '@/lib/CountryService';
 import { LoyaltyCard } from '@/components/LoyaltyCard';
 
@@ -87,7 +88,7 @@ export default function ProductDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Header Image */}
         <RNView style={styles.imageContainer}>
-          <Image source={{ uri: product.images[0]?.src }} style={styles.image} />
+          <ProductImage uri={product.images[0]?.src} style={styles.image} />
           <TouchableOpacity 
             onPress={() => router.back()}
             style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.8)' }]}
