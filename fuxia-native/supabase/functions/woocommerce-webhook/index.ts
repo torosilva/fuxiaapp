@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { normalizePhone } from '../_shared/phone.ts';
 
 // ============================================================================
 // WooCommerce → Fuxia loyalty sync (Fase 0 hardened)
@@ -39,7 +40,7 @@ interface WCLineItem {
 }
 interface WCOrder {
   id: number; status: string; total: string; currency: string;
-  billing: { email?: string; phone?: string };
+  billing: { email?: string; phone?: string; country?: string };
   customer_id?: number; line_items: WCLineItem[];
 }
 
@@ -72,17 +73,6 @@ async function computeTier(
     if (points >= r.min_points) result = r.tier as Tier;
   }
   return result;
-}
-
-function normalizePhone(raw?: string): string | null {
-  if (!raw) return null;
-  const digits = raw.replace(/\D/g, '');
-  if (!digits) return null;
-  if (digits.length === 10) return `+52${digits}`;
-  if (digits.length === 11 && digits.startsWith('1')) return `+52${digits.slice(1)}`;
-  if (digits.length === 12 && digits.startsWith('52')) return `+${digits}`;
-  if (digits.length === 13 && digits.startsWith('521')) return `+52${digits.slice(3)}`;
-  return `+${digits}`;
 }
 
 function normalizeForWhatsApp(phone: string): string {
@@ -255,7 +245,7 @@ serve(async (req) => {
     return json({ ok: true, skipped: 'already_processed' });
   }
 
-  const phone = normalizePhone(order.billing.phone);
+  const phone = normalizePhone(order.billing.phone, order.billing.country);
   const email = order.billing.email?.toLowerCase() ?? null;
   const amount = parseFloat(order.total);
   const pairs = order.line_items.reduce((sum, it) => sum + it.quantity, 0);

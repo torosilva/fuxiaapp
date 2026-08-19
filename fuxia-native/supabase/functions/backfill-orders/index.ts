@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { normalizePhone } from '../_shared/phone.ts';
 
 // ============================================================================
 // backfill-orders — acredita puntos por ventas históricas de WooCommerce que
@@ -29,18 +30,6 @@ const PAID_STATUSES = ['processing', 'completed'];
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data, null, 2), { status, headers: { 'Content-Type': 'application/json' } });
-}
-
-// Igual que el webhook: normaliza a +52...
-function normalizePhone(raw?: string): string | null {
-  if (!raw) return null;
-  const digits = raw.replace(/\D/g, '');
-  if (!digits) return null;
-  if (digits.length === 10) return `+52${digits}`;
-  if (digits.length === 11 && digits.startsWith('1')) return `+52${digits.slice(1)}`;
-  if (digits.length === 12 && digits.startsWith('52')) return `+${digits}`;
-  if (digits.length === 13 && digits.startsWith('521')) return `+52${digits.slice(3)}`;
-  return `+${digits}`;
 }
 
 function extractMeta(item: any, keys: string[]): string | null {
@@ -119,7 +108,7 @@ serve(async (req) => {
       .from('transactions').select('id').eq('wc_order_id', wcOrderId).maybeSingle();
     if (existingTx) { summary.already_credited++; continue; }
 
-    const phone = normalizePhone(order.billing?.phone);
+    const phone = normalizePhone(order.billing?.phone, order.billing?.country);
     const email = order.billing?.email?.toLowerCase() ?? null;
     const amount = parseFloat(order.total ?? '0');
     const pairs = (order.line_items ?? []).reduce((s: number, it: any) => s + (it.quantity ?? 0), 0);
