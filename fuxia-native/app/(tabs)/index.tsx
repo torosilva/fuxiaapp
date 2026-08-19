@@ -23,12 +23,16 @@ const FuxiaDarkTheme = {
   spacing: { s: 8, m: 16, l: 24, xl: 32 }
 };
 
-const HERO_IMAGE_URI = 'https://fuxiaballerinas.com/wp-content/uploads/2026/06/Mafalda-estoperoles.jpg';
+// Respaldo del hero. Solo se usa si no hay ningun producto marcado como
+// "Destacado" en WooCommerce. El hero real sale del producto destacado, asi
+// que para cambiarlo NO se toca el codigo: se marca otro producto en la web.
+const HERO_IMAGE_FALLBACK = 'https://fuxiaballerinas.com/wp-content/uploads/2026/06/Mafalda-estoperoles.jpg';
 const LOGO_IMAGE = require('../../assets/images/logo.png');
 
 
 export default function HomeScreen() {
   const [newArrivals, setNewArrivals] = useState<WCProduct[]>([]);
+  const [featuredProduct, setFeaturedProduct] = useState<WCProduct | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,14 +42,25 @@ export default function HomeScreen() {
   const loadHomeData = async () => {
     try {
       setLoading(true);
-      const data = await wcService.getProducts({ per_page: 6, orderby: 'date' });
+      const [data, featuredList] = await Promise.all([
+        wcService.getProducts({ per_page: 6, orderby: 'date' }),
+        // El hero lo manda WooCommerce: producto marcado como "Destacado".
+        wcService.getProducts({ featured: 'true', per_page: 1 }),
+      ]);
       setNewArrivals(data);
+      setFeaturedProduct(featuredList[0] ?? null);
     } catch (error) {
       console.error('Error loading home data:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  // Todo el hero se resuelve desde el producto destacado; si no hay ninguno,
+  // cae a valores neutros para que nunca se vea roto.
+  const heroImageUri = featuredProduct?.images?.[0]?.src ?? HERO_IMAGE_FALLBACK;
+  const heroTitle = featuredProduct?.name ?? 'Nueva\nColección';
+  const heroEyebrow = (featuredProduct?.categories?.[0]?.name ?? 'Destacado').toUpperCase();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -55,7 +70,7 @@ export default function HomeScreen() {
         
         {/* --- HERO SECTION: EDITORIAL IMPACT --- */}
         <ImageBackground
-          source={{ uri: HERO_IMAGE_URI }}
+          source={{ uri: heroImageUri }}
           style={styles.heroContainer}
           imageStyle={styles.heroImage}
         >
@@ -66,21 +81,26 @@ export default function HomeScreen() {
               transition={{ delay: 300, type: 'timing', duration: 1000 }}
               style={styles.heroTextWrapper}
             >
-              <Text style={styles.collectionText}>ÉDITION LIMITÉE 2026</Text>
+              <Text style={styles.collectionText}>{heroEyebrow}</Text>
               <MotiText 
                 from={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 500, type: 'timing', duration: 1200 }}
                 style={styles.heroTitle}
+                numberOfLines={3}
               >
-                Fuxia{'\n'}Essence
+                {heroTitle}
               </MotiText>
               
               <TouchableOpacity 
                 style={styles.heroLinkButton}
-                onPress={() => router.push('/(tabs)/shop')}
+                onPress={() =>
+                  featuredProduct
+                    ? router.push(`/product/${featuredProduct.id}`)
+                    : router.push('/(tabs)/shop')
+                }
               >
-                <Text style={styles.heroLinkText}>VER COLECCIÓN</Text>
+                <Text style={styles.heroLinkText}>VER PRODUCTO</Text>
                 <ArrowRight size={16} color={FuxiaDarkTheme.colors.brandGold} style={{ marginLeft: 8 }} />
               </TouchableOpacity>
             </MotiView>

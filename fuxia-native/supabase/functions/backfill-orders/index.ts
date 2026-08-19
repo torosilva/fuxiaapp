@@ -127,7 +127,8 @@ serve(async (req) => {
     }
 
     const items = (order.line_items ?? []).map((it: any) => ({
-      sku: it.sku || `WC-${it.id}`, product_name: it.name, quantity: it.quantity,
+      sku: it.sku || `WC-${it.id}`, product_id: it.product_id ?? null,
+      product_name: it.name, quantity: it.quantity,
       size: extractMeta(it, ['pa_size', 'Size', 'Talla']), color: extractMeta(it, ['pa_color', 'Color']),
       unit_price: it.quantity > 0 ? parseFloat(it.total) / it.quantity : parseFloat(it.total ?? '0'),
     }));
@@ -161,7 +162,8 @@ serve(async (req) => {
 
       if (tx && items.length) {
         await supabase.from('purchase_items').insert(items.map((it: any) => ({
-          transaction_id: tx.id, sku: it.sku, product_name: it.product_name ?? 'Producto',
+          transaction_id: tx.id, sku: it.sku, wc_product_id: it.product_id ?? null,
+          product_name: it.product_name ?? 'Producto',
           size: it.size, color: it.color, category: null, quantity: it.quantity ?? 1, unit_price: it.unit_price ?? 0,
         })));
       }

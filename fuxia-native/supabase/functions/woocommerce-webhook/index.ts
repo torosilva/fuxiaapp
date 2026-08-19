@@ -37,6 +37,10 @@ const TIER_LABEL: Record<Tier, string> = { bronze: 'Bronce', silver: 'Plata', go
 interface WCLineItem {
   id: number; name: string; sku: string; quantity: number;
   price: number; total: string; meta_data?: { key: string; value: string }[];
+  // id del producto en WooCommerce. Es el puntero estable para resolver la
+  // foto al momento de mostrarla: si cambian la imagen en la web, la app la
+  // toma sola. Buscar por nombre traia el producto equivocado.
+  product_id?: number; variation_id?: number;
 }
 interface WCOrder {
   id: number; status: string; total: string; currency: string;
@@ -171,6 +175,7 @@ async function insertPurchaseItems(
   await supabase.from('purchase_items').insert(items.map((it) => ({
     transaction_id: txId,
     sku: it.sku || `WC-${it.id}`,
+    wc_product_id: it.product_id ?? null,
     product_name: it.name,
     size: extractMeta(it, ['pa_size', 'Size', 'Talla']),
     color: extractMeta(it, ['pa_color', 'Color']),
@@ -297,7 +302,8 @@ serve(async (req) => {
       wc_order_id: order.id, phone, email, total: amount, currency: order.currency ?? 'MXN',
       pairs, points, wc_status: status,
       items: order.line_items.map((it) => ({
-        sku: it.sku || `WC-${it.id}`, product_name: it.name, quantity: it.quantity,
+        sku: it.sku || `WC-${it.id}`, product_id: it.product_id ?? null,
+        product_name: it.name, quantity: it.quantity,
         size: extractMeta(it, ['pa_size', 'Size', 'Talla']), color: extractMeta(it, ['pa_color', 'Color']),
         unit_price: it.quantity > 0 ? parseFloat(it.total) / it.quantity : parseFloat(it.total),
       })),

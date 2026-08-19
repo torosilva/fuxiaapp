@@ -9,6 +9,7 @@ import { MotiView } from 'moti';
 import { Redirect, router } from 'expo-router';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
+import { ProductImage } from '@/components/ProductImage';
 import * as ImagePicker from 'expo-image-picker';
 import { CountryPicker } from '@/components/CountryPicker';
 import {
@@ -174,18 +175,23 @@ export default function ProfileScreen() {
     (async () => {
       const { data } = await supabase
         .from('transactions')
-        .select('id, wc_order_id, created_at, points_earned, purchase_items(product_name)')
+        .select('id, wc_order_id, created_at, points_earned, purchase_items(product_name, wc_product_id)')
         .eq('loyalty_card_id', loyaltyCard.id)
         .is('reversed_at', null)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
       if (data) {
-        const firstName = (data as any).purchase_items?.[0]?.product_name ?? 'Compra';
+        const firstItem = (data as any).purchase_items?.[0];
+        const firstName = firstItem?.product_name ?? 'Compra';
         let productImage: string | null = null;
-        if (firstName !== 'Compra') {
-          const products = await wcService.getProducts({ search: firstName, per_page: 1 });
-          productImage = products[0]?.images[0]?.src ?? null;
+        // Se resuelve por id de producto: es exacto y siempre trae la foto
+        // actual de la web (getProduct ya aplica los overrides de imagen).
+        // Antes se buscaba por nombre con busqueda difusa y WooCommerce
+        // devolvia cualquier producto parecido — de ahi las fotos ajenas.
+        if (firstItem?.wc_product_id) {
+          const product = await wcService.getProduct(firstItem.wc_product_id);
+          productImage = product?.images?.[0]?.src ?? null;
         }
         setLatestOrder({
           id: data.id,
@@ -289,11 +295,7 @@ export default function ProfileScreen() {
         <Text style={styles.sectionTitle}>Último Pedido</Text>
         {latestOrder ? (
           <RNView style={[styles.orderCard, { backgroundColor: theme.soft }]}>
-            {latestOrder.product_image
-              ? <Image source={{ uri: latestOrder.product_image }} style={styles.orderImage} />
-              : <RNView style={[styles.orderImage, styles.orderImagePlaceholder, { backgroundColor: theme.soft }]}>
-                  <Image source={require('../../assets/images/logo-icon.png')} style={{ width: 36, height: 36, opacity: 0.35 }} resizeMode="contain" />
-                </RNView>}
+            <ProductImage uri={latestOrder.product_image} style={styles.orderImage} />
             <RNView style={styles.orderInfo}>
               <RNView style={styles.orderHeader}>
                 <Text style={styles.orderStatus}>{latestOrder.first_item}</Text>

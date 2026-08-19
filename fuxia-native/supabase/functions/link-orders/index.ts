@@ -87,7 +87,8 @@ serve(async (req) => {
       }).select('id').single();
       if (tx && Array.isArray(o.items) && o.items.length) {
         await supabase.from('purchase_items').insert(o.items.map((it: any) => ({
-          transaction_id: tx.id, sku: it.sku ?? null, product_name: it.product_name ?? 'Producto',
+          transaction_id: tx.id, sku: it.sku ?? null, wc_product_id: it.product_id ?? null,
+          product_name: it.product_name ?? 'Producto',
           size: it.size ?? null, color: it.color ?? null, category: null,
           quantity: it.quantity ?? 1, unit_price: it.unit_price ?? 0,
         })));
