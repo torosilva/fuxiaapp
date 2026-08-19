@@ -239,10 +239,38 @@ serve(async (req) => {
   }
 
   // Idempotencia: si ya hay transacción para esta orden, no duplicar.
-  const { data: existing } = await supabase.from('transactions').select('id').eq('wc_order_id', order.id).maybeSingle();
-  if (existing) {
+  // OJO: hay que distinguir "ya acreditada" de "acreditada y luego REVERTIDA".
+  // Al cancelar un pedido la transacción no se borra, se le pone reversed_at y
+  // se restan los puntos. Si después el pedido se vuelve a completar, antes se
+  // salía por aquí con 'already_processed' y los puntos no regresaban nunca.
+  const { data: existing } = await supabase
+    .from('transactions')
+    .select('id, reversed_at, loyalty_card_id, points_earned, pairs_in_order')
+    .eq('wc_order_id', order.id).maybeSingle();
+
+  if (existing && !existing.reversed_at) {
     await supabase.from('transactions').update({ wc_status: status }).eq('id', existing.id);
     return json({ ok: true, skipped: 'already_processed' });
+  }
+
+  if (existing && existing.reversed_at) {
+    const { data: reCard } = await supabase
+      .from('loyalty_cards').select('id, total_points, pairs_count')
+      .eq('id', existing.loyalty_card_id).single();
+    if (!reCard) return json({ error: 'Loyalty card missing for reversed tx' }, 500);
+
+    const rePoints = reCard.total_points + existing.points_earned;
+    const rePairs = reCard.pairs_count + existing.pairs_in_order;
+    await supabase.from('loyalty_cards').update({
+      total_points: rePoints, pairs_count: rePairs,
+      tier: await computeTier(supabase, rePoints), updated_at: new Date().toISOString(),
+    }).eq('id', reCard.id);
+
+    await supabase.from('transactions')
+      .update({ reversed_at: null, wc_status: status }).eq('id', existing.id);
+
+    console.log(`[wc-webhook] re-credited order=${order.id} pts=+${existing.points_earned}`);
+    return json({ ok: true, recredited: true, order_id: order.id, points: existing.points_earned });
   }
 
   const phone = normalizePhone(order.billing.phone, order.billing.country);

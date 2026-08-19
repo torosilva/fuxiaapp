@@ -60,6 +60,7 @@ export default function CardScreen() {
       .from('transactions')
       .select('id, created_at, points_earned, channel, purchase_items(product_name)')
       .eq('loyalty_card_id', loyaltyCardId)
+      .is('reversed_at', null)
       .order('created_at', { ascending: false })
       .limit(5);
 

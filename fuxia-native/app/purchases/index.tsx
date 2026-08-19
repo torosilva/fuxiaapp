@@ -68,6 +68,7 @@ export default function PurchaseHistoryScreen() {
       .from('transactions')
       .select('id, wc_order_id, created_at, points_earned, channel, purchase_items(id, sku, product_name, size, color, quantity, unit_price)')
       .eq('loyalty_card_id', cardId)
+      .is('reversed_at', null)
       .order('created_at', { ascending: false });
 
     const mapped: Purchase[] = (data ?? []).map((row: any) => ({

@@ -176,6 +176,7 @@ export default function ProfileScreen() {
         .from('transactions')
         .select('id, wc_order_id, created_at, points_earned, purchase_items(product_name)')
         .eq('loyalty_card_id', loyaltyCard.id)
+        .is('reversed_at', null)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
