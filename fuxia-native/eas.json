@@ -32,7 +32,11 @@
   "submit": {
     "production": {
       "ios": {
-        "ascAppId": "6764388920"
+        "ascAppId": "6764388920",
+        "appleTeamId": "7DC465V297",
+        "ascApiKeyPath": "./AuthKey_8TH6XZTUPK.p8",
+        "ascApiKeyId": "8TH6XZTUPK",
+        "ascApiKeyIssuerId": "90ea6ec9-04f4-4670-8cb7-be6a1d54602a"
       },
       "android": {
         "serviceAccountKeyPath": "./google-play-service-account.json",
@@ -42,7 +46,11 @@
     },
     "testflight": {
       "ios": {
-        "ascAppId": "6764388920"
+        "ascAppId": "6764388920",
+        "appleTeamId": "7DC465V297",
+        "ascApiKeyPath": "./AuthKey_8TH6XZTUPK.p8",
+        "ascApiKeyId": "8TH6XZTUPK",
+        "ascApiKeyIssuerId": "90ea6ec9-04f4-4670-8cb7-be6a1d54602a"
       }
     }
   }
