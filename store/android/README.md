@@ -24,9 +24,23 @@ Verificá siempre que el PNG salga de 1024×500 exactos: según el binario de
 Chromium, la ventana puede no coincidir con el viewport y queda una banda negra
 abajo. El binario `headless_shell` de Playwright no tiene ese problema.
 
+## play-icon-512.png — 512×512
+
+Obligatorio. Es el mismo icono de la app (`fuxia-native/assets/images/icon-brand.png`,
+1024×1024) reducido a 512×512 y **aplanado a RGB, sin canal alfa**: Play redondea las
+esquinas por su cuenta y un icono con transparencia le queda mal.
+
+Se mantuvo idéntico al de iOS a propósito, para que la marca se vea igual en las dos
+tiendas.
+
+Regenerarlo: mismo comando que el feature graphic, con `--window-size=512,512` y
+`play-icon-512.src.html`. Verificá que el PNG salga con color type 2 (RGB) y no 6 (RGBA):
+
+```bash
+python3 -c "d=open('play-icon-512.png','rb').read(); print('color type:', d[25])"
+```
+
 ## Falta todavía
 
-- **Icono 512×512** — derivar de `fuxia-native/assets/images/icon-brand.png`
-  (es 1024×1024 PNG RGBA). Play lo pide sin transparencia.
 - **Screenshots de teléfono** — mínimo 4. Se pueden reusar los de iOS reencuadrados
   a 16:9 / 9:16.
