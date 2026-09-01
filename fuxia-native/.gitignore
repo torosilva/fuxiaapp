@@ -40,3 +40,7 @@ yarn-error.*
 /ios
 /android
 supabase/.temp/
+
+# Google Play service account (nunca commitear)
+google-play-service-account.json
+google-services.json

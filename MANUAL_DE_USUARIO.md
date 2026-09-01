@@ -174,7 +174,9 @@ Botón flotante naranja con burbuja de chat, visible en casi todas las pantallas
 
 ### Acceso
 
-- Login con PIN asignado por el admin.
+- Ruta: pestaña **Perfil** → sección **Accesos** → tarjeta **"Modo Vendedora"**.
+  Solo aparece si tu usuario tiene rol `staff` o `admin`.
+- Ahí se pide el **PIN de 4 dígitos** que asignó el admin.
 - Cada vendedora está vinculada a un canal (tienda o bazar).
 
 ### Pantalla principal
@@ -196,20 +198,29 @@ Flujo de 3 pasos:
 - Vista del carrito con subtotal en tiempo real.
 
 #### Paso 2 — Cliente
-Dos opciones:
+Pantalla "¿Tiene la app Fuxia?". Dos opciones, y **cada una lleva a un resultado distinto**:
 
-- **Escanear QR de la tarjeta de lealtad** — la cámara abre, apuntar al QR de la app del cliente. Auto-completa teléfono y nombre.
-- **Ingresar teléfono manualmente** — número de WhatsApp con código de país.
+- **Escanear QR de la app** (botón de arriba) — abre la cámara. La clienta muestra el QR
+  desde la pestaña **Tarjeta** de su app. Al escanear se salta el teléfono y va directo a
+  confirmar. Los puntos se acreditan **al instante**.
+  - El escáner solo acepta QRs que empiezan con `FX-`. Cualquier otro código lo ignora
+    en silencio, sin mensaje de error.
+- **Ingresar teléfono** — número de WhatsApp a 10 dígitos. Genera un código que la
+  clienta canjea después.
 
 #### Paso 3 — Confirmar
 - Revisión del pedido: items, totales, datos del cliente.
-- Tap "Confirmar venta".
+- Tap "Confirmar venta". **Aquí es donde se acreditan los puntos**, no al escanear.
 
 #### Resultado
-- Aparece un **código de 6 caracteres** (ej. `AB3D5M`).
-- La vendedora se lo dicta/anota al cliente.
-- El cliente puede reclamar sus puntos desde la app (sección Reclamar) ingresando ese código.
-- Opciones: "Nueva venta" o "Salir".
+Depende de la opción del Paso 2:
+
+- **Si escaneaste el QR**: pantalla de **"PUNTOS ACREDITADOS +N"** con el nombre de la
+  clienta. Ya está, no hay código que dictar — los puntos ya están en su tarjeta.
+- **Si usaste el teléfono**: aparece un **código de 6 caracteres** (ej. `AB3D5M`) que la
+  vendedora le dicta o anota. La clienta lo canjea desde **Mis Compras → Reclamar código**.
+
+En ambos casos son **100 puntos por par**. Al final, botón "Nueva Venta".
 
 ### Mi inventario
 
