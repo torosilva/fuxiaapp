@@ -13,7 +13,7 @@ Ya resuelto en esta rama:
 
 | Punto | Antes | Ahora |
 |---|---|---|
-| `targetSdkVersion` | 35 | **36** — Play exige API 36 para apps nuevas y updates desde el 31-ago-2026 |
+| `targetSdkVersion` | fijado en 35 | **36** — es el default de Expo SDK 54, y Play exige API 36 desde el 31-ago-2026. Se quitó el pin de `expo-build-properties` en vez de subirlo: fijar `buildToolsVersion` a mano puede romper el build si esa versión exacta no está en la imagen de EAS |
 | Permiso `RECORD_AUDIO` | declarado | **bloqueado** — la cámara solo escanea QR, no graba audio |
 | Permisos Android | implícitos | `CAMERA` + `POST_NOTIFICATIONS` explícitos |
 | Formato de build | APK (preview) | **AAB** en el perfil `production` (Play solo acepta App Bundle) |

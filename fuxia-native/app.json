@@ -25,7 +25,6 @@
     },
     "android": {
       "package": "com.fuxiaballerinas.loyalty",
-      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon-brand.png",
         "backgroundColor": "#0D0D0D"
@@ -47,16 +46,6 @@
     },
     "plugins": [
       "expo-router",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "compileSdkVersion": 36,
-            "targetSdkVersion": 36,
-            "buildToolsVersion": "36.0.0"
-          }
-        }
-      ],
       [
         "expo-camera",
         {
