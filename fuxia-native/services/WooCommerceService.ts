@@ -293,6 +293,25 @@ class WooCommerceService {
     return results.filter(Boolean).map((v) => mapStoreVariation(v!));
   }
 
+  /**
+   * Igual que getProductVariations pero SIN el tope de 30 — trae todas las
+   * variaciones en lotes de 20 (para el importador de inventario, donde un
+   * modelo puede tener 6 tallas × 10 colores = 60+ variaciones).
+   */
+  async getProductVariationsAll(variationIds: number[] = []): Promise<WCVariation[]> {
+    if (variationIds.length === 0) return [];
+    const CHUNK = 20;
+    const out: WCVariation[] = [];
+    for (let i = 0; i < variationIds.length; i += CHUNK) {
+      const batch = variationIds.slice(i, i + CHUNK);
+      const results = await Promise.all(
+        batch.map((vid) => storeGet<StoreProduct>(`products/${vid}`)),
+      );
+      for (const v of results) if (v) out.push(mapStoreVariation(v));
+    }
+    return out;
+  }
+
   /** Category images from fuxiaballerinas.com — UI provides local fallback if offline */
   async getCategories(): Promise<WCCategory[]> {
     const data = await storeGet<StoreCategory[]>('products/categories', {
