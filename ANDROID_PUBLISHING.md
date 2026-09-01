@@ -19,6 +19,22 @@ Ya resuelto en esta rama:
 | Formato de build | APK (preview) | **AAB** en el perfil `production` (Play solo acepta App Bundle) |
 | `eas submit` Android | no existía | configurado con track `internal` y `releaseStatus: draft` |
 
+### ⚠️ El identificador de Android NO es el mismo que el de iOS
+
+| Plataforma | Identificador |
+|---|---|
+| iOS (`bundleIdentifier`) | `com.fuxiaballerinas.app` |
+| Android (`package`) | **`com.fuxiaballerinas.loyalty`** |
+
+`com.fuxiaballerinas.app` ya estaba tomado en Google Play por una app creada antes en
+la cuenta personal. Los package names de Play son **únicos a nivel global y permanentes**:
+no se liberan ni borrando la app, así que se eligió uno nuevo para Android.
+
+Son namespaces independientes, no hay ningún problema en que difieran. Pero hay que usar
+`com.fuxiaballerinas.loyalty` — y no el de iOS — en **todo lo que sea Android**: la ficha de
+Play Console, el proyecto de Firebase y cualquier deep link con intent filter. Los deep links
+actuales usan el scheme `fuxia://`, que no depende del package name.
+
 Falta lo que no se puede hacer desde el repo: cuenta, credenciales y contenido de la ficha.
 
 ---
@@ -29,9 +45,9 @@ Falta lo que no se puede hacer desde el repo: cuenta, credenciales y contenido d
 2. Elegir tipo de cuenta:
    - **Organización** (recomendado si el negocio tiene RFC): pide un **D-U-N-S number** y verificación del negocio. Tarda días/semanas.
    - **Personal**: verificación de identidad con documento oficial.
-3. ⚠️ **Requisito de testing para cuentas personales nuevas**: si la cuenta es de tipo *personal* y se creó después de nov-2023, Google exige **20 testers reales opt-in durante 14 días seguidos** en closed testing antes de poder solicitar acceso a producción. Esto puede sumar 2-3 semanas al calendario. Las cuentas de tipo **organización están exentas** — vale la pena registrarse como organización solo por esto.
+3. **Requisito de testing para cuentas personales**: si la cuenta es de tipo *personal* y se creó después de nov-2023, Google exige **20 testers reales opt-in durante 14 días seguidos** en closed testing antes de poder solicitar acceso a producción.
 
-**Empieza por aquí.** La verificación de cuenta es lo que domina el tiempo total; el build técnico son horas.
+✅ **Estado: resuelto.** La cuenta de Fuxia es de tipo **organización**, así que está **exenta** de ese requisito. Se puede ir de internal testing directo a producción sin esperar las 2-3 semanas.
 
 ---
 
@@ -59,7 +75,7 @@ Sin esto hay que subir el AAB a mano en cada release.
 `expo-notifications` en Android **no funciona sin Firebase**. iOS usa APNs, Android usa FCM.
 
 1. https://console.firebase.google.com → crear proyecto (o reusar uno).
-2. Add app → Android → package name exacto: **`com.fuxiaballerinas.app`**.
+2. Add app → Android → package name exacto: **`com.fuxiaballerinas.loyalty`**.
 3. Descargar `google-services.json` → ponerlo en `fuxia-native/`.
 4. Referenciarlo en `app.json`:
    ```json

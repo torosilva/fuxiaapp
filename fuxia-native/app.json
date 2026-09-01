@@ -24,7 +24,7 @@
       }
     },
     "android": {
-      "package": "com.fuxiaballerinas.app",
+      "package": "com.fuxiaballerinas.loyalty",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon-brand.png",
