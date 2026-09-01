@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { MotiView } from 'moti';
-import { ArrowLeft, Plus, Package, X, ClipboardList } from 'lucide-react-native';
+import { ArrowLeft, Plus, Package, X, ClipboardList, Download } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 
 interface Channel {
@@ -170,6 +170,16 @@ export default function ChannelDetailScreen() {
             ) : null}
             <View style={[styles.statusDot, channel?.active ? styles.dotActive : styles.dotInactive]} />
           </View>
+
+          {/* Importar inventario desde WooCommerce (cualquier canal) */}
+          <TouchableOpacity
+            style={styles.templateBtn}
+            onPress={() => router.push({ pathname: '/admin/import-woo' as any, params: { channelId: id, channelName: channel?.name ?? '' } })}
+            activeOpacity={0.8}
+          >
+            <Download size={18} color="#B8860B" />
+            <Text style={styles.templateBtnText}>Importar de WooCommerce</Text>
+          </TouchableOpacity>
 
           {/* Bazar template shortcut */}
           {channel?.type === 'bazar' && (

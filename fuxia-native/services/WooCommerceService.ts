@@ -79,6 +79,7 @@ export interface WCVariation {
   sale_price: string;
   stock_status: 'instock' | 'outofstock' | 'onbackorder';
   stock_quantity: number | null;
+  sku?: string;
   attributes: { id: number; name: string; option: string }[];
 }
 
@@ -291,6 +292,42 @@ class WooCommerceService {
       variationIds.slice(0, 30).map((vid) => storeGet<StoreProduct>(`products/${vid}`)),
     );
     return results.filter(Boolean).map((v) => mapStoreVariation(v!));
+  }
+
+  /**
+   * Variaciones vía la WC REST API autenticada (proxy) — devuelve talla/color,
+   * precio y SKU REALES por variación. El Store API público (`getProductVariations`)
+   * expone los atributos como taxonomía del padre, no la opción elegida de cada
+   * variación, por lo que la talla/color no se pueden leer bien desde ahí. Para
+   * el importador de inventario usamos esta ruta REST, que sí los trae.
+   */
+  async getProductVariationsRest(productId: number): Promise<WCVariation[]> {
+    interface RestVariation {
+      id: number;
+      price?: string;
+      regular_price?: string;
+      sale_price?: string;
+      sku?: string;
+      stock_status?: 'instock' | 'outofstock' | 'onbackorder';
+      stock_quantity?: number | null;
+      attributes?: { id?: number; name?: string; option?: string }[];
+    }
+    const data = await wcGet<RestVariation[]>(`products/${productId}/variations`, { per_page: 100 });
+    if (!data) return [];
+    return data.map((v) => ({
+      id: v.id,
+      price: v.price ?? v.regular_price ?? '',
+      regular_price: v.regular_price ?? '',
+      sale_price: v.sale_price ?? '',
+      stock_status: v.stock_status ?? 'instock',
+      stock_quantity: v.stock_quantity ?? null,
+      sku: v.sku || undefined,
+      attributes: (v.attributes ?? []).map((a) => ({
+        id: a.id ?? 0,
+        name: a.name ?? '',
+        option: a.option ?? '',
+      })),
+    }));
   }
 
   /** Category images from fuxiaballerinas.com — UI provides local fallback if offline */
