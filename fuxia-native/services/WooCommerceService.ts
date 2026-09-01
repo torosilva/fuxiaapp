@@ -79,6 +79,7 @@ export interface WCVariation {
   sale_price: string;
   stock_status: 'instock' | 'outofstock' | 'onbackorder';
   stock_quantity: number | null;
+  sku?: string;
   attributes: { id: number; name: string; option: string }[];
 }
 
@@ -294,22 +295,39 @@ class WooCommerceService {
   }
 
   /**
-   * Igual que getProductVariations pero SIN el tope de 30 — trae todas las
-   * variaciones en lotes de 20 (para el importador de inventario, donde un
-   * modelo puede tener 6 tallas × 10 colores = 60+ variaciones).
+   * Variaciones vía la WC REST API autenticada (proxy) — devuelve talla/color,
+   * precio y SKU REALES por variación. El Store API público (`getProductVariations`)
+   * expone los atributos como taxonomía del padre, no la opción elegida de cada
+   * variación, por lo que la talla/color no se pueden leer bien desde ahí. Para
+   * el importador de inventario usamos esta ruta REST, que sí los trae.
    */
-  async getProductVariationsAll(variationIds: number[] = []): Promise<WCVariation[]> {
-    if (variationIds.length === 0) return [];
-    const CHUNK = 20;
-    const out: WCVariation[] = [];
-    for (let i = 0; i < variationIds.length; i += CHUNK) {
-      const batch = variationIds.slice(i, i + CHUNK);
-      const results = await Promise.all(
-        batch.map((vid) => storeGet<StoreProduct>(`products/${vid}`)),
-      );
-      for (const v of results) if (v) out.push(mapStoreVariation(v));
+  async getProductVariationsRest(productId: number): Promise<WCVariation[]> {
+    interface RestVariation {
+      id: number;
+      price?: string;
+      regular_price?: string;
+      sale_price?: string;
+      sku?: string;
+      stock_status?: 'instock' | 'outofstock' | 'onbackorder';
+      stock_quantity?: number | null;
+      attributes?: { id?: number; name?: string; option?: string }[];
     }
-    return out;
+    const data = await wcGet<RestVariation[]>(`products/${productId}/variations`, { per_page: 100 });
+    if (!data) return [];
+    return data.map((v) => ({
+      id: v.id,
+      price: v.price ?? v.regular_price ?? '',
+      regular_price: v.regular_price ?? '',
+      sale_price: v.sale_price ?? '',
+      stock_status: v.stock_status ?? 'instock',
+      stock_quantity: v.stock_quantity ?? null,
+      sku: v.sku || undefined,
+      attributes: (v.attributes ?? []).map((a) => ({
+        id: a.id ?? 0,
+        name: a.name ?? '',
+        option: a.option ?? '',
+      })),
+    }));
   }
 
   /** Category images from fuxiaballerinas.com — UI provides local fallback if offline */

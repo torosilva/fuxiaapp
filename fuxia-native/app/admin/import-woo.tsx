@@ -88,7 +88,7 @@ export default function ImportWooScreen() {
     setExpandedId(opening ? p.id : null);
     if (opening && p.variations.length > 0 && !variationsByProduct[p.id]) {
       setLoadingVariations((s) => new Set(s).add(p.id));
-      const vars = await wcService.getProductVariationsAll(p.variations);
+      const vars = await wcService.getProductVariationsRest(p.id);
       setVariationsByProduct((prev) => ({ ...prev, [p.id]: vars }));
       setLoadingVariations((s) => {
         const next = new Set(s);
@@ -112,7 +112,7 @@ export default function ImportWooScreen() {
             key: `v${v.id}`,
             productId: p.id,
             productName: p.name,
-            sku: `WC-${p.id}-${v.id}`,
+            sku: v.sku || `WC-${p.id}-${v.id}`,
             size,
             color,
             price,
