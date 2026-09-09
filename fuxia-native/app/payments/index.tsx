@@ -48,7 +48,7 @@ const TIERS: TierSpec[] = [
       { icon: Sparkles, label: 'Acumulación de puntos en todas tus compras' },
       {
         icon: Users,
-        label: 'Programa de referidos: cuando una amiga compra usando tu código recibes la misma cantidad de puntos como bonus.',
+        label: 'Programa de referidos: la primera compra que haga tu amiga en tienda usando tu código, recibes la misma cantidad de puntos como bonus.',
       },
     ],
   },
@@ -221,7 +221,7 @@ export default function BeneficiosScreen() {
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.referralTitle}>Bonus por referidas</Text>
             <Text style={styles.referralSubtitle}>
-              Cuando una amiga compra usando tu código recibes la misma cantidad de puntos como bonus.
+              Cuando tu amiga hace su primera compra en tienda usando tu código, recibes la misma cantidad de puntos como bonus.
             </Text>
           </View>
           <TouchableOpacity style={styles.referralBtn} onPress={() => router.push('/referral' as any)}>
