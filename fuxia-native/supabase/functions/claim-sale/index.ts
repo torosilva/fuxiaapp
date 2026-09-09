@@ -92,7 +92,9 @@ async function creditPoints(
   }).eq('id', saleId);
 
   // ── Referral bonus: if this is the customer's first transaction,
-  //    give the referrer double points (same amount again) ──────────────────
+  //    the referrer gets the same amount of points as bonus (1x, not double).
+  //    Only fires here (in-store QR sales) — online purchases via the
+  //    WooCommerce webhook do NOT credit the referrer today.
   const { count: txCount } = await supabase
     .from('transactions')
     .select('id', { count: 'exact', head: true })
