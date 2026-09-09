@@ -32,6 +32,7 @@ interface TierSpec {
   minPoints: number;
   minPairs: number;
   color: string;
+  description: string;
   perks: { icon: any; label: string }[];
 }
 
@@ -42,10 +43,13 @@ const TIERS: TierSpec[] = [
     minPoints: 0,
     minPairs: 0,
     color: '#CD7F32',
+    description: 'Perteneces a este segmento por compras acumuladas anuales de 0 a 2 pares.',
     perks: [
       { icon: Sparkles, label: 'Acumulación de puntos en todas tus compras' },
-      { icon: Gift, label: 'Acceso a la tarjeta de lealtad digital' },
-      { icon: Users, label: 'Programa de referidos 2× activo' },
+      {
+        icon: Users,
+        label: 'Programa de referidos: cuando una amiga compra usando tu código recibes la misma cantidad de puntos como bonus.',
+      },
     ],
   },
   {
@@ -54,11 +58,12 @@ const TIERS: TierSpec[] = [
     minPoints: 300,
     minPairs: 3,
     color: '#C0C0C0',
+    description: 'Perteneces a este segmento por compras acumuladas anuales de mínimo 3 pares o 300 puntos.',
     perks: [
       { icon: Sparkles, label: 'Todo lo de Bronze' },
-      { icon: Gift, label: '5% de descuento permanente en tienda y web' },
-      { icon: Truck, label: 'Envío gratis en pedidos mayores a $1,500 MXN' },
-      { icon: Cake, label: 'Regalo de cumpleaños · 50 puntos extra' },
+      { icon: Gift, label: '5% permanente en la web y en la tienda' },
+      { icon: Truck, label: 'Envíos gratis en compras mayores a $5,600 MXN o $800.000 COP' },
+      { icon: Cake, label: 'Regalo de cumpleaños' },
     ],
   },
   {
@@ -67,13 +72,13 @@ const TIERS: TierSpec[] = [
     minPoints: 900,
     minPairs: 9,
     color: '#FFD700',
+    description: 'Perteneces a este segmento por compras acumuladas anuales de mínimo 9 pares o 900 puntos.',
     perks: [
       { icon: Sparkles, label: 'Todo lo de Silver' },
-      { icon: Gift, label: '10% de descuento permanente' },
-      { icon: Truck, label: 'Envío gratis en TODAS tus compras' },
-      { icon: Crown, label: 'Acceso anticipado a nuevas colecciones (48 h antes)' },
-      { icon: Cake, label: 'Regalo de cumpleaños · 100 puntos + sorpresa física' },
-      { icon: Award, label: 'Atención personalizada vía Hilo prioritario' },
+      { icon: Gift, label: '10% permanente en la web y en la tienda' },
+      { icon: Truck, label: 'Envíos gratis en todas tus compras' },
+      { icon: Cake, label: 'Regalo de cumpleaños' },
+      { icon: Award, label: 'Atención personalizada vía Hilo' },
     ],
   },
 ];
@@ -189,9 +194,7 @@ export default function BeneficiosScreen() {
                   </View>
                 )}
               </View>
-              <Text style={styles.tierReq}>
-                Desde {tier.minPoints} puntos o {tier.minPairs} {tier.minPairs === 1 ? 'par' : 'pares'}
-              </Text>
+              <Text style={styles.tierReq}>{tier.description}</Text>
               <View style={styles.perks}>
                 {tier.perks.map((p, idx) => {
                   const Icon = p.icon;
@@ -218,7 +221,7 @@ export default function BeneficiosScreen() {
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.referralTitle}>Bonus por referidas</Text>
             <Text style={styles.referralSubtitle}>
-              Cuando una amiga compra usando tu código, recibís 2× sus puntos como bonus.
+              Cuando una amiga compra usando tu código recibes la misma cantidad de puntos como bonus.
             </Text>
           </View>
           <TouchableOpacity style={styles.referralBtn} onPress={() => router.push('/referral' as any)}>
