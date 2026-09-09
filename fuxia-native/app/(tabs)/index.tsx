@@ -147,7 +147,7 @@ export default function HomeScreen() {
         >
           <Sparkles size={18} color={FuxiaDarkTheme.colors.brandGold} />
           <Text style={styles.pitchText}>
-            Diseñadas en México, inspiradas en el mundo. Calzado de lujo artesanal para la mujer contemporánea.
+            Bienvenida a la comunidad Fuxia: un grupo selecto de mujeres que valoran la calidad, la autenticidad y el diseño exclusivo. Tu lealtad nos inspira a seguir creando lo mejor para ti.
           </Text>
         </MotiView>
 
