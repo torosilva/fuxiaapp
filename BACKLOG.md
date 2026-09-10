@@ -7,16 +7,20 @@ Estado actualizado al 2026-09-10. Convención:
 
 > **Regla operativa**: cada vez que se deja algo fuera de un trabajo entregado (por falta de decisión de producto, complejidad, o alcance), se anota acá en `⬜ Todo` con la prioridad, el motivo por el que quedó fuera y una estimación. No queda solo en el chat.
 
+Los IDs numéricos son etiquetas informales para referirse a items — no se reutilizan al mover cosas entre secciones.
+
 ---
 
 ## ✅ Completado
+
+### Infraestructura base
 
 | ID | Título | Notas |
 |---|---|---|
 | #0 | Setup Supabase + DB schema | tablas + edge functions calculate-points/calculate-tier |
 | #1 | Onboarding por WhatsApp OTP | flujos signup + login separados, normalizer +52→+521, template aprobado |
 | #2 | Tarjeta de lealtad real | CardScreen + Profile leyendo de Supabase, sin mocks |
-| #3 | Webhook WooCommerce (código) | edge function `woocommerce-webhook` con HMAC, deployed (falta config en WP, ver #18) |
+| #3 | Webhook WooCommerce (código) | edge function `woocommerce-webhook` con HMAC, deployed |
 | #4 | Foto de perfil | bucket `avatars` con RLS + expo-image-picker + upload + UI con badge cámara |
 | #5 | Historial de compras | pantalla `/purchases` agrupada por mes, expandible |
 | #6 | Categorías clickeables | tiles del Home navegan a Shop con filter, chips funcionales |
@@ -25,145 +29,155 @@ Estado actualizado al 2026-09-10. Convención:
 | #9 | Welcome screen animado | logo spring + tagline + botones Crear cuenta / Iniciar sesión |
 | #10 | Tab bar custom + FAB | hoja dorada como FAB central, tab bar fija al borde inferior |
 | #11 | Dark mode forzado | `useColorScheme.ts` hardcoded a 'dark' |
-| #12 | EAS Update setup | OTA configurado, channel `preview` |
-| #13 | Mover WC creds a proxy | edge function `woocommerce-proxy` con whitelist read-only, secrets server-side |
-| #14 | Rotar WC keys | nuevas claves seteadas en Supabase (revocar las viejas en WC admin) |
-| #15 | Build iOS (IPA) | testflight profile + Distribution Certificate + Provisioning Profile |
+| #12 | EAS Update setup | OTA configurado, canales preview y production |
+| #13 | Mover WC creds a proxy | edge function `woocommerce-proxy` con whitelist read-only |
+| #14 | Rotar WC keys | claves nuevas en Supabase, viejas revocadas |
 | #16 | Push notifications backend | tabla `push_tokens` + RLS + registro desde useAuth + push al ganar puntos / subir tier |
-| #17 | Sacar proyecto de OneDrive | movido a `C:\Users\mario\Documents\...` para evitar EAS build EACCES |
-| #18 | Build iOS subido a TestFlight | build 1.0.0(6) en App Store Connect, status "Ready to Submit", grupo "Team (Expo)" creado |
-| #19 | Twilio WhatsApp Business Sender comprado | número productivo `+5215599628645` registrado, status Online, throughput 80 mps |
-| #20 | Twilio Partner permissions sobre WABA | Twilio Inc agregado como Socio con Control total sobre WABA `1479833616977117` |
-| #21 | Meta Business Verification aprobada | Sender productivo activo, template OTP aprobado, secrets actualizados en Supabase |
-| #22 | Webhook WooCommerce configurado | Dos webhooks activos en WP Admin (Fuxia App — Order Completed + Fuxia Loyalty Sync) apuntando a woocommerce-webhook |
-| #23 | ITSAppUsesNonExemptEncryption | Ya seteado en `false` en app.json infoPlist |
+| #22 | Webhook WooCommerce configurado en WP | Fuxia App — Order Completed + Fuxia Loyalty Sync activos |
+| #24 | ITSAppUsesNonExemptEncryption | `false` en app.json infoPlist |
+
+### iOS / App Store
+
+| ID | Título | Notas |
+|---|---|---|
+| #15 | Build iOS (IPA) | testflight profile + Distribution Certificate + Provisioning Profile |
+| #18 | Build iOS a TestFlight | build 1.0.0(6) en App Store Connect, grupo "Team (Expo)" |
+| #19 | Twilio WhatsApp Business Sender | `+5215599628645` productivo, throughput 80 mps |
+| #20 | Twilio Partner permissions sobre WABA | Twilio Inc con Control total sobre WABA `1479833616977117` |
+| #21 | Meta Business Verification aprobada | Template OTP aprobado, secrets en Supabase |
+
+### Android / Google Play
+
+| ID | Título | Notas |
+|---|---|---|
+| #40 | Build AAB producción | `com.fuxiaballerinas.loyalty`, target SDK 36, firmado por EAS |
+| #41 | Feature graphic 1024×500 | `store/android/feature-graphic.png` |
+| #42 | Icono 512×512 | `store/android/play-icon-512.png` |
+| #43 | Screenshots Android | 3 screenshots 1080×1920 (9:16) subidos a Play |
+| #44 | Ficha Play Store completa | Nombre, short/full description, categoría, contacto |
+| #45 | Publicación a Producción de Play | Envío #4 publicado 9/sep, 176 países habilitados |
+
+### Sitio y páginas legales
+
+| ID | Título | Notas |
+|---|---|---|
+| #46 | Página `/privacy/` en fuxiaballerinas.com | plantilla en `wordpress/page-privacy.php`, publicada |
+| #47 | Página `/eliminar-cuenta/` | requerida por Play, publicada |
+| #17 | Sacar proyecto de OneDrive | movido a rutas normales, evita EAS build EACCES |
+
+### Fixes de esta sesión (sept 2026)
+
+| ID | Título | Notas |
+|---|---|---|
+| #48 | Firebase / FCM V1 configurado | `google-services.json` + FCM key en EAS credentials |
+| #49 | Home: nuevo mensaje de comunidad Fuxia | commit `244c181` |
+| #50 | Beneficios: textos y perks por tier alineados | commit `efd8e17` |
+| #51 | Referidos: código + copy alineados a 1x primera compra en tienda | commits `1d265ca`, `67fb151` |
+| #52 | Admin: gestión de vendedoras + reportes + entrada "Soy vendedora" en welcome | commit `dd6e1fe` |
+| #53 | Fix precios en moneda del país (Colombia dejaba de ver MXN) | commits `2a400b1`, `beb1d3e` — persiste país del onboarding + conversión app-side con SUPPORTED_COUNTRIES.mxn_rate |
+| #54 | GitHub Action keepalive de Redis de Hilo | `.github/workflows/hilo-keepalive.yml` — POST cada 12h |
 
 ---
 
 ## 🟡 En progreso
 
-### Invitar más testers internos a TestFlight (P1)
-
-Build subida a TestFlight. Grupo "Team (Expo)" creado pero solo 1 invite. Para abrir más:
-1. App Store Connect → TestFlight → Internal Testing → **+** → crear grupo (ej. "Familia")
-2. Add Testers por email (hasta 100, sin Apple review)
-3. Llenar **Test Information** (Beta App Description ya redactado, solo pegar; agregar email de soporte y notas para reviewer)
+*(nada agenda para trabajo activo — items todo se listan abajo)*
 
 ---
 
 ## ⬜ Todo
 
-### #18 Build Android preview (P1)
+### #29 Verificar/configurar zona Colombia en WCPBC (WordPress) (P0)
 
-Después del fix de OneDrive read-only y commit con pre-install hook, debería andar.
+Reporte: clientas descargando desde Colombia ven precios en MXN en lugar de COP.
 
-```powershell
-npx eas build --profile preview --platform android --non-interactive --no-wait
-```
+En la app se corrigieron los bugs de detección de país (#53). Con el fix de conversión app-side, la app ya muestra COP correctamente **dentro de la app**. Pero cuando la clienta toca "Ver en la web" y llega a `fuxiaballerinas.com`, ahí sigue viendo MXN porque WooCommerce responde en la moneda base sin la zona configurada.
 
-DoD: APK descargable + instalado en celu Android probando todo el flow.
+**Lo que queda por hacer en WordPress**:
 
----
+- [ ] En `fuxiaballerinas.com/wp-admin` → **WooCommerce → Settings → Price Based on Country**: crear zona con **Colombia** + **COP** como moneda + tasa de cambio (~150 COP por MXN) o precios por producto.
+- [ ] Crear también zona **USD** para los 9 países soportados como USD (US, CA, GT, SV, CL, AR, PA, CR, PE) — mismo enfoque.
+- [ ] Test manual: `https://fuxiaballerinas.com/wp-json/wc/store/v1/products?wcpbc-manual-country=CO` → debe devolver `currency_code: "COP"`. Hoy devuelve `"MXN"`.
 
-### #19 Privacy Policy + Soporte en fuxiaballerinas.com (P0 Apple)
+Sin este paso, la web y la app se ven inconsistentes (app muestra COP, web MXN).
 
-Apple exige ambas URLs antes de submit a producción.
-
-**Pages a crear**:
-- `https://fuxiaballerinas.com/privacy` — copy template en `APP_STORE_METADATA.md`
-- `https://fuxiaballerinas.com/soporte` — email + FAQ básico
-- Email `soporte@fuxiaballerinas.com`
-
-DoD: ambas URLs accesibles públicamente, contenido al día.
+Estimación: 15 min si el grupo ya existe, 1h para crearlo con tasas.
 
 ---
 
-### #20 Screenshots para App Store (P1)
+### #30 Prevenir que la Redis de Hilo se muera cada 14 días (P1)
 
-Apple requiere **6.7"** (1290×2796) y **6.5"** (1242×2688) en portrait.
+Upstash free tier borra bases inactivas a los 14 días. Ya pasó una vez (sept 2026).
 
-**Pantallas a capturar** (capturables hoy):
-1. Welcome con logo animado + botones
-2. Tarjeta de lealtad con QR
-3. Home (hero + Novedades + Categorías)
-4. Detalle de producto con preview de puntos
-5. "Mis Zapatos" con compras
-6. Profile con avatar + último pedido
+Estado actual: hay **GitHub Action** (`.github/workflows/hilo-keepalive.yml`) que hace POST al chat cada 12h para mantener actividad. Con eso debería alcanzar, pero es una mitigación, no un fix estructural.
 
-Sugerido: usar Figma para overlay con copy promocional.
+Opciones restantes (opcionales, elegí una si querés más solidez):
 
-DoD: 6 screenshots por size subidos a App Store Connect.
+- [ ] **Upgrade Upstash a Pay As You Go** (~$0.20/100K commands, ~$5-10/mes) — la más limpia, elimina la dependencia del keepalive.
+- [ ] O que el backend Hilo tenga **fallback si Redis falla** (responder sin memoria de conversación en vez de crashear todo) — cambio en el código Python (~1h).
+
+Nota operativa si se cae de nuevo: en Upstash console → base "Deleted" tiene botón **Restore** que migra los backups a una base nueva (con hostname/password nuevos). Después hay que actualizar `REDIS_URL` en Railway → Variables con la URL completa (`rediss://default:PASSWORD@nuevo-host.upstash.io:6379`).
 
 ---
 
-### #21 Store Scanner para vendedoras (P2)
+### #55 Probar preview APK en Android real (P1)
 
-Pantalla protegida con PIN para vendedoras en tienda. Cámara escanea QR → muestra perfil + permite registrar venta channel='store'.
-
-Detalle completo: ver `claude-prompts/fuxia-app-claude-code-prompts.md` Prompt 5.
+La app nunca corrió en Android físico. La build de producción está en Play (Envío #4) pero no se probó en un dispositivo real antes. Riesgos: edge-to-edge, back button gestures, permisos de cámara y notificaciones runtime, animaciones moti/reanimated en gama media, deep links `fuxia://`.
 
 Sub-tareas:
-- [ ] Ruta `/store/scanner` fuera de tabs (acceso protegido)
-- [ ] PIN screen (4 dígitos por tienda)
-- [ ] expo-camera + scan formato `FX-...`
-- [ ] Lookup por `qr_code` en `loyalty_cards`
-- [ ] Bottom sheet con perfil + últimas 3 compras
-- [ ] Registrar venta `channel='store'`
-- [ ] Insertar en `qr_scans`
-- [ ] Fraud detection (`utils/fraudDetection.ts`): >3 scans/10min same store, montos > $10k MXN
+
+- [ ] `eas build --platform android --profile preview` → APK instalable
+- [ ] Instalar en un Android de gama media (Motorola/Samsung baratos son buen test)
+- [ ] Testear: login WhatsApp, ver home, entrar a beneficios, escanear QR de tienda como vendedora, ver notificación push al ganar puntos
+- [ ] Documentar bugs encontrados en tickets nuevos
+
+Estimación: 30 min de build + 30 min de test.
 
 ---
 
-### #22 useAuth como Context compartido (P2, tech-debt)
+### #56 Declaraciones Policy → App content en Play (P1)
 
-Hoy cada pantalla con `useAuth()` hace queries propias → 3-4x duplicadas al cambiar tabs. Mover a `AuthProvider` Context.
+Aunque la app ya está en producción, faltan algunas declaraciones que Play puede exigir con más rigor a futuro (o al hacer una actualización mayor):
 
-- [ ] Crear `AuthProvider` que expone state + actions
-- [ ] `useAuth()` pasa a ser consumer
-- [ ] Envolver `<AuthProvider>` en `app/_layout.tsx`
-- [ ] Exponer `refresh()` para recargar on-demand
+- [ ] Data safety form completo (teléfono, nombre, email, fotos, historial de compras — todos "collected + linked to user, not tracking")
+- [ ] Content rating IARC (cuestionario, debería salir Everyone / 3+)
+- [ ] Target audience 18+
+- [ ] Ads = No
+- [ ] URL de eliminación de cuenta (`fuxiaballerinas.com/eliminar-cuenta`) ya publicada, hay que declararla si no está
+- [ ] Credenciales del revisor: México, teléfono `5555555555`, código `555555`
 
----
-
-### #23 Wire grid actions del Profile (P3)
-
-Tiles "Seguimiento", "Regalar", "Pagos" están sin destino. Solo "Mis Compras" funciona. Decidir:
-- Implementar (cada uno tiene su sub-spec)
-- Ocultarlos hasta tener spec
-- Reemplazarlos por links útiles
+Estimación: 30 min de formularios.
 
 ---
 
-### #24 ITSAppUsesNonExemptEncryption (P2, Apple) ✅ ya resuelto
+### #57 Service account de Google Play para eas submit automático (P2)
 
-Warning durante build iOS. Para evitar config manual cada submit:
+Hoy los AABs se suben a mano en cada release. Con una service account de Google Cloud vinculada al proyecto Play, `eas submit --platform android --profile production` sube el AAB automáticamente.
 
-```json
-"ios": {
-  "infoPlist": {
-    "ITSAppUsesNonExemptEncryption": false
-  }
-}
-```
+Sub-tareas:
+- [ ] Play Console → Setup → API access → vincular Google Cloud
+- [ ] Google Cloud → IAM & Admin → Service Accounts → crear una con permiso "Release manager"
+- [ ] Descargar JSON como `fuxia-native/google-play-service-account.json` (ya está en `.gitignore`)
+- [ ] O mejor: `eas secret:create` para no tener el JSON en local
 
-(Solo HTTPS estándar — no usamos cripto custom)
+Estimación: 15 min.
 
 ---
 
 ### #25 Push notifications testing en device real (P1)
 
-Los push solo funcionan en builds nativos (no Expo Go iOS). Una vez la build esté en TestFlight:
+Los push solo funcionan en builds nativos (no Expo Go iOS). Confirmar end-to-end:
+
 - [ ] Instalar TestFlight build en iPhone propio
-- [ ] Loguear → confirmar que `push_tokens` se inserta
-- [ ] Forzar webhook → confirmar que llega notificación
+- [ ] Loguear → confirmar que `push_tokens` se inserta con el `expo_push_token`
+- [ ] Registrar una compra manual en WooCommerce (o correr el webhook con curl) → confirmar que llega notificación al iPhone
+- [ ] Idem en Android con la build de Play
 
 ---
 
-### #26 Notificaciones push a segmentos (P2)
+### #26 Notificaciones push a segmentos desde admin (P2)
 
-Que la administradora pueda mandar un mensaje push a un segmento (todas las Bronze, todas las Silver, todas las Gold, o todas). Hoy solo hay push automáticas al ganar puntos / subir de tier (`push_tokens` + hook en webhook y en `admin-points`), no hay envío manual desde admin.
-
-Por qué se dejó fuera: necesita edge function nueva (`admin-broadcast-push`) que agrupe destinatarios por tier y llame al Expo Push API, más UX de composición (título, cuerpo, ¿imagen?, ¿deep link a un producto?).
+Que la administradora pueda mandar push a segmentos (Bronze, Silver, Gold, o todas). Hoy solo hay push automáticas al ganar puntos / subir de tier.
 
 Sub-tareas:
 - [ ] Edge function `admin-broadcast-push` (input: tier | 'all', title, body, data)
@@ -173,76 +187,57 @@ Sub-tareas:
 - [ ] Pantalla `/admin/broadcast`: form con segmento, título, cuerpo, opcional deep link, preview y confirm
 - [ ] Rate limit: máx 1 broadcast por día por segmento (evitar spam)
 
-Estimación: ~3h. DoD: admin manda un push a segment 'silver' y a un teléfono con push_token registrado como Silver le llega la notificación.
+Estimación: ~3h.
 
 ---
 
 ### #27 Catálogo de recompensas canjeables (P2)
 
-Hoy los perks por tier son texto en `payments/index.tsx` — no se pueden canjear desde la app, la clienta tiene que ir físicamente y reclamar. Falta un catálogo dinámico administrable con canje.
-
-Por qué se dejó fuera: necesita schema nuevo y una decisión de producto grande (¿auto-canje al llegar al nivel? ¿claim manual con QR? ¿la clienta reserva y admin confirma?).
+Hoy los perks por tier son texto en `payments/index.tsx` — no se pueden canjear desde la app. Falta un catálogo dinámico administrable con canje.
 
 Sub-tareas:
-- [ ] Schema DB: `rewards_catalog` (id, name, description, min_tier, points_cost, image_url, stock, active) y `redemptions` (id, customer_id, reward_id, status: pending/fulfilled/cancelled, redeemed_at, fulfilled_at, redemption_code)
+- [ ] Schema DB: `rewards_catalog` (id, name, description, min_tier, points_cost, image_url, stock, active) y `redemptions` (id, customer_id, reward_id, status, redeemed_at, fulfilled_at, redemption_code)
 - [ ] Admin CRUD `/admin/rewards` para gestionar catálogo
 - [ ] Pantalla `/rewards` en cliente para ver disponibles según tier + puntos
-- [ ] Flujo de canje (definir: ¿genera QR que admin escanea en tienda? ¿reservación con confirmación por WhatsApp?)
-- [ ] Descontar puntos en `redeem-reward` edge function con lock optimista
+- [ ] Flujo de canje (definir producto: ¿QR que admin escanea? ¿reservación con confirmación WhatsApp?)
+- [ ] `redeem-reward` edge function con lock optimista para descontar puntos
 - [ ] Notificación push cuando una recompensa se marca como fulfilled
 
-Estimación: ~5h + reunión de producto para decidir el flujo de canje.
+Estimación: ~5h + reunión de producto para el flujo de canje.
 
 ---
 
 ### #28 Vendedora ve sus propios stats en /vendedora/home (P3)
 
-Hoy `/vendedora/home` muestra "Ventas de hoy" del **canal completo** — cualquier vendedora del bazar ve el mismo número. Falta un toggle o segunda card que muestre las suyas específicas (filtradas por `offline_sales.staff_id`).
-
-Por qué se dejó fuera: alcance de la iteración de "admin panel". Es cambio muy chico pero afecta la UX del `/vendedora/home` y quería mantener el commit del admin acotado.
+Hoy `/vendedora/home` muestra "Ventas de hoy" del **canal completo** — cualquier vendedora del bazar ve el mismo número. Falta que vea las suyas específicas.
 
 Sub-tareas:
-- [ ] Segunda card en `/vendedora/home` con "Mis ventas de hoy" filtrando por `staff_id` (viene por URL param del PIN screen)
+- [ ] Segunda card con "Mis ventas de hoy" filtrando por `offline_sales.staff_id`
 - [ ] Sumatoria de `total` como monto acumulado por la vendedora
 - [ ] Opcional: `/vendedora/my-sales-today` con detalle por venta (fecha, monto, código)
 
-Estimación: ~30min. DoD: en la home del vendedor se ven dos números — total del canal y las propias — sin confundirlos.
+Estimación: ~30 min.
 
 ---
 
-### #30 Prevenir que la Redis de Hilo se muera cada 14 días (P1)
+### #58 useAuth como Context compartido (P2, tech-debt)
 
-El backend de Hilo (Railway `web-production-8cc5a`) usa Upstash Redis para memoria de conversación. El free tier de Upstash **borra la base automáticamente a los 14 días de inactividad** y en septiembre 2026 nos pasó por primera vez — chat de Hilo devolviendo 500 hasta que se creó una base nueva (`ultimate-hippo`) y se actualizó `REDIS_URL` en Railway.
+Cada pantalla con `useAuth()` hace queries propias → 3-4× duplicadas al cambiar de tab. Mover a AuthProvider Context.
 
-Va a volver a pasar si no se hace uno de estos:
-
-- [ ] **Upgrade Upstash a Pay As You Go** (~$0.20/100K commands, ~$5-10/mes en volumen actual) — la opción limpia, cero mantenimiento.
-- [x] ~~GitHub Action de keepalive~~ — hecho en `.github/workflows/hilo-keepalive.yml` (POST a `/api/v1/chat/web` cada 12h para forzar comandos Redis).
-- [ ] O hacer que el backend Hilo tenga **fallback si Redis falla** (responder sin memoria de conversación en vez de crashear todo) — requiere cambio en el código Python del backend (~1h).
-
-Nota operativa cuando se cae de nuevo: en Upstash console → base "Deleted" tiene botón **Restore** que migra los backups a una base nueva (con hostname/password nuevos). Después hay que actualizar `REDIS_URL` en Railway → Variables con la URL completa (`rediss://default:PASSWORD@nuevo-host.upstash.io:6379`).
-
-Estimación: 15 min para upgrade a paid, 30 min para el GitHub Action.
+- [ ] Crear `AuthProvider` que expone state + actions
+- [ ] `useAuth()` pasa a ser consumer
+- [ ] Envolver `<AuthProvider>` en `app/_layout.tsx`
+- [ ] Exponer `refresh()` para recargar on-demand
 
 ---
 
-### #29 Verificar/configurar grupo Colombia en WCPBC (WordPress) (P0)
+### #59 Wire grid actions del Profile (P3)
 
-Reporte: clientas descargando desde Colombia ven precios en MXN en lugar de COP.
+Tiles "Seguimiento", "Regalar", "Pagos" están sin destino. Solo "Mis Compras" funciona. Decidir:
 
-En la app se corrigieron dos bugs (commit próximo a este) que hacían que el país elegido en el onboarding se ignorara y las clientas terminaran mostrando la moneda del device (a menudo `es-MX` por default en Android). Con eso, cuando eligen "Colombia" en el country picker, la app manda `wcpbc-manual-country=CO` a la Store API de WooCommerce.
-
-**Lo que queda por verificar del lado de WordPress**:
-
-- [ ] En `fuxiaballerinas.com/wp-admin` → **WooCommerce → Settings → Price Based on Country**: confirmar que existe un grupo activo con **Colombia** en la lista de países y **COP** como moneda.
-- [ ] Si el grupo existe: revisar que cada producto tenga precio en COP configurado (o que use el multiplicador de tasa de cambio para convertir MXN → COP automáticamente).
-- [ ] Si el grupo NO existe: crearlo. Documentación WCPBC: https://wcpbc.com/documentation/
-- [ ] Test manual: abrir `https://fuxiaballerinas.com/wp-json/wc/store/v1/products?wcpbc-manual-country=CO` desde el navegador y verificar que la respuesta tiene `currency_code: "COP"` — si devuelve `"MXN"`, es que el grupo no está configurado.
-- [ ] Repetir el mismo test para US y otros países soportados en `SUPPORTED_COUNTRIES` (US, CA, GT, SV, CL, AR, PA, CR, PE) — hoy todos se agrupan como `mxn_rate: 17` (USD), que asume un grupo USD en WCPBC.
-
-Sin este paso, el fix del lado app no sirve: la app pide COP correctamente pero WordPress igual devuelve MXN como fallback.
-
-Estimación: 15 min si el grupo ya existe, 1h si hay que crear grupos + configurar precios/tasa.
+- Implementar (cada uno tiene su sub-spec)
+- Ocultarlos hasta tener spec
+- Reemplazarlos por links útiles
 
 ---
 
