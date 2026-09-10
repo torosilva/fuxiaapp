@@ -4,14 +4,16 @@
  * the Supabase Edge Function `woocommerce-proxy` so the consumer_key/secret never
  * ship in the mobile bundle.
  *
- * Multi-currency: WCPBC's Store API is inconsistent — the `/products` list endpoint
- * returns USD when no country is specified, while `/products/{id}` respects the
- * store's base. To avoid that mismatch we ALWAYS send `wcpbc-manual-country`:
- *   1. User's explicit pick from the country selector (if any).
- *   2. Device region from OS settings (MX → MX, US → US, CO → CO…).
- *   3. 'US' (USD) as international fallback when the region isn't supported.
+ * Multi-currency (app-side):
+ * We ALWAYS send `wcpbc-manual-country` — so if the store has a WCPBC zone
+ * configured for that country, WordPress returns the local currency directly.
+ * If the zone is NOT configured, WCPBC falls back to the store base (MXN).
+ * To make the app work regardless of WCPBC config, we do a second pass in
+ * `mapStoreProduct`: when WordPress returned a currency that doesn't match the
+ * user's country, we convert client-side using the exchange rates declared in
+ * `SUPPORTED_COUNTRIES.mxn_rate`. Update those rates when the exchange moves.
  */
-import { getCountryOverride, detectDeviceCountry } from '@/lib/CountryService';
+import { getCountry, SUPPORTED_COUNTRIES } from '@/lib/CountryService';
 import { supabase } from '@/lib/supabase';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
@@ -159,13 +161,45 @@ function formatPrice(minor: string | undefined, decimals: number): string {
   return decimals === 0 ? String(n) : (n / Math.pow(10, decimals)).toFixed(decimals);
 }
 
-function mapStoreVariation(s: StoreProduct): WCVariation {
+// Convierte un monto de una moneda a otra usando SUPPORTED_COUNTRIES.mxn_rate.
+// Retorna null si alguna de las monedas no está en la tabla — el caller decide
+// qué hacer (típicamente dejar el precio como venía).
+function convertPrice(amount: number, from: string, to: string): number | null {
+  if (from === to) return amount;
+  const src = SUPPORTED_COUNTRIES.find((c) => c.currency === from);
+  const dst = SUPPORTED_COUNTRIES.find((c) => c.currency === to);
+  if (!src || !dst) return null;
+  const inMxn = amount * src.mxn_rate;      // → MXN pivot
+  const converted = inMxn / dst.mxn_rate;   // → destino
+  // Redondeo suave para que se vea bonito según la moneda destino.
+  if (to === 'COP') return Math.round(converted / 1000) * 1000; // COP al millar más cercano ($420,000 no $418,732)
+  return Math.round(converted);                                 // MXN / USD entero
+}
+
+// Reformatea un string de precio ("2800") convirtiendo a la moneda destino.
+// Devuelve el input intacto si no se puede convertir (moneda igual o no soportada).
+function convertPriceStr(raw: string, from: string, to: string): string {
+  if (!raw) return raw;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return raw;
+  const conv = convertPrice(n, from, to);
+  return conv != null ? String(conv) : raw;
+}
+
+// Moneda que corresponde a un país soportado (fallback MXN si algo raro pasa).
+function currencyForCountry(country: string): string {
+  return SUPPORTED_COUNTRIES.find((c) => c.code === country)?.currency ?? 'MXN';
+}
+
+function mapStoreVariation(s: StoreProduct, targetCountry?: string): WCVariation {
   const decimals = s.prices?.currency_minor_unit ?? 0;
+  const from = s.prices?.currency_code ?? 'MXN';
+  const to = targetCountry ? currencyForCountry(targetCountry) : from;
   return {
     id: s.id,
-    price: formatPrice(s.prices?.price, decimals),
-    regular_price: formatPrice(s.prices?.regular_price, decimals),
-    sale_price: formatPrice(s.prices?.sale_price, decimals),
+    price: convertPriceStr(formatPrice(s.prices?.price, decimals), from, to),
+    regular_price: convertPriceStr(formatPrice(s.prices?.regular_price, decimals), from, to),
+    sale_price: convertPriceStr(formatPrice(s.prices?.sale_price, decimals), from, to),
     stock_status: s.is_in_stock ? 'instock' : 'outofstock',
     stock_quantity: null,
     attributes: (s.attributes ?? []).map((a) => ({ id: a.id, name: a.name, option: a.value ?? '' })),
@@ -212,8 +246,10 @@ function applyImageOverride(p: WCProduct, overrides: Map<number, string>): WCPro
   };
 }
 
-function mapStoreProduct(s: StoreProduct): WCProduct {
+function mapStoreProduct(s: StoreProduct, targetCountry?: string): WCProduct {
   const decimals = s.prices?.currency_minor_unit ?? 0;
+  const from = s.prices?.currency_code ?? 'MXN';
+  const to = targetCountry ? currencyForCountry(targetCountry) : from;
   return {
     id: s.id,
     name: s.name,
@@ -223,11 +259,11 @@ function mapStoreProduct(s: StoreProduct): WCProduct {
     status: 'publish',
     description: s.description,
     short_description: s.short_description,
-    price: formatPrice(s.prices?.price, decimals),
-    regular_price: formatPrice(s.prices?.regular_price, decimals),
-    sale_price: formatPrice(s.prices?.sale_price, decimals),
-    currency_code: s.prices?.currency_code ?? 'MXN',
-    currency_symbol: s.prices?.currency_symbol ?? '$',
+    price: convertPriceStr(formatPrice(s.prices?.price, decimals), from, to),
+    regular_price: convertPriceStr(formatPrice(s.prices?.regular_price, decimals), from, to),
+    sale_price: convertPriceStr(formatPrice(s.prices?.sale_price, decimals), from, to),
+    currency_code: to,
+    currency_symbol: '$',
     stock_status: s.is_in_stock ? 'instock' : 'outofstock',
     stock_quantity: null,
     images: s.images || [],
@@ -241,8 +277,7 @@ async function storeGet<T>(path: string, params: Record<string, string | number>
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, String(v));
   }
-  const override = await getCountryOverride();
-  const country = override ?? detectDeviceCountry();
+  const country = await getCountry();
   url.searchParams.set('wcpbc-manual-country', country);
   try {
     // Android's HTTP client (OkHttp) caches GET responses by URL. If the first
@@ -264,7 +299,7 @@ async function storeGet<T>(path: string, params: Record<string, string | number>
 /** Append the WCPBC country param to a permalink so the web shows the same currency as the app. */
 export async function withCountryParam(url: string): Promise<string> {
   if (!url) return url;
-  const country = (await getCountryOverride()) ?? detectDeviceCountry();
+  const country = await getCountry();
   const sep = url.includes('?') ? '&' : '?';
   return `${url}${sep}wcpbc-manual-country=${country}`;
 }
@@ -275,23 +310,26 @@ class WooCommerceService {
       storeGet<StoreProduct[]>('products', { per_page: 100, ...params }),
       getImageOverrides(),
     ]);
-    return (data ?? []).map(mapStoreProduct).map((p) => applyImageOverride(p, overrides));
+    const country = await getCountry();
+    return (data ?? []).map((p) => mapStoreProduct(p, country)).map((p) => applyImageOverride(p, overrides));
   }
 
   async getProduct(id: string | number): Promise<WCProduct | null> {
-    const [data, overrides] = await Promise.all([
+    const [data, overrides, country] = await Promise.all([
       storeGet<StoreProduct>(`products/${id}`),
       getImageOverrides(),
+      getCountry(),
     ]);
-    return data ? applyImageOverride(mapStoreProduct(data), overrides) : null;
+    return data ? applyImageOverride(mapStoreProduct(data, country), overrides) : null;
   }
 
   async getProductVariations(productId: number, variationIds: number[] = []): Promise<WCVariation[]> {
     if (variationIds.length === 0) return [];
+    const country = await getCountry();
     const results = await Promise.all(
       variationIds.slice(0, 30).map((vid) => storeGet<StoreProduct>(`products/${vid}`)),
     );
-    return results.filter(Boolean).map((v) => mapStoreVariation(v!));
+    return results.filter(Boolean).map((v) => mapStoreVariation(v!, country));
   }
 
   /**
