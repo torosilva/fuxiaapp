@@ -76,6 +76,14 @@ export default function WelcomeScreen() {
         >
           <Text style={styles.btnSecondaryText}>Ya tengo cuenta · Iniciar sesión</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.btnStaff}
+          onPress={() => router.push('/vendedora' as any)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.btnStaffText}>Soy vendedora</Text>
+        </TouchableOpacity>
       </MotiView>
     </View>
   );
@@ -157,6 +165,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: 0.5,
+  },
+  btnStaff: {
+    marginTop: 8,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  btnStaffText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: 1,
   },
   hint: {
     color: 'rgba(255,255,255,0.3)',

@@ -120,10 +120,28 @@ export default function AdminHomeScreen() {
           <TouchableOpacity
             onPress={() => router.push('/admin/puntos' as any)}
             activeOpacity={0.85}
-            style={{ backgroundColor: '#1A1A1A', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(184,134,11,0.35)', padding: 18, marginTop: 12, marginBottom: 4 }}
+            style={{ backgroundColor: '#1A1A1A', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(184,134,11,0.35)', padding: 18, marginTop: 12, marginBottom: 8 }}
           >
             <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>💳  Clientas y puntos</Text>
             <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>Buscar clientas · agregar o quitar puntos manualmente</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/admin/staff' as any)}
+            activeOpacity={0.85}
+            style={{ backgroundColor: '#1A1A1A', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(184,134,11,0.35)', padding: 18, marginBottom: 8 }}
+          >
+            <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>👩  Vendedoras</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>Ver, editar, activar y desactivar · dar de alta nuevas</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/admin/reports' as any)}
+            activeOpacity={0.85}
+            style={{ backgroundColor: '#1A1A1A', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(184,134,11,0.35)', padding: 18, marginBottom: 4 }}
+          >
+            <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>📊  Reportes</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>Ventas del mes · top vendedoras y canales · ajustes de puntos</Text>
           </TouchableOpacity>
 
           {/* Global summary */}
