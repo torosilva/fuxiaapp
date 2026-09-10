@@ -210,6 +210,22 @@ Estimación: ~30min. DoD: en la home del vendedor se ven dos números — total 
 
 ---
 
+### #30 Prevenir que la Redis de Hilo se muera cada 14 días (P1)
+
+El backend de Hilo (Railway `web-production-8cc5a`) usa Upstash Redis para memoria de conversación. El free tier de Upstash **borra la base automáticamente a los 14 días de inactividad** y en septiembre 2026 nos pasó por primera vez — chat de Hilo devolviendo 500 hasta que se creó una base nueva (`ultimate-hippo`) y se actualizó `REDIS_URL` en Railway.
+
+Va a volver a pasar si no se hace uno de estos:
+
+- [ ] **Upgrade Upstash a Pay As You Go** (~$0.20/100K commands, ~$5-10/mes en volumen actual) — la opción limpia, cero mantenimiento.
+- [ ] O crear un **GitHub Action que pingee `GET /health` de Hilo cada 12h** — mantiene actividad en Redis, gratis. Archivo sugerido: `.github/workflows/hilo-keepalive.yml`.
+- [ ] O hacer que el backend Hilo tenga **fallback si Redis falla** (responder sin memoria de conversación en vez de crashear todo) — requiere cambio en el código Python del backend (~1h).
+
+Nota operativa cuando se cae de nuevo: en Upstash console → base "Deleted" tiene botón **Restore** que migra los backups a una base nueva (con hostname/password nuevos). Después hay que actualizar `REDIS_URL` en Railway → Variables con la URL completa (`rediss://default:PASSWORD@nuevo-host.upstash.io:6379`).
+
+Estimación: 15 min para upgrade a paid, 30 min para el GitHub Action.
+
+---
+
 ### #29 Verificar/configurar grupo Colombia en WCPBC (WordPress) (P0)
 
 Reporte: clientas descargando desde Colombia ven precios en MXN en lugar de COP.
