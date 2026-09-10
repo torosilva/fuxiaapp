@@ -1,9 +1,11 @@
 # Fuxia App — Backlog
 
-Estado actualizado al 2026-05-11. Convención:
+Estado actualizado al 2026-09-10. Convención:
 
 - **P0** bloquea / **P1** alto / **P2** medio / **P3** nice to have
 - **Status**: ✅ done · 🟡 in progress · ⬜ todo · 🚫 blocked
+
+> **Regla operativa**: cada vez que se deja algo fuera de un trabajo entregado (por falta de decisión de producto, complejidad, o alcance), se anota acá en `⬜ Todo` con la prioridad, el motivo por el que quedó fuera y una estimación. No queda solo en el chat.
 
 ---
 
@@ -154,6 +156,57 @@ Los push solo funcionan en builds nativos (no Expo Go iOS). Una vez la build est
 - [ ] Instalar TestFlight build en iPhone propio
 - [ ] Loguear → confirmar que `push_tokens` se inserta
 - [ ] Forzar webhook → confirmar que llega notificación
+
+---
+
+### #26 Notificaciones push a segmentos (P2)
+
+Que la administradora pueda mandar un mensaje push a un segmento (todas las Bronze, todas las Silver, todas las Gold, o todas). Hoy solo hay push automáticas al ganar puntos / subir de tier (`push_tokens` + hook en webhook y en `admin-points`), no hay envío manual desde admin.
+
+Por qué se dejó fuera: necesita edge function nueva (`admin-broadcast-push`) que agrupe destinatarios por tier y llame al Expo Push API, más UX de composición (título, cuerpo, ¿imagen?, ¿deep link a un producto?).
+
+Sub-tareas:
+- [ ] Edge function `admin-broadcast-push` (input: tier | 'all', title, body, data)
+- [ ] Query `push_tokens` filtrando por customer.tier via loyalty_cards
+- [ ] Envío en batches de 100 al Expo Push API con dedupe
+- [ ] Registrar el broadcast en tabla `broadcasts` (auditoría + rate limit)
+- [ ] Pantalla `/admin/broadcast`: form con segmento, título, cuerpo, opcional deep link, preview y confirm
+- [ ] Rate limit: máx 1 broadcast por día por segmento (evitar spam)
+
+Estimación: ~3h. DoD: admin manda un push a segment 'silver' y a un teléfono con push_token registrado como Silver le llega la notificación.
+
+---
+
+### #27 Catálogo de recompensas canjeables (P2)
+
+Hoy los perks por tier son texto en `payments/index.tsx` — no se pueden canjear desde la app, la clienta tiene que ir físicamente y reclamar. Falta un catálogo dinámico administrable con canje.
+
+Por qué se dejó fuera: necesita schema nuevo y una decisión de producto grande (¿auto-canje al llegar al nivel? ¿claim manual con QR? ¿la clienta reserva y admin confirma?).
+
+Sub-tareas:
+- [ ] Schema DB: `rewards_catalog` (id, name, description, min_tier, points_cost, image_url, stock, active) y `redemptions` (id, customer_id, reward_id, status: pending/fulfilled/cancelled, redeemed_at, fulfilled_at, redemption_code)
+- [ ] Admin CRUD `/admin/rewards` para gestionar catálogo
+- [ ] Pantalla `/rewards` en cliente para ver disponibles según tier + puntos
+- [ ] Flujo de canje (definir: ¿genera QR que admin escanea en tienda? ¿reservación con confirmación por WhatsApp?)
+- [ ] Descontar puntos en `redeem-reward` edge function con lock optimista
+- [ ] Notificación push cuando una recompensa se marca como fulfilled
+
+Estimación: ~5h + reunión de producto para decidir el flujo de canje.
+
+---
+
+### #28 Vendedora ve sus propios stats en /vendedora/home (P3)
+
+Hoy `/vendedora/home` muestra "Ventas de hoy" del **canal completo** — cualquier vendedora del bazar ve el mismo número. Falta un toggle o segunda card que muestre las suyas específicas (filtradas por `offline_sales.staff_id`).
+
+Por qué se dejó fuera: alcance de la iteración de "admin panel". Es cambio muy chico pero afecta la UX del `/vendedora/home` y quería mantener el commit del admin acotado.
+
+Sub-tareas:
+- [ ] Segunda card en `/vendedora/home` con "Mis ventas de hoy" filtrando por `staff_id` (viene por URL param del PIN screen)
+- [ ] Sumatoria de `total` como monto acumulado por la vendedora
+- [ ] Opcional: `/vendedora/my-sales-today` con detalle por venta (fecha, monto, código)
+
+Estimación: ~30min. DoD: en la home del vendedor se ven dos números — total del canal y las propias — sin confundirlos.
 
 ---
 
