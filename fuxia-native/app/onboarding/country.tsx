@@ -6,12 +6,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
 import { CountryPicker } from 'react-native-country-codes-picker';
+import { isSupported, setCountry } from '@/lib/CountryService';
 
 export default function CountryScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const [selected, setSelected] = useState<{ flag: string; code: string; name: string } | null>(null);
 
-  const handleSelect = (item: any) => {
+  const handleSelect = async (item: any) => {
     const country = {
       flag: item.flag,
       code: item.dial_code,
@@ -19,6 +20,15 @@ export default function CountryScreen() {
     };
     setSelected(country);
     setShowPicker(false);
+
+    // Persist the ISO country code (MX, CO, US…) as the currency override so
+    // WooCommerce prices come back in the currency of the country she picked,
+    // not the device region (which for Colombian users defaults to es-MX and
+    // ended up showing MXN prices to CO buyers).
+    if (typeof item.code === 'string' && isSupported(item.code.toUpperCase())) {
+      await setCountry(item.code.toUpperCase() as any);
+    }
+
     setTimeout(
       () => router.push({ pathname: '/onboarding/phone' as any, params: { countryCode: country.code } }),
       150

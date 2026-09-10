@@ -4,7 +4,7 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import type { Tier } from '@/lib/database.types';
 import { registerPushToken } from '@/lib/notifications';
-import { detectDeviceCountry, syncFromCustomer } from '@/lib/CountryService';
+import { getCountry, syncFromCustomer } from '@/lib/CountryService';
 import { wcService } from '@/services/WooCommerceService';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
@@ -233,7 +233,10 @@ export function useAuth() {
     birthday?: string,
     referralCode?: string,
   ): Promise<{ error?: string; retro?: { linked: number; points: number; pairs: number; newTotal: number } }> {
-    const country = detectDeviceCountry();
+    // Prefer the country the user explicitly picked in the onboarding country
+    // screen (persisted via setCountry) over the device region — many devices
+    // in Colombia default to es-MX and would otherwise be recorded as 'MX'.
+    const country = await getCountry();
 
     // Find or create the WooCommerce customer account.
     let wc_customer_id: number | null = null;

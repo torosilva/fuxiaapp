@@ -210,6 +210,26 @@ Estimación: ~30min. DoD: en la home del vendedor se ven dos números — total 
 
 ---
 
+### #29 Verificar/configurar grupo Colombia en WCPBC (WordPress) (P0)
+
+Reporte: clientas descargando desde Colombia ven precios en MXN en lugar de COP.
+
+En la app se corrigieron dos bugs (commit próximo a este) que hacían que el país elegido en el onboarding se ignorara y las clientas terminaran mostrando la moneda del device (a menudo `es-MX` por default en Android). Con eso, cuando eligen "Colombia" en el country picker, la app manda `wcpbc-manual-country=CO` a la Store API de WooCommerce.
+
+**Lo que queda por verificar del lado de WordPress**:
+
+- [ ] En `fuxiaballerinas.com/wp-admin` → **WooCommerce → Settings → Price Based on Country**: confirmar que existe un grupo activo con **Colombia** en la lista de países y **COP** como moneda.
+- [ ] Si el grupo existe: revisar que cada producto tenga precio en COP configurado (o que use el multiplicador de tasa de cambio para convertir MXN → COP automáticamente).
+- [ ] Si el grupo NO existe: crearlo. Documentación WCPBC: https://wcpbc.com/documentation/
+- [ ] Test manual: abrir `https://fuxiaballerinas.com/wp-json/wc/store/v1/products?wcpbc-manual-country=CO` desde el navegador y verificar que la respuesta tiene `currency_code: "COP"` — si devuelve `"MXN"`, es que el grupo no está configurado.
+- [ ] Repetir el mismo test para US y otros países soportados en `SUPPORTED_COUNTRIES` (US, CA, GT, SV, CL, AR, PA, CR, PE) — hoy todos se agrupan como `mxn_rate: 17` (USD), que asume un grupo USD en WCPBC.
+
+Sin este paso, el fix del lado app no sirve: la app pide COP correctamente pero WordPress igual devuelve MXN como fallback.
+
+Estimación: 15 min si el grupo ya existe, 1h si hay que crear grupos + configurar precios/tasa.
+
+---
+
 ## 🚫 Blocked / Wait
 
 ### Migrar a Supabase Auth phone-only nativo (post-MVP)
