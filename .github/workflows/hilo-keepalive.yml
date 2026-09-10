@@ -1,0 +1,53 @@
+# Mantiene viva la base Redis de Hilo en Upstash.
+#
+# Upstash free tier borra bases inactivas cada 14 días (nos pasó en sept 2026,
+# ver BACKLOG #30). Este workflow hace una request cada 12h al endpoint del
+# chat, lo que ejecuta comandos Redis (memory.append_message → r.get/r.set) y
+# resetea el contador de inactividad.
+#
+# Si en algún momento se migra Upstash a Pay As You Go, este workflow queda
+# obsoleto y se puede borrar.
+
+name: Hilo keepalive
+
+on:
+  schedule:
+    # Cada 12 horas (00:07 y 12:07 UTC). Los minutos raros evitan chocar con
+    # otros cron jobs al top of the hour que hacen a GitHub Actions colar.
+    - cron: '7 */12 * * *'
+  workflow_dispatch:  # Permite dispararlo a mano desde la UI de GitHub
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: POST a Hilo chat (mantiene actividad en Redis)
+        run: |
+          set -euo pipefail
+          URL="https://web-production-8cc5a.up.railway.app/api/v1/chat/web"
+          BODY='{"user_id":"keepalive-github-actions","message":"ping"}'
+
+          # Guardamos respuesta y código separados para poder loguear el body
+          # aunque el status sea >=400 (útil para debug cuando algo se rompe).
+          HTTP_CODE=$(curl -sS -o /tmp/response.txt -w "%{http_code}" \
+            --max-time 90 \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer keepalive" \
+            -d "$BODY" \
+            "$URL")
+
+          echo "HTTP status: $HTTP_CODE"
+          echo "Response body (primeros 500 chars):"
+          head -c 500 /tmp/response.txt || true
+          echo ""
+
+          # 200 = todo bien. 401/403 = auth cambio pero al menos llegó a la app
+          # y tocó Redis (lo cual es lo que queremos). 5xx = backend caido, hay
+          # que investigar — fallamos el workflow para que GitHub mande un
+          # email al owner del repo.
+          if [ "$HTTP_CODE" -ge 500 ]; then
+            echo "::error::Hilo backend devolvió $HTTP_CODE. Revisar Railway logs y Upstash."
+            exit 1
+          fi

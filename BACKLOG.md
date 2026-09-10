@@ -217,7 +217,7 @@ El backend de Hilo (Railway `web-production-8cc5a`) usa Upstash Redis para memor
 Va a volver a pasar si no se hace uno de estos:
 
 - [ ] **Upgrade Upstash a Pay As You Go** (~$0.20/100K commands, ~$5-10/mes en volumen actual) — la opción limpia, cero mantenimiento.
-- [ ] O crear un **GitHub Action que pingee `GET /health` de Hilo cada 12h** — mantiene actividad en Redis, gratis. Archivo sugerido: `.github/workflows/hilo-keepalive.yml`.
+- [x] ~~GitHub Action de keepalive~~ — hecho en `.github/workflows/hilo-keepalive.yml` (POST a `/api/v1/chat/web` cada 12h para forzar comandos Redis).
 - [ ] O hacer que el backend Hilo tenga **fallback si Redis falla** (responder sin memoria de conversación en vez de crashear todo) — requiere cambio en el código Python del backend (~1h).
 
 Nota operativa cuando se cae de nuevo: en Upstash console → base "Deleted" tiene botón **Restore** que migra los backups a una base nueva (con hostname/password nuevos). Después hay que actualizar `REDIS_URL` en Railway → Variables con la URL completa (`rediss://default:PASSWORD@nuevo-host.upstash.io:6379`).
