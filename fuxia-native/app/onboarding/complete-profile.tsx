@@ -15,13 +15,36 @@ function formatBirthday(raw: string): string {
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
 }
 
+/**
+ * Convierte el cumpleaños tipeado a ISO YYYY-MM-DD que Postgres acepta.
+ *
+ * Aceptamos dos formatos:
+ *   - DD/MM       → guardamos con año centinela 1900 (ej: 1900-08-25).
+ *                    El backend/UI detecta year=1900 y muestra solo DD/MM.
+ *   - DD/MM/AAAA  → guardamos el año real.
+ *
+ * Devuelve undefined si el string no es válido o está incompleto (para que
+ * el input muestre error mientras la clienta sigue tipeando).
+ */
 function parseBirthdayToISO(formatted: string): string | undefined {
   const parts = formatted.split('/');
-  if (parts.length !== 3 || parts[2].length !== 4) return undefined;
-  const [dd, mm, yyyy] = parts;
-  const d = parseInt(dd, 10), m = parseInt(mm, 10), y = parseInt(yyyy, 10);
-  if (d < 1 || d > 31 || m < 1 || m > 12 || y < 1900 || y > new Date().getFullYear()) return undefined;
-  return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  if (parts.length !== 2 && parts.length !== 3) return undefined;
+
+  const dd = parts[0], mm = parts[1];
+  if (dd.length !== 2 || mm.length !== 2) return undefined;
+
+  const d = parseInt(dd, 10), m = parseInt(mm, 10);
+  if (d < 1 || d > 31 || m < 1 || m > 12) return undefined;
+
+  if (parts.length === 2) {
+    return `1900-${mm}-${dd}`; // sin año → sentinel 1900
+  }
+
+  const yyyy = parts[2];
+  if (yyyy.length !== 4) return undefined;
+  const y = parseInt(yyyy, 10);
+  if (y < 1900 || y > new Date().getFullYear()) return undefined;
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 export default function CompleteProfileScreen() {
@@ -29,6 +52,7 @@ export default function CompleteProfileScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [birthday, setBirthday] = useState('');
+  const [shoeSize, setShoeSize] = useState('');
   const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -44,7 +68,14 @@ export default function CompleteProfileScreen() {
     if (!emailValid) { setError('Ingresa un email válido'); return; }
     setError('');
     setLoading(true);
-    const result = await createProfile(phone, name.trim(), email.trim(), birthdayIso, referralCode.trim().toUpperCase() || undefined);
+    const result = await createProfile(
+      phone,
+      name.trim(),
+      email.trim(),
+      birthdayIso,
+      referralCode.trim().toUpperCase() || undefined,
+      shoeSize.trim() || undefined,
+    );
     setLoading(false);
     if (result.error) {
       setError(result.error);
@@ -129,17 +160,31 @@ export default function CompleteProfileScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>FECHA DE CUMPLEAÑOS <Text style={styles.optional}>(opcional)</Text></Text>
+              <Text style={styles.label}>TALLA <Text style={styles.optional}>(opcional)</Text></Text>
+              <TextInput
+                style={styles.input}
+                value={shoeSize}
+                onChangeText={setShoeSize}
+                placeholder="Ej: 24 o 24.5"
+                placeholderTextColor="rgba(255,255,255,0.2)"
+                keyboardType="decimal-pad"
+                maxLength={5}
+              />
+              <Text style={styles.fieldHint}>Tu talla mexicana — para recomendarte modelos disponibles</Text>
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.label}>CUMPLEAÑOS <Text style={styles.optional}>(opcional)</Text></Text>
               <TextInput
                 style={[styles.input, birthday.length > 0 && !birthdayValid && styles.inputError]}
                 value={birthday}
                 onChangeText={(t) => setBirthday(formatBirthday(t))}
-                placeholder="DD/MM/AAAA"
+                placeholder="DD/MM  o  DD/MM/AAAA"
                 placeholderTextColor="rgba(255,255,255,0.2)"
                 keyboardType="numeric"
                 maxLength={10}
               />
-              <Text style={styles.fieldHint}>Para mandarte una sorpresa en tu día 🎂</Text>
+              <Text style={styles.fieldHint}>Para mandarte una sorpresa en tu día 🎂 · el año es opcional</Text>
             </View>
 
             {error ? <Text style={styles.error}>{error}</Text> : null}

@@ -232,6 +232,7 @@ export function useAuth() {
     email: string,
     birthday?: string,
     referralCode?: string,
+    shoeSize?: string,
   ): Promise<{ error?: string; retro?: { linked: number; points: number; pairs: number; newTotal: number } }> {
     // Prefer the country the user explicitly picked in the onboarding country
     // screen (persisted via setCountry) over the device region — many devices
@@ -274,6 +275,7 @@ export function useAuth() {
         email,
         country,
         birthday: birthday ?? null,
+        shoe_size: shoeSize ?? null,
         wc_customer_id,
         referral_code: newReferralCode,
         referred_by,
