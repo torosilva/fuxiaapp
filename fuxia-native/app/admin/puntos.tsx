@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView,
   ActivityIndicator, StatusBar, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Search } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 
@@ -28,6 +28,7 @@ async function callAdmin(action: string, payload: Record<string, unknown>) {
 }
 
 export default function AdminPuntosScreen() {
+  const { prefill } = useLocalSearchParams<{ prefill?: string }>();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Cust[]>([]);
   const [selected, setSelected] = useState<Cust | null>(null);
@@ -37,13 +38,25 @@ export default function AdminPuntosScreen() {
   const [busy, setBusy] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  const doSearch = async () => {
-    if (!query.trim()) return;
+  const doSearchWith = async (q: string) => {
+    const trimmed = q.trim();
+    if (!trimmed) return;
     setLoading(true); setSelected(null); setSearched(true);
-    const r = await callAdmin('search', { query: query.trim() });
+    const r = await callAdmin('search', { query: trimmed });
     setResults(Array.isArray(r.customers) ? r.customers : []);
     setLoading(false);
   };
+  const doSearch = () => doSearchWith(query);
+
+  // Si venimos desde el widget "Últimas clientas" (o cualquier link con
+  // ?prefill=...), auto-buscar de una vez.
+  useEffect(() => {
+    if (typeof prefill === 'string' && prefill.length > 0) {
+      setQuery(prefill);
+      doSearchWith(prefill);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefill]);
 
   const adjust = async (sign: 1 | -1) => {
     const n = parseInt(amount, 10);

@@ -163,33 +163,43 @@ export default function ReportsScreen() {
               </MotiView>
             </View>
 
-            {/* Top vendedoras */}
+            {/* Top vendedoras — cada fila lleva al editor de esa vendedora. */}
             <MotiView from={{ opacity: 0, translateY: 8 }} animate={{ opacity: 1, translateY: 0 }} transition={{ delay: 180 }} style={styles.section}>
               <Text style={styles.sectionTitle}>Top vendedoras del mes</Text>
               {m.topStaff.length === 0 ? (
                 <Text style={styles.emptyLine}>Todavía no hay ventas registradas este mes.</Text>
               ) : (
                 m.topStaff.map((s, i) => (
-                  <View key={s.id} style={styles.rankRow}>
+                  <TouchableOpacity
+                    key={s.id}
+                    activeOpacity={0.75}
+                    onPress={() => router.push({ pathname: '/admin/staff/[id]' as any, params: { id: s.id } })}
+                    style={styles.rankRow}
+                  >
                     <Text style={styles.rankPos}>{i + 1}</Text>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.rankName}>{s.name}</Text>
                       <Text style={styles.rankMeta}>{s.sales} {s.sales === 1 ? 'venta' : 'ventas'}</Text>
                     </View>
                     <Text style={styles.rankAmount}>{MXN.format(s.revenue)}</Text>
-                  </View>
+                  </TouchableOpacity>
                 ))
               )}
             </MotiView>
 
-            {/* Top canales */}
+            {/* Top canales — cada fila lleva al editor del canal. */}
             <MotiView from={{ opacity: 0, translateY: 8 }} animate={{ opacity: 1, translateY: 0 }} transition={{ delay: 240 }} style={styles.section}>
               <Text style={styles.sectionTitle}>Top canales del mes</Text>
               {m.topChannels.length === 0 ? (
                 <Text style={styles.emptyLine}>Sin actividad este mes.</Text>
               ) : (
                 m.topChannels.map((c, i) => (
-                  <View key={c.id} style={styles.rankRow}>
+                  <TouchableOpacity
+                    key={c.id}
+                    activeOpacity={0.75}
+                    onPress={() => router.push({ pathname: '/admin/channel/[id]' as any, params: { id: c.id } })}
+                    style={styles.rankRow}
+                  >
                     <Text style={styles.rankPos}>{i + 1}</Text>
                     <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       {c.type === 'bazar'
@@ -201,12 +211,12 @@ export default function ReportsScreen() {
                       </View>
                     </View>
                     <Text style={styles.rankAmount}>{MXN.format(c.revenue)}</Text>
-                  </View>
+                  </TouchableOpacity>
                 ))
               )}
             </MotiView>
 
-            {/* Audit log: manual point adjustments */}
+            {/* Audit log — cada ajuste abre /admin/puntos con la clienta precargada. */}
             <MotiView from={{ opacity: 0, translateY: 8 }} animate={{ opacity: 1, translateY: 0 }} transition={{ delay: 300 }} style={styles.section}>
               <View style={styles.sectionHead}>
                 <ClipboardList size={14} color="#B8860B" />
@@ -216,7 +226,15 @@ export default function ReportsScreen() {
                 <Text style={styles.emptyLine}>Ningún ajuste manual todavía.</Text>
               ) : (
                 m.recentAdjustments.map((a) => (
-                  <View key={a.id} style={styles.auditRow}>
+                  <TouchableOpacity
+                    key={a.id}
+                    activeOpacity={a.customer_name ? 0.75 : 1}
+                    disabled={!a.customer_name}
+                    onPress={() =>
+                      router.push({ pathname: '/admin/puntos' as any, params: { prefill: a.customer_name ?? '' } })
+                    }
+                    style={styles.auditRow}
+                  >
                     <View style={{ flex: 1 }}>
                       <Text style={styles.auditWho}>{a.customer_name ?? 'Clienta sin nombre'}</Text>
                       <Text style={styles.auditWhen}>{formatDate(a.created_at)}{a.reason ? ` · ${a.reason}` : ''}</Text>
@@ -224,7 +242,7 @@ export default function ReportsScreen() {
                     <Text style={[styles.auditPoints, a.points < 0 ? styles.auditNeg : styles.auditPos]}>
                       {a.points > 0 ? '+' : ''}{a.points} pts
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 ))
               )}
             </MotiView>

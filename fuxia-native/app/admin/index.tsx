@@ -6,8 +6,34 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { MotiView } from 'moti';
-import { Plus, Store, ShoppingBag, User, TrendingUp, LifeBuoy, Check, ArrowLeft } from 'lucide-react-native';
+import { Plus, Store, ShoppingBag, User, TrendingUp, LifeBuoy, Check, ArrowLeft, UserPlus } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
+
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+
+const TIER_LABEL: Record<string, string> = { bronze: 'Bronce', silver: 'Plata', gold: 'Oro' };
+
+interface RecentCustomer {
+  id: string;
+  name: string | null;
+  phone: string;
+  email: string | null;
+  created_at: string;
+  total_points: number;
+  tier: string;
+}
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'hace un momento';
+  if (mins < 60) return `hace ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `hace ${hrs} h`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `hace ${days} d`;
+  return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+}
 
 interface ChannelRow {
   id: string;
@@ -58,7 +84,27 @@ export default function AdminHomeScreen() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
+  const [recentCustomers, setRecentCustomers] = useState<RecentCustomer[]>([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [loading, setLoading] = useState(true);
+
+  const fetchRecentCustomers = useCallback(async () => {
+    setLoadingCustomers(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-points`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ action: 'recent', limit: 10 }),
+      });
+      const j = await res.json();
+      if (Array.isArray(j.customers)) setRecentCustomers(j.customers as RecentCustomer[]);
+    } catch (err) {
+      console.error('recent customers fetch failed:', err);
+    } finally {
+      setLoadingCustomers(false);
+    }
+  }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -69,6 +115,7 @@ export default function AdminHomeScreen() {
       supabase.from('offline_sales').select('channel_id, total').not('channel_id', 'is', null),
       supabase.from('support_tickets').select('id, customer_name, customer_phone, topic, last_messages, created_at, status').neq('status', 'resolved').order('created_at', { ascending: false }).limit(20),
     ]);
+    fetchRecentCustomers();
 
     const rawChannels = (chRes.data ?? []) as { id: string; name: string; type: 'store' | 'bazar'; location: string | null; active: boolean }[];
     const inv = (invRes.data ?? []) as { channel_id: string; stock: number; sold: number }[];
@@ -138,11 +185,56 @@ export default function AdminHomeScreen() {
           <TouchableOpacity
             onPress={() => router.push('/admin/reports' as any)}
             activeOpacity={0.85}
-            style={{ backgroundColor: '#1A1A1A', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(184,134,11,0.35)', padding: 18, marginBottom: 4 }}
+            style={{ backgroundColor: '#1A1A1A', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(184,134,11,0.35)', padding: 18, marginBottom: 16 }}
           >
             <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>📊  Reportes</Text>
             <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>Ventas del mes · top vendedoras y canales · ajustes de puntos</Text>
           </TouchableOpacity>
+
+          {/* Últimas clientas registradas — útil para encontrar rápido a alguien
+              que acaba de crear cuenta sin depender del buscador. */}
+          <View style={styles.recentSection}>
+            <View style={styles.recentHeader}>
+              <UserPlus size={16} color="#B8860B" />
+              <Text style={styles.recentTitle}>Últimas clientas</Text>
+              <TouchableOpacity onPress={() => router.push('/admin/puntos' as any)} activeOpacity={0.7}>
+                <Text style={styles.recentAll}>Buscar todas →</Text>
+              </TouchableOpacity>
+            </View>
+            {loadingCustomers ? (
+              <ActivityIndicator color="#B8860B" style={{ marginVertical: 24 }} />
+            ) : recentCustomers.length === 0 ? (
+              <Text style={styles.recentEmpty}>Todavía no hay clientas registradas.</Text>
+            ) : (
+              recentCustomers.map((c) => (
+                <TouchableOpacity
+                  key={c.id}
+                  activeOpacity={0.75}
+                  onPress={() =>
+                    router.push({ pathname: '/admin/puntos' as any, params: { prefill: c.phone ?? c.email ?? c.name ?? '' } })
+                  }
+                  style={styles.recentRow}
+                >
+                  <View style={styles.recentAvatar}>
+                    <User size={16} color="#B8860B" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.recentName}>{c.name ?? 'Sin nombre'}</Text>
+                    <Text style={styles.recentMeta}>
+                      {c.phone}
+                      {c.email ? ` · ${c.email}` : ''}
+                      {' · '}
+                      <Text style={{ color: 'rgba(255,255,255,0.35)' }}>{timeAgo(c.created_at)}</Text>
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.recentPts}>{c.total_points}</Text>
+                    <Text style={styles.recentTier}>{TIER_LABEL[c.tier] ?? c.tier}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
 
           {/* Global summary */}
           {!loading && channels.length > 0 && (
@@ -325,6 +417,41 @@ export default function AdminHomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  recentSection: {
+    backgroundColor: '#141414',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    padding: 16,
+    marginBottom: 20,
+  },
+  recentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  recentTitle: { color: '#FFF', fontSize: 14, fontWeight: '700', flex: 1 },
+  recentAll: { color: '#B8860B', fontSize: 12, fontWeight: '700' },
+  recentEmpty: { color: 'rgba(255,255,255,0.35)', fontSize: 12, textAlign: 'center', paddingVertical: 16 },
+  recentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.04)',
+  },
+  recentAvatar: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: 'rgba(184,134,11,0.12)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  recentName: { color: '#FFF', fontSize: 13, fontWeight: '600' },
+  recentMeta: { color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 2 },
+  recentPts: { color: '#B8860B', fontSize: 15, fontWeight: '800' },
+  recentTier: { color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 2 },
+
   container: { flex: 1, backgroundColor: '#0D0D0D' },
   scroll: { padding: 24 },
   backBtn: {

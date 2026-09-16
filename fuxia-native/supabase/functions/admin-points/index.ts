@@ -58,12 +58,43 @@ serve(async (req) => {
   if (action === 'search') {
     const q = String(body.query ?? '').trim();
     if (!q) return json({ customers: [] });
-    const like = `%${q}%`;
+
+    // Si la query se ve como teléfono (>=3 dígitos y >=50% son dígitos), busco
+    // también por los últimos dígitos, sin importar formato (+52, espacios,
+    // guiones). Ejemplo: "+52 55 1234 5678" o "5512345678" o "12345678" todos
+    // matchean con "+525512345678" guardado en DB.
+    const digitsOnly = q.replace(/\D/g, '');
+    const looksLikePhone = digitsOnly.length >= 3 && digitsOnly.length >= q.length * 0.5;
+    const filters: string[] = [`name.ilike.%${q}%`, `email.ilike.%${q}%`, `phone.ilike.%${q}%`];
+    if (looksLikePhone) {
+      // Últimos 8-10 dígitos suelen ser suficientes para distinguir.
+      const tail = digitsOnly.slice(-10);
+      if (tail && tail !== q) filters.push(`phone.ilike.%${tail}%`);
+    }
+
     const { data, error } = await supabase
       .from('customers')
       .select('id, name, phone, email, created_at, loyalty_cards(total_points, tier)')
-      .or(`name.ilike.${like},phone.ilike.${like},email.ilike.${like}`)
+      .or(filters.join(','))
+      .order('created_at', { ascending: false })
       .limit(25);
+    if (error) return json({ error: error.message }, 500);
+    const customers = (data ?? []).map((c: any) => ({
+      id: c.id, name: c.name, phone: c.phone, email: c.email, created_at: c.created_at,
+      total_points: c.loyalty_cards?.[0]?.total_points ?? 0,
+      tier: c.loyalty_cards?.[0]?.tier ?? 'bronze',
+    }));
+    return json({ customers });
+  }
+
+  // 2c. LISTAR clientas recientes (para el widget "Últimas clientas" del admin).
+  if (action === 'recent') {
+    const limit = Math.min(50, Math.max(1, Number(body.limit) || 10));
+    const { data, error } = await supabase
+      .from('customers')
+      .select('id, name, phone, email, created_at, loyalty_cards(total_points, tier)')
+      .order('created_at', { ascending: false })
+      .limit(limit);
     if (error) return json({ error: error.message }, 500);
     const customers = (data ?? []).map((c: any) => ({
       id: c.id, name: c.name, phone: c.phone, email: c.email, created_at: c.created_at,
@@ -103,5 +134,5 @@ serve(async (req) => {
     return json({ ok: true, new_total: newPoints, tier: newTier, applied: appliedDelta });
   }
 
-  return json({ error: 'action inválida (search|adjust)' }, 400);
+  return json({ error: 'action inválida (search|adjust|recent)' }, 400);
 });
