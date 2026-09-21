@@ -305,13 +305,34 @@ export async function withCountryParam(url: string): Promise<string> {
 }
 
 class WooCommerceService {
+  // El Store API de WooCommerce topa `per_page` en 100. Si la tienda tiene más
+  // productos que eso, sin paginar quedan botas/sandalias/etc. escondidas y en
+  // la app aparece solo un subset. Este método hace las páginas necesarias en
+  // paralelo hasta juntar todo (o hasta el tope MAX_PAGES por seguridad, para
+  // no dispararse si el conteo total viniera mal).
   async getProducts(params: Record<string, string | number> = {}): Promise<WCProduct[]> {
-    const [data, overrides] = await Promise.all([
-      storeGet<StoreProduct[]>('products', { per_page: 100, ...params }),
-      getImageOverrides(),
-    ]);
+    const PER_PAGE = 100;
+    const MAX_PAGES = 20; // 2000 productos tope duro por si algo se descontrola
+    const overrides = await getImageOverrides();
     const country = await getCountry();
-    return (data ?? []).map((p) => mapStoreProduct(p, country)).map((p) => applyImageOverride(p, overrides));
+
+    // Página 1: la usamos también para saber cuántas páginas hay via el header
+    // X-WP-TotalPages (o X-WP-Total). Como `storeGet` no expone headers, hago
+    // el primer fetch acá y sigo pidiendo hasta que una página vuelva vacía o
+    // con menos de PER_PAGE (indicando última página).
+    const all: StoreProduct[] = [];
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      const chunk = await storeGet<StoreProduct[]>('products', {
+        per_page: PER_PAGE,
+        page,
+        ...params,
+      });
+      if (!chunk || chunk.length === 0) break;
+      all.push(...chunk);
+      if (chunk.length < PER_PAGE) break; // última página
+    }
+
+    return all.map((p) => mapStoreProduct(p, country)).map((p) => applyImageOverride(p, overrides));
   }
 
   async getProduct(id: string | number): Promise<WCProduct | null> {
