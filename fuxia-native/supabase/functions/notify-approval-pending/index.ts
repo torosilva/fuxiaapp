@@ -101,11 +101,16 @@ serve(async (req) => {
     return json({ error: tokensErr.message }, 500);
   }
 
-  const tokens = ((tokenRows ?? []) as { expo_token: string }[])
+  const rawRows = (tokenRows ?? []) as { expo_token: string; customer_id: string }[];
+  console.log(`[notify-approval-pending] raw_rows=${rawRows.length}`);
+  for (const r of rawRows) {
+    const preview = (r.expo_token ?? '').slice(0, 22) + '…' + (r.expo_token ?? '').slice(-6);
+    console.log(`[notify-approval-pending]  · customer=${r.customer_id.slice(0, 8)} token=${preview}`);
+  }
+  const tokens = rawRows
     .map((t) => t.expo_token)
     .filter((t) => !!t && t.startsWith('ExponentPushToken'));
-
-  console.log(`[notify-approval-pending] admins=${adminIds.length} tokens=${tokens.length}`);
+  console.log(`[notify-approval-pending] admins=${adminIds.length} tokens_after_filter=${tokens.length}`);
 
   if (tokens.length === 0) {
     return json({ ok: true, notified_count: 0, note: 'No hay admins con push_token registrado' });
