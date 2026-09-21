@@ -73,14 +73,39 @@ serve(async (req) => {
   const summary = summarize((reqRow as any).action, (reqRow as any).payload);
 
   // 2. Buscar todos los admin con push_token registrado.
-  const { data: adminTokens } = await supabase
-    .from('push_tokens')
-    .select('expo_token, customers!inner(role)')
-    .eq('customers.role', 'admin');
+  //     Hacemos 2 queries en vez de un join embed: PostgREST no siempre
+  //     detecta la relación push_tokens.customer_id → customers.id sin FK
+  //     explícita, y con embed volvía vacío. Simpler y más resiliente así.
+  const { data: admins, error: adminsErr } = await supabase
+    .from('customers')
+    .select('id, name')
+    .eq('role', 'admin');
 
-  const tokens = ((adminTokens ?? []) as { expo_token: string }[])
+  if (adminsErr) {
+    console.error(`[notify-approval-pending] admins fetch failed: ${adminsErr.message}`);
+    return json({ error: adminsErr.message }, 500);
+  }
+
+  const adminIds = ((admins ?? []) as { id: string }[]).map((a) => a.id);
+  if (adminIds.length === 0) {
+    return json({ ok: true, notified_count: 0, note: 'No hay cuentas con role=admin' });
+  }
+
+  const { data: tokenRows, error: tokensErr } = await supabase
+    .from('push_tokens')
+    .select('expo_token, customer_id')
+    .in('customer_id', adminIds);
+
+  if (tokensErr) {
+    console.error(`[notify-approval-pending] tokens fetch failed: ${tokensErr.message}`);
+    return json({ error: tokensErr.message }, 500);
+  }
+
+  const tokens = ((tokenRows ?? []) as { expo_token: string }[])
     .map((t) => t.expo_token)
-    .filter((t) => !!t);
+    .filter((t) => !!t && t.startsWith('ExponentPushToken'));
+
+  console.log(`[notify-approval-pending] admins=${adminIds.length} tokens=${tokens.length}`);
 
   if (tokens.length === 0) {
     return json({ ok: true, notified_count: 0, note: 'No hay admins con push_token registrado' });
@@ -95,6 +120,8 @@ serve(async (req) => {
     data: { type: 'inventory_approval', request_id, channel_id: (reqRow as any).channel_id },
   }));
 
+  let expoStatus = 0;
+  let expoBodyPreview = '';
   try {
     const res = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
@@ -105,11 +132,18 @@ serve(async (req) => {
       },
       body: JSON.stringify(messages),
     });
-    console.log(`[notify-approval-pending] push sent status=${res.status} count=${tokens.length}`);
+    expoStatus = res.status;
+    const text = await res.text();
+    expoBodyPreview = text.slice(0, 400);
+    console.log(`[notify-approval-pending] expo status=${res.status} body=${expoBodyPreview}`);
   } catch (err) {
     console.error(`[notify-approval-pending] push send threw: ${(err as Error).message}`);
-    // No fallamos la request principal — la notificación es best-effort.
   }
 
-  return json({ ok: true, notified_count: tokens.length });
+  return json({
+    ok: true,
+    notified_count: tokens.length,
+    expo_status: expoStatus,
+    expo_body_preview: expoBodyPreview,
+  });
 });
