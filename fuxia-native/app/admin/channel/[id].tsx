@@ -196,19 +196,34 @@ export default function ChannelDetailScreen() {
           {/* Inventory section */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Inventario</Text>
-            <TouchableOpacity
-              style={styles.addBtn}
-              onPress={() => setModalVisible(true)}
-              activeOpacity={0.8}
-            >
-              <Plus size={16} color="#0D0D0D" />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={styles.bulkBtn}
+                onPress={() =>
+                  router.push({
+                    pathname: '/inventory/bulk-add' as any,
+                    params: { channelId: id, channelName: channel?.name ?? '' },
+                  })
+                }
+                activeOpacity={0.85}
+              >
+                <Plus size={14} color="#B8860B" />
+                <Text style={styles.bulkBtnText}>Por lote</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.addBtn}
+                onPress={() => setModalVisible(true)}
+                activeOpacity={0.8}
+              >
+                <Plus size={16} color="#0D0D0D" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {inventory.length === 0 ? (
             <View style={styles.emptyCard}>
               <Package size={28} color="rgba(255,255,255,0.2)" />
-              <Text style={styles.emptyText}>Sin inventario. Agrega productos con el botón +</Text>
+              <Text style={styles.emptyText}>Sin inventario. Usa "Por lote" para agregar un modelo con todas sus tallas y colores de una vez.</Text>
             </View>
           ) : (
             inventory.map((item, idx) => {
@@ -455,6 +470,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  bulkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 32,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: 'rgba(184,134,11,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(184,134,11,0.4)',
+  },
+  bulkBtnText: { color: '#B8860B', fontSize: 12, fontWeight: '700' },
   emptyCard: {
     backgroundColor: '#1A1A1A',
     borderRadius: 16,

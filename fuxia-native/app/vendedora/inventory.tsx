@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,12 @@ import {
   ActivityIndicator,
   ScrollView,
   Image,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { MotiView } from 'moti';
-import { ArrowLeft, Package } from 'lucide-react-native';
+import { ArrowLeft, Package, Plus, Minus } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 
 interface InventoryItem {
@@ -34,6 +35,7 @@ export default function VendedoraInventoryScreen() {
 
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const fetchInventory = useCallback(async () => {
     if (!channelId) return;
@@ -47,9 +49,23 @@ export default function VendedoraInventoryScreen() {
     setLoading(false);
   }, [channelId]);
 
-  useEffect(() => {
-    fetchInventory();
-  }, [fetchInventory]);
+  // Refrescar al volver de bulk-add o de la venta que descontó stock.
+  useFocusEffect(useCallback(() => { fetchInventory(); }, [fetchInventory]));
+
+  // Ajusta el stock físico (no las ventas). Sirve para corregir cuando llega
+  // más mercadería del taller o se hace un ajuste por rotura/mermas.
+  const adjustStock = async (item: InventoryItem, delta: number) => {
+    const newStock = Math.max(item.sold, item.stock + delta); // no permite bajar de lo vendido
+    if (newStock === item.stock) return;
+    setBusyId(item.id);
+    const { error } = await supabase
+      .from('channel_inventory')
+      .update({ stock: newStock })
+      .eq('id', item.id);
+    setBusyId(null);
+    if (error) { Alert.alert('Error', error.message); return; }
+    setInventory((inv) => inv.map((r) => (r.id === item.id ? { ...r, stock: newStock } : r)));
+  };
 
   const getStockStyle = (remaining: number) => {
     if (remaining > 3) return styles.stockGreen;
@@ -80,16 +96,45 @@ export default function VendedoraInventoryScreen() {
             <ArrowLeft size={20} color="#B8860B" />
           </TouchableOpacity>
 
-          <Text style={styles.eyebrow}>{channelName ?? 'CANAL'}</Text>
-          <Text style={styles.title}>Mi Inventario</Text>
+          <View style={styles.headerRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.eyebrow}>{channelName ?? 'CANAL'}</Text>
+              <Text style={styles.title}>Mi Inventario</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() =>
+                router.push({
+                  pathname: '/inventory/bulk-add' as any,
+                  params: { channelId, channelName },
+                })
+              }
+              activeOpacity={0.85}
+            >
+              <Plus size={18} color="#0D0D0D" strokeWidth={3} />
+              <Text style={styles.addBtnText}>Agregar</Text>
+            </TouchableOpacity>
+          </View>
 
           {loading ? (
             <ActivityIndicator color="#B8860B" style={{ marginTop: 40 }} />
           ) : inventory.length === 0 ? (
-            <View style={styles.emptyCard}>
+            <TouchableOpacity
+              style={styles.emptyCard}
+              activeOpacity={0.85}
+              onPress={() =>
+                router.push({
+                  pathname: '/inventory/bulk-add' as any,
+                  params: { channelId, channelName },
+                })
+              }
+            >
               <Package size={32} color="rgba(255,255,255,0.2)" />
               <Text style={styles.emptyText}>Sin productos en inventario.</Text>
-            </View>
+              <Text style={[styles.emptyText, { color: '#B8860B', marginTop: 8 }]}>
+                Toca para agregar el primer modelo
+              </Text>
+            </TouchableOpacity>
           ) : (
             inventory.map((item, idx) => {
               const remaining = item.stock - item.sold;
@@ -113,13 +158,43 @@ export default function VendedoraInventoryScreen() {
                       </Text>
                       <Text style={styles.itemPrice}>${item.price.toFixed(2)} MXN</Text>
                     </View>
-                    <View style={[styles.stockBadge, getStockStyle(remaining)]}>
-                      <Text style={[styles.stockNumber, { color: getStockTextColor(remaining) }]}>
-                        {remaining}
-                      </Text>
-                      <Text style={[styles.stockLabel, { color: getStockTextColor(remaining) }]}>
-                        {remaining === 1 ? 'par' : 'pares'}
-                      </Text>
+
+                    {/* Ajuste rápido de stock: sirve para reponer o corregir
+                        mermas sin volver al admin. Nunca deja bajar de lo ya
+                        vendido, para no romper la trazabilidad. */}
+                    <View style={styles.stockCol}>
+                      <View style={[styles.stockBadge, getStockStyle(remaining)]}>
+                        {busyId === item.id ? (
+                          <ActivityIndicator size="small" color={getStockTextColor(remaining)} />
+                        ) : (
+                          <>
+                            <Text style={[styles.stockNumber, { color: getStockTextColor(remaining) }]}>
+                              {remaining}
+                            </Text>
+                            <Text style={[styles.stockLabel, { color: getStockTextColor(remaining) }]}>
+                              {remaining === 1 ? 'par' : 'pares'}
+                            </Text>
+                          </>
+                        )}
+                      </View>
+                      <View style={styles.stockAdjustRow}>
+                        <TouchableOpacity
+                          style={styles.stockAdjustBtn}
+                          onPress={() => adjustStock(item, -1)}
+                          disabled={busyId !== null || remaining === 0}
+                          activeOpacity={0.7}
+                        >
+                          <Minus size={12} color="rgba(255,255,255,0.7)" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.stockAdjustBtn}
+                          onPress={() => adjustStock(item, +1)}
+                          disabled={busyId !== null}
+                          activeOpacity={0.7}
+                        >
+                          <Plus size={12} color="rgba(255,255,255,0.7)" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </View>
                 </MotiView>
@@ -241,5 +316,37 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '600',
     letterSpacing: 0.5,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#B8860B',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 24,
+  },
+  addBtnText: { color: '#0D0D0D', fontSize: 13, fontWeight: '800' },
+  stockCol: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  stockAdjustRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  stockAdjustBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
