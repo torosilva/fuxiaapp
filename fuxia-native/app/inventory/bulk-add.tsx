@@ -21,6 +21,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Check } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { notifyApprovalPending } from '@/lib/inventoryApprovals';
 
 const COLOR_PRESETS = [
   'Negro', 'Beige', 'Camel', 'Café', 'Nude',
@@ -134,15 +135,24 @@ export default function BulkAddScreen() {
       stock_per_combo: stockNum,
     };
     setSaving(true);
-    const { error } = await supabase.from('inventory_change_requests').insert({
-      channel_id: channelId,
-      requested_by_staff_id: staffId ?? null,
-      requested_by_name: staffName ?? (customer as any)?.name ?? 'Vendedora',
-      action: 'bulk_add',
-      payload,
-    });
+    const { data: inserted, error } = await supabase
+      .from('inventory_change_requests')
+      .insert({
+        channel_id: channelId,
+        requested_by_staff_id: staffId ?? null,
+        requested_by_name: staffName ?? (customer as any)?.name ?? 'Vendedora',
+        action: 'bulk_add',
+        payload,
+      })
+      .select('id')
+      .single();
     setSaving(false);
-    if (error) { Alert.alert('Error', error.message); return; }
+    if (error || !inserted) {
+      Alert.alert('Error', error?.message ?? 'No se pudo enviar la solicitud.');
+      return;
+    }
+    // Push a admins — best-effort, no bloquea si falla.
+    notifyApprovalPending(inserted.id).catch(() => {});
     Alert.alert(
       'Solicitud enviada',
       `Se envió una solicitud para agregar ${colorsForInsert.length * sizesList.length} combinaciones. La admin va a aprobarla o rechazarla y ahí queda visible en el inventario.`,

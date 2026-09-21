@@ -16,6 +16,7 @@ import { MotiView } from 'moti';
 import { ArrowLeft, Package, Plus, Minus } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { notifyApprovalPending } from '@/lib/inventoryApprovals';
 
 interface InventoryItem {
   id: string;
@@ -99,22 +100,31 @@ export default function VendedoraInventoryScreen() {
 
     // Vendedora → cola de aprobación.
     setBusyId(item.id);
-    const { error } = await supabase.from('inventory_change_requests').insert({
-      channel_id: channelId,
-      requested_by_staff_id: staffId ?? null,
-      requested_by_name: staffName ?? (customer as any)?.name ?? 'Vendedora',
-      action: 'adjust_stock',
-      payload: {
-        channel_inventory_id: item.id,
-        target_stock: newStock,
-        current_stock: item.stock,
-        product_name: item.product_name,
-        size: item.size,
-        color: item.color,
-      },
-    });
+    const { data: inserted, error } = await supabase
+      .from('inventory_change_requests')
+      .insert({
+        channel_id: channelId,
+        requested_by_staff_id: staffId ?? null,
+        requested_by_name: staffName ?? (customer as any)?.name ?? 'Vendedora',
+        action: 'adjust_stock',
+        payload: {
+          channel_inventory_id: item.id,
+          target_stock: newStock,
+          current_stock: item.stock,
+          product_name: item.product_name,
+          size: item.size,
+          color: item.color,
+        },
+      })
+      .select('id')
+      .single();
     setBusyId(null);
-    if (error) { Alert.alert('Error', error.message); return; }
+    if (error || !inserted) {
+      Alert.alert('Error', error?.message ?? 'No se pudo enviar la solicitud.');
+      return;
+    }
+    // Push a admins — best-effort, no bloquea si falla.
+    notifyApprovalPending(inserted.id).catch(() => {});
     setPendingByRow((s) => new Set(s).add(item.id));
     setPendingCount((n) => n + 1);
     Alert.alert(
