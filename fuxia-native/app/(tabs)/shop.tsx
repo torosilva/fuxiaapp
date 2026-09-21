@@ -32,11 +32,17 @@ const FALLBACKS: Record<string, any> = {
   default:     require('../../assets/images/cat_ballerinas.jpg'),
 };
 
-const FILTER_KEYS: { key: string; label: string; slugMatch: string[] }[] = [
-  { key: 'ballerinas', label: 'Ballerinas', slugMatch: ['ballerina', 'flat', 'plana'] },
-  { key: 'sandalias',  label: 'Sandalias',  slugMatch: ['sandalia', 'sandal'] },
-  { key: 'botas',      label: 'Botas',      slugMatch: ['bota', 'boot', 'bootie'] },
-  { key: 'outlet',     label: 'Outlet',     slugMatch: ['outlet', 'sale', 'rebaja'] },
+// Solo se miran las CATEGORÍAS del producto (no el nombre). Antes el filtro
+// también miraba el nombre y usaba 'flat'/'plana' como match de ballerinas,
+// con lo que "Sandalia plana" o "Sandalia flat doble tira" caían en ballerinas
+// por error. La regla ahora es: una categoría cuenta para el filtro si su slug
+// o su nombre CONTIENE alguno de los match tokens. Se usa `includes` (no
+// `startsWith`) para que 'botas-altas', 'botas-texanas', 'ballerinas-doradas',
+// etc., caigan en el filtro correcto sin tener que enumerar cada variante.
+const FILTER_KEYS: { key: string; label: string; matchTokens: string[] }[] = [
+  { key: 'ballerinas', label: 'Ballerinas', matchTokens: ['ballerina'] },
+  { key: 'sandalias',  label: 'Sandalias',  matchTokens: ['sandalia'] },
+  { key: 'botas',      label: 'Botas',      matchTokens: ['bota', 'botin', 'boot'] },
 ];
 
 function getFallback(slugOrName: string): any {
@@ -51,22 +57,19 @@ function matchesFilter(product: WCProduct, filterKey: string): boolean {
   if (filterKey === 'all') return true;
   const filter = FILTER_KEYS.find((f) => f.key === filterKey);
   if (!filter) return true;
-  if (filterKey === 'outlet') {
-    const onSale = product.sale_price && product.sale_price !== '' && product.sale_price !== product.regular_price;
-    if (onSale) return true;
-  }
-  const haystack = [
-    product.name,
-    ...(product.categories ?? []).map((c) => `${c.name} ${c.slug}`),
-  ].join(' ').toLowerCase();
-  return filter.slugMatch.some((k) => haystack.includes(k));
+  // Match SOLO contra slug/nombre de categorías, no contra el nombre del
+  // producto (ver comentario del FILTER_KEYS arriba).
+  const catStrings = (product.categories ?? []).map((c) =>
+    `${c.name} ${c.slug}`.toLowerCase(),
+  );
+  return filter.matchTokens.some((tok) => catStrings.some((s) => s.includes(tok)));
 }
 
 // Mapea WCCategory al filterKey que le corresponde
 function categoryToFilterKey(cat: WCCategory): string | null {
   const s = `${cat.name} ${cat.slug}`.toLowerCase();
   for (const f of FILTER_KEYS) {
-    if (f.slugMatch.some((k) => s.includes(k))) return f.key;
+    if (f.matchTokens.some((k) => s.includes(k))) return f.key;
   }
   return null;
 }
@@ -180,35 +183,35 @@ export default function ShopScreen() {
             </RNView>
           ) : (
             <RNView style={styles.masonryGrid}>
-              {/* Columna izquierda: Ballerinas (alto) + Botas (bajo) */}
+              {/* Columna izquierda: Ballerinas grande (única tile). */}
               <RNView style={styles.gridCol}>
-                {[catTiles[0], catTiles[2]].map((cat, i) => (
+                {catTiles[0] && (
                   <MotiView
-                    key={cat.key}
+                    key={catTiles[0].key}
                     from={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: 'spring', damping: 16, delay: i * 80 }}
+                    transition={{ type: 'spring', damping: 16 }}
                   >
                     <TouchableOpacity
-                      style={[styles.masonryTile, { height: i === 0 ? 280 : 180 }]}
-                      onPress={() => handleSelectCategory(cat.key)}
+                      style={[styles.masonryTile, { height: 460 }]}
+                      onPress={() => handleSelectCategory(catTiles[0].key)}
                       activeOpacity={0.85}
                     >
                       <CatImage
-                        url={cat.wcImageUrl}
-                        fallback={getFallback(cat.key)}
-                        hasError={cat.wcCatId ? imgErrors.has(cat.wcCatId) : false}
-                        onError={() => cat.wcCatId && setImgErrors(prev => new Set(prev).add(cat.wcCatId!))}
-                        label={cat.label}
+                        url={catTiles[0].wcImageUrl}
+                        fallback={getFallback(catTiles[0].key)}
+                        hasError={catTiles[0].wcCatId ? imgErrors.has(catTiles[0].wcCatId) : false}
+                        onError={() => catTiles[0].wcCatId && setImgErrors(prev => new Set(prev).add(catTiles[0].wcCatId!))}
+                        label={catTiles[0].label}
                       />
                     </TouchableOpacity>
                   </MotiView>
-                ))}
+                )}
               </RNView>
 
-              {/* Columna derecha: Sandalias (bajo) + Outlet (alto), offset */}
+              {/* Columna derecha: Sandalias + Botas apiladas, con offset. */}
               <RNView style={[styles.gridCol, { marginTop: 40 }]}>
-                {[catTiles[1], catTiles[3]].map((cat, i) => (
+                {[catTiles[1], catTiles[2]].filter(Boolean).map((cat, i) => (
                   <MotiView
                     key={cat.key}
                     from={{ opacity: 0, scale: 0.95 }}
@@ -216,7 +219,7 @@ export default function ShopScreen() {
                     transition={{ type: 'spring', damping: 16, delay: 40 + i * 80 }}
                   >
                     <TouchableOpacity
-                      style={[styles.masonryTile, { height: i === 0 ? 180 : 280 }]}
+                      style={[styles.masonryTile, { height: 210 }]}
                       onPress={() => handleSelectCategory(cat.key)}
                       activeOpacity={0.85}
                     >
