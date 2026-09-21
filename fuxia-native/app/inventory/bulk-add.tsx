@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Check } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 const COLOR_PRESETS = [
   'Negro', 'Beige', 'Camel', 'Café', 'Nude',
@@ -34,10 +35,16 @@ const SIZE_PRESETS = [
 ];
 
 export default function BulkAddScreen() {
-  const { channelId, channelName } = useLocalSearchParams<{
+  const { channelId, channelName, staffId, staffName } = useLocalSearchParams<{
     channelId: string;
     channelName?: string;
+    // Cuando viene desde /vendedora/inventory pasamos quién opera (para dejar
+    // trazabilidad en el approval request). Cuando viene del admin, no.
+    staffId?: string;
+    staffName?: string;
   }>();
+  const { customer } = useAuth();
+  const isAdmin = (customer as any)?.role === 'admin';
 
   const [productName, setProductName] = useState('');
   const [price, setPrice] = useState('');
@@ -85,33 +92,60 @@ export default function BulkAddScreen() {
     if (!canSubmit) return;
     if (!channelId) { Alert.alert('Error', 'Falta el canal.'); return; }
 
-    // Si no eligió color, insertamos 1 combinación por talla con color=null.
     const colorsForInsert: (string | null)[] = colorsList.length > 0 ? colorsList : [null];
-    const rows = colorsForInsert.flatMap((color) =>
-      sizesList.map((size) => ({
-        channel_id: channelId,
-        product_name: productName.trim(),
-        sku: sku.trim() || null,
-        color,
-        size,
-        price: priceNum,
-        stock: stockNum,
-        sold: 0,
-        image_url: imageUrl.trim() || null,
-      })),
-    );
 
-    setSaving(true);
-    const { error } = await supabase.from('channel_inventory').insert(rows);
-    setSaving(false);
-
-    if (error) {
-      Alert.alert('Error', error.message);
+    // Admin: aplica directo a channel_inventory (bypass del flujo de aprobaciones).
+    if (isAdmin) {
+      const rows = colorsForInsert.flatMap((color) =>
+        sizesList.map((size) => ({
+          channel_id: channelId,
+          product_name: productName.trim(),
+          sku: sku.trim() || null,
+          color,
+          size,
+          price: priceNum,
+          stock: stockNum,
+          sold: 0,
+          image_url: imageUrl.trim() || null,
+        })),
+      );
+      setSaving(true);
+      const { error } = await supabase.from('channel_inventory').insert(rows);
+      setSaving(false);
+      if (error) { Alert.alert('Error', error.message); return; }
+      Alert.alert(
+        '¡Listo!',
+        `Se agregaron ${rows.length} combinaciones al inventario${channelName ? ` de ${channelName}` : ''}.`,
+        [{ text: 'OK', onPress: () => router.back() }],
+      );
       return;
     }
+
+    // Vendedora (staff): crea request en cola para que la admin apruebe.
+    // Guardamos el payload completo — el edge function `inventory-approve` va a
+    // rehidratar todo cuando se apruebe.
+    const payload = {
+      product_name: productName.trim(),
+      price: priceNum,
+      sku: sku.trim() || null,
+      image_url: imageUrl.trim() || null,
+      colors: colorsForInsert,
+      sizes: sizesList,
+      stock_per_combo: stockNum,
+    };
+    setSaving(true);
+    const { error } = await supabase.from('inventory_change_requests').insert({
+      channel_id: channelId,
+      requested_by_staff_id: staffId ?? null,
+      requested_by_name: staffName ?? (customer as any)?.name ?? 'Vendedora',
+      action: 'bulk_add',
+      payload,
+    });
+    setSaving(false);
+    if (error) { Alert.alert('Error', error.message); return; }
     Alert.alert(
-      '¡Listo!',
-      `Se agregaron ${rows.length} combinaciones al inventario${channelName ? ` de ${channelName}` : ''}.`,
+      'Solicitud enviada',
+      `Se envió una solicitud para agregar ${colorsForInsert.length * sizesList.length} combinaciones. La admin va a aprobarla o rechazarla y ahí queda visible en el inventario.`,
       [{ text: 'OK', onPress: () => router.back() }],
     );
   };
@@ -266,7 +300,11 @@ export default function BulkAddScreen() {
           >
             {saving
               ? <ActivityIndicator color="#0D0D0D" />
-              : <Text style={styles.saveBtnText}>Crear {combosCount} entradas de inventario</Text>}
+              : <Text style={styles.saveBtnText}>
+                  {isAdmin
+                    ? `Crear ${combosCount} entradas de inventario`
+                    : `Enviar ${combosCount} para aprobación`}
+                </Text>}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

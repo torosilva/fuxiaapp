@@ -122,7 +122,7 @@ export default function VendedoraHomeScreen() {
             onPress={() =>
               router.push({
                 pathname: '/vendedora/inventory' as any,
-                params: { channelId, channelName },
+                params: { channelId, channelName, staffId, staffName },
               })
             }
             activeOpacity={0.8}

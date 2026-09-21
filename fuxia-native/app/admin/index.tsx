@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { MotiView } from 'moti';
-import { Plus, Store, ShoppingBag, User, TrendingUp, LifeBuoy, Check, ArrowLeft, UserPlus } from 'lucide-react-native';
+import { Plus, Store, ShoppingBag, User, TrendingUp, LifeBuoy, Check, ArrowLeft, UserPlus, ClipboardCheck } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
@@ -86,6 +86,7 @@ export default function AdminHomeScreen() {
   const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
   const [recentCustomers, setRecentCustomers] = useState<RecentCustomer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [pendingApprovals, setPendingApprovals] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   const fetchRecentCustomers = useCallback(async () => {
@@ -108,13 +109,15 @@ export default function AdminHomeScreen() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [chRes, staffRes, invRes, salesRes, ticketsRes] = await Promise.all([
+    const [chRes, staffRes, invRes, salesRes, ticketsRes, approvalsRes] = await Promise.all([
       supabase.from('channels').select('id, name, type, location, active').order('created_at', { ascending: false }),
       supabase.from('staff').select('id, name, channel_id, active, channels(name)').order('created_at', { ascending: false }),
       supabase.from('channel_inventory').select('channel_id, stock, sold'),
       supabase.from('offline_sales').select('channel_id, total').not('channel_id', 'is', null),
       supabase.from('support_tickets').select('id, customer_name, customer_phone, topic, last_messages, created_at, status').neq('status', 'resolved').order('created_at', { ascending: false }).limit(20),
+      supabase.from('inventory_change_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     ]);
+    setPendingApprovals(approvalsRes.count ?? 0);
     fetchRecentCustomers();
 
     const rawChannels = (chRes.data ?? []) as { id: string; name: string; type: 'store' | 'bazar'; location: string | null; active: boolean }[];
@@ -185,10 +188,44 @@ export default function AdminHomeScreen() {
           <TouchableOpacity
             onPress={() => router.push('/admin/reports' as any)}
             activeOpacity={0.85}
-            style={{ backgroundColor: '#1A1A1A', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(184,134,11,0.35)', padding: 18, marginBottom: 16 }}
+            style={{ backgroundColor: '#1A1A1A', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(184,134,11,0.35)', padding: 18, marginBottom: 8 }}
           >
             <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>📊  Reportes</Text>
             <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>Ventas del mes · top vendedoras y canales · ajustes de puntos</Text>
+          </TouchableOpacity>
+
+          {/* Aprobaciones de inventario. Muestra badge con el N pendiente para
+              que la admin sepa si tiene tareas antes de entrar. Se resalta con
+              amarillo si hay pendientes. */}
+          <TouchableOpacity
+            onPress={() => router.push('/admin/inventory-approvals' as any)}
+            activeOpacity={0.85}
+            style={{
+              backgroundColor: pendingApprovals > 0 ? 'rgba(255,193,7,0.10)' : '#1A1A1A',
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: pendingApprovals > 0 ? 'rgba(255,193,7,0.6)' : 'rgba(184,134,11,0.35)',
+              padding: 18,
+              marginBottom: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <ClipboardCheck size={22} color={pendingApprovals > 0 ? '#FFC107' : '#B8860B'} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>
+                Aprobar cambios de inventario
+              </Text>
+              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>
+                Solicitudes de vendedoras (agregar, ajustar stock, eliminar)
+              </Text>
+            </View>
+            {pendingApprovals > 0 && (
+              <View style={{ backgroundColor: '#FFC107', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 }}>
+                <Text style={{ color: '#0D0D0D', fontSize: 12, fontWeight: '800' }}>{pendingApprovals}</Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           {/* Últimas clientas registradas — útil para encontrar rápido a alguien

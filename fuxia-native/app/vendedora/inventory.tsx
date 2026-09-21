@@ -15,6 +15,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { MotiView } from 'moti';
 import { ArrowLeft, Package, Plus, Minus } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 interface InventoryItem {
   id: string;
@@ -28,24 +29,48 @@ interface InventoryItem {
 }
 
 export default function VendedoraInventoryScreen() {
-  const { channelId, channelName } = useLocalSearchParams<{
+  const { channelId, channelName, staffId, staffName } = useLocalSearchParams<{
     channelId: string;
     channelName: string;
+    staffId?: string;
+    staffName?: string;
   }>();
+  const { customer } = useAuth();
+  const isAdmin = (customer as any)?.role === 'admin';
 
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [pendingByRow, setPendingByRow] = useState<Set<string>>(new Set());
+  const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const fetchInventory = useCallback(async () => {
     if (!channelId) return;
     setLoading(true);
-    const { data } = await supabase
-      .from('channel_inventory')
-      .select('id, product_name, size, color, price, stock, sold, image_url')
-      .eq('channel_id', channelId)
-      .order('product_name');
-    if (data) setInventory(data as InventoryItem[]);
+    const [invRes, reqRes] = await Promise.all([
+      supabase
+        .from('channel_inventory')
+        .select('id, product_name, size, color, price, stock, sold, image_url')
+        .eq('channel_id', channelId)
+        .order('product_name'),
+      // Traemos las solicitudes pendientes de este canal para mostrar el badge
+      // "pendiente" en cada fila y el conteo total arriba.
+      supabase
+        .from('inventory_change_requests')
+        .select('payload, action')
+        .eq('channel_id', channelId)
+        .eq('status', 'pending'),
+    ]);
+    if (invRes.data) setInventory(invRes.data as InventoryItem[]);
+    const pendingRows = new Set<string>();
+    let total = 0;
+    for (const r of (reqRes.data ?? []) as { payload: any; action: string }[]) {
+      total++;
+      const id = r.payload?.channel_inventory_id;
+      if (id) pendingRows.add(id);
+    }
+    setPendingByRow(pendingRows);
+    setPendingCount(total);
     setLoading(false);
   }, [channelId]);
 
@@ -54,17 +79,48 @@ export default function VendedoraInventoryScreen() {
 
   // Ajusta el stock físico (no las ventas). Sirve para corregir cuando llega
   // más mercadería del taller o se hace un ajuste por rotura/mermas.
+  // - Admin: aplica directo.
+  // - Staff: crea una request en cola para que la admin apruebe.
   const adjustStock = async (item: InventoryItem, delta: number) => {
-    const newStock = Math.max(item.sold, item.stock + delta); // no permite bajar de lo vendido
+    const newStock = Math.max(item.sold, item.stock + delta); // no baja de lo vendido
     if (newStock === item.stock) return;
+
+    if (isAdmin) {
+      setBusyId(item.id);
+      const { error } = await supabase
+        .from('channel_inventory')
+        .update({ stock: newStock })
+        .eq('id', item.id);
+      setBusyId(null);
+      if (error) { Alert.alert('Error', error.message); return; }
+      setInventory((inv) => inv.map((r) => (r.id === item.id ? { ...r, stock: newStock } : r)));
+      return;
+    }
+
+    // Vendedora → cola de aprobación.
     setBusyId(item.id);
-    const { error } = await supabase
-      .from('channel_inventory')
-      .update({ stock: newStock })
-      .eq('id', item.id);
+    const { error } = await supabase.from('inventory_change_requests').insert({
+      channel_id: channelId,
+      requested_by_staff_id: staffId ?? null,
+      requested_by_name: staffName ?? (customer as any)?.name ?? 'Vendedora',
+      action: 'adjust_stock',
+      payload: {
+        channel_inventory_id: item.id,
+        target_stock: newStock,
+        current_stock: item.stock,
+        product_name: item.product_name,
+        size: item.size,
+        color: item.color,
+      },
+    });
     setBusyId(null);
     if (error) { Alert.alert('Error', error.message); return; }
-    setInventory((inv) => inv.map((r) => (r.id === item.id ? { ...r, stock: newStock } : r)));
+    setPendingByRow((s) => new Set(s).add(item.id));
+    setPendingCount((n) => n + 1);
+    Alert.alert(
+      'Solicitud enviada',
+      `Se envió una solicitud para ${delta > 0 ? 'subir' : 'bajar'} el stock de "${item.product_name}" (talla ${item.size}${item.color ? ', ' + item.color : ''}). La admin va a aprobarla.`,
+    );
   };
 
   const getStockStyle = (remaining: number) => {
@@ -106,7 +162,7 @@ export default function VendedoraInventoryScreen() {
               onPress={() =>
                 router.push({
                   pathname: '/inventory/bulk-add' as any,
-                  params: { channelId, channelName },
+                  params: { channelId, channelName, staffId, staffName },
                 })
               }
               activeOpacity={0.85}
@@ -115,6 +171,18 @@ export default function VendedoraInventoryScreen() {
               <Text style={styles.addBtnText}>Agregar</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Banner discreto: cuántas solicitudes de este canal están esperando
+              aprobación de la admin. Se muestra solo si hay al menos una. */}
+          {pendingCount > 0 && (
+            <View style={styles.pendingBanner}>
+              <Text style={styles.pendingBannerText}>
+                {pendingCount === 1
+                  ? '1 solicitud esperando aprobación de la admin.'
+                  : `${pendingCount} solicitudes esperando aprobación de la admin.`}
+              </Text>
+            </View>
+          )}
 
           {loading ? (
             <ActivityIndicator color="#B8860B" style={{ marginTop: 40 }} />
@@ -157,6 +225,9 @@ export default function VendedoraInventoryScreen() {
                         Talla {item.size}{item.color ? ` · ${item.color}` : ''}
                       </Text>
                       <Text style={styles.itemPrice}>${item.price.toFixed(2)} MXN</Text>
+                      {pendingByRow.has(item.id) && !isAdmin && (
+                        <Text style={styles.itemPendingBadge}>· Pendiente de aprobación</Text>
+                      )}
                     </View>
 
                     {/* Ajuste rápido de stock: sirve para reponer o corregir
@@ -348,5 +419,25 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  pendingBanner: {
+    backgroundColor: 'rgba(255,193,7,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,193,7,0.35)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  pendingBannerText: {
+    color: '#FFC107',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  itemPendingBadge: {
+    fontSize: 11,
+    color: '#FFC107',
+    fontWeight: '700',
+    marginTop: 3,
   },
 });
