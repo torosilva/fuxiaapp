@@ -112,21 +112,31 @@ export default function AdminPuntosScreen() {
           {!loading && results.map((c) => {
             const isSel = selected?.id === c.id;
             return (
-              <TouchableOpacity
-                key={c.id}
-                style={[styles.card, isSel && styles.cardSel]}
-                onPress={() => setSelected(isSel ? null : c)}
-                activeOpacity={0.85}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardName}>{c.name ?? 'Sin nombre'}</Text>
-                  <Text style={styles.cardMeta}>{c.phone}{c.email ? ` · ${c.email}` : ''}</Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.cardPts}>{c.total_points}</Text>
-                  <Text style={styles.cardTier}>{TIER_LABEL[c.tier] ?? c.tier}</Text>
-                </View>
-              </TouchableOpacity>
+              <View key={c.id} style={[styles.card, isSel && styles.cardSel]}>
+                <TouchableOpacity
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+                  onPress={() => setSelected(isSel ? null : c)}
+                  activeOpacity={0.85}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.cardName}>{c.name ?? 'Sin nombre'}</Text>
+                    <Text style={styles.cardMeta}>{c.phone}{c.email ? ` · ${c.email}` : ''}</Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.cardPts}>{c.total_points}</Text>
+                    <Text style={styles.cardTier}>{TIER_LABEL[c.tier] ?? c.tier}</Text>
+                  </View>
+                </TouchableOpacity>
+                {isSel && (
+                  <TouchableOpacity
+                    style={{ marginTop: 10, alignSelf: 'flex-end' }}
+                    onPress={() => router.push({ pathname: '/admin/customer/[id]' as any, params: { id: c.id } })}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={{ color: '#B8860B', fontSize: 12, fontWeight: '700' }}>Ver perfil completo →</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             );
           })}
 

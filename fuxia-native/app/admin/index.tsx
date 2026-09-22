@@ -275,7 +275,7 @@ export default function AdminHomeScreen() {
                   key={c.id}
                   activeOpacity={0.75}
                   onPress={() =>
-                    router.push({ pathname: '/admin/puntos' as any, params: { prefill: c.phone ?? c.email ?? c.name ?? '' } })
+                    router.push({ pathname: '/admin/customer/[id]' as any, params: { id: c.id } })
                   }
                   style={styles.recentRow}
                 >
