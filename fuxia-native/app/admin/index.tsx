@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { MotiView } from 'moti';
-import { Plus, Store, ShoppingBag, User, TrendingUp, LifeBuoy, Check, ArrowLeft, UserPlus, ClipboardCheck, Sunrise } from 'lucide-react-native';
+import { Plus, Store, ShoppingBag, User, TrendingUp, LifeBuoy, Check, ArrowLeft, UserPlus, ClipboardCheck, Sunrise, Send } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
@@ -253,6 +253,24 @@ export default function AdminHomeScreen() {
                 <Text style={{ color: '#0D0D0D', fontSize: 12, fontWeight: '800' }}>{pendingApprovals}</Text>
               </View>
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/admin/broadcast' as any)}
+            activeOpacity={0.85}
+            style={{
+              backgroundColor: '#1A1A1A', borderRadius: 16, borderWidth: 1,
+              borderColor: 'rgba(184,134,11,0.35)', padding: 18, marginBottom: 16,
+              flexDirection: 'row', alignItems: 'center', gap: 12,
+            }}
+          >
+            <Send size={20} color="#B8860B" />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Enviar push a un segmento</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>
+                Broadcast a Bronce, Silver, Gold, todas o inactivas
+              </Text>
+            </View>
           </TouchableOpacity>
 
           {/* Últimas clientas registradas — útil para encontrar rápido a alguien
