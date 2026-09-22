@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { MotiView } from 'moti';
-import { Plus, Store, ShoppingBag, User, TrendingUp, LifeBuoy, Check, ArrowLeft, UserPlus, ClipboardCheck } from 'lucide-react-native';
+import { Plus, Store, ShoppingBag, User, TrendingUp, LifeBuoy, Check, ArrowLeft, UserPlus, ClipboardCheck, Sunrise } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
@@ -167,10 +167,37 @@ export default function AdminHomeScreen() {
           <Text style={styles.eyebrow}>FUXIA BALLERINAS</Text>
           <Text style={styles.title}>Panel Admin</Text>
 
+          {/* Morning check — resumen del día. Card destacada, se pone primero
+              porque es la vista que la admin abre a diario en la mañana. */}
+          <TouchableOpacity
+            onPress={() => router.push('/admin/dashboard-today' as any)}
+            activeOpacity={0.85}
+            style={{
+              backgroundColor: 'rgba(184,134,11,0.12)',
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: 'rgba(184,134,11,0.55)',
+              padding: 18,
+              marginTop: 12,
+              marginBottom: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <Sunrise size={22} color="#B8860B" />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Hoy</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 4 }}>
+                Ventas del día, comparativa semanal, alertas y stock bajo
+              </Text>
+            </View>
+          </TouchableOpacity>
+
           <TouchableOpacity
             onPress={() => router.push('/admin/puntos' as any)}
             activeOpacity={0.85}
-            style={{ backgroundColor: '#1A1A1A', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(184,134,11,0.35)', padding: 18, marginTop: 12, marginBottom: 8 }}
+            style={{ backgroundColor: '#1A1A1A', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(184,134,11,0.35)', padding: 18, marginBottom: 8 }}
           >
             <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>💳  Clientas y puntos</Text>
             <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>Buscar clientas · agregar o quitar puntos manualmente</Text>
