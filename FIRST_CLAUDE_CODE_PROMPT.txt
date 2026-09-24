@@ -1,0 +1,33 @@
+You are starting the Fuxia 360 architecture audit.
+
+Read CLAUDE.md and every file under docs/fuxia360/ in the required order.
+
+IMPORTANT: DO NOT MODIFY APPLICATION CODE, SQL MIGRATIONS, EDGE FUNCTIONS, CONFIGURATION, OR PRODUCTION DATA.
+
+Your only task in this first pass is to audit the repository against the Fuxia 360 specification.
+
+Create:
+- docs/fuxia360/audit/CURRENT_STATE.md
+- docs/fuxia360/audit/SCHEMA_AUDIT.md
+- docs/fuxia360/audit/SECURITY_AUDIT.md
+- docs/fuxia360/audit/INTEGRATION_AUDIT.md
+- docs/fuxia360/audit/GAP_ANALYSIS.md
+- docs/fuxia360/audit/SPRINT_0_IMPLEMENTATION_PLAN.md
+
+Requirements:
+- inspect all database migrations, not only database/schema.sql
+- inspect Supabase Edge Functions and RLS
+- inspect WooCommerce proxy/webhook/service code
+- inspect channel_inventory, channels, staff, offline_sales, approval flows and admin/seller screens
+- verify or refute every P0 concern in the spec using concrete repository references
+- identify documentation/schema drift
+- preserve existing production behavior
+- propose reversible Sprint 0 units
+- flag any assumption that cannot be proven from the repository
+- do not begin implementation after producing the audit
+
+At the end, give me a concise summary of:
+1. confirmed P0 issues
+2. contradictions with the spec
+3. recommended Sprint 0 sequence
+4. questions that require a human business decision.
