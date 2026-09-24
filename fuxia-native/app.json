@@ -45,6 +45,16 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "# --- Stack traces legibles en Play Console ---\n# R8 incluye mapping.txt dentro del AAB, pero sin estos atributos se pierden\n# los numeros de linea y los crashes quedan inservibles.\n-keepattributes SourceFile,LineNumberTable\n-renamesourcefileattribute SourceFile\n\n# --- Librerias sin consumer rules propias ---\n# react-native, expo-modules-core, reanimated, worklets y svg ya traen las suyas\n# dentro del .aar; estas dos no.\n-keep class com.swmansion.rnscreens.** { *; }\n-keep class com.swmansion.gesturehandler.** { *; }\n\n# --- Avisos de dependencias opcionales que no se usan en runtime ---\n-dontwarn com.google.errorprone.annotations.**\n-dontwarn javax.annotation.**\n-dontwarn org.slf4j.**\n"
+          }
+        }
+      ],
       "expo-router",
       [
         "expo-camera",
