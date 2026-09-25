@@ -13,11 +13,99 @@ Ya resuelto en esta rama:
 
 | Punto | Antes | Ahora |
 |---|---|---|
-| `targetSdkVersion` | fijado en 35 | **36** — es el default de Expo SDK 54, y Play exige API 36 desde el 31-ago-2026. Se quitó el pin de `expo-build-properties` en vez de subirlo: fijar `buildToolsVersion` a mano puede romper el build si esa versión exacta no está en la imagen de EAS |
+| `targetSdkVersion` | fijado en 35 | **36** — es el default de Expo SDK 54, y Play exige API 36 desde el 31-ago-2026. Se quitó el pin de versiones de `expo-build-properties` en vez de subirlo: fijar `buildToolsVersion` a mano puede romper el build si esa versión exacta no está en la imagen de EAS |
 | Permiso `RECORD_AUDIO` | declarado | **bloqueado** — la cámara solo escanea QR, no graba audio |
 | Permisos Android | implícitos | `CAMERA` + `POST_NOTIFICATIONS` explícitos |
 | Formato de build | APK (preview) | **AAB** en el perfil `production` (Play solo acepta App Bundle) |
 | `eas submit` Android | no existía | configurado con track `internal` y `releaseStatus: draft` |
+| Optimización de código DEX | **Baja** (0% optimización, 1% ofuscación, 0% reducción) | **R8 activado** — `expo-build-properties` con `enableMinifyInReleaseBuilds` + `enableShrinkResourcesInReleaseBuilds` |
+
+### Optimización de código DEX (R8)
+
+Play Console marcaba la build 1.0.1 con **Optimización de código DEX: Baja** —
+0% de optimización, 1% de ofuscación, 0% de reducción. Eso pasaba porque el
+`app.json` no traía el plugin `expo-build-properties`, así que el AAB salía con
+`minifyEnabled false`: todo el bytecode de Java/Kotlin viajaba sin tocar
+(31.9 MB de DEX sin comprimir).
+
+Ahora el plugin está en `plugins` con:
+
+```json
+["expo-build-properties", {
+  "android": {
+    "enableMinifyInReleaseBuilds": true,
+    "enableShrinkResourcesInReleaseBuilds": true,
+    "extraProguardRules": "..."
+  }
+}]
+```
+
+Qué hace cada cosa:
+
+| Flag | Propiedad de Gradle que escribe | Efecto |
+|---|---|---|
+| `enableMinifyInReleaseBuilds` | `android.enableMinifyInReleaseBuilds=true` → `minifyEnabled` en el buildType `release` | R8 elimina clases y métodos muertos, inlinea y renombra símbolos. Sube las tres métricas de Play |
+| `enableShrinkResourcesInReleaseBuilds` | `android.enableShrinkResourcesInReleaseBuilds=true` → `shrinkResources` | Quita recursos (drawables, layouts, strings) que ya nadie referencia. **Requiere** el flag anterior |
+
+**R8 full mode ya está activo**: es el default de AGP 8.x, que es lo que usa Expo
+SDK 54. No hay que poner `android.enableR8.fullMode` a mano.
+
+#### Las reglas de ProGuard
+
+`extraProguardRules` se **agrega** al `proguard-rules.pro` de la plantilla de
+Expo (que ya trae los `-keep` de reanimated), no lo reemplaza. Se mantuvo corto
+a propósito: la mayoría de las librerías nativas del proyecto ya publican sus
+propias *consumer rules* dentro del `.aar` y R8 las aplica solo:
+
+- `react-native` → `@DoNotStrip`, `NativeModule`, `@ReactProp`, JNI, Yoga, okio
+- `expo-modules-core` → `Module`, `Record`, `SharedObject`, `ExpoView`, `Enumerable`
+- `react-native-reanimated`, `react-native-worklets`, `react-native-svg` → las suyas
+
+Lo que sí hubo que agregar a mano:
+
+- `-keepattributes SourceFile,LineNumberTable` + `-renamesourcefileattribute SourceFile`
+  para que los crashes de Play Console sigan teniendo números de línea. R8 mete
+  el `mapping.txt` dentro del AAB y Play desofusca automáticamente, pero sin
+  estos atributos no hay líneas que desofuscar.
+- `-keep` de `com.swmansion.rnscreens` y `com.swmansion.gesturehandler`:
+  `react-native-screens` y `react-native-gesture-handler` son las dos únicas
+  librerías nativas del proyecto que **no** traen consumer rules.
+- Unos `-dontwarn` de anotaciones opcionales que R8 no resuelve y no se usan en
+  runtime.
+
+#### ⚠️ Hay que probar la build antes de subirla a producción
+
+Activar R8 es el cambio de build con más riesgo de todo el repo: si falta un
+`-keep`, la app **compila bien y truena en runtime**. Antes de promover a
+producción, hacer una build de release y recorrer a mano:
+
+```bash
+cd fuxia-native
+eas build --platform android --profile production
+```
+
+Checklist de smoke test (todo lo que toca código nativo):
+
+- [ ] Arranca sin crash y el splash se ve bien
+- [ ] Login / sesión de Supabase
+- [ ] Escaneo de QR con la cámara (`expo-camera`)
+- [ ] Foto de perfil desde galería (`expo-image-picker`)
+- [ ] El QR de la tarjeta de lealtad se renderiza (`react-native-svg`)
+- [ ] Animaciones y transiciones (`reanimated` / `moti` / `react-native-screens`)
+- [ ] Push notifications llegan y abren la pantalla correcta (`expo-notifications`)
+- [ ] Deep links `fuxia://`
+- [ ] Iconos de `lucide-react-native` y fuentes de `expo-font` (esto valida el
+      `shrinkResources`)
+
+Si algo truena, el `logcat` da la clase que R8 borró y se agrega un `-keep`
+puntual a `extraProguardRules` — no se desactiva el minify entero.
+
+#### Lo que Play Console pide y todavía no se puede hacer
+
+Play también marca **Configuración de R8: Actualiza a la versión 9.0 del AGP**.
+Eso no depende del repo: la versión de AGP la fija Expo SDK 54 / React Native
+0.81, que van con AGP 8.x. Se resuelve cuando salga el SDK de Expo que adopte
+AGP 9, no antes.
 
 ### ⚠️ El identificador de Android NO es el mismo que el de iOS
 
