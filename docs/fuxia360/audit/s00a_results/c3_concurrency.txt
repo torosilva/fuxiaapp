@@ -1,0 +1,13 @@
+PASS | legacy sale after the cutover started → refused | ZZ PRUEBA C3 Tienda está en corte de inventario: no se puede vender hasta terminar el conteo.
+PASS | count by A, blind verification by B → ready | ready
+PASS | two simultaneous completions → exactly one opening balance; location f360 | wins=1 openings=1 loser="Este corte ya se ejecutó: una ubicación solo tiene un saldo inicial."
+PASS | opening balances = verified count | 35:1 36:3
+PASS | two simultaneous F360 sales of the last pair → exactly one; never negative | wins=1 left=0 loser="No hay existencia suficiente de Macarena Negro 35 (quedan 0)."
+PASS | simultaneous double tap (same key) → one sale, stock −1 once | bf25fae3-c06a-4c45-bbd1-7ac60ef09654 / bf25fae3-c06a-4c45-bbd1-7ac60ef09654
+PASS | two simultaneous sales to one customer → +200 exactly, stock exact | points=200 left=0
+PASS | sales = Growth/C360 facts = SALE events (4 each) | sales=4 facts=4 events=4
+PASS | channel_inventory never written (cutover + F360 sales) | 
+PASS | balances = ledger (every variant, every location) | 
+PASS | synthetic fixtures removed | left=0
+PASS | balances = ledger after cleanup | 
+ALL PASS

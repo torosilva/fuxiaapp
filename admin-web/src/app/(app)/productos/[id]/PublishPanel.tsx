@@ -1,0 +1,153 @@
+'use client';
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { IconCheck, IconClock, IconX } from '@/components/icons';
+import type { Publication, PubJob, PubStep } from '@/lib/f360';
+import { fecha } from '@/lib/format';
+import { publishAction } from '../../actions';
+
+const STEP_LABEL: Record<string, string> = {
+  preflight: 'Revisión', terms: 'Colores y tallas', media: 'Fotos', product: 'Producto', variations: 'Variaciones', stock: 'Existencias', verify: 'Verificación',
+};
+const JOB_LABEL: Record<PubJob['status'], string> = {
+  queued: 'En cola', running: 'Publicando…', succeeded: 'Publicado', partial: 'Incompleto', failed: 'No se pudo publicar',
+};
+
+// "Tienda en línea": one button, honest states, retry that never duplicates, and the full history.
+export function PublishPanel({ productId, pub, isOwner, publisherReady }: { productId: string; pub: Publication; isOwner: boolean; publisherReady: boolean }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // One key per intent: a double click or a network retry of the SAME click reuses it (the database dedupes).
+  const [key, setKey] = useState(() => crypto.randomUUID());
+
+  const run = () => start(async () => {
+    setError(null); setConfirming(false);
+    const r = await publishAction(productId, key);
+    setKey(crypto.randomUUID());
+    if (!r.ok) setError(r.error);
+    router.refresh();
+  });
+
+  const busy = pending || pub.state === 'publicando';
+  const last = pub.jobs[0];
+  const firstTime = !pub.woo_product_id;
+  const label = pub.state === 'error' ? 'Reintentar' : pub.state === 'cambios' ? 'Sincronizar cambios' : firstTime ? 'Publicar en tienda online' : 'Sincronizar de nuevo';
+
+  const box = {
+    borrador: 'border-line bg-surface',
+    listo: 'border-line bg-surface',
+    publicando: 'border-gold/40 bg-gold-soft',
+    publicado: 'border-success/30 bg-success-soft',
+    cambios: 'border-gold/40 bg-gold-soft',
+    error: 'border-danger/30 bg-danger-soft',
+    sin_tienda: 'border-line bg-surface',
+  }[busy ? 'publicando' : pub.state];
+
+  return (
+    <section id="tienda" className="mt-12 scroll-mt-6">
+      <h2 className="font-display text-3xl text-ink">Tienda en línea</h2>
+      <div className={`mt-4 rounded-3xl border p-5 md:p-6 ${box}`} data-testid="publish-panel" data-state={busy ? 'publicando' : pub.state}>
+        {busy ? (
+          <p className="flex items-center gap-2 text-lg text-ink"><IconClock className="size-5 animate-pulse" />Publicando en {pub.target?.name ?? 'la tienda'}… esto tarda unos segundos.</p>
+        ) : pub.state === 'sin_tienda' ? (
+          <p className="text-ink-2">{pub.message ?? 'No hay una tienda en línea configurada.'}</p>
+        ) : pub.state === 'borrador' ? (
+          <p className="text-ink-2">Completa lo que falta (arriba) para poder publicarlo.</p>
+        ) : pub.state === 'listo' ? (
+          <p className="text-ink">Listo para publicar. Se crea <strong>oculto</strong>: nadie lo ve en la tienda hasta que decidas mostrarlo.</p>
+        ) : pub.state === 'publicado' ? (
+          <div className="text-success">
+            <p className="flex items-center gap-2 text-lg"><IconCheck />Publicado en {pub.target?.name ?? "la tienda"}, oculto — {pub.variations_linked} variaciones</p>
+            {last && <p className="mt-1 text-sm">Última sincronización: {last.requested_by_name}, {fecha(last.finished_at ?? last.created_at)}. Todo coincide con Fuxia 360.</p>}
+          </div>
+        ) : pub.state === 'cambios' ? (
+          <p className="text-ink">Cambiaste el producto después de publicarlo. <strong>Sincroniza</strong> para que la tienda quede igual.</p>
+        ) : (
+          <div className="text-danger">
+            <p className="flex items-center gap-2 text-lg"><IconX />No se pudo publicar</p>
+            <p className="mt-1 text-sm" data-testid="publish-error">{last?.error_message ?? 'Error de sincronización.'}</p>
+            <p className="mt-1 text-sm text-ink-2">Reintentar es seguro: continúa donde se quedó y nunca duplica productos ni variaciones.</p>
+          </div>
+        )}
+
+        {error && <p role="alert" className="mt-3 rounded-xl bg-danger-soft px-4 py-3 text-danger">{error}</p>}
+
+        {!publisherReady && pub.state !== 'borrador' && (
+          <div className="mt-4 rounded-2xl border border-line bg-surface p-4 text-ink-2" data-testid="publish-unavailable">
+            <p className="font-medium text-ink">Publicación WooCommerce disponible próximamente en este ambiente.</p>
+            <p className="mt-1 text-sm">El flujo ya está validado contra WooCommerce local y se habilitará aquí cuando conectemos la tienda de pruebas.</p>
+          </div>
+        )}
+
+        {publisherReady && isOwner && pub.can_publish && !busy && pub.state !== 'borrador' && pub.state !== 'sin_tienda' && (
+          confirming ? (
+            <div className="mt-4 rounded-2xl border border-line bg-surface p-4">
+              <p className="text-ink">Se creará <strong>1 producto oculto</strong> con todos sus colores y tallas, fotos, precio y existencias de {pub.target?.name ?? 'la tienda'}.</p>
+              <div className="mt-3 flex gap-3">
+                <button type="button" onClick={run} className="rounded-2xl bg-ink px-6 py-3.5 text-surface">Sí, publicar oculto</button>
+                <button type="button" onClick={() => setConfirming(false)} className="rounded-2xl px-4 text-muted">Cancelar</button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" onClick={() => (firstTime && pub.state === 'listo' ? setConfirming(true) : run())}
+              className={`mt-4 rounded-2xl px-6 py-3.5 ${pub.state === 'publicado' ? 'border border-line bg-surface text-ink' : 'bg-ink text-surface'}`}>{label}</button>
+          )
+        )}
+        {publisherReady && !isOwner && pub.state !== 'sin_tienda' && <p className="mt-3 text-sm text-muted">Solo una dueña puede publicar en la tienda.</p>}
+
+        {pub.woo_product_id && (
+          <details className="mt-4 text-sm text-ink-2">
+            <summary className="cursor-pointer">Detalle técnico</summary>
+            <p className="mt-2">Tienda: {pub.target?.name} · producto #{pub.woo_product_id} ({pub.woo_status === 'draft' ? 'borrador, no visible' : pub.woo_status})</p>
+            {pub.target && publisherReady && <a className="mt-1 inline-block text-gold-strong hover:underline" target="_blank" rel="noreferrer" href={`${pub.target.base_url}/wp-admin/post.php?post=${pub.woo_product_id}&action=edit`}>Abrir en WooCommerce</a>}
+          </details>
+        )}
+      </div>
+
+      {pub.jobs.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-lg text-ink">Historial de publicación</h3>
+          <ul className="mt-3 space-y-2" data-testid="publish-history">
+            {pub.jobs.map((j, i) => (
+              <li key={j.id} className="rounded-2xl border border-line bg-surface p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-ink"><JobDot status={j.status} />{JOB_LABEL[j.status]} · {j.requested_by_name}</p>
+                  <p className="text-sm text-muted">{fecha(j.finished_at ?? j.created_at)}</p>
+                </div>
+                {j.summary && j.status !== 'failed' && (
+                  <p className="mt-1 text-sm text-ink-2">{j.summary.variations} variaciones · {j.summary.created} creadas · {j.summary.updated} actualizadas · existencias enviadas: {j.summary.stock_pushed}</p>
+                )}
+                {j.error_message && <p className="mt-1 text-sm text-danger">{j.error_message}</p>}
+                {i === 0 && j.steps && j.steps.length > 0 && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-sm text-gold-strong">Ver los {j.steps.length} pasos</summary>
+                    <ol className="mt-2 space-y-1 text-sm">
+                      {j.steps.map((s, k) => <StepRow key={k} s={s} />)}
+                    </ol>
+                  </details>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function JobDot({ status }: { status: PubJob['status'] }) {
+  const c = status === 'succeeded' ? 'bg-success' : status === 'failed' || status === 'partial' ? 'bg-danger' : 'bg-gold';
+  return <span className={`mr-2 inline-block size-2.5 rounded-full align-middle ${c}`} />;
+}
+
+function StepRow({ s }: { s: PubStep }) {
+  return (
+    <li className={`flex gap-2 ${s.ok ? 'text-ink-2' : 'text-danger'}`}>
+      <span className="w-28 shrink-0 text-muted">{STEP_LABEL[s.step] ?? s.step}</span>
+      <span className="font-mono text-xs leading-5">{s.object_ref ?? ''}</span>
+      <span>{s.action}{s.woo_id ? ` #${s.woo_id}` : ''}{s.message ? ` — ${s.message}` : ''}</span>
+    </li>
+  );
+}

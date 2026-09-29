@@ -27,6 +27,7 @@ Good:
 - reservations
 - launches blocked
 - sync/incidents requiring attention
+- later (see `08_OMNICHANNEL.md` §5.1): online orders awaiting allocation or fulfillment by location, inventory discrepancies, open make-to-order production requests against their promised dates, and production requests at risk or overdue
 
 ### Products
 - product search
@@ -60,6 +61,13 @@ Target: a normal receipt should be understandable without technical training.
 - low stock
 - reconciliation/counts
 - movement history
+
+### Production (Production Tracking Lite; after the Fulfillment sprint)
+- "Por producir": make-to-order order lines awaiting production, grouped by workshop/supplier
+- status board: Solicitado → Asignado → En producción → Listo → Control de calidad → Recibido → Entregado, plus Bloqueado / Cancelado
+- due and promised dates, at-risk and overdue highlighting
+- link from each request to the customer order, and from the received pair to its inventory receipt
+- simple actions in business language: "Asignar taller", "Marcar listo", "Recibir par", "Reportar problema"
 
 ### Launch Center
 - Product Ready

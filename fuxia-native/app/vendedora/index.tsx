@@ -14,6 +14,8 @@ import { MotiView } from 'moti';
 import { Store, ShoppingBag, Delete, ArrowLeft } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
+import { F360_SELLER_SESSION } from '@/lib/sellerSession';
+import SellerShiftLogin from '@/components/SellerShiftLogin';
 
 const LAST_CHANNEL_KEY = '@vendedora_last_channel';
 const PIN_LENGTH = 4;
@@ -25,7 +27,29 @@ interface Channel {
   location: string | null;
 }
 
-export default function VendedoraLoginScreen() {
+// Seller mode is only for a logged-in person (no anonymous operation). With EXPO_PUBLIC_F360_SELLER_SESSION=1 the shift
+// is started and verified by the server (S0.2); otherwise the legacy PIN screen remains (production, until rollout).
+export default function VendedoraEntry() {
+  const [state, setState] = useState<'loading' | 'no-session' | 'ok'>('loading');
+  useEffect(() => { supabase.auth.getSession().then(({ data }) => setState(data.session ? 'ok' : 'no-session')); }, []);
+  if (state === 'loading') return <SafeAreaView style={styles.container}><ActivityIndicator color="#B8860B" /></SafeAreaView>;
+  if (state === 'no-session') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
+          <Text style={{ color: '#F5F0E8', fontSize: 18, textAlign: 'center' }}>Para vender, primero inicia sesión con tu propia cuenta.</Text>
+          <TouchableOpacity onPress={() => router.replace('/onboarding/login' as any)} style={{ marginTop: 20, alignItems: 'center' }}>
+            <Text style={{ color: '#B8860B', fontSize: 16 }}>Iniciar sesión</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+  if (F360_SELLER_SESSION) return <SafeAreaView style={styles.container}><SellerShiftLogin /></SafeAreaView>;
+  return <VendedoraLoginScreen />;
+}
+
+function VendedoraLoginScreen() {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [loadingChannels, setLoadingChannels] = useState(true);

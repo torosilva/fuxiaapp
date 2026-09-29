@@ -23,8 +23,11 @@ It may include:
 - fulfillment eligibility
 - location status
 - temporary holds
+- make-to-order eligibility (for ecommerce sellability, not physical ATS)
 
 The formula must be approved before customer-facing launch.
+
+Physical ATS for ecommerce is summed across **all** eligible locations in Mexico, never just a central warehouse. Make-to-order eligibility can make a variant sellable with zero physical ATS, but it never inflates physical ATS. See `00_MASTER_SPEC.md` §5.1 for the five distinct concepts (on-hand, reserved, physical ATS, make-to-order eligible, fulfillment promise).
 
 ## 4. Store availability
 MVP:
@@ -50,6 +53,20 @@ Lifecycle:
 
 Expiration must release reserved availability safely and idempotently.
 
+## 5.1 Online-order allocation & make-to-order (future; not Sprint 0)
+This formalizes something that already happens manually today: online orders get fulfilled from wherever a pair physically is.
+1. **Physical ATS exists** → allocate/reserve a unit at an eligible location (the allocation rule is to be defined: proximity, stock age, location workload, etc.), and create a fulfillment task for that location.
+2. **The location can't physically confirm the unit** → mark the allocation failed, record an **inventory discrepancy**, and try the next eligible location.
+3. **No physical unit anywhere, and the variant is MAKE_TO_ORDER_ELIGIBLE** → the line takes the **MAKE_TO_ORDER** path: create a **production request** (Production Tracking Lite, `03_DATA_MODEL.md` §5.2). The customer promise is the production promise (currently ~5–7 days, configurable). No negative inventory is created.
+4. **No physical unit, and not make-to-order** → the order shouldn't have been sellable. Flag it as an exception for a human to resolve (this points to a sync/availability failure).
+
+Allocation creates a reservation (§5 rules on idempotency, expiry and release apply). The SALE movement is recorded from the confirmed location on physical fulfillment, not at order time.
+
+## 5.2 Fulfillment promise
+- The customer-facing promise distinguishes physical availability ("ships now / available in store X") from production (~5–7 days today).
+- Promise values are configuration, not hardcoded.
+- Don't show a physical promise until inventory accuracy is sufficient (§2). Until then, the promise shown must be the conservative one.
+
 ## 6. Pickup
 Later:
 - online payment/order
@@ -60,6 +77,8 @@ Later:
 - pickup completion
 
 ## 7. Ship from Store
+Note: under §5.1, shipping online orders from stores and bazaars is part of the normal ecommerce fulfillment model, not an optional extra. The list below is the capability set; how it's sequenced against Reserve & Try and Pickup is decided when sprints are planned.
+
 Later:
 - eligibility rules
 - location selection

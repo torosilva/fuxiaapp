@@ -1,5 +1,10 @@
 # Fuxia 360 Audit — Security Audit
 
+> **Live verification (S0.1a, 2026-09-24):** see `LIVE_RECONCILIATION.md` §3–4, which supersede the CONFIRMED-IF verdicts below.
+> - **Escalated:** P0-3, P0-4, P0-5 (anonymous access in production).
+> - **New P0s:** P0-9 (public `fx_add_points`), P0-10 (`user_metadata` trust, incl. arbitrary account deletion), P0-11 (default privileges).
+> - **Refuted:** P0-6.1 and P0-6.2.
+
 **Severity scale:** **P0** = an attacker, or any ordinary logged-in user, can change money, points, inventory or privileges, or read other people's PII. **P1** = an integrity or abuse risk that needs a precondition or is limited in impact. **P2** = hygiene.
 **Verdicts:** **CONFIRMED** (proven from repo code), **CONFIRMED-IF** (proven unless the live DB or env differs from the repo; the exact check is given), **REFUTED**.
 

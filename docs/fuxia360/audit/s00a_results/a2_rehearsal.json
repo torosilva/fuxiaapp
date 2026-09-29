@@ -1,0 +1,1395 @@
+{
+  "at": "2026-09-26T04:19:59.132Z",
+  "before": {
+    "policies": [
+      {
+        "t": "channel_inventory",
+        "name": "admins_all_inventory",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM customers\n  WHERE ((customers.phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text)) AND (customers.role = ANY (ARRAY['admin'::text, 'staff'::text])))))",
+        "check": null
+      },
+      {
+        "t": "channel_inventory",
+        "name": "anon_read_inventory",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "anon"
+        ],
+        "cmd": "SELECT",
+        "qual": "true",
+        "check": null
+      },
+      {
+        "t": "channel_inventory",
+        "name": "anon_update_inventory_sold",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "anon"
+        ],
+        "cmd": "UPDATE",
+        "qual": "true",
+        "check": "true"
+      },
+      {
+        "t": "channel_inventory",
+        "name": "auth read channel_inventory",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      },
+      {
+        "t": "channel_inventory",
+        "name": "inventory staff write",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "ALL",
+        "qual": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))",
+        "check": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))"
+      },
+      {
+        "t": "channel_inventory",
+        "name": "read_inventory",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "true",
+        "check": null
+      },
+      {
+        "t": "channels",
+        "name": "admins_all_channels",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM customers\n  WHERE ((customers.phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text)) AND (customers.role = ANY (ARRAY['admin'::text, 'staff'::text])))))",
+        "check": null
+      },
+      {
+        "t": "channels",
+        "name": "anon_read_active_channels",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "anon"
+        ],
+        "cmd": "SELECT",
+        "qual": "(active = true)",
+        "check": null
+      },
+      {
+        "t": "channels",
+        "name": "auth read channels",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      },
+      {
+        "t": "channels",
+        "name": "channels admin write",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "ALL",
+        "qual": "(my_role() = 'admin'::text)",
+        "check": "(my_role() = 'admin'::text)"
+      },
+      {
+        "t": "channels",
+        "name": "read_active_channels",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "(active = true)",
+        "check": null
+      },
+      {
+        "t": "inventory_change_requests",
+        "name": "icr insert with valid staff or admin/staff role",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "INSERT",
+        "qual": null,
+        "check": "((my_role() = ANY (ARRAY['admin'::text, 'staff'::text])) OR ((requested_by_staff_id IS NOT NULL) AND (EXISTS ( SELECT 1\n   FROM staff\n  WHERE ((staff.id = inventory_change_requests.requested_by_staff_id) AND (staff.active = true))))))"
+      },
+      {
+        "t": "inventory_change_requests",
+        "name": "icr read open",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "true",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "admins_staff_all_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM customers\n  WHERE ((customers.phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text)) AND (customers.role = ANY (ARRAY['admin'::text, 'staff'::text])))))",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "anon_insert_offline_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "anon"
+        ],
+        "cmd": "INSERT",
+        "qual": null,
+        "check": "true"
+      },
+      {
+        "t": "offline_sales",
+        "name": "anon_read_offline_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "anon"
+        ],
+        "cmd": "SELECT",
+        "qual": "true",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "anon_read_own_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "anon"
+        ],
+        "cmd": "SELECT",
+        "qual": "true",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "auth read offline_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "customers_read_own_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "(customer_phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text))",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "offline_sales own by phone",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "((auth.role() = 'authenticated'::text) AND ((customer_id = my_customer_id()) OR (customer_phone = my_phone())))",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "offline_sales staff insert",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "INSERT",
+        "qual": null,
+        "check": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))"
+      },
+      {
+        "t": "offline_sales",
+        "name": "offline_sales staff update",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "UPDATE",
+        "qual": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))",
+        "check": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))"
+      },
+      {
+        "t": "staff",
+        "name": "admins_all_staff",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM customers\n  WHERE ((customers.phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text)) AND (customers.role = 'admin'::text))))",
+        "check": null
+      },
+      {
+        "t": "staff",
+        "name": "anon_read_active_staff",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "anon"
+        ],
+        "cmd": "SELECT",
+        "qual": "(active = true)",
+        "check": null
+      },
+      {
+        "t": "staff",
+        "name": "auth read staff",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      },
+      {
+        "t": "staff",
+        "name": "staff admin write",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "ALL",
+        "qual": "(my_role() = 'admin'::text)",
+        "check": "(my_role() = 'admin'::text)"
+      },
+      {
+        "t": "staff",
+        "name": "staff_read_own",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "(active = true)",
+        "check": null
+      },
+      {
+        "t": "support_tickets",
+        "name": "auth read support_tickets",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      }
+    ],
+    "anon_grants": [
+      "channel_inventory:DELETE",
+      "channel_inventory:INSERT",
+      "channel_inventory:REFERENCES",
+      "channel_inventory:SELECT",
+      "channel_inventory:TRIGGER",
+      "channel_inventory:TRUNCATE",
+      "channel_inventory:UPDATE",
+      "channels:DELETE",
+      "channels:INSERT",
+      "channels:REFERENCES",
+      "channels:SELECT",
+      "channels:TRIGGER",
+      "channels:TRUNCATE",
+      "channels:UPDATE",
+      "inventory_change_requests:DELETE",
+      "inventory_change_requests:INSERT",
+      "inventory_change_requests:REFERENCES",
+      "inventory_change_requests:SELECT",
+      "inventory_change_requests:TRIGGER",
+      "inventory_change_requests:TRUNCATE",
+      "inventory_change_requests:UPDATE",
+      "offline_sales:DELETE",
+      "offline_sales:INSERT",
+      "offline_sales:REFERENCES",
+      "offline_sales:SELECT",
+      "offline_sales:TRIGGER",
+      "offline_sales:TRUNCATE",
+      "offline_sales:UPDATE",
+      "staff:DELETE",
+      "staff:INSERT",
+      "staff:REFERENCES",
+      "staff:SELECT",
+      "staff:TRIGGER",
+      "staff:TRUNCATE",
+      "staff:UPDATE",
+      "support_tickets:DELETE",
+      "support_tickets:INSERT",
+      "support_tickets:REFERENCES",
+      "support_tickets:SELECT",
+      "support_tickets:TRIGGER",
+      "support_tickets:TRUNCATE",
+      "support_tickets:UPDATE"
+    ]
+  },
+  "before_probe": {
+    "anon_read_staff": 2,
+    "anon_read_inventory": 4,
+    "anon_read_sales": 2,
+    "anon_read_channels": 2,
+    "anon_update_inventory": {
+      "ok": true,
+      "out": "1"
+    },
+    "anon_insert_sale": {
+      "ok": true,
+      "out": "inserted"
+    },
+    "customer_read_icr": 1,
+    "customer_insert_icr_with_staff_id": {
+      "ok": true,
+      "out": "inserted"
+    },
+    "staff_read_inventory": 4,
+    "staff_update_sold": {
+      "ok": true,
+      "out": "1"
+    },
+    "staff_insert_sale": {
+      "ok": true,
+      "out": "inserted"
+    },
+    "staff_read_icr": 1,
+    "staff_insert_icr": {
+      "ok": true,
+      "out": "inserted"
+    }
+  },
+  "after": {
+    "policies": [
+      {
+        "t": "channel_inventory",
+        "name": "admins_all_inventory",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM customers\n  WHERE ((customers.phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text)) AND (customers.role = ANY (ARRAY['admin'::text, 'staff'::text])))))",
+        "check": null
+      },
+      {
+        "t": "channel_inventory",
+        "name": "auth read channel_inventory",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      },
+      {
+        "t": "channel_inventory",
+        "name": "inventory staff write",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "ALL",
+        "qual": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))",
+        "check": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))"
+      },
+      {
+        "t": "channel_inventory",
+        "name": "read_inventory",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "true",
+        "check": null
+      },
+      {
+        "t": "channels",
+        "name": "admins_all_channels",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM customers\n  WHERE ((customers.phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text)) AND (customers.role = ANY (ARRAY['admin'::text, 'staff'::text])))))",
+        "check": null
+      },
+      {
+        "t": "channels",
+        "name": "auth read channels",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      },
+      {
+        "t": "channels",
+        "name": "channels admin write",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "ALL",
+        "qual": "(my_role() = 'admin'::text)",
+        "check": "(my_role() = 'admin'::text)"
+      },
+      {
+        "t": "channels",
+        "name": "read_active_channels",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "(active = true)",
+        "check": null
+      },
+      {
+        "t": "inventory_change_requests",
+        "name": "icr insert staff admin",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "INSERT",
+        "qual": null,
+        "check": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))"
+      },
+      {
+        "t": "inventory_change_requests",
+        "name": "icr read staff admin",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "admins_staff_all_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM customers\n  WHERE ((customers.phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text)) AND (customers.role = ANY (ARRAY['admin'::text, 'staff'::text])))))",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "auth read offline_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "customers_read_own_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "(customer_phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text))",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "offline_sales own by phone",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "((auth.role() = 'authenticated'::text) AND ((customer_id = my_customer_id()) OR (customer_phone = my_phone())))",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "offline_sales staff insert",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "INSERT",
+        "qual": null,
+        "check": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))"
+      },
+      {
+        "t": "offline_sales",
+        "name": "offline_sales staff update",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "UPDATE",
+        "qual": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))",
+        "check": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))"
+      },
+      {
+        "t": "staff",
+        "name": "admins_all_staff",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM customers\n  WHERE ((customers.phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text)) AND (customers.role = 'admin'::text))))",
+        "check": null
+      },
+      {
+        "t": "staff",
+        "name": "auth read staff",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      },
+      {
+        "t": "staff",
+        "name": "staff admin write",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "ALL",
+        "qual": "(my_role() = 'admin'::text)",
+        "check": "(my_role() = 'admin'::text)"
+      },
+      {
+        "t": "staff",
+        "name": "staff_read_own",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "(active = true)",
+        "check": null
+      },
+      {
+        "t": "support_tickets",
+        "name": "auth read support_tickets",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      }
+    ],
+    "anon_grants": []
+  },
+  "after_probe": {
+    "anon_read_staff": "HTTP 401",
+    "anon_read_inventory": "HTTP 401",
+    "anon_read_sales": "HTTP 401",
+    "anon_read_channels": "HTTP 401",
+    "anon_update_inventory": {
+      "ok": false,
+      "error": "permission denied for table channel_inventory"
+    },
+    "anon_insert_sale": {
+      "ok": false,
+      "error": "permission denied for table offline_sales"
+    },
+    "customer_read_icr": 0,
+    "customer_insert_icr_with_staff_id": {
+      "ok": false,
+      "error": "new row violates row-level security policy for table \"inventory_change_requests\""
+    },
+    "staff_read_inventory": 4,
+    "staff_update_sold": {
+      "ok": true,
+      "out": "1"
+    },
+    "staff_insert_sale": {
+      "ok": true,
+      "out": "inserted"
+    },
+    "staff_read_icr": 1,
+    "staff_insert_icr": {
+      "ok": true,
+      "out": "inserted"
+    }
+  },
+  "regressions": {
+    "s02_flow": true,
+    "db_tests": true,
+    "flow_tail": " | ALL PASS | ",
+    "db_tail": "== f360_tests (15 checks) | == f360_p21_tests (34 checks) | == f360_p22_tests (25 checks) | == f360_p23a_tests (28 checks) | == f360_b4_tests (15 checks) | == f360_c1c2_tests (27 checks) | == f360_s02_tests (28 checks) | ALL PASS"
+  },
+  "after_rollback": {
+    "policies": [
+      {
+        "t": "channel_inventory",
+        "name": "admins_all_inventory",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM customers\n  WHERE ((customers.phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text)) AND (customers.role = ANY (ARRAY['admin'::text, 'staff'::text])))))",
+        "check": null
+      },
+      {
+        "t": "channel_inventory",
+        "name": "anon_read_inventory",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "anon"
+        ],
+        "cmd": "SELECT",
+        "qual": "true",
+        "check": null
+      },
+      {
+        "t": "channel_inventory",
+        "name": "anon_update_inventory_sold",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "anon"
+        ],
+        "cmd": "UPDATE",
+        "qual": "true",
+        "check": "true"
+      },
+      {
+        "t": "channel_inventory",
+        "name": "auth read channel_inventory",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      },
+      {
+        "t": "channel_inventory",
+        "name": "inventory staff write",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "ALL",
+        "qual": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))",
+        "check": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))"
+      },
+      {
+        "t": "channel_inventory",
+        "name": "read_inventory",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "true",
+        "check": null
+      },
+      {
+        "t": "channels",
+        "name": "admins_all_channels",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM customers\n  WHERE ((customers.phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text)) AND (customers.role = ANY (ARRAY['admin'::text, 'staff'::text])))))",
+        "check": null
+      },
+      {
+        "t": "channels",
+        "name": "anon_read_active_channels",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "anon"
+        ],
+        "cmd": "SELECT",
+        "qual": "(active = true)",
+        "check": null
+      },
+      {
+        "t": "channels",
+        "name": "auth read channels",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      },
+      {
+        "t": "channels",
+        "name": "channels admin write",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "ALL",
+        "qual": "(my_role() = 'admin'::text)",
+        "check": "(my_role() = 'admin'::text)"
+      },
+      {
+        "t": "channels",
+        "name": "read_active_channels",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "(active = true)",
+        "check": null
+      },
+      {
+        "t": "inventory_change_requests",
+        "name": "icr insert with valid staff or admin/staff role",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "INSERT",
+        "qual": null,
+        "check": "((my_role() = ANY (ARRAY['admin'::text, 'staff'::text])) OR ((requested_by_staff_id IS NOT NULL) AND (EXISTS ( SELECT 1\n   FROM staff\n  WHERE ((staff.id = inventory_change_requests.requested_by_staff_id) AND (staff.active = true))))))"
+      },
+      {
+        "t": "inventory_change_requests",
+        "name": "icr read open",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "true",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "admins_staff_all_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM customers\n  WHERE ((customers.phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text)) AND (customers.role = ANY (ARRAY['admin'::text, 'staff'::text])))))",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "anon_insert_offline_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "anon"
+        ],
+        "cmd": "INSERT",
+        "qual": null,
+        "check": "true"
+      },
+      {
+        "t": "offline_sales",
+        "name": "anon_read_offline_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "anon"
+        ],
+        "cmd": "SELECT",
+        "qual": "true",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "anon_read_own_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "anon"
+        ],
+        "cmd": "SELECT",
+        "qual": "true",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "auth read offline_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "customers_read_own_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "(customer_phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text))",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "offline_sales own by phone",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "((auth.role() = 'authenticated'::text) AND ((customer_id = my_customer_id()) OR (customer_phone = my_phone())))",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "offline_sales staff insert",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "INSERT",
+        "qual": null,
+        "check": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))"
+      },
+      {
+        "t": "offline_sales",
+        "name": "offline_sales staff update",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "UPDATE",
+        "qual": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))",
+        "check": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))"
+      },
+      {
+        "t": "staff",
+        "name": "admins_all_staff",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM customers\n  WHERE ((customers.phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text)) AND (customers.role = 'admin'::text))))",
+        "check": null
+      },
+      {
+        "t": "staff",
+        "name": "anon_read_active_staff",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "anon"
+        ],
+        "cmd": "SELECT",
+        "qual": "(active = true)",
+        "check": null
+      },
+      {
+        "t": "staff",
+        "name": "auth read staff",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      },
+      {
+        "t": "staff",
+        "name": "staff admin write",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "ALL",
+        "qual": "(my_role() = 'admin'::text)",
+        "check": "(my_role() = 'admin'::text)"
+      },
+      {
+        "t": "staff",
+        "name": "staff_read_own",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "(active = true)",
+        "check": null
+      },
+      {
+        "t": "support_tickets",
+        "name": "auth read support_tickets",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      }
+    ],
+    "anon_grants": [
+      "channel_inventory:DELETE",
+      "channel_inventory:INSERT",
+      "channel_inventory:REFERENCES",
+      "channel_inventory:SELECT",
+      "channel_inventory:TRIGGER",
+      "channel_inventory:TRUNCATE",
+      "channel_inventory:UPDATE",
+      "channels:DELETE",
+      "channels:INSERT",
+      "channels:REFERENCES",
+      "channels:SELECT",
+      "channels:TRIGGER",
+      "channels:TRUNCATE",
+      "channels:UPDATE",
+      "inventory_change_requests:DELETE",
+      "inventory_change_requests:INSERT",
+      "inventory_change_requests:REFERENCES",
+      "inventory_change_requests:SELECT",
+      "inventory_change_requests:TRIGGER",
+      "inventory_change_requests:TRUNCATE",
+      "inventory_change_requests:UPDATE",
+      "offline_sales:DELETE",
+      "offline_sales:INSERT",
+      "offline_sales:REFERENCES",
+      "offline_sales:SELECT",
+      "offline_sales:TRIGGER",
+      "offline_sales:TRUNCATE",
+      "offline_sales:UPDATE",
+      "staff:DELETE",
+      "staff:INSERT",
+      "staff:REFERENCES",
+      "staff:SELECT",
+      "staff:TRIGGER",
+      "staff:TRUNCATE",
+      "staff:UPDATE",
+      "support_tickets:DELETE",
+      "support_tickets:INSERT",
+      "support_tickets:REFERENCES",
+      "support_tickets:SELECT",
+      "support_tickets:TRIGGER",
+      "support_tickets:TRUNCATE",
+      "support_tickets:UPDATE"
+    ]
+  },
+  "rollback_probe": {
+    "anon_read_staff": 2,
+    "anon_read_inventory": 4,
+    "anon_read_sales": 2,
+    "anon_read_channels": 2,
+    "anon_update_inventory": {
+      "ok": true,
+      "out": "1"
+    },
+    "anon_insert_sale": {
+      "ok": true,
+      "out": "inserted"
+    },
+    "customer_read_icr": 1,
+    "customer_insert_icr_with_staff_id": {
+      "ok": true,
+      "out": "inserted"
+    },
+    "staff_read_inventory": 4,
+    "staff_update_sold": {
+      "ok": true,
+      "out": "1"
+    },
+    "staff_insert_sale": {
+      "ok": true,
+      "out": "inserted"
+    },
+    "staff_read_icr": 1,
+    "staff_insert_icr": {
+      "ok": true,
+      "out": "inserted"
+    }
+  },
+  "clean": true,
+  "final": {
+    "policies": [
+      {
+        "t": "channel_inventory",
+        "name": "admins_all_inventory",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM customers\n  WHERE ((customers.phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text)) AND (customers.role = ANY (ARRAY['admin'::text, 'staff'::text])))))",
+        "check": null
+      },
+      {
+        "t": "channel_inventory",
+        "name": "auth read channel_inventory",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      },
+      {
+        "t": "channel_inventory",
+        "name": "inventory staff write",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "ALL",
+        "qual": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))",
+        "check": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))"
+      },
+      {
+        "t": "channel_inventory",
+        "name": "read_inventory",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "true",
+        "check": null
+      },
+      {
+        "t": "channels",
+        "name": "admins_all_channels",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM customers\n  WHERE ((customers.phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text)) AND (customers.role = ANY (ARRAY['admin'::text, 'staff'::text])))))",
+        "check": null
+      },
+      {
+        "t": "channels",
+        "name": "auth read channels",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      },
+      {
+        "t": "channels",
+        "name": "channels admin write",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "ALL",
+        "qual": "(my_role() = 'admin'::text)",
+        "check": "(my_role() = 'admin'::text)"
+      },
+      {
+        "t": "channels",
+        "name": "read_active_channels",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "(active = true)",
+        "check": null
+      },
+      {
+        "t": "inventory_change_requests",
+        "name": "icr insert staff admin",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "INSERT",
+        "qual": null,
+        "check": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))"
+      },
+      {
+        "t": "inventory_change_requests",
+        "name": "icr read staff admin",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "admins_staff_all_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM customers\n  WHERE ((customers.phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text)) AND (customers.role = ANY (ARRAY['admin'::text, 'staff'::text])))))",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "auth read offline_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "customers_read_own_sales",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "(customer_phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text))",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "offline_sales own by phone",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "((auth.role() = 'authenticated'::text) AND ((customer_id = my_customer_id()) OR (customer_phone = my_phone())))",
+        "check": null
+      },
+      {
+        "t": "offline_sales",
+        "name": "offline_sales staff insert",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "INSERT",
+        "qual": null,
+        "check": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))"
+      },
+      {
+        "t": "offline_sales",
+        "name": "offline_sales staff update",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "UPDATE",
+        "qual": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))",
+        "check": "(my_role() = ANY (ARRAY['admin'::text, 'staff'::text]))"
+      },
+      {
+        "t": "staff",
+        "name": "admins_all_staff",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM customers\n  WHERE ((customers.phone = ((auth.jwt() -> 'user_metadata'::text) ->> 'phone'::text)) AND (customers.role = 'admin'::text))))",
+        "check": null
+      },
+      {
+        "t": "staff",
+        "name": "auth read staff",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      },
+      {
+        "t": "staff",
+        "name": "staff admin write",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "ALL",
+        "qual": "(my_role() = 'admin'::text)",
+        "check": "(my_role() = 'admin'::text)"
+      },
+      {
+        "t": "staff",
+        "name": "staff_read_own",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "(active = true)",
+        "check": null
+      },
+      {
+        "t": "support_tickets",
+        "name": "auth read support_tickets",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "public"
+        ],
+        "cmd": "SELECT",
+        "qual": "(auth.role() = 'authenticated'::text)",
+        "check": null
+      }
+    ],
+    "anon_grants": []
+  },
+  "final_equals_after": true,
+  "final_probe": {
+    "anon_read_staff": "HTTP 401",
+    "anon_read_inventory": "HTTP 401",
+    "anon_read_sales": "HTTP 401",
+    "anon_read_channels": "HTTP 401",
+    "anon_update_inventory": {
+      "ok": false,
+      "error": "permission denied for table channel_inventory"
+    },
+    "anon_insert_sale": {
+      "ok": false,
+      "error": "permission denied for table offline_sales"
+    },
+    "customer_read_icr": 0,
+    "customer_insert_icr_with_staff_id": {
+      "ok": false,
+      "error": "new row violates row-level security policy for table \"inventory_change_requests\""
+    },
+    "staff_read_inventory": 4,
+    "staff_update_sold": {
+      "ok": true,
+      "out": "1"
+    },
+    "staff_insert_sale": {
+      "ok": true,
+      "out": "inserted"
+    },
+    "staff_read_icr": 1,
+    "staff_insert_icr": {
+      "ok": true,
+      "out": "inserted"
+    }
+  },
+  "log": [
+    "BEFORE: 28 policies on the 6 tables; anon policies = 7; anon grants = 42",
+    "\n── BEFORE A2",
+    "  anon_read_staff                      2",
+    "  anon_read_inventory                  4",
+    "  anon_read_sales                      2",
+    "  anon_read_channels                   2",
+    "  anon_update_inventory                OK → 1",
+    "  anon_insert_sale                     OK → inserted",
+    "  customer_read_icr                    1",
+    "  customer_insert_icr_with_staff_id    OK → inserted",
+    "  staff_read_inventory                 4",
+    "  staff_update_sold                    OK → 1",
+    "  staff_insert_sale                    OK → inserted",
+    "  staff_read_icr                       1",
+    "  staff_insert_icr                     OK → inserted",
+    "\n>>> applying A2 (staging)",
+    "AFTER: anon policies = 0; anon grants = 0; ICR policies = icr insert staff admin, icr read staff admin",
+    "\n── AFTER A2",
+    "  anon_read_staff                      HTTP 401",
+    "  anon_read_inventory                  HTTP 401",
+    "  anon_read_sales                      HTTP 401",
+    "  anon_read_channels                   HTTP 401",
+    "  anon_update_inventory                DENIED (permission denied for table channel_inventory)",
+    "  anon_insert_sale                     DENIED (permission denied for table offline_sales)",
+    "  customer_read_icr                    0",
+    "  customer_insert_icr_with_staff_id    DENIED (new row violates row-level security policy for table \"inventory_change_requests\")",
+    "  staff_read_inventory                 4",
+    "  staff_update_sold                    OK → 1",
+    "  staff_insert_sale                    OK → inserted",
+    "  staff_read_icr                       1",
+    "  staff_insert_icr                     OK → inserted",
+    "\nanonymous fully closed: YES · logged-in legacy staff path still works: YES",
+    "\n>>> regressions (AFTER A2): S0.2 seller flow + all DB suites",
+    "  S0.2 seller flow: PASS · DB suites: ALL PASS\n  == f360_tests (15 checks) | == f360_p21_tests (34 checks) | == f360_p22_tests (25 checks) | == f360_p23a_tests (28 checks) | == f360_b4_tests (15 checks) | == f360_c1c2_tests (27 checks) | == f360_s02_tests (28 checks) | ALL PASS",
+    "\n>>> rollback A2 (staging)",
+    "rollback restores the exact BEFORE policies + grants: YES (identical)",
+    "\n── AFTER ROLLBACK",
+    "  anon_read_staff                      2",
+    "  anon_read_inventory                  4",
+    "  anon_read_sales                      2",
+    "  anon_read_channels                   2",
+    "  anon_update_inventory                OK → 1",
+    "  anon_insert_sale                     OK → inserted",
+    "  customer_read_icr                    1",
+    "  customer_insert_icr_with_staff_id    OK → inserted",
+    "  staff_read_inventory                 4",
+    "  staff_update_sold                    OK → 1",
+    "  staff_insert_sale                    OK → inserted",
+    "  staff_read_icr                       1",
+    "  staff_insert_icr                     OK → inserted",
+    "\n>>> rehearsal clean → re-applying A2 on staging",
+    "final state = first AFTER state: YES",
+    "\n── FINAL (A2 re-applied)",
+    "  anon_read_staff                      HTTP 401",
+    "  anon_read_inventory                  HTTP 401",
+    "  anon_read_sales                      HTTP 401",
+    "  anon_read_channels                   HTTP 401",
+    "  anon_update_inventory                DENIED (permission denied for table channel_inventory)",
+    "  anon_insert_sale                     DENIED (permission denied for table offline_sales)",
+    "  customer_read_icr                    0",
+    "  customer_insert_icr_with_staff_id    DENIED (new row violates row-level security policy for table \"inventory_change_requests\")",
+    "  staff_read_inventory                 4",
+    "  staff_update_sold                    OK → 1",
+    "  staff_insert_sale                    OK → inserted",
+    "  staff_read_icr                       1",
+    "  staff_insert_icr                     OK → inserted"
+  ]
+}

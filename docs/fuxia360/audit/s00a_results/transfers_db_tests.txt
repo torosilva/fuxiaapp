@@ -1,0 +1,89 @@
+== f360_transfers_tests (86 checks)
+PASS | fixture: origin has 5 + 1 pairs | 
+PASS | request (seller assigned to destination) does NOT change stock | T-000067
+PASS | double-click on request (same key) → one transfer | T-000067
+PASS | a key already used by another person is refused | Esa operación ya se registró con otros datos. Recarga la página.
+PASS | seller WITHOUT assignment cannot request | Solo puedes pedir mercancía para una ubicación que tienes asignada.
+PASS | seller cannot request-and-send | Solo operación puede enviar mercancía.
+PASS | viewer cannot request | Tu cuenta no tiene permiso para esta acción.
+PASS | anonymous cannot call any transfer RPC | permission denied for function f360_request_transfer
+PASS | anonymous cannot even list transfers | permission denied for function f360_list_transfers
+PASS | lines accept only variant + quantity (no client location/role) | Solo se aceptan talla y cantidad (campo "location_id").
+PASS | negative quantities refused | Las cantidades deben ser números enteros, sin negativos.
+PASS | legacy destination refused (no transfers for ledger_authority=legacy) | ZZ T Legacy todavía lleva su inventario en el sistema anterior. Se podrá operar aquí cuando se migre
+PASS | legacy origin refused | ZZ T Legacy todavía lleva su inventario en el sistema anterior. Se podrá operar aquí cuando se migre
+PASS | "En camino" cannot be chosen as origin/destination | Elige una ubicación válida.
+PASS | balances = ledger after: requests | mismatches=0
+PASS | seller cannot send (not even her own request) | Solo operación puede enviar mercancía.
+PASS | viewer cannot send | Solo operación puede enviar mercancía.
+PASS | send: origin −2 → En camino +2; destination NOT increased | A=3 transit=2 B=0
+PASS | double-click on send (same key) → stock changed exactly once | in_transit
+PASS | second send with another key refused (status re-checked under lock) | La transferencia T-000067 ya no está pendiente de envío (in_transit).
+PASS | cancel after send refused | Solo se puede cancelar una transferencia que no se ha enviado.
+PASS | send is a TRANSFER event in the single ledger | 
+PASS | balances = ledger after: send | mismatches=0
+PASS | En camino is not listed as a location | 
+PASS | destination shows 2 pairs incoming (apart from its stock) | 
+PASS | Inicio: available and in-transit are separate numbers | available=20 in_transit=2
+PASS | inventory by location excludes En camino | 
+PASS | product: En camino not in location balances, shown as in_transit | 2
+PASS | nobody can be assigned to En camino (so no shift / sale there) | "En camino" no es una ubicación donde se pueda trabajar.
+PASS | merchandise cannot be received directly into En camino | Elige una ubicación válida.
+PASS | En camino: sellable=false, not an online fulfillment location | 
+PASS | En camino never offered to start a shift | 
+PASS | seller NOT assigned to the destination cannot receive | Transferencia no encontrada.
+PASS | viewer cannot receive | Tu cuenta no tiene permiso para esta acción.
+PASS | revoked assignment cuts permission immediately | Transferencia no encontrada.
+PASS | received > sent refused | No puedes recibir más pares de los que se enviaron.
+PASS | seller assigned to destination confirms → exact receipt: En camino −2, destination +2 | received
+PASS | second receipt refused | La transferencia T-000067 no está en camino (received).
+PASS | balances = ledger after: exact receipt | mismatches=0
+PASS | operator request+send in one step (atomic) | in_transit
+PASS | partial receipt → with_difference; received pairs reach destination | with_difference
+PASS | sent and received recorded per variant; 1 pair outstanding | {"sent": 3, "received": 2, "returned": 0, "requested": 3, "outstanding": 1, "written_off": 0}
+PASS | the missing pair does NOT disappear: still in En camino, identified by the transfer | 
+PASS | listed under "Con diferencia" until resolved | {"requested": 0, "in_transit": 0, "with_difference": 1}
+PASS | balances = ledger after: partial receipt | mismatches=0
+PASS | seller cannot resolve a difference | Solo operación puede resolver una diferencia.
+PASS | resolution without reason refused | Escribe el motivo.
+PASS | cannot resolve more than the outstanding quantity | Solo faltan 1 pares de Paula · Camel · 35.
+PASS | resolve by RETURN: En camino → origin; transfer closed | closed
+PASS | RETURN event in the ledger carries the reason | 
+PASS | balances = ledger after: resolve by return | mismatches=0
+PASS | receipt of 0 → with_difference, pair stays En camino | with_difference
+PASS | resolve by WRITE_OFF (baja con motivo): leaves En camino, closed | closed
+PASS | WRITE_OFF event recorded with reason | 
+PASS | balances = ledger after: write-off | mismatches=0
+PASS | two requests for the last pair: both recorded, nothing reserved | 
+PASS | first send takes the last pair | 
+PASS | second send refused; origin never negative; request stays pending | No hay suficientes pares de Paula · Camel · 35 en ZZ T Bodega (hay 0, quieres enviar 1). No se envió
+PASS | partial send quantities (≤ requested) accepted | 
+PASS | one short line → whole send refused, nothing moved (and no request left behind) | No hay suficientes pares de Paula · Camel · 36 en ZZ T Tienda (hay 0, quieres enviar 5). No se envió
+PASS | cannot send more than requested | No puedes enviar más pares de los solicitados.
+PASS | unrelated seller cannot cancel | Transferencia no encontrada.
+PASS | cancel a pending request (no stock effect) | 
+PASS | balances = ledger after: last pair / cancel | mismatches=0
+PASS | seller without assignment sees none of B's transfers | 0
+PASS | seller without assignment cannot open a B transfer | Transferencia no encontrada.
+PASS | assigned seller sees her transfer; "send" not offered | {"send": false, "cancel": false, "receive": false, "resolve": false}
+PASS | fixture: a variant linked to the online store exists | 
+PASS | request from the online bodega: no Woo push (nothing moved) | 
+PASS | send from the online bodega queues a Woo stock push immediately (pairs no longer sellable online) | 
+PASS | online availability = bodega on hand (En camino never counted) | 5
+PASS | sent TO the online bodega: no push while en camino | 
+PASS | push queued when the online bodega confirms receipt | 
+PASS | balances = ledger after: online bodega round trip | mismatches=0
+PASS | every transition audited: actor, time, origin, destination, variants and quantities | {request,send,receive,resolve}
+PASS | transfer origin/destination cannot be edited (even by the database owner) | Una transferencia no se puede editar.
+PASS | status cannot go backwards | Cambio de estado no permitido (closed → requested).
+PASS | received quantity cannot be rewritten | Una transferencia no se puede editar.
+PASS | transfer cannot be deleted | Una transferencia no se puede borrar.
+PASS | transfer audit is append-only | Este historial no se puede modificar (f360.transfer_changes)
+PASS | ledger movements of a transfer are append-only | El historial de inventario no se puede modificar (f360.inventory_movements)
+PASS | clients cannot touch transfer tables directly | permission denied for schema f360
+PASS | no write to public.channel_inventory in any scenario | 
+PASS | no legacy sale created | 
+PASS | no second ledger (public.inventory_events does not exist) | 
+PASS | balances = ledger after: all scenarios | mismatches=0
+
+ALL PASS

@@ -1,0 +1,12 @@
+HTTP/2 302 
+server: nginx
+date: Mon, 28 Sep 2026 18:28:03 GMT
+content-type: text/html; charset=UTF-8
+location: https://staging4.fuxiaballerinas.com/mx/
+set-cookie: fuxia_geo_country=MX; expires=Tue, 29 Sep 2026 18:28:03 GMT; Max-Age=86400; path=/; secure; SameSite=Lax
+set-cookie: fuxia_geo_redirect_done=1; expires=Tue, 29 Sep 2026 18:28:03 GMT; Max-Age=86400; path=/; secure; SameSite=Lax
+x-httpd: 1
+host-header: 6b7412fb82ca5edfd0917e3957f05d89
+x-proxy-cache: MISS
+x-proxy-cache-info: d302 NC:000000 UP:SKIP_CACHE_SET_COOKIE
+

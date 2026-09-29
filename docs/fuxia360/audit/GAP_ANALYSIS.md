@@ -84,3 +84,5 @@ Legend: ✅ exists and reusable · 🟡 partial / needs hardening · ❌ missing
 10. How Woo's stock number is maintained today, given that online orders are fulfilled from distributed locations and make-to-order also exists: which pairs it represents, and who changes it and when. Not a Sprint 0 item (Q12); resolved during Product/Inventory/Availability/Fulfillment/Production design.
 11. Whether the old Woo REST keys were revoked (BACKLOG #14 says yes).
 12. Production data quality: duplicate cards, duplicate inventory rows, oversold rows, duplicate PINs (SCHEMA_AUDIT §7).
+
+> **Note 2026-09-25 (D-X1):** any mention above of a new `public.inventory_events` table is superseded: the single ledger is `f360.inventory_events`/`f360.inventory_movements` (see `ops/TRACK_C_BOUNDARY_S0.md`).

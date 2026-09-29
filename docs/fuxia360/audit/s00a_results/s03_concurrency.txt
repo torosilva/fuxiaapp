@@ -1,0 +1,8 @@
+PASS | two simultaneous sales of the last pair → exactly one succeeds; stock never negative | wins=1 sold=1 loser="No hay existencia suficiente de ZZ Último par Negro 37 (quedan 0). Pide un ajuste de inventario."
+PASS | two simultaneous sales to the same card → 100 + 100 = 200 (no lost update) | points=200
+PASS | 10 simultaneous loyalty credits → exactly +1000 | points=1200
+PASS | simultaneous double tap (same key) → one sale; both calls get the same sale | sales=1 d1=37858dbc-bc36-4320-8f51-d933970ea9d1 d2=37858dbc-bc36-4320-8f51-d933970ea9d1
+PASS | stock of the busy row reflects exactly the successful sales | sold=3
+PASS | Growth facts = one per successful sale | facts=4
+PASS | synthetic fixtures removed | left=0
+ALL PASS

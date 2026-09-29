@@ -1,0 +1,82 @@
+// f360-woo-publish — runs ONE publish job created by public.f360_request_publish.
+// Security:
+//   · the caller's Supabase JWT is verified (auth/v1/user) and must belong to an f360 OWNER (DW8), checked here AND
+//     again inside f360_pub_claim, which also requires the caller to be the person who requested the job;
+//   · Woo credentials come only from this function's environment and are used ONLY for the target they belong to
+//     (WOO_TARGET_KEY + WOO_BASE_URL must match the job's target), so ids of one store never mix with another;
+//   · production targets are refused in P2.2.
+// Runtime-agnostic: index.ts serves it on Deno (Edge Functions); scripts/f360/publisher_local.ts serves it on Node.
+import { publish } from '../_shared/f360-woo/publisher.ts';
+import { restAdapter } from '../_shared/f360-woo/rest.ts';
+import type { PublishOutcome, Recorder, Snapshot, WooAdapter } from '../_shared/f360-woo/types.ts';
+
+export type PublisherEnv = {
+  SUPABASE_URL: string; SUPABASE_ANON_KEY: string; SUPABASE_SERVICE_ROLE_KEY: string;
+  WOO_TARGET_KEY: string; WOO_BASE_URL: string; WOO_USER: string; WOO_SECRET: string;
+  /** Public base for product photos (defaults to SUPABASE_URL). */
+  STORAGE_PUBLIC_BASE?: string;
+};
+export type HandlerOptions = { wrapAdapter?: (a: WooAdapter) => WooAdapter };
+
+const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
+const trimUrl = (u: string) => u.trim().replace(/\/+$/, '').toLowerCase();
+
+async function rpc<T>(env: PublisherEnv, fn: string, args: Record<string, unknown>, token: string): Promise<T> {
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: 'POST',
+    headers: { apikey: token === env.SUPABASE_SERVICE_ROLE_KEY ? env.SUPABASE_SERVICE_ROLE_KEY : env.SUPABASE_ANON_KEY, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(args),
+  });
+  const text = await res.text();
+  const body = text ? JSON.parse(text) : null;
+  if (!res.ok) throw new Error((body && (body.message as string)) || `rpc ${fn} → ${res.status}`);
+  return body as T;
+}
+
+export async function handle(req: Request, env: PublisherEnv, opts: HandlerOptions = {}): Promise<Response> {
+  if (req.method !== 'POST') return json({ error: 'Método no permitido.' }, 405);
+  for (const k of ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'WOO_TARGET_KEY', 'WOO_BASE_URL', 'WOO_USER', 'WOO_SECRET'] as const) {
+    if (!env[k]) return json({ error: 'El publicador no está configurado.' }, 500);
+  }
+  const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+  if (!token) return json({ error: 'Falta la sesión.' }, 401);
+  let jobId: string;
+  try { jobId = String(((await req.json()) as { job_id?: string }).job_id ?? ''); } catch { return json({ error: 'Solicitud no válida.' }, 400); }
+  if (!/^[0-9a-f-]{36}$/i.test(jobId)) return json({ error: 'Solicitud no válida.' }, 400);
+
+  // 1 · Who is calling? (verified by Supabase Auth, not by anything the client says)
+  const u = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, { headers: { apikey: env.SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` } });
+  if (!u.ok) return json({ error: 'Tu sesión no es válida. Vuelve a entrar.' }, 401);
+  const user = (await u.json()) as { id: string };
+  let me: { role: string };
+  try { me = await rpc<{ role: string }>(env, 'f360_me', {}, token); } catch { return json({ error: 'Esta cuenta no tiene acceso a Fuxia 360.' }, 403); }
+  if (me.role !== 'owner') return json({ error: 'Solo una dueña puede publicar.' }, 403);
+
+  // 2 · Claim (re-checks owner + requester + readiness in the database; locks the codes)
+  const svc = env.SUPABASE_SERVICE_ROLE_KEY;
+  let snap: Snapshot;
+  try { snap = await rpc<Snapshot>(env, 'f360_pub_claim', { p_job_id: jobId, p_caller: user.id }, svc); }
+  catch (e) { return json({ error: (e as Error).message }, 409); }
+
+  const rec: Recorder = {
+    step: (s) => rpc(env, 'f360_pub_step', { p_job_id: jobId, p_step: s.step, p_object_ref: s.ref ?? null, p_action: s.action,
+      p_woo_id: s.wooId ?? null, p_ok: s.ok, p_message: s.message ?? null, p_detail: s.detail ?? null }, svc).then(() => undefined),
+    link: (kind, id, wooId, extra) => rpc(env, 'f360_pub_link', { p_job_id: jobId, p_kind: kind, p_f360_id: id, p_woo_id: wooId, p_extra: extra ?? {} }, svc).then(() => undefined),
+  };
+
+  // 3 · The credentials in this environment must belong to the job's target.
+  let outcome: PublishOutcome;
+  if (snap.target.key !== env.WOO_TARGET_KEY || trimUrl(snap.target.base_url) !== trimUrl(env.WOO_BASE_URL)) {
+    const message = `Este publicador está configurado para otra tienda (${env.WOO_TARGET_KEY}); no se tocó nada.`;
+    await rec.step({ step: 'preflight', action: 'error', ok: false, message });
+    outcome = { status: 'failed', error: message, summary: { woo_product_id: null, woo_status: null, variations: 0, created: 0, updated: 0, hidden: 0, stock_pushed: 0, mismatches: [] } };
+  } else {
+    let adapter = restAdapter({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET });
+    if (opts.wrapAdapter) adapter = opts.wrapAdapter(adapter);
+    outcome = await publish(snap, adapter, rec, { storageBase: env.STORAGE_PUBLIC_BASE || env.SUPABASE_URL, allowProduction: false });
+  }
+
+  // 4 · Close the job (only a read-back-verified run records the published hash)
+  const job = await rpc(env, 'f360_pub_finish', { p_job_id: jobId, p_status: outcome.status, p_error: outcome.error, p_summary: outcome.summary }, svc);
+  return json({ job, outcome: { status: outcome.status, error: outcome.error, summary: outcome.summary } });
+}

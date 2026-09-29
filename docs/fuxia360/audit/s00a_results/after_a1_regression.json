@@ -1,0 +1,111 @@
+{
+  "phase": "regression",
+  "ranAt": "2026-09-25T00:59:26.173Z",
+  "target": "staging faltxpkaicwpnlqaxrdu",
+  "results": [
+    {
+      "id": "R1",
+      "actor": "new user (+15550100031)",
+      "operation": "seed OTP row → whatsapp-otp verify → insert customer → insert card",
+      "expected": "customer + 1 bronze card",
+      "actual": "otp 201; verify HTTP 200 isNewUser=true; customer HTTP 201 rows=1; card HTTP 201 rows=1; [T27 baseline] app_metadata.verified_phone=null",
+      "verdict": "PASS"
+    },
+    {
+      "id": "R2",
+      "actor": "C1",
+      "operation": "login; avatar upload; update avatar_url and country",
+      "expected": "all succeed",
+      "actual": "upload 200; avatar_url HTTP 200 rows=1; country HTTP 200 rows=1",
+      "verdict": "PASS (API) + MANUAL REQUIRED (app UI)"
+    },
+    {
+      "id": "R3",
+      "actor": "WooCommerce (synthetic signed payload)",
+      "operation": "order 990000002 'processing' then 'refunded'",
+      "expected": "+100 pts then reversed",
+      "actual": "processing HTTP 200 {\"ok\":true,\"order_id\":990000002,\"points_earned\":100,\"pairs_added\":1,\"new_total_points\":200,\"tier\":\"bronze\",\"is_first_purchase\":false} pts 100->200; refunded HTTP 200 {\"ok\":true,\"reversed\":true,\"order_id\":990000002} ->100",
+      "verdict": "PASS"
+    },
+    {
+      "id": "R4",
+      "actor": "C1",
+      "operation": "link-orders twice",
+      "expected": "orphan 990000101 credited once",
+      "actual": "1st HTTP 200 {\"ok\":true,\"linked\":1,\"points\":100,\"pairs\":1,\"new_total_points\":200}; 2nd HTTP 200 {\"ok\":true,\"linked\":0,\"points\":0}; pts 100->200",
+      "verdict": "PASS"
+    },
+    {
+      "id": "R5",
+      "actor": "C1",
+      "operation": "my-orders",
+      "expected": "customer resolved; Woo call fails by design",
+      "actual": "HTTP 500",
+      "verdict": "PARTIAL"
+    },
+    {
+      "id": "R6",
+      "actor": "S1 (seller)",
+      "operation": "read inventory, decrement sold, claim-sale scan_qr",
+      "expected": "sold +1, sale recorded, +100 pts",
+      "actual": "inventory HTTP 200 rows=3; decrement HTTP 200 rows=1; scan_qr HTTP 200 {\"ok\":true,\"points_earned\":100,\"new_total_points\":300,\"tier\":\"silver\",\"customer_name\":\"STAGING\"}; pts 200->300; store purchase_items_saved=0",
+      "verdict": "PASS (API) + MANUAL REQUIRED (app UI)"
+    },
+    {
+      "id": "R7",
+      "actor": "S1 → M1",
+      "operation": "seller creates ICR; admin approves",
+      "expected": "approved; stock 7",
+      "actual": "insert HTTP 201 rows=1; approve HTTP 200 {\"ok\":true,\"status\":\"approved\"}; stock=7",
+      "verdict": "PASS (API) + MANUAL REQUIRED (app UI)"
+    },
+    {
+      "id": "R8",
+      "actor": "M1 (admin)",
+      "operation": "create channel/staff, edit stock, Today/report reads, points search/adjust, broadcast",
+      "expected": "all succeed",
+      "actual": "channel 201; staff 201; stock HTTP 200 rows=1; sales HTTP 200 rows=3; customers_visible=1; search 200 n=6; adjust HTTP 200 {\"ok\":true,\"new_total\":310,\"tier\":\"silver\",\"applied\":10} pts 300->310 audit_rows=0; broadcast HTTP 200 {\"ok\":true,\"sent_count\":0,\"note\":\"No hay tokens registrados en ese segmento\"}; import-woo UNAVAILABLE",
+      "verdict": "PASS (API; import-woo UNAVAILABLE) + MANUAL REQUIRED (app UI)"
+    },
+    {
+      "id": "R9",
+      "actor": "C1",
+      "operation": "own unclaimed sales",
+      "expected": "STGA01 visible",
+      "actual": "HTTP 200 rows=1",
+      "verdict": "PASS (API) + MANUAL REQUIRED (app UI)"
+    },
+    {
+      "id": "R10",
+      "actor": "C1 (app sends anon JWT)",
+      "operation": "claim-sale code 'STGA01'",
+      "expected": "+100 pts; sale claimed",
+      "actual": "HTTP 200 {\"ok\":true,\"points_earned\":100,\"new_total_points\":410,\"tier\":\"silver\"} pts 310->410; store purchase_items_saved=0",
+      "verdict": "PASS"
+    },
+    {
+      "id": "R11",
+      "actor": "C2",
+      "operation": "delete-account (own)",
+      "expected": "C2 deleted; C1 intact",
+      "actual": "HTTP 200 {\"success\":true} c2_left=0 c1_left=1",
+      "verdict": "PASS"
+    },
+    {
+      "id": "R12",
+      "actor": "service_role",
+      "operation": "rpc fx_add_points; rpc award_birthday_points",
+      "expected": "both callable",
+      "actual": "fx_add_points HTTP 200 411; award_birthday_points HTTP 200 {\"reason\":\"no_birthday\",\"awarded\":false}",
+      "verdict": "PASS"
+    },
+    {
+      "id": "R13",
+      "actor": "C1",
+      "operation": "wishlist add/remove; register push token",
+      "expected": "all succeed",
+      "actual": "wish+ HTTP 403 {\"code\":\"42501\",\"details\":null,\"hint\":\"Grant the required privileges to the current role with: GRANT SELECT ON auth.users TO authenticated;\",\"message\":\"permissi; wish- HTTP 403 {\"code\":\"42501\",\"details\":null,\"hint\":\"Grant the required privileges to the current role with: GRANT SELECT ON auth.users TO authenticated;\",\"message\":\"permissi; token HTTP 201 rows=1",
+      "verdict": "FAIL"
+    }
+  ]
+}

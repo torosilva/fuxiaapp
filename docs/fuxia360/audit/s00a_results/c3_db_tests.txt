@@ -1,0 +1,89 @@
+SNAP | before | {"cutover": null, "legacy_units": {"Paula · Camel · 35": 2, "Paula · Camel · 36": 1, "Paula · Camel · 37": 0, "ZZ Modelo viejo · Rosa · 38": 2}, "f360_balances": {}, "opening_events": 0, "ledger_authority": "legacy"}
+SNAP | after  | {"cutover": "completed", "legacy_units": {"Paula · Camel · 35": 2, "Paula · Camel · 36": 1, "Paula · Camel · 37": 0, "ZZ Modelo viejo · Rosa · 38": 2}, "f360_balances": {"Paula · Camel · 35": 2, "Paula · Camel · 36": 1, "Paula · Camel · 38": 2}, "opening_events": 1, "ledger_authority": "f360"}
+PASS | fixture: seller shifts at the pilot (A) and the other legacy store (B) | 
+PASS | online location = the active sales target's fulfillment location (new/reordered warehouses change nothing) | Bodega CDMX
+PASS | BEFORE: legacy store sells through the legacy branch (channel_inventory) | legacy
+PASS | a cutover only applies to a legacy location | 
+PASS | C2: 3 Paula rows proposed, 1 legacy model with stock has no F360 match | {"note": "Listo de catálogo no significa migrar: el saldo inicial sale de un conteo físico (C3).", "location":
+PASS | a seller cannot start a cutover | Tu cuenta no tiene permiso para esta acción.
+PASS | anonymous cannot start a cutover | permission denied for function f360_start_cutover
+PASS | start: status preparing; who/when audited | preparing
+PASS | start is idempotent (same key) | 
+PASS | only one cutover in progress per location | ZZ C3 Tienda piloto ya tiene un corte en curso.
+PASS | sale during the cutover refused | ZZ C3 Tienda piloto está en corte de inventario: no se puede vender hasta terminar el conteo.
+PASS | old app path (legacy staff decrements stock) refused during the cutover | Esta tienda está en corte de inventario: no se puede vender ni cambiar existencias hasta terminar.
+PASS | even a privileged write to the legacy stock is refused during the cutover | Esta tienda está en corte de inventario: no se puede vender ni cambiar existencias hasta terminar.
+PASS | old app path (client inserts a sale) refused during the cutover | Esta tienda está en corte de inventario: registra la venta con el flujo de Fuxia 360.
+PASS | receipt refused during the cutover | ZZ C3 Tienda piloto está en corte de inventario: no se puede mover mercancía hasta terminar.
+PASS | transfer to/from a location in cutover refused | ZZ C3 Tienda piloto está en corte de inventario: no se puede mover mercancía hasta terminar.
+PASS | ledger_authority cannot become f360 without a completed verified cutover (even directly) | Solo un corte con conteo físico verificado puede migrar esta ubicación.
+PASS | viewer cannot count | No tienes permiso para contar en esta ubicación.
+PASS | A counts by variant (model → color → size → quantity) | counting
+PASS | cannot finish while a size with legacy units is uncounted | Faltan 1 tallas por contar (escribe 0 si no hay pares).
+PASS | count finished → verification | verification
+PASS | the same person cannot count AND verify | Doble control: quien contó no puede verificar su propio conteo.
+PASS | blind verification: B cannot see A's numbers | 
+PASS | mismatch detected (A 1 vs B 2): back to counting, both numbers shown for that size | counting
+PASS | a mismatch blocks the cutover | El corte no está listo (estado: counting). Falta verificar el conteo.
+PASS | recount + verification complete → ready | ready
+PASS | legacy product with stock but no C2 mapping → cutover refused; location still legacy; no opening event | C2 incompleto: 1 productos con existencia en el sistema anterior no están mapeados a Fuxia 360.
+PASS | newly mapped size must be physically counted before completing | Faltan tallas por contar.
+PASS | counting reopens from ready when a size is added | counting
+PASS | double control holds per line (B counted 38, A verified it) | ready
+PASS | failure mid-cutover → complete rollback: still legacy, no opening event, no balances, still ready | fallo simulado al cambiar la autoridad
+PASS | every failed attempt is audited | 
+PASS | balances = ledger after: failed cutover attempts | mismatches=0
+PASS | cutover completed | 
+PASS | opening balances EXACTLY equal the verified count (35:2, 36:1, 38:2) | {"Paula · Camel · 35": 2, "Paula · Camel · 36": 1, "Paula · Camel · 38": 2}
+PASS | ledger_authority = f360; exactly one OPENING_PHYSICAL_COUNT event | 
+PASS | complete is idempotent (same key → same result, nothing new) | 
+PASS | cutover cannot run twice | Este corte ya se ejecutó: una ubicación solo tiene un saldo inicial.
+PASS | a migrated location cannot start another cutover (no second opening balance) | ZZ C3 Tienda piloto ya lleva su inventario en Fuxia 360.
+PASS | a second opening event for the same location is impossible (unique) | duplicate key value violates unique constraint "inventory_events_one_opening_per_location"
+PASS | C2 gate evidence stored with the cutover | 
+PASS | balances = ledger after: cutover | mismatches=0
+PASS | legacy write rejected after the cutover (old app path) | Esta tienda ya lleva su inventario en Fuxia 360: el sistema anterior quedó congelado.
+PASS | legacy rows of a migrated store cannot be deleted either | Esta tienda ya lleva su inventario en Fuxia 360: el sistema anterior quedó congelado.
+PASS | old app path cannot record a sale for a migrated store | Esta tienda ya lleva su inventario en Fuxia 360: registra la venta con el flujo de Fuxia 360.
+PASS | a client cannot forge an RPC sale row | Esta venta solo se puede registrar con el flujo de venta de Fuxia 360.
+PASS | f360 → legacy is impossible (corrections = compensating events) | Una ubicación migrada no vuelve al sistema anterior. Las correcciones se hacen con ajustes auditados.
+PASS | C2 evidence frozen after the cutover | Esta ubicación ya se migró: su mapeo quedó como evidencia y no se modifica.
+PASS | a completed cutover is immutable | Este corte ya terminó y no se puede modificar.
+PASS | its counts are immutable | Este conteo ya se cerró y no se puede modificar.
+PASS | cutover audit is append-only | Este historial no se puede modificar (f360.cutover_changes)
+PASS | a migrated store never sells legacy rows | Solo se aceptan producto y cantidad: el precio, la ubicación y la vendedora los pone el sistema (campo "channe
+PASS | a product without a master price cannot be sold (nothing moves) | Paula no tiene precio en Fuxia 360: no se puede vender.
+PASS | manipulated price refused | Solo se aceptan producto y cantidad: el precio, la ubicación y la vendedora los pone el sistema (campo "unit_p
+PASS | FIRST F360 SALE: ledger branch, master price 2400 (not the legacy 1500), stock 2 → 1 | {"ok": true, "code": null, "lines": 1, "total": 2400.00, "ledger": "f360", "points": 100, "seller": "ZZ Person
+PASS | exactly one store_sale with its line item (variant, price source) | 
+PASS | exactly one SALE event in the single ledger (location → out) | 
+PASS | exactly one loyalty credit (+100) | 100
+PASS | exactly one Customer 360 / Growth fact (source store_f360, customer linked) | 
+PASS | no write to channel_inventory | 
+PASS | retry of the sale duplicates nothing (stock, sale, loyalty, ledger) | 
+PASS | balances = ledger after: first F360 sale | mismatches=0
+PASS | cannot sell more than there is | No hay existencia suficiente de Paula Camel 36 (quedan 1).
+PASS | anonymous customer: sale ok, claim code returned, no loyalty | 
+PASS | stock zero: refused, never negative | No hay existencia suficiente de Paula Camel 36 (quedan 0).
+PASS | a size with no balance row at all: refused | No hay existencia suficiente de Paula Camel 37 (quedan 0).
+PASS | self-sale: the pair leaves, 0 loyalty, audited as self_sale | 0
+PASS | unknown customer QR → whole sale rolled back (stock untouched) | No encontramos esa tarjeta de clienta. Vuelve a escanear o registra la venta sin clienta.
+PASS | assignment revoked → cannot sell | Tu turno terminó (asignación retirada). Vuelve a iniciar turno.
+PASS | expired shift → cannot sell | Tu turno venció. Vuelve a iniciar turno con tu PIN.
+PASS | seller catalog at a migrated store = ledger stock + master price | [{"sku": "F360-PAULA-CAMEL-35", "size": "35", "color": "Camel", "price": 2400.00, "available": 1, "color_hex":
+PASS | balances = ledger after: F360 sale cases | mismatches=0
+PASS | transfer INTO the migrated store: sent, not yet there | 
+PASS | pairs en camino cannot be sold at the destination | No hay existencia suficiente de Paula Camel 37 (quedan 0).
+PASS | seller of the migrated store confirms receipt → +2 | 
+PASS | received pairs are sellable | 
+PASS | transfer OUT of the migrated store works | 
+PASS | balances = ledger after: transfers after cutover | mismatches=0
+PASS | the other store (still legacy) sells through the legacy branch | 
+PASS | its sales stop while a cutover is open | ZZ C3 Tienda sigue legacy está en corte de inventario: no se puede vender hasta terminar el conteo.
+PASS | a seller cannot cancel a cutover | Tu cuenta no tiene permiso para esta acción.
+PASS | cancel: status cancelled, still legacy | 
+PASS | after cancel the legacy store sells again | 
+PASS | a legacy channel can be linked to only one location | 
+PASS | no location is f360 with a legacy channel unless a verified cutover completed | 
+PASS | no second ledger | 
+PASS | balances = ledger after: all C3 scenarios | mismatches=0

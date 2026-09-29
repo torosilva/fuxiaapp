@@ -1,0 +1,14 @@
+BEFORE | legacy staff seller inserts a sale with a manipulated total ($1 for a $2,800 pair) | ACCEPTED (1 row)
+BEFORE | a CUSTOMER (non-seller) inserts a store sale | REFUSED: new row violates row-level security policy for table "offline_sales"
+BEFORE | anonymous inserts a store sale | REFUSED: permission denied for table offline_sales
+BEFORE | legacy staff seller decrements stock with NO sale (sold = stock) | ACCEPTED (1 row)
+BEFORE | legacy staff seller sets sold beyond stock (oversell; blocked only by the new S0.3 CHECK) | REFUSED: new row for relation "channel_inventory" violates check constraint "channel_inventory_stock_sane"
+BEFORE | legacy staff seller rewrites the price of the stock row | ACCEPTED (1 row)
+BEFORE | a CUSTOMER changes stock | ACCEPTED (0 row)
+BEFORE | legacy staff inserts the SAME sale twice (double tap = 2 sales) | ACCEPTED (2 row)
+AFTER | seller sends a price in the line | REFUSED: Solo se aceptan producto y cantidad: el precio, la ubicación y la vendedora los pone el sistema (campo "unit_p
+AFTER | seller sends a location/channel in the line | REFUSED: Solo se aceptan producto y cantidad: el precio, la ubicación y la vendedora los pone el sistema (campo "locati
+AFTER | a CUSTOMER calls the sale RPC (no shift) | REFUSED: Tu turno no es válido. Vuelve a iniciar turno.
+AFTER | anonymous calls the sale RPC | REFUSED: permission denied for function f360_record_store_sale
+AFTER | seller sells 2 of a row with 1 left | REFUSED: No hay existencia suficiente de ZZ Probe Negro 37 (quedan 1). Pide un ajuste de inventario.
+AFTER | seller sells the last pair correctly (price from server) | ACCEPTED (1 row)

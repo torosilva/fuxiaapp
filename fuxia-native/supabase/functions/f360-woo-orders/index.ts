@@ -1,0 +1,12 @@
+// Supabase Edge Function entry (Deno). NOT deployed in P2.3A (local Woo only). Deploy with --no-verify-jwt:
+// Woo cannot send a Supabase JWT; authenticity comes from the HMAC signature (WOO_WEBHOOK_SECRET).
+import { handleOrders } from './handler.ts';
+
+const env = {
+  SUPABASE_URL: Deno.env.get('SUPABASE_URL') ?? '',
+  SUPABASE_SERVICE_ROLE_KEY: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  WOO_TARGET_KEY: Deno.env.get('WOO_TARGET_KEY') ?? '',
+  WOO_WEBHOOK_SECRET: Deno.env.get('WOO_WEBHOOK_SECRET') ?? '',
+};
+
+Deno.serve((req) => handleOrders(req, env));

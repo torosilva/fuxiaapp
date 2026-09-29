@@ -1,0 +1,231 @@
+{
+  "phase": "before",
+  "ranAt": "2026-09-25T00:43:01.205Z",
+  "target": "staging faltxpkaicwpnlqaxrdu",
+  "results": [
+    {
+      "id": "T2",
+      "actor": "catalog",
+      "operation": "has_function_privilege(anon/authenticated, 6 functions, EXECUTE)",
+      "expected": "true for all",
+      "actual": "{\"fx_add_points(uuid,integer)\":{\"anon\":true,\"authenticated\":true},\"award_birthday_points(uuid)\":{\"anon\":true,\"authenticated\":true},\"award_referral_points(uuid)\":{\"anon\":true,\"authenticated\":true},\"check_free_pair_reward(uuid,uuid)\":{\"anon\":true,\"authenticated\":true},\"run_annual_tier_review()\":{\"anon\":true,\"authenticated\":true},\"delete_expired_otps()\":{\"anon\":true,\"authenticated\":true}}",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T3",
+      "actor": "catalog",
+      "operation": "pg_default_acl (postgres, public, functions)",
+      "expected": "EXECUTE granted to anon/authenticated",
+      "actual": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T4",
+      "actor": "anon",
+      "operation": "select name,pin from staff",
+      "expected": "PINs returned",
+      "actual": "HTTP 200 rows=2 pins=1111,2222",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T7",
+      "actor": "anon",
+      "operation": "select code,customer_phone from offline_sales",
+      "expected": "C1's phone visible",
+      "actual": "HTTP 200 rows=2 phones=+15550100011",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T14",
+      "actor": "C1 (customer)",
+      "operation": "select pin from staff",
+      "expected": "PINs returned",
+      "actual": "HTTP 200 rows=2 pins=1111,2222",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T23",
+      "actor": "E1 (email-only)",
+      "operation": "select pin from staff",
+      "expected": "PINs returned",
+      "actual": "HTTP 200 rows=2 pins=1111,2222",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T25",
+      "actor": "E1 (email-only)",
+      "operation": "call admin-points / admin-broadcast-push / inventory-approve",
+      "expected": "403 (control)",
+      "actual": "admin-points 403, broadcast 403, inventory-approve 403",
+      "verdict": "CONTROL PASS"
+    },
+    {
+      "id": "T19",
+      "actor": "anon",
+      "operation": "whatsapp-otp verify +525555555555 / 555555 (code defaults; staging REVIEW_DEMO_PHONE=+15550100090)",
+      "expected": "session for the demo account without OTP",
+      "actual": "HTTP 200 success=true session_user=15550100090@fuxia.app",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T8a",
+      "actor": "anon",
+      "operation": "select inventory_change_requests",
+      "expected": "rows returned",
+      "actual": "HTTP 200 rows=1",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T1",
+      "actor": "anon; C1",
+      "operation": "rpc fx_add_points(C1.card, 1000) as anon, then as C1",
+      "expected": "both succeed; +1000 each",
+      "actual": "anon HTTP 200 1100 100->1100; C1 HTTP 200 2100 ->2100",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T5",
+      "actor": "anon",
+      "operation": "update channel_inventory set price=1",
+      "expected": "1 row updated",
+      "actual": "HTTP 200 rows=1 price_now=1",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T6",
+      "actor": "anon",
+      "operation": "insert offline_sales ('STGX06')",
+      "expected": "inserted",
+      "actual": "HTTP 201 rows=1",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T8b",
+      "actor": "anon",
+      "operation": "insert inventory_change_requests with S1's staff id",
+      "expected": "inserted",
+      "actual": "HTTP 201 rows=1",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T24",
+      "actor": "E1 (email-only)",
+      "operation": "select ICRs; insert ICR with S1's staff id",
+      "expected": "both allowed",
+      "actual": "read HTTP 200 rows=1; insert HTTP 201 rows=1",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T12",
+      "actor": "C3 (no card)",
+      "operation": "insert loyalty_cards total_points=100000",
+      "expected": "inserted; tier gold",
+      "actual": "HTTP 201 rows=1",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T13",
+      "actor": "C1",
+      "operation": "insert a second loyalty card",
+      "expected": "inserted (2 cards)",
+      "actual": "HTTP 201 rows=1 cards_now=2",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T11",
+      "actor": "C1",
+      "operation": "update own phone to an unused number",
+      "expected": "phone changed",
+      "actual": "HTTP 200 rows=1 phone_now=+15550100097",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T9",
+      "actor": "C1",
+      "operation": "update own role to 'admin'",
+      "expected": "role becomes admin",
+      "actual": "HTTP 200 rows=1 role_now=admin",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T10",
+      "actor": "E1 (email-only)",
+      "operation": "insert customers(role 'admin') for itself",
+      "expected": "inserted as admin",
+      "actual": "HTTP 201 rows=1; then admin-points search HTTP 200 customers_returned=6",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T21",
+      "actor": "E1 (email-only)",
+      "operation": "insert customers(role 'admin') for itself",
+      "expected": "inserted as admin",
+      "actual": "HTTP 201 rows=1; then admin-points search HTTP 200 customers_returned=6",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T22",
+      "actor": "E1 (email-only)",
+      "operation": "insert customers with unregistered buyer U1's phone, add card, call link-orders",
+      "expected": "row inserted; U1's orphan order credited to E1",
+      "actual": "customer HTTP 201 rows=1; card 201; link-orders HTTP 200 {\"ok\":true,\"linked\":1,\"points\":100,\"pairs\":1,\"new_total_points\":100}; orphan_matched=true; e1_points=100",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T15",
+      "actor": "C1 with user_metadata.phone = M1's phone",
+      "operation": "update staff / insert channels / delete offline_sales (control first without spoof)",
+      "expected": "control blocked; spoofed succeeds",
+      "actual": "control: HTTP 200 rows=0 | HTTP 403 {\"code\":\"42501\",\"details\":null,\"hint\":null,\"message\":\"new row violates row-level security policy for table \\\"channels\\\"\"} | HTTP 200 rows=0 ; spoofed: HTTP 200 rows=0 | HTTP 403 {\"code\":\"42501\",\"details\":null,\"hint\":null,\"message\":\"new row violates row-level security policy for table \\\"channels\\\"\"} | HTTP 200 rows=0",
+      "verdict": "NOT REPRODUCED"
+    },
+    {
+      "id": "T16",
+      "actor": "C1 with user_metadata.phone = M1's phone",
+      "operation": "read / insert M1's push tokens",
+      "expected": "allowed",
+      "actual": "read HTTP 200 rows=0; insert HTTP 403 {\"code\":\"42501\",\"details\":null,\"hint\":null,\"message\":\"new row violates row-level security policy for table \\\"push_tokens\\\"\"}",
+      "verdict": "NOT REPRODUCED"
+    },
+    {
+      "id": "T17",
+      "actor": "C2 with user_metadata.phone = C1's phone",
+      "operation": "call delete-account",
+      "expected": "C1's customer/card/transactions deleted",
+      "actual": "HTTP 200 {\"success\":true}; C1 customer_left=1 card_left=0 tx_left=0",
+      "verdict": "NOT REPRODUCED"
+    },
+    {
+      "id": "T18",
+      "actor": "E1 with user_metadata.phone = C1's phone (no customer row)",
+      "operation": "call link-orders, then my-orders",
+      "expected": "link-orders acts on C1; my-orders resolves C1 (5xx at the Woo call, not 404)",
+      "actual": "link-orders HTTP 200 {\"ok\":true,\"linked\":1,\"points\":100,\"pairs\":1,\"new_total_points\":200} orphan_matched=true; my-orders HTTP 500",
+      "verdict": "PASS (reproduced)"
+    },
+    {
+      "id": "T26",
+      "actor": "E1 with user_metadata.phone = M1's (admin) phone",
+      "operation": "T15/T16 operations, then delete-account",
+      "expected": "all succeed; M1 customer deleted",
+      "actual": "HTTP 200 rows=0 | HTTP 403 {\"code\":\"42501\",\"details\":null,\"hint\":null,\"message\":\"new row violates row-level security policy for table \\\"channels\\\"\"} | HTTP 200 rows=0 | HTTP 200 rows=0 ; delete-account HTTP 200 {\"success\":true} M1_left=0",
+      "verdict": "NOT REPRODUCED"
+    },
+    {
+      "id": "T20",
+      "actor": "—",
+      "operation": "review bypass works only when explicitly enabled",
+      "expected": "post-A8 test",
+      "actual": "flag does not exist in baseline code",
+      "verdict": "NOT APPLICABLE BEFORE"
+    },
+    {
+      "id": "T27",
+      "actor": "—",
+      "operation": "app_metadata.verified_phone stamped at OTP verify",
+      "expected": "post-A8 test",
+      "actual": "see R1 for the baseline observation",
+      "verdict": "NOT APPLICABLE BEFORE"
+    }
+  ]
+}

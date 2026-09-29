@@ -1,0 +1,409 @@
+{
+  "before_at": "2026-09-26T04:46:39.055Z",
+  "before_source": "deployed claim-sale (scan_qr/creditPoints) on staging",
+  "before": {
+    "E1": {
+      "desc": "0 pts, 1 pair",
+      "start": {
+        "total_points": 0,
+        "pairs_count": 0,
+        "tier": "bronze",
+        "total_pairs_count": 0,
+        "purchases_this_year": 0,
+        "last_purchase_set": false
+      },
+      "end": {
+        "total_points": 100,
+        "pairs_count": 1,
+        "tier": "bronze",
+        "total_pairs_count": 1,
+        "purchases_this_year": 1,
+        "last_purchase_set": true
+      },
+      "tx": [
+        {
+          "points_earned": 100,
+          "pairs_in_order": 1,
+          "amount": 2800,
+          "channel": "store",
+          "status": "completed",
+          "currency": "MXN",
+          "items_saved": 0
+        }
+      ]
+    },
+    "E2": {
+      "desc": "250 pts, 1 pair → crosses 300 (silver)",
+      "start": {
+        "total_points": 250,
+        "pairs_count": 2,
+        "tier": "bronze",
+        "total_pairs_count": 0,
+        "purchases_this_year": 0,
+        "last_purchase_set": false
+      },
+      "end": {
+        "total_points": 350,
+        "pairs_count": 3,
+        "tier": "silver",
+        "total_pairs_count": 1,
+        "purchases_this_year": 1,
+        "last_purchase_set": true
+      },
+      "tx": [
+        {
+          "points_earned": 100,
+          "pairs_in_order": 1,
+          "amount": 2800,
+          "channel": "store",
+          "status": "completed",
+          "currency": "MXN",
+          "items_saved": 0
+        }
+      ]
+    },
+    "E3": {
+      "desc": "850 pts, 1 line qty 2 → crosses 900 (gold)",
+      "start": {
+        "total_points": 850,
+        "pairs_count": 8,
+        "tier": "silver",
+        "total_pairs_count": 0,
+        "purchases_this_year": 0,
+        "last_purchase_set": false
+      },
+      "end": {
+        "total_points": 1050,
+        "pairs_count": 10,
+        "tier": "gold",
+        "total_pairs_count": 2,
+        "purchases_this_year": 1,
+        "last_purchase_set": true
+      },
+      "tx": [
+        {
+          "points_earned": 200,
+          "pairs_in_order": 2,
+          "amount": 5600,
+          "channel": "store",
+          "status": "completed",
+          "currency": "MXN",
+          "items_saved": 0
+        }
+      ]
+    },
+    "E4": {
+      "desc": "0 pts, 3 lines (1+2+1)",
+      "start": {
+        "total_points": 0,
+        "pairs_count": 0,
+        "tier": "bronze",
+        "total_pairs_count": 0,
+        "purchases_this_year": 0,
+        "last_purchase_set": false
+      },
+      "end": {
+        "total_points": 400,
+        "pairs_count": 4,
+        "tier": "silver",
+        "total_pairs_count": 4,
+        "purchases_this_year": 1,
+        "last_purchase_set": true
+      },
+      "tx": [
+        {
+          "points_earned": 400,
+          "pairs_in_order": 4,
+          "amount": 9000,
+          "channel": "store",
+          "status": "completed",
+          "currency": "MXN",
+          "items_saved": 0
+        }
+      ]
+    },
+    "E5": {
+      "desc": "gold 1000 pts, 1 pair (stays gold)",
+      "start": {
+        "total_points": 1000,
+        "pairs_count": 10,
+        "tier": "gold",
+        "total_pairs_count": 0,
+        "purchases_this_year": 0,
+        "last_purchase_set": false
+      },
+      "end": {
+        "total_points": 1100,
+        "pairs_count": 11,
+        "tier": "gold",
+        "total_pairs_count": 1,
+        "purchases_this_year": 1,
+        "last_purchase_set": true
+      },
+      "tx": [
+        {
+          "points_earned": 100,
+          "pairs_in_order": 1,
+          "amount": 2800,
+          "channel": "store",
+          "status": "completed",
+          "currency": "MXN",
+          "items_saved": 0
+        }
+      ]
+    },
+    "E6": {
+      "desc": "299 pts, line WITHOUT quantity (counts as 1)",
+      "start": {
+        "total_points": 299,
+        "pairs_count": 2,
+        "tier": "bronze",
+        "total_pairs_count": 0,
+        "purchases_this_year": 0,
+        "last_purchase_set": false
+      },
+      "end": {
+        "total_points": 399,
+        "pairs_count": 3,
+        "tier": "silver",
+        "total_pairs_count": 1,
+        "purchases_this_year": 1,
+        "last_purchase_set": true
+      },
+      "tx": [
+        {
+          "points_earned": 100,
+          "pairs_in_order": 1,
+          "amount": 2800,
+          "channel": "store",
+          "status": "completed",
+          "currency": "MXN",
+          "items_saved": 0
+        }
+      ]
+    }
+  },
+  "after_at": "2026-09-26T04:49:09.232Z",
+  "after_source": "public.loyalty_apply (S0.5)",
+  "after": {
+    "E1": {
+      "desc": "0 pts, 1 pair",
+      "start": {
+        "total_points": 0,
+        "pairs_count": 0,
+        "tier": "bronze",
+        "total_pairs_count": 0,
+        "purchases_this_year": 0,
+        "last_purchase_set": false
+      },
+      "end": {
+        "total_points": 100,
+        "pairs_count": 1,
+        "tier": "bronze",
+        "total_pairs_count": 1,
+        "purchases_this_year": 1,
+        "last_purchase_set": true
+      },
+      "tx": [
+        {
+          "points_earned": 100,
+          "pairs_in_order": 1,
+          "amount": 2800,
+          "channel": "store",
+          "status": "completed",
+          "currency": "MXN",
+          "items_saved": 1
+        }
+      ]
+    },
+    "E2": {
+      "desc": "250 pts, 1 pair → crosses 300 (silver)",
+      "start": {
+        "total_points": 250,
+        "pairs_count": 2,
+        "tier": "bronze",
+        "total_pairs_count": 0,
+        "purchases_this_year": 0,
+        "last_purchase_set": false
+      },
+      "end": {
+        "total_points": 350,
+        "pairs_count": 3,
+        "tier": "silver",
+        "total_pairs_count": 1,
+        "purchases_this_year": 1,
+        "last_purchase_set": true
+      },
+      "tx": [
+        {
+          "points_earned": 100,
+          "pairs_in_order": 1,
+          "amount": 2800,
+          "channel": "store",
+          "status": "completed",
+          "currency": "MXN",
+          "items_saved": 1
+        }
+      ]
+    },
+    "E3": {
+      "desc": "850 pts, 1 line qty 2 → crosses 900 (gold)",
+      "start": {
+        "total_points": 850,
+        "pairs_count": 8,
+        "tier": "silver",
+        "total_pairs_count": 0,
+        "purchases_this_year": 0,
+        "last_purchase_set": false
+      },
+      "end": {
+        "total_points": 1050,
+        "pairs_count": 10,
+        "tier": "gold",
+        "total_pairs_count": 2,
+        "purchases_this_year": 1,
+        "last_purchase_set": true
+      },
+      "tx": [
+        {
+          "points_earned": 200,
+          "pairs_in_order": 2,
+          "amount": 5600,
+          "channel": "store",
+          "status": "completed",
+          "currency": "MXN",
+          "items_saved": 1
+        }
+      ]
+    },
+    "E4": {
+      "desc": "0 pts, 3 lines (1+2+1)",
+      "start": {
+        "total_points": 0,
+        "pairs_count": 0,
+        "tier": "bronze",
+        "total_pairs_count": 0,
+        "purchases_this_year": 0,
+        "last_purchase_set": false
+      },
+      "end": {
+        "total_points": 400,
+        "pairs_count": 4,
+        "tier": "silver",
+        "total_pairs_count": 4,
+        "purchases_this_year": 1,
+        "last_purchase_set": true
+      },
+      "tx": [
+        {
+          "points_earned": 400,
+          "pairs_in_order": 4,
+          "amount": 9000,
+          "channel": "store",
+          "status": "completed",
+          "currency": "MXN",
+          "items_saved": 3
+        }
+      ]
+    },
+    "E5": {
+      "desc": "gold 1000 pts, 1 pair (stays gold)",
+      "start": {
+        "total_points": 1000,
+        "pairs_count": 10,
+        "tier": "gold",
+        "total_pairs_count": 0,
+        "purchases_this_year": 0,
+        "last_purchase_set": false
+      },
+      "end": {
+        "total_points": 1100,
+        "pairs_count": 11,
+        "tier": "gold",
+        "total_pairs_count": 1,
+        "purchases_this_year": 1,
+        "last_purchase_set": true
+      },
+      "tx": [
+        {
+          "points_earned": 100,
+          "pairs_in_order": 1,
+          "amount": 2800,
+          "channel": "store",
+          "status": "completed",
+          "currency": "MXN",
+          "items_saved": 1
+        }
+      ]
+    },
+    "E6": {
+      "desc": "299 pts, line WITHOUT quantity (counts as 1)",
+      "start": {
+        "total_points": 299,
+        "pairs_count": 2,
+        "tier": "bronze",
+        "total_pairs_count": 0,
+        "purchases_this_year": 0,
+        "last_purchase_set": false
+      },
+      "end": {
+        "total_points": 399,
+        "pairs_count": 3,
+        "tier": "silver",
+        "total_pairs_count": 1,
+        "purchases_this_year": 1,
+        "last_purchase_set": true
+      },
+      "tx": [
+        {
+          "points_earned": 100,
+          "pairs_in_order": 1,
+          "amount": 2800,
+          "channel": "store",
+          "status": "completed",
+          "currency": "MXN",
+          "items_saved": 1
+        }
+      ]
+    }
+  },
+  "comparison": {
+    "E1": {
+      "economics_identical": true,
+      "items_saved_before": 0,
+      "items_saved_after": 1,
+      "lines": 1
+    },
+    "E2": {
+      "economics_identical": true,
+      "items_saved_before": 0,
+      "items_saved_after": 1,
+      "lines": 1
+    },
+    "E3": {
+      "economics_identical": true,
+      "items_saved_before": 0,
+      "items_saved_after": 1,
+      "lines": 1
+    },
+    "E4": {
+      "economics_identical": true,
+      "items_saved_before": 0,
+      "items_saved_after": 3,
+      "lines": 3
+    },
+    "E5": {
+      "economics_identical": true,
+      "items_saved_before": 0,
+      "items_saved_after": 1,
+      "lines": 1
+    },
+    "E6": {
+      "economics_identical": true,
+      "items_saved_before": 0,
+      "items_saved_after": 1,
+      "lines": 1
+    }
+  },
+  "all_economics_identical": true
+}

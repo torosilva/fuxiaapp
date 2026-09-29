@@ -1,0 +1,11 @@
+PASS | two simultaneous sends for the last pair → exactly one; origin never negative | wins=1 origin=0 loser="No hay suficientes pares de Paula · Camel · 37 en ZZ PRUEBA T Origen (hay 0, quieres enviar 1). No se envió nada."
+PASS | losing transfer stays "requested" (nothing moved) | 
+PASS | simultaneous double-click on send (same key) → one event; both calls succeed | events=1 origin=0 replayed=false/true
+PASS | simultaneous receipts → destination +2 exactly once | B=2 msg="La transferencia T-000020 no está en camino (received)."
+PASS | simultaneous double-click on request (same key) → one transfer | T-000021/T-000021
+PASS | "En camino" back to its starting level once everything was received | transit=0
+PASS | balances = ledger after the races (every variant, every location) | 
+PASS | no write to public.channel_inventory | 
+PASS | synthetic fixtures removed | left=0
+PASS | balances = ledger after cleanup | 
+ALL PASS

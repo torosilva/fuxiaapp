@@ -1,0 +1,21 @@
+-- Rollback of S0.2 seller sessions (staging). Drops only S0.2 objects; C1 is untouched. PIN hashes and sessions are lost.
+BEGIN;
+DROP TRIGGER IF EXISTS user_roles_revoke_sessions ON f360.user_roles;
+DROP TRIGGER IF EXISTS location_assignments_revoke_sessions ON f360.location_assignments;
+DROP FUNCTION IF EXISTS f360.on_role_change();
+DROP FUNCTION IF EXISTS f360.on_assignment_change();
+DROP FUNCTION IF EXISTS public.f360_seller_audit(integer);
+DROP FUNCTION IF EXISTS public.f360_end_seller_shift(text);
+DROP FUNCTION IF EXISTS public.f360_seller_session(text, uuid);
+DROP FUNCTION IF EXISTS public.f360_start_seller_shift(uuid, text);
+DROP FUNCTION IF EXISTS public.f360_unlock_seller(uuid);
+DROP FUNCTION IF EXISTS public.f360_set_seller_pin(uuid, text);
+DROP FUNCTION IF EXISTS f360.require_seller_session(text, uuid);
+DROP FUNCTION IF EXISTS f360.revoke_seller_sessions(uuid, uuid, text);
+DROP FUNCTION IF EXISTS f360.token_hash(text);
+DROP FUNCTION IF EXISTS f360.log_seller(uuid, uuid, text, jsonb);
+DROP TABLE IF EXISTS f360.seller_auth_events;
+DROP TABLE IF EXISTS f360.seller_sessions;
+DROP TABLE IF EXISTS f360.seller_credentials;
+DROP FUNCTION IF EXISTS f360.seller_params();
+COMMIT;

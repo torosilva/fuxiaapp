@@ -1,0 +1,12 @@
+# Never upload local secrets, build output or test artifacts to Vercel.
+.env*
+.next
+node_modules
+e2e
+e2e-screenshots
+test-results
+playwright-report
+playwright.config.ts
+*.tsbuildinfo
+.DS_Store
+test

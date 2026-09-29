@@ -6,3 +6,16 @@ dist/
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+.vercel
+
+# P2.3B: SiteGround staging credentials (never commit)
+tools/siteground-staging.env
+clave

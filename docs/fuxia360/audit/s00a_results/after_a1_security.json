@@ -1,0 +1,55 @@
+{
+  "phase": "after-a1",
+  "ranAt": "2026-09-25T00:58:51.146Z",
+  "target": "staging faltxpkaicwpnlqaxrdu",
+  "results": [
+    {
+      "id": "T1",
+      "actor": "anon; C1",
+      "operation": "rpc fx_add_points(C1.card, 1000) as anon, then as C1",
+      "expected": "both denied; balance unchanged",
+      "actual": "anon HTTP 401 {\"code\":\"42501\",\"details\":null,\"hint\":null,\"message\":\"permission denied for function fx_add_points\"}; C1 HTTP 403 {\"code\":\"42501\",\"details\":null,\"hint\":null,\"message\":\"permission denied for function fx_add_points\"}; balance 100->100",
+      "verdict": "CLOSED"
+    },
+    {
+      "id": "T2",
+      "actor": "catalog",
+      "operation": "EXECUTE on the 6 internal functions",
+      "expected": "PUBLIC/anon/authenticated false; service_role true",
+      "actual": "{\"fx_add_points(uuid,integer)\":{\"public\":false,\"anon\":false,\"authenticated\":false,\"service_role\":true},\"award_birthday_points(uuid)\":{\"public\":false,\"anon\":false,\"authenticated\":false,\"service_role\":true},\"award_referral_points(uuid)\":{\"public\":false,\"anon\":false,\"authenticated\":false,\"service_role\":true},\"check_free_pair_reward(uuid,uuid)\":{\"public\":false,\"anon\":false,\"authenticated\":false,\"service_role\":true},\"run_annual_tier_review()\":{\"public\":false,\"anon\":false,\"authenticated\":false,\"service_role\":true},\"delete_expired_otps()\":{\"public\":false,\"anon\":false,\"authenticated\":false,\"service_role\":true}}",
+      "verdict": "CLOSED"
+    },
+    {
+      "id": "CAT-helpers",
+      "actor": "catalog",
+      "operation": "RLS helper EXECUTE preserved",
+      "expected": "anon/authenticated true",
+      "actual": "{\"my_customer_id()\":{\"public\":true,\"anon\":true,\"authenticated\":true,\"service_role\":true},\"my_phone()\":{\"public\":true,\"anon\":true,\"authenticated\":true,\"service_role\":true},\"my_role()\":{\"public\":true,\"anon\":true,\"authenticated\":true,\"service_role\":true}}",
+      "verdict": "PRESERVED"
+    },
+    {
+      "id": "T3",
+      "actor": "catalog",
+      "operation": "default ACL for new functions (role postgres)",
+      "expected": "no anon/authenticated in schema public; global PUBLIC removed",
+      "actual": "(global):{postgres=X/postgres} public:{postgres=X/postgres,service_role=X/postgres} storage:{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "verdict": "CLOSED"
+    },
+    {
+      "id": "CAT-future",
+      "actor": "catalog (rolled-back txn)",
+      "operation": "EXECUTE on a newly created public function",
+      "expected": "PUBLIC/anon/authenticated false; service_role true",
+      "actual": "{\"public\" : false, \"anon\" : false, \"authenticated\" : false, \"service_role\" : true}",
+      "verdict": "HARDENED"
+    },
+    {
+      "id": "CAT-count",
+      "actor": "catalog",
+      "operation": "public function count unchanged (no function added/dropped by A1)",
+      "expected": "13 (baseline)",
+      "actual": "13",
+      "verdict": "UNCHANGED"
+    }
+  ]
+}

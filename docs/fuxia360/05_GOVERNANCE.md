@@ -127,6 +127,15 @@ The system must distinguish:
 
 A confirmed receipt creates inventory movements. It must not merely overwrite a stock field.
 
+## 5.1 Make-to-order production governance
+Carolina owns product production (§2), including make-to-order. **Still to decide** (the coding agent won't invent these):
+- who assigns workshops/suppliers to production requests;
+- who may change promised dates;
+- who confirms quality check and physical receipt of produced pairs;
+- who is notified when a request is at risk.
+
+The system must record the actor for every production status, date and assignment change. A produced pair enters inventory only through a confirmed receipt (§5), never by editing stock.
+
 ## 6. Inventory correction governance
 Normal sales/transfers/receipts create movements automatically.
 

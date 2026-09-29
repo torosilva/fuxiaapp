@@ -1,0 +1,17 @@
+HTTP/2 200 
+server: nginx
+date: Mon, 28 Sep 2026 18:28:21 GMT
+content-type: text/html; charset=UTF-8
+vary: Accept-Encoding
+x-cache-enabled: True
+x-content-type-options: nosniff
+x-xss-protection: 1; mode=block
+cache-control: no-cache, no-store, must-revalidate, private
+link: <https://staging4.fuxiaballerinas.com/wp-json/>; rel="https://api.w.org/", <https://staging4.fuxiaballerinas.com/wp-json/wp/v2/product/3597>; rel="alternate"; title="JSON"; type="application/json", <https://staging4.fuxiaballerinas.com/mx/?p=3597>; rel=shortlink
+set-cookie: fuxia_country=MX; expires=Wed, 28 Oct 2026 18:28:21 GMT; Max-Age=2592000; path=/; secure; SameSite=Lax
+set-cookie: fuxia_geo_country=MX; expires=Tue, 29 Sep 2026 18:28:21 GMT; Max-Age=86400; path=/; secure; SameSite=Lax
+x-httpd: 1
+host-header: 6b7412fb82ca5edfd0917e3957f05d89
+x-proxy-cache: MISS
+x-proxy-cache-info: d NC:000000 UP:SKIP_CACHE_SET_COOKIE
+

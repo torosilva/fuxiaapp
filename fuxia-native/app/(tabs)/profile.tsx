@@ -9,6 +9,7 @@ import { MotiView } from 'moti';
 import { Redirect, router } from 'expo-router';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
+import { F360_SELLER_SESSION, myF360Role } from '@/lib/sellerSession';
 import { ProductImage } from '@/components/ProductImage';
 import * as ImagePicker from 'expo-image-picker';
 import { CountryPicker } from '@/components/CountryPicker';
@@ -44,6 +45,9 @@ export default function ProfileScreen() {
   const { session, customer, loyaltyCard, isLoading, signOut, deleteAccount, refresh } = useAuth();
   const [deleting, setDeleting] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  // S0.2: seller mode is granted by the Fuxia 360 role (server-side), not by customers.role
+  const [canSell, setCanSell] = useState(false);
+  useEffect(() => { if (F360_SELLER_SESSION) myF360Role().then((r) => setCanSell(r === 'seller' || r === 'operator' || r === 'owner')); }, []);
   const [avatarVersion, setAvatarVersion] = useState(0);
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
   const [country, setCountryState] = useState<CountryCode>('MX');
@@ -349,7 +353,7 @@ export default function ProfileScreen() {
             <Text style={[styles.accessSub, { color: theme.muted }]}>Código de tienda</Text>
           </TouchableOpacity>
 
-          {((customer as any).role === 'staff' || (customer as any).role === 'admin') && (
+          {(F360_SELLER_SESSION ? canSell : ((customer as any).role === 'staff' || (customer as any).role === 'admin')) && (
             <TouchableOpacity
               style={[styles.accessCard, { backgroundColor: theme.soft, borderColor: theme.border }]}
               onPress={() => router.push('/vendedora' as any)}

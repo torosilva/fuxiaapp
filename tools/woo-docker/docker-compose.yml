@@ -1,0 +1,40 @@
+# THROWAWAY local WordPress + WooCommerce for Fuxia 360 publisher contract tests (P2.2).
+# Not a copy of the real store: default theme, no real data, no payments, no email, bound to localhost only.
+name: f360-woo-local
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: wp
+      MARIADB_USER: wp
+      MARIADB_PASSWORD: wp-local-only
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    volumes: [db:/var/lib/mysql]
+  wordpress:
+    image: wordpress:php8.3-apache   # latest WordPress (current WooCommerce requires WP ≥ 7.0)
+    depends_on: [db]
+    ports: ["127.0.0.1:8080:80"]
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wp-local-only
+      WORDPRESS_DB_NAME: wp
+      # 'local' lets WordPress application passwords work over plain http (localhost only).
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_ENVIRONMENT_TYPE', 'local');
+        define('DISABLE_WP_CRON', true);
+    volumes: [wp:/var/www/html]
+  cli:
+    image: wordpress:cli-php8.3
+    depends_on: [wordpress]
+    user: "33:33"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wp-local-only
+      WORDPRESS_DB_NAME: wp
+    volumes: [wp:/var/www/html]
+    entrypoint: ["sleep", "infinity"]
+volumes:
+  db:
+  wp:

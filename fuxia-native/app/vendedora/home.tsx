@@ -12,6 +12,7 @@ import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { MotiView } from 'moti';
 import { ShoppingCart, Package, LogOut, Store, ShoppingBag } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
+import { endShift } from '@/lib/sellerSession';
 
 export default function VendedoraHomeScreen() {
   const { staffId, staffName, channelId, channelName, channelType } =
@@ -39,7 +40,8 @@ export default function VendedoraHomeScreen() {
     }, [channelId]),
   );
 
-  const handleExit = () => {
+  const handleExit = async () => {
+    await endShift();   // S0.2: closes the server-side shift (no-op in the legacy flow)
     router.replace('/vendedora' as any);
   };
 

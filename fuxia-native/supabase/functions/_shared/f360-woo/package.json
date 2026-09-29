@@ -1,0 +1,1 @@
+{ "type": "module", "private": true, "description": "Marks the f360-woo library as ESM for Node tests (Deno ignores this file)." }

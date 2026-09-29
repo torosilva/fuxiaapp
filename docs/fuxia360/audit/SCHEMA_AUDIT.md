@@ -1,5 +1,7 @@
 # Fuxia 360 Audit — Schema Audit
 
+> **Live verification (S0.1a, 2026-09-24):** the live schema is in `live/schema.sql`, and the drift and verdicts are in `LIVE_RECONCILIATION.md` §3–8. The [UNVERIFIED-LIVE] items below are resolved there. The pair double-count hypothesis is refuted; the `purchase_items.sku` and `transactions.channel` CHECK failures are confirmed. The §7 data-quality queries are superseded by the count-only query in `LIVE_RECONCILIATION.md` §9 (Q6).
+
 **Method:** read every file in `database/`, every Edge Function, and every client `.from()`/`.rpc()` call. Then reconstructed the effective schema and compared it to what the code actually uses.
 **Limitation:** the live database was not inspected. Section 7 lists the read-only queries a human needs to run to close each **[UNVERIFIED-LIVE]** item.
 

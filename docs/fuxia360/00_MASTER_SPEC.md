@@ -32,6 +32,8 @@ No routine event should require duplicate manual capture.
 - physical locations
 - inventory ledger and availability
 - receipts, transfers, adjustments, reservations
+- availability, fulfillment allocation and fulfillment promise
+- make-to-order production tracking (Production Tracking Lite)
 - offline sales operational record
 - customer identity / Customer 360
 - loyalty and lifecycle rules as explicitly approved
@@ -83,6 +85,50 @@ Target:
 
 Inventory is not merely an editable number. Material changes must be explainable through business events/movements.
 
+### 5.1 Distributed fulfillment and make-to-order (clarification, 2026-09-24)
+- **Online orders aren't fulfilled only from a central warehouse.** Any eligible physical pair anywhere in Mexico can fulfill an ecommerce order: the central receiving point, a store, a bazaar, or another eligible location.
+- **Today that distributed inventory isn't reliably synchronized.** Carolina knows roughly where stock is, but there's no trustworthy per-variant, per-location record.
+- **Fuxia also sells make-to-order.** A sellable variant with no physical stock in Mexico can still be sold online and produced after the order. The current delivery expectation for that is about 5–7 days.
+- **WooCommerce is not a physical inventory location.** Woo's stock figure is a published, derived number, not a place where pairs exist.
+
+Fuxia 360 must therefore keep these five concepts explicitly separate:
+
+| Concept | Meaning |
+|---|---|
+| **PHYSICAL ON_HAND** | Units that physically exist, per variant and location |
+| **RESERVED** | Physical units already committed (to an order, a Reserve & Try, a transfer, etc.) |
+| **PHYSICAL AVAILABLE_TO_SELL (ATS)** | Eligible physical units that can fulfill a *new* order. This is derived from on-hand, reservations, safety stock and location eligibility; it is not a stored editable number |
+| **MAKE_TO_ORDER_ELIGIBLE** | Whether a variant with zero physical ATS may still be sold (produced after the order) |
+| **FULFILLMENT_PROMISE** | The delivery promise shown to the customer: physical availability ("ships now") vs. production (currently ~5–7 days). The promise values are configuration, not hardcoded |
+
+Target online-order behavior (**future sprints, not Sprint 0**):
+1. **Physical ATS exists** → allocate and reserve a unit at an eligible location, and create a **fulfillment task** for that location.
+2. **The allocated unit can't be physically confirmed** → try another eligible location, and record an **inventory discrepancy** against the first one.
+3. **No physical unit can fulfill the order, and the variant is MAKE_TO_ORDER_ELIGIBLE** → the order enters a lightweight **production request** workflow, with the matching delivery promise.
+4. **No physical unit and not make-to-order** → not sellable online (availability published as zero).
+
+### 5.2 Two fulfillment paths and Production Tracking Lite (core, 2026-09-24)
+Fuxia has two legitimate fulfillment paths, and both are first-class:
+
+| Path | When | What happens |
+|---|---|---|
+| **PHYSICAL_STOCK** | An existing physical unit is available at an eligible location in Mexico | Allocate/reserve the unit, fulfill from that location (§5.1) |
+| **MAKE_TO_ORDER** | No physical unit is available **and** the variant is eligible for production | Create a **production request**; fulfill the order after production |
+
+**Production Tracking Lite is a core domain of Fuxia 360**, not an optional add-on. Its purpose is **operational visibility**:
+- what sold without physical stock;
+- what needs to be produced;
+- who is responsible (workshop/supplier);
+- when it was promised;
+- whether it's at risk;
+- when it became physically available;
+- which customer order it fulfills.
+
+Rules:
+- **A MAKE_TO_ORDER sale never creates negative physical inventory.** The order line is linked to a production request, not to on-hand. The produced pair enters inventory through a normal receipt movement at a real location when it's physically received. Only then is it reserved and fulfilled against the order.
+- **Out of scope unless separately approved:** manufacturing ERP/MRP functionality (bills of materials, raw-material planning, production capacity planning, complex procurement).
+- Product, Inventory, Availability, Fulfillment and Production are **connected domains** that share one canonical variant identity and one inventory ledger (see `02_TARGET_ARCHITECTURE.md` §2.1).
+
 ## 6. Receiving merchandise from Colombia
 Carolina or a delegated authorized operator must be able to:
 1. find or create product
@@ -133,6 +179,8 @@ In order:
 
 Do not promise location availability publicly until inventory accuracy is sufficient.
 
+Note (2026-09-24): some online orders are already fulfilled from stores and bazaars, but the process is manual (§5.1). Online-order allocation, fulfillment tasks and the make-to-order production request formalize that practice. Items 6 ("Ship from Store") and the allocation engine are therefore core ecommerce fulfillment capabilities, not just an omnichannel extra. Where they sit in the sprint sequence is a planning decision for the Product/Inventory/Omnichannel sprints; see `10_SPRINTS.md`.
+
 ## 10. Definition of success
 Fuxia 360 succeeds when:
 - Carolina can receive and manage product without operating a difficult ERP.
@@ -140,6 +188,8 @@ Fuxia 360 succeeds when:
 - inventory is traceable and trustworthy.
 - customer identity crosses online/offline channels.
 - a customer can discover where her size is available.
+- an online order is allocated to a real physical pair wherever it is in Mexico, or sent to production with an honest delivery promise.
+- every make-to-order sale is visible from order to production to receipt to fulfillment, with a responsible party, a due date and an at-risk signal, and without ever creating negative inventory.
 - launches cannot silently stall between product, creative, web and demand.
 - Mario can measure funnel/economics without becoming the manual middleware.
 - NovaMktLab has clear operational ownership.

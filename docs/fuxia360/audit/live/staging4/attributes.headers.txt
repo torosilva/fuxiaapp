@@ -1,0 +1,20 @@
+HTTP/2 200 
+server: nginx
+date: Mon, 28 Sep 2026 18:27:28 GMT
+content-type: application/json; charset=UTF-8
+vary: Accept-Encoding
+x-robots-tag: noindex
+link: <https://staging4.fuxiaballerinas.com/wp-json/>; rel="https://api.w.org/"
+access-control-expose-headers: X-WP-Total, X-WP-TotalPages, Link, Cart-Token
+access-control-allow-headers: Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type, Cart-Token, Nonce
+x-content-type-options: nosniff
+x-xss-protection: 1; mode=block
+allow: GET
+access-control-allow-methods: OPTIONS, GET, POST, PUT, PATCH, DELETE
+access-control-allow-credentials: true
+vary: Origin
+x-httpd: 1
+host-header: 6b7412fb82ca5edfd0917e3957f05d89
+x-proxy-cache: MISS
+x-proxy-cache-info: d NC:000000 UP:
+
