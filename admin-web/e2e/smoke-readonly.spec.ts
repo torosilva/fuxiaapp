@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
 const EMAIL = 'carolina.demo@staging.invalid';
 const PASSWORD = process.env.STAGING_DEMO_CAROLINA_PASSWORD ?? '';
 const PAGES = ['/', '/productos', '/inventario', '/inventario?vista=historial', '/transferencias', '/transferencias?vista=en-camino',
-  '/transferencias?vista=recibidas', '/transferencias?vista=diferencias', '/mover', '/recibir', '/ventas', '/ventas?canal=store', '/avisos', '/growth', '/clientes', '/mas', '/pedidos', '/produccion'];
+  '/transferencias?vista=recibidas', '/transferencias?vista=diferencias', '/mover', '/recibir', '/ventas', '/ventas?canal=store', '/monedas', '/avisos', '/growth', '/clientes', '/mas', '/pedidos', '/produccion'];
 
 test('every screen renders (read-only)', async ({ page }) => {
   await page.goto('/login');

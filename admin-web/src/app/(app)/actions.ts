@@ -121,7 +121,8 @@ export async function reconcileNowAction(): Promise<Result<{ checked: number; in
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' };
-  const url = new URL('/f360-woo-sync', process.env.F360_PUBLISHER_URL!).toString();
+  // Relative: …/functions/v1/f360-woo-publish → …/functions/v1/f360-woo-sync (and 127.0.0.1:8787/f360-woo-sync locally).
+  const url = new URL('f360-woo-sync', process.env.F360_PUBLISHER_URL!).toString();
   try {
     const res = await fetch(url, { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'reconcile' }), cache: 'no-store', signal: AbortSignal.timeout(120_000) });
