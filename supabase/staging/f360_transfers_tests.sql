@@ -62,9 +62,9 @@ BEGIN
   PERFORM pg_temp.as(o, format($q$SELECT public.f360_set_user_role(%L, 'viewer', 'ZZ Consulta')$q$, pg_temp.id('viewer')));
   PERFORM pg_temp.as(o, format($q$SELECT public.f360_set_location_assignment(%L, %L, true)$q$, pg_temp.id('sel'), pg_temp.id('B')));
   INSERT INTO t_ids SELECT 'v1', v.id FROM f360.product_variants v JOIN f360.products p ON p.id = v.product_id JOIN f360.product_colors c ON c.id = v.color_id
-    WHERE p.name = 'Paula' AND c.name = 'Camel' AND v.size_label = '35';
+    WHERE p.name = 'Demo · Paula' AND c.name = 'Camel' AND v.size_label = '35';
   INSERT INTO t_ids SELECT 'v2', v.id FROM f360.product_variants v JOIN f360.products p ON p.id = v.product_id JOIN f360.product_colors c ON c.id = v.color_id
-    WHERE p.name = 'Paula' AND c.name = 'Camel' AND v.size_label = '36';
+    WHERE p.name = 'Demo · Paula' AND c.name = 'Camel' AND v.size_label = '36';
   r := pg_temp.as(o, format($q$SELECT public.f360_receive_inventory(gen_random_uuid(), %L, '[{"variant_id":"%s","quantity":5},{"variant_id":"%s","quantity":1}]')$q$,
         pg_temp.id('A'), pg_temp.id('v1'), pg_temp.id('v2')));
   PERFORM pg_temp.ok(r->>'error' IS NULL AND pg_temp.bal('A', 'v1') = 5 AND pg_temp.bal('A', 'v2') = 1, 'fixture: origin has 5 + 1 pairs', coalesce(r->>'error', ''));

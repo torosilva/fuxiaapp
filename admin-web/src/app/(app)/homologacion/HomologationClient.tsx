@@ -40,7 +40,32 @@ function buildGroups(rows: HomologationRow[]): Group[] {
     g.units.push(u);
     groups.set(g.key, g);
   }
-  return [...groups.values()].sort((a, b) => b.units.length - a.units.length || a.name.localeCompare(b.name));
+  return [...groups.values()].sort((a, b) => priority(a) - priority(b) || b.units.length - a.units.length || a.name.localeCompare(b.name));
+}
+
+// 0 = everything pending is ready to confirm · 1 = partly ready · 2 = conflict · 3 = needs a decision · 4 = done
+function priority(g: Group) {
+  const pending = g.units.flatMap((u) => u.rows).filter((r) => r.status !== 'confirmado');
+  if (!pending.length) return 4;
+  if (pending.every((r) => r.status === 'propuesto')) return 0;
+  if (pending.some((r) => r.status === 'propuesto')) return 1;
+  if (pending.some((r) => r.status === 'conflicto')) return 2;
+  return 3;
+}
+
+// What the person has to do with this Woo product, in plain words.
+function todo(u: Unit): string {
+  const r = u.rows.find((x) => x.status !== 'confirmado') ?? u.rows[0];
+  if (r.status === 'confirmado') return `Listo${r.decided_by_name ? ` · confirmó ${r.decided_by_name}` : ''}`;
+  if (r.status === 'propuesto') return 'Revisa que modelo y color estén bien y confirma';
+  if (r.status === 'conflicto') return 'Otro producto de la tienda quedó con el mismo modelo, color y talla: decide cuál es';
+  if (r.human_locked) return r.note ? `Marcado: ${r.note}` : 'Marcado por una persona';
+  const why = r.proposal_reason ?? '';
+  if (/cualquier color/.test(why)) return 'La tienda vende esta talla en “cualquier color”: solo confírmala si sabes qué color sale';
+  if (/ya existe un modelo/.test(why)) return 'Ya hay un modelo con ese nombre en Fuxia 360: decide si es el mismo';
+  if (!r.proposed_color) return 'No sabemos el color: escríbelo al confirmar, o márcalo si no estás segura';
+  if (/a mitad del nombre/.test(why)) return 'El color estaba a mitad del nombre: revisa modelo y color';
+  return 'Revisa modelo y color';
 }
 
 export function HomologationClient({ data }: { data: Homologation }) {
@@ -60,16 +85,28 @@ export function HomologationClient({ data }: { data: Homologation }) {
   return (
     <div>
       <h1 className="font-display text-5xl text-ink">Homologación</h1>
-      <p className="mt-2 max-w-3xl text-sm text-muted">
-        Cada variación de la tienda Woo actual ({data.target.name}) se liga a un <b className="text-ink-2">modelo → color → talla</b> de Fuxia 360.
-        Fuxia 360 propone; tú confirmas. Esto <b className="text-ink-2">no mueve inventario ni cambia nada en Woo</b>: el inventario llegará con el conteo físico de Bodega CDMX.
+      <p className="mt-2 max-w-3xl text-ink-2">
+        En la tienda en línea cada color es un producto aparte (<i>Paula negro</i>, <i>Paula nude</i>…). En Fuxia 360 es <b>un modelo con colores</b> (<i>Paula → Negro, Nude…</i>).
+        Aquí le dices a Fuxia 360 a qué modelo y color corresponde cada producto de la tienda.
       </p>
+      <p className="mt-1 text-sm text-muted">Tienda: {data.target.name}. Esto no mueve inventario ni cambia nada en la tienda.</p>
+
+      <ol className="mt-5 grid gap-3 rounded-2xl border border-line bg-surface p-4 text-sm text-ink-2 md:grid-cols-3" data-testid="how-to">
+        <li><b className="text-ink">1 · Abre un modelo.</b> Fuxia 360 ya propone el modelo y el color de cada producto de la tienda.</li>
+        <li><b className="text-ink">2 · Si está bien, confirma.</b> Las tallas se toman solas. Si un color está mal, corrígelo antes de confirmar.</li>
+        <li><b className="text-ink">3 · Si no sabes qué es,</b> usa <i>Marcar… → Requiere revisión</i> y escribe por qué. Nadie lo cambia sin ti.</li>
+      </ol>
+
+      <div className="mt-5" data-testid="progress">
+        <div className="flex items-baseline justify-between text-sm"><span className="text-ink">Avance: <b className="tabular">{s.confirmado}</b> de <span className="tabular">{s.variations}</span> tallas confirmadas</span><span className="tabular text-muted">{s.coverage_pct}%</span></div>
+        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-success" style={{ width: `${s.coverage_pct}%` }} /></div>
+      </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="homologation-summary">
         <Stat label="Variaciones Woo" value={s.variations} sub={`${s.woo_products} productos Woo`} />
         <Stat label="Modelos F360 propuestos" value={s.models_proposed} sub={`${s.models_confirmed} con algo confirmado`} />
         <Stat label="Confirmadas" value={s.confirmado} sub={`${s.coverage_pct}% de cobertura`} tone="text-success" />
-        <Stat label="Por resolver" value={s.requiere_revision + s.conflicto + s.sin_correspondencia} sub={`${s.conflicto} en conflicto`} tone={s.conflicto ? 'text-danger' : undefined} />
+        <Stat label="Falta tu decisión" value={s.requiere_revision + s.conflicto + s.sin_correspondencia} sub={`${s.propuesto} listas para confirmar`} tone={s.conflicto ? 'text-danger' : undefined} />
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -167,13 +204,13 @@ function GroupCard({ g, data, onDone }: { g: Group; data: Homologation; onDone: 
     <section className="rounded-3xl border border-line bg-surface" data-testid={`group-${g.key}`}>
       <header className="flex flex-wrap items-center gap-3 px-5 py-4">
         <div className="flex-1">
-          <div className="text-xs uppercase tracking-wider text-muted">Modelo F360 {g.proposedProductId ? '(existente)' : 'propuesto'}</div>
+          <div className="text-xs uppercase tracking-wider text-muted">{pendingUnits.length ? 'Modelo propuesto por Fuxia 360' : 'Modelo confirmado'}</div>
           <h2 className="font-display text-3xl text-ink">{g.name}</h2>
-          <div className="text-sm text-muted">{g.units.length} {g.units.length === 1 ? 'producto Woo' : 'productos Woo'} · {g.units.reduce((a, u) => a + u.rows.length, 0)} variaciones</div>
+          <div className="text-sm text-muted">{g.units.length} {g.units.length === 1 ? 'producto de la tienda' : 'productos de la tienda'} = {g.units.length} {g.units.length === 1 ? 'color' : 'colores'} de este modelo</div>
         </div>
         <div className="flex flex-wrap gap-1.5">{Object.entries(counts).map(([k, n]) => <span key={k} className={`rounded-full px-2.5 py-1 text-xs ${TONE[k as HomologationStatus]}`}>{LABEL[k as HomologationStatus]} {n}</span>)}</div>
         {pendingUnits.length > 0 && (
-          <button type="button" onClick={openPanel} className="rounded-2xl bg-ink px-4 py-2.5 text-sm text-surface">{open ? 'Cerrar' : 'Revisar y confirmar'}</button>
+          <button type="button" onClick={openPanel} className="rounded-2xl bg-ink px-4 py-2.5 text-sm text-surface">{open ? 'Cerrar' : priority(g) === 0 ? 'Revisar y confirmar' : 'Decidir'}</button>
         )}
       </header>
 
@@ -227,12 +264,11 @@ function GroupCard({ g, data, onDone }: { g: Group; data: Homologation; onDone: 
       )}
 
       <div className="overflow-x-auto border-t border-line">
-        <table className="w-full min-w-[860px] text-sm">
+        <table className="w-full min-w-[760px] text-sm">
           <thead className="text-left text-xs uppercase tracking-wider text-muted">
             <tr className="border-b border-line">
-              <th className="px-5 py-2 font-normal">Woo producto</th><th className="px-3 py-2 font-normal">Color detectado</th><th className="px-3 py-2 font-normal">Tallas · variation_id</th>
-              <th className="px-3 py-2 font-normal">Producto F360</th><th className="px-3 py-2 font-normal">Color F360</th><th className="px-3 py-2 font-normal">Talla F360</th>
-              <th className="px-3 py-2 font-normal">Confianza · estado</th><th className="px-3 py-2" />
+              <th className="px-5 py-2 font-normal">En la tienda</th><th className="px-3 py-2 font-normal">En Fuxia 360</th>
+              <th className="px-3 py-2 font-normal">Estado</th><th className="px-3 py-2 font-normal">Qué falta</th><th className="px-3 py-2" />
             </tr>
           </thead>
           <tbody>
@@ -242,14 +278,13 @@ function GroupCard({ g, data, onDone }: { g: Group; data: Homologation; onDone: 
               return (
                 <Fragment key={u.key}>
                   <tr className="border-b border-line align-top" data-testid={`unit-${u.wooProductId}${u.wooColor ? `-${u.wooColor}` : ''}`}>
-                    <td className="px-5 py-3"><div className="text-ink">{u.wooProductName}</div><div className="text-xs text-muted">#{u.wooProductId}{u.sku ? ` · SKU ${u.sku}` : ' · sin SKU'}{u.sold ? ` · ${u.sold} vendidos` : ''}</div></td>
-                    <td className="px-3 py-3 text-ink-2">{u.detectedColor ?? <span className="text-danger">no determinado</span>}</td>
-                    <td className="px-3 py-3"><button type="button" onClick={() => setExpanded(expanded === u.key ? null : u.key)} className="text-left text-ink-2 underline decoration-line underline-offset-4">
-                      {u.rows.map((r) => r.woo_size).join(' · ')}</button></td>
-                    <td className="px-3 py-3 text-ink">{c?.product_name ?? <span className="text-muted">{u.rows[0].proposed_model ?? '—'}</span>}</td>
-                    <td className="px-3 py-3 text-ink">{c?.color ?? <span className="text-muted">{u.rows[0].proposed_color ?? '—'}</span>}</td>
-                    <td className="px-3 py-3 text-ink-2">{u.rows.map((r) => r.confirmed?.size ?? r.proposed_size ?? '—').join(' · ')}</td>
+                    <td className="px-5 py-3"><div className="text-ink">{u.wooProductName}{u.wooColor ? <span className="text-muted"> · {u.wooColor}</span> : null}</div>
+                      <button type="button" onClick={() => setExpanded(expanded === u.key ? null : u.key)} className="mt-0.5 text-xs text-muted underline decoration-line underline-offset-4">
+                        {expanded === u.key ? 'Ocultar detalle' : `Ver detalle · tallas ${u.rows[0].woo_size}–${u.rows[u.rows.length - 1].woo_size}`}</button></td>
+                    <td className="px-3 py-3 text-ink">{c ? <>{c.product_name} · <b>{c.color}</b></>
+                      : <span className="text-ink-2">{u.rows[0].proposed_model ?? '—'} · {u.rows[0].proposed_color ? <b>{u.rows[0].proposed_color}</b> : <span className="text-danger">color sin definir</span>}</span>}</td>
                     <td className="px-3 py-3"><div className="flex flex-col items-start gap-1"><Badge status={u.status} />{conf && u.status !== 'confirmado' && <span className="text-xs text-muted">confianza {conf}</span>}</div></td>
+                    <td className="max-w-xs px-3 py-3 text-ink-2">{todo(u)}</td>
                     <td className="px-3 py-3 text-right">
                       {u.rows.some((r) => r.status === 'confirmado')
                         ? <button type="button" onClick={() => { setAction({ unit: u, kind: 'reopen' }); setReason(''); }} className="text-xs text-muted underline">Reabrir</button>
@@ -260,7 +295,7 @@ function GroupCard({ g, data, onDone }: { g: Group; data: Homologation; onDone: 
                     </td>
                   </tr>
                   {action?.unit.key === u.key && (
-                    <tr className="border-b border-line bg-bg/60"><td colSpan={8} className="px-5 py-3">
+                    <tr className="border-b border-line bg-bg/60"><td colSpan={5} className="px-5 py-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-sm text-ink">{action.kind === 'reopen' ? 'Reabrir: ¿por qué?' : `${LABEL[action.kind]}: motivo`}</span>
                         <input aria-label="Motivo" value={reason} onChange={(e) => setReason(e.target.value)} className="min-w-64 flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-gold" />
@@ -270,18 +305,20 @@ function GroupCard({ g, data, onDone }: { g: Group; data: Homologation; onDone: 
                     </td></tr>
                   )}
                   {expanded === u.key && (
-                    <tr className="border-b border-line bg-bg/40"><td colSpan={8} className="px-5 py-3">
+                    <tr className="border-b border-line bg-bg/40"><td colSpan={5} className="px-5 py-3">
                       <table className="w-full text-xs" data-testid={`variations-${u.wooProductId}`}>
-                        <thead className="text-left text-muted"><tr><th className="py-1 font-normal">variation_id</th><th className="font-normal">Talla Woo</th><th className="font-normal">Color Woo</th><th className="font-normal">Vendidos (90 d / total)</th><th className="font-normal">Estado</th><th className="font-normal">Variante F360</th><th className="font-normal">Decidió</th></tr></thead>
+                        <thead className="text-left text-muted"><tr><th className="py-1 font-normal">variation_id (Woo)</th><th className="font-normal">Talla Woo</th><th className="font-normal">Color Woo</th><th className="font-normal">Producto F360</th><th className="font-normal">Color F360</th><th className="font-normal">Talla F360</th><th className="font-normal">Vendidos (90 d / total)</th><th className="font-normal">Estado</th><th className="font-normal">SKU F360</th><th className="font-normal">Decidió</th></tr></thead>
                         <tbody>{u.rows.map((r) => (
                           <tr key={r.woo_variation_id} className="border-t border-line">
-                            <td className="tabular py-1.5">{r.woo_variation_id}</td><td>{r.woo_size}</td><td>{r.woo_color ?? '—'}</td><td className="tabular">{r.sold_90d} / {r.sold_all}</td>
-                            <td><Badge status={r.status} /></td><td>{r.confirmed ? `${r.confirmed.product_name} · ${r.confirmed.color} · ${r.confirmed.size} (${r.confirmed.sku})` : '—'}</td>
+                            <td className="tabular py-1.5">{r.woo_variation_id}</td><td>{r.woo_size}</td><td>{r.woo_color ?? '—'}</td>
+                            <td>{r.confirmed?.product_name ?? r.proposed_model ?? '—'}</td><td>{r.confirmed?.color ?? r.proposed_color ?? '—'}</td><td>{r.confirmed?.size ?? r.proposed_size ?? '—'}</td>
+                            <td className="tabular">{r.sold_90d} / {r.sold_all}</td><td><Badge status={r.status} /></td><td>{r.confirmed?.sku ?? '—'}</td>
                             <td>{r.decided_by_name ? `${r.decided_by_name}${r.note ? ` — ${r.note}` : ''}` : '—'}</td>
                           </tr>))}
                         </tbody>
                       </table>
-                      {u.rows[0].proposal_reason && <p className="mt-2 text-xs text-muted">Propuesta del sistema: {u.rows[0].proposal_reason}</p>}
+                      {u.sku && <p className="mt-2 text-xs text-muted">SKU de la tienda (solo referencia, no se cambia): {u.sku}</p>}
+                      {u.rows[0].proposal_reason && <p className="mt-1 text-xs text-muted">Por qué lo propuso Fuxia 360: {u.rows[0].proposal_reason}</p>}
                     </td></tr>
                   )}
                 </Fragment>

@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // TRACK C · TRANSFERS — staging acceptance of the web flow with SYNTHETIC fixtures only:
 // locations 'ZZ PRUEBA T Bodega' / 'ZZ PRUEBA T Tienda', lab user C1 as seller 'ZZ PRUEBA Vendedora', and stock of the
-// existing staging test product "Paula" received into the synthetic bodega. Remove everything afterwards with:
+// existing staging test product "Demo · Paula" received into the synthetic bodega. Remove everything afterwards with:
 //   scripts/s00a/run.sh ../f360/transfers_cleanup.mjs
 const OWNER = 'carolina.demo@staging.invalid';
 const OWNER_PW = process.env.STAGING_DEMO_CAROLINA_PASSWORD ?? '';
@@ -53,7 +53,7 @@ test.beforeAll(async () => {
   tienda = (await call<{ id: string }>('f360_create_location', { p_name: 'ZZ PRUEBA T Tienda', p_type: 'store' })).id;
   await call('f360_set_user_role', { p_auth_user_id: s.data.user!.id, p_role: 'seller', p_display_name: 'ZZ PRUEBA Vendedora' });
   await call('f360_set_location_assignment', { p_auth_user_id: s.data.user!.id, p_location_id: tienda, p_active: true });
-  paulaId = (await call<{ id: string; name: string }[]>('f360_list_products', { p_query: 'Paula' })).find((p) => p.name === 'Paula')!.id;
+  paulaId = (await call<{ id: string; name: string }[]>('f360_list_products', { p_query: 'Paula' })).find((p) => p.name === 'Demo · Paula')!.id;
   const c = await camel();
   await call('f360_receive_inventory', { p_idempotency_key: crypto.randomUUID(), p_location_id: bodega,
     p_lines: [{ variant_id: c.variant('35'), quantity: 3 }, { variant_id: c.variant('36'), quantity: 2 }], p_note: 'ZZ PRUEBA transferencias' });

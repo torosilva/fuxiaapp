@@ -191,3 +191,28 @@ Nota: en las capturas de página completa, el aviso amarillo fijo de "ambiente d
 2. Después, `…000100_….down.sql`.
 
 Los modelos "Demo · …" del canal de práctica son filas de catálogo de staging y se pueden archivar.
+
+## 8 · Actualización 2026-10-02 (aprobada por Mario: "sí" a renombrar y simplificar)
+
+**Productos de prueba de staging renombrados.** "Paula", "Paula cafe gamuza", "Sueco cucarron azul" y "Suede Loafers" ahora son "Demo · …".
+- Su código cambió a `DEMO-…`: los SKUs de prueba pasan a ser `F360-DEMO-…` (solo staging; ninguno estaba publicado ni bloqueado).
+- Así el modelo real "Paula" puede crearse con SKUs `F360-PAULA-…`.
+- Las pruebas de Track C que usaban "Paula" ahora usan "Demo · Paula". Suite completa: **475 de 475 PASS**.
+
+**Propuesta regenerada (sin decisiones humanas que respetar: 0):**
+
+| | Antes | Ahora |
+|---|---|---|
+| Propuesto | 414 | **504** |
+| Requiere revisión | 378 | **288** |
+| Conflicto | 0 | 0 |
+
+Paula (15 productos Woo, 90 variaciones) quedó como *Propuesto*, lista para confirmar en un clic.
+
+**Pantalla simplificada:**
+- Una explicación arriba y los 3 pasos.
+- Una barra de avance.
+- Primero los modelos que se pueden confirmar directamente.
+- Columnas en lenguaje simple: *En la tienda | En Fuxia 360 | Estado | Qué falta*.
+- Tallas, `variation_id`, talla y color F360 y SKU, dentro de "Ver detalle".
+- Capturas nuevas: `d2_screens/01-resumen-real.png` y `01b-paula-lista-para-confirmar.png`. Paula solo se abrió para la captura; no se confirmó nada.

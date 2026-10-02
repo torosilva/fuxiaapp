@@ -1,18 +1,18 @@
 {
- "generated_at": "2026-10-02T20:04:58.380Z",
+ "generated_at": "2026-10-02T20:24:01.188Z",
  "target": "woo_staging4",
  "summary": {
   "woo_products": 129,
   "variations": 792,
   "models_proposed": 76,
   "by_status": {
-   "requiere_revision": 378,
-   "propuesto": 414
+   "requiere_revision": 288,
+   "propuesto": 504
   },
   "by_confidence": {
    "baja": 288,
-   "alta": 318,
-   "media": 186
+   "alta": 408,
+   "media": 96
   }
  },
  "models": [

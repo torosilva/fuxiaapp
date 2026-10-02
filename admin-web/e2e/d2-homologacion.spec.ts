@@ -29,10 +29,18 @@ test('D2 · homologación real (woo_staging4): solo lectura', async ({ page }) =
     const summary = page.getByTestId('homologation-summary');
     await expect(summary).toContainText('792');
     await expect(summary).toContainText('129 productos Woo');
+    await expect(page.getByTestId('how-to')).toBeVisible();
     await shot('01-resumen-real', false);
+    const paula = page.getByTestId('group-paula');
+    await expect(paula).toContainText('Propuesto 90');
+    await expect(paula.getByRole('button', { name: 'Revisar y confirmar' })).toBeVisible();
+    await paula.getByRole('button', { name: 'Revisar y confirmar' }).click();
+    await expect(paula.getByTestId('confirm-panel')).toBeVisible();
+    await paula.screenshot({ path: `${SHOTS}/01b-paula-lista-para-confirmar.png` });
+    await paula.getByRole('button', { name: 'Cerrar' }).click();   // look only: no decision is written in the real homologation
     const suecos = page.getByTestId('group-suecos cucarrones');
     await suecos.scrollIntoViewIfNeeded();
-    await suecos.getByRole('button', { name: /35 · 36 · 37 · 38 · 39 · 40/ }).first().click();
+    await suecos.getByRole('button', { name: /Ver detalle/ }).first().click();
     await expect(suecos.getByTestId(/^variations-/).first()).toBeVisible();
     await suecos.screenshot({ path: `${SHOTS}/02-modelo-propuesto-suecos.png` });
     await page.getByTestId('filter-requiere_revision').click();
@@ -56,7 +64,7 @@ test('D2 · práctica: Carolina agrupa productos Woo por color bajo un modelo F3
     await expect(page.getByText(/Demo · homologación/)).toBeVisible();
     await shot('04-practica-antes');
     const g = page.getByTestId('group-cucarron');
-    await g.getByRole('button', { name: 'Revisar y confirmar' }).click();
+    await g.getByRole('button', { name: /Revisar y confirmar|Decidir/ }).click();
     const panel = g.getByTestId('confirm-panel');
     await panel.getByLabel('Nombre del modelo').fill('Demo · Cucarron');
     await expect(panel.getByLabel(/Color F360 de Cucarron nude/)).toHaveValue('Nude');
@@ -70,12 +78,12 @@ test('D2 · práctica: Carolina agrupa productos Woo por color bajo un modelo F3
 
   await test.step('3 · Variaciones "cualquier color": requiere revisión (bloqueadas para cutover)', async () => {
     const g = page.getByTestId('group-mules colectiva');
-    const anyRow = g.getByRole('row').filter({ hasText: 'no determinado' });
+    const anyRow = g.getByRole('row').filter({ hasText: 'color sin definir' });
     await anyRow.getByLabel(/Marcar Mules Colectiva/).selectOption('requiere_revision');
     await g.getByLabel('Motivo').fill('Woo vende "cualquier color": no sé qué color sale. Bloqueada para cutover hasta corregir Woo.');
     await g.getByRole('button', { name: 'Guardar' }).click();
     await expect(page.getByTestId('flash')).toContainText('marcado “Requiere revisión”');
-    await g.getByRole('button', { name: 'Revisar y confirmar' }).click();
+    await g.getByRole('button', { name: /Revisar y confirmar|Decidir/ }).click();
     const panel = g.getByTestId('confirm-panel');
     await panel.getByLabel('Nombre del modelo').fill('Demo · Mules Colectiva');
     await expect(panel.getByLabel(/Incluir Mules Colectiva$/)).not.toBeChecked();   // any-colour unit never preselected
@@ -87,7 +95,7 @@ test('D2 · práctica: Carolina agrupa productos Woo por color bajo un modelo F3
 
   await test.step('4 · Conflicto: dos productos Woo no pueden caer en el mismo modelo + color + talla', async () => {
     const g = page.getByTestId('group-croc');
-    await g.getByRole('button', { name: 'Revisar y confirmar' }).click();
+    await g.getByRole('button', { name: /Revisar y confirmar|Decidir/ }).click();
     const panel = g.getByTestId('confirm-panel');
     await panel.getByLabel('Un modelo F360 que ya existe (agrupar)').check();
     const sel = panel.getByLabel('Modelo existente');

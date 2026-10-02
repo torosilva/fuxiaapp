@@ -1,6 +1,6 @@
 // STAGING ONLY — Transfers under REAL concurrency (separate committed transactions racing through PostgREST).
 // Synthetic fixtures only: two locations 'ZZ PRUEBA T Origen/Destino', lab seller S1 as 'ZZ PRUEBA Vendedora', stock of
-// the existing staging test product "Paula" received into the synthetic origin. Everything is removed at the end with
+// the existing staging test product "Demo · Paula" received into the synthetic origin. Everything is removed at the end with
 // transfer_fixtures.mjs (exact scope documented there).
 // Run: scripts/s00a/run.sh ../f360/transfers_concurrency.mjs
 import { client, loadEnv, phonePassword, PHONES, psql } from '../s00a/lib.mjs';
@@ -25,7 +25,7 @@ try {
   const owner = await c.signIn('carolina.demo@staging.invalid', process.env.STAGING_DEMO_CAROLINA_PASSWORD);
   const s1 = await c.signIn(`${PHONES.S1.replace('+', '')}@fuxia.app`, phonePassword(env, PHONES.S1));
   const variant = one(`select v.id from f360.product_variants v join f360.products p on p.id = v.product_id join f360.product_colors c on c.id = v.color_id
-    where p.name = 'Paula' and c.name = 'Camel' and v.size_label = '37';`);
+    where p.name = 'Demo · Paula' and c.name = 'Camel' and v.size_label = '37';`);
   created = true;
   const A = (await rpc('f360_create_location', { p_name: `${ZZ_PREFIX}Origen`, p_type: 'warehouse' }, owner.token)).json.id;
   const B = (await rpc('f360_create_location', { p_name: `${ZZ_PREFIX}Destino`, p_type: 'store' }, owner.token)).json.id;

@@ -1,6 +1,6 @@
 -- Track C · C3 — cutover (legacy → f360 by verified physical count) + F360 store sale. STAGING. One transaction, ROLLED BACK.
 -- Every fixture is synthetic and lives only inside this transaction: channels "ZZ C3 …", their legacy rows, locations
--- "ZZ C3 …", roles for lab users, PINs, shifts. The staging test product "Paula" gets a price only inside this transaction.
+-- "ZZ C3 …", roles for lab users, PINs, shifts. The staging test product "Demo · Paula" gets a price only inside this transaction.
 BEGIN;
 CREATE TEMP TABLE t_results (n serial, status text, name text, detail text) ON COMMIT DROP;
 GRANT ALL ON t_results TO authenticated, anon;
@@ -77,16 +77,16 @@ DO $$
 DECLARE o uuid := pg_temp.id('owner'); ch uuid; ch2 uuid; tok jsonb;
 BEGIN
   INSERT INTO t_ids (k, v) SELECT 'v' || v.size_label, v.id FROM f360.product_variants v JOIN f360.products p ON p.id = v.product_id
-    JOIN f360.product_colors c ON c.id = v.color_id WHERE p.name = 'Paula' AND c.name = 'Camel' AND v.size_label IN ('35', '36', '37', '38');
+    JOIN f360.product_colors c ON c.id = v.color_id WHERE p.name = 'Demo · Paula' AND c.name = 'Camel' AND v.size_label IN ('35', '36', '37', '38');
   INSERT INTO public.channels (name, type, active) VALUES ('ZZ C3 Canal piloto', 'store', true) RETURNING id INTO ch;
   INSERT INTO public.channels (name, type, active) VALUES ('ZZ C3 Canal sigue legacy', 'store', true) RETURNING id INTO ch2;
   INSERT INTO t_ids (k, v) VALUES ('ch', ch), ('ch2', ch2);
   -- legacy stock of the pilot store (the legacy numbers are NOT what the opening balance will be)
-  WITH x AS (INSERT INTO public.channel_inventory (channel_id, product_name, size, color, price, stock, sold) VALUES (ch, 'Paula', '35', 'Camel', 1500, 3, 0) RETURNING id) INSERT INTO t_ids (k, v) SELECT 'r35', id FROM x;
-  WITH x AS (INSERT INTO public.channel_inventory (channel_id, product_name, size, color, price, stock, sold) VALUES (ch, 'Paula', '36', 'Camel', 1500, 2, 1) RETURNING id) INSERT INTO t_ids (k, v) SELECT 'r36', id FROM x;
-  WITH x AS (INSERT INTO public.channel_inventory (channel_id, product_name, size, color, price, stock, sold) VALUES (ch, 'Paula', '37', 'Camel', 1500, 1, 1) RETURNING id) INSERT INTO t_ids (k, v) SELECT 'r37', id FROM x;
+  WITH x AS (INSERT INTO public.channel_inventory (channel_id, product_name, size, color, price, stock, sold) VALUES (ch, 'Demo · Paula', '35', 'Camel', 1500, 3, 0) RETURNING id) INSERT INTO t_ids (k, v) SELECT 'r35', id FROM x;
+  WITH x AS (INSERT INTO public.channel_inventory (channel_id, product_name, size, color, price, stock, sold) VALUES (ch, 'Demo · Paula', '36', 'Camel', 1500, 2, 1) RETURNING id) INSERT INTO t_ids (k, v) SELECT 'r36', id FROM x;
+  WITH x AS (INSERT INTO public.channel_inventory (channel_id, product_name, size, color, price, stock, sold) VALUES (ch, 'Demo · Paula', '37', 'Camel', 1500, 1, 1) RETURNING id) INSERT INTO t_ids (k, v) SELECT 'r37', id FROM x;
   WITH x AS (INSERT INTO public.channel_inventory (channel_id, product_name, size, color, price, stock, sold) VALUES (ch, 'ZZ Modelo viejo', '38', 'Rosa', 1200, 2, 0) RETURNING id) INSERT INTO t_ids (k, v) SELECT 'rX', id FROM x;
-  WITH x AS (INSERT INTO public.channel_inventory (channel_id, product_name, size, color, price, stock, sold) VALUES (ch2, 'Paula', '35', 'Camel', 1500, 5, 0) RETURNING id) INSERT INTO t_ids (k, v) SELECT 'q35', id FROM x;
+  WITH x AS (INSERT INTO public.channel_inventory (channel_id, product_name, size, color, price, stock, sold) VALUES (ch2, 'Demo · Paula', '35', 'Camel', 1500, 5, 0) RETURNING id) INSERT INTO t_ids (k, v) SELECT 'q35', id FROM x;
   INSERT INTO t_ids (k, v) SELECT 'L', (pg_temp.as(o, format($q$SELECT public.f360_create_location('ZZ C3 Tienda piloto', 'store', %L)$q$, ch))->>'id')::uuid;
   INSERT INTO t_ids (k, v) SELECT 'L2', (pg_temp.as(o, format($q$SELECT public.f360_create_location('ZZ C3 Tienda sigue legacy', 'store', %L)$q$, ch2))->>'id')::uuid;
   INSERT INTO t_ids (k, v) SELECT 'W', (pg_temp.as(o, $q$SELECT public.f360_create_location('ZZ C3 Bodega', 'warehouse')$q$)->>'id')::uuid;
@@ -290,7 +290,7 @@ BEGIN
   PERFORM pg_temp.ok(r->>'error' LIKE '%campo "channel_inventory_id"%', 'a migrated store never sells legacy rows', r->>'error');
   r := pg_temp.sell(pg_temp.id('A'), pg_temp.tx('tokA'), gen_random_uuid(), pg_temp.vline('v35', 1));
   PERFORM pg_temp.ok(r->>'error' LIKE '%no tiene precio%' AND pg_temp.bal('L', 'v35') = 2, 'a product without a master price cannot be sold (nothing moves)', r->>'error');
-  UPDATE f360.products SET regular_price = 2400 WHERE name = 'Paula';        -- rolled back with everything else
+  UPDATE f360.products SET regular_price = 2400 WHERE name = 'Demo · Paula';        -- rolled back with everything else
   r := pg_temp.sell(pg_temp.id('A'), pg_temp.tx('tokA'), gen_random_uuid(), jsonb_build_array(jsonb_build_object('variant_id', pg_temp.id('v35'), 'quantity', 1, 'unit_price', 1)));
   PERFORM pg_temp.ok(r->>'error' LIKE '%campo "unit_price"%', 'manipulated price refused', r->>'error');
 
@@ -416,7 +416,7 @@ BEGIN
   d := pg_temp.as(pg_temp.id('op'), format($q$SELECT public.f360_get_sale(%L)$q$, sid));
   PERFORM pg_temp.ok(d->>'ledger' = 'f360' AND d->'inventory'->>'kind' = 'f360' AND (d->'inventory'->'event'->>'type') = 'SALE'
     AND d->'loyalty'->>'state' = 'credited' AND (d->'loyalty'->>'points')::int = 100 AND jsonb_array_length(d->'items') = 1
-    AND d->'items'->0->>'product_name' = 'Paula' AND (d->'items'->0->>'unit_price')::numeric = 2400 AND d->'customer'->>'phone' LIKE '••••%'
+    AND d->'items'->0->>'product_name' = 'Demo · Paula' AND (d->'items'->0->>'unit_price')::numeric = 2400 AND d->'customer'->>'phone' LIKE '••••%'
     AND d->'support'->>'idempotency_key' IS NOT NULL, 'sale detail: items, SALE movement, loyalty credited, masked phone, support ids', d->>'loyalty');
   d := pg_temp.as(pg_temp.id('op'), format($q$SELECT public.f360_get_sale(%L)$q$, (SELECT id FROM public.offline_sales WHERE self_sale AND location_id = pg_temp.id('L') LIMIT 1)));
   PERFORM pg_temp.ok(d->'loyalty'->>'state' = 'self_sale', 'detail explains why loyalty did not apply (self-sale)', d->'loyalty'->>'text');
