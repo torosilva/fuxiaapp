@@ -14,16 +14,41 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN RESET ROLE; r := jsonb_build_object('error', SQLERRM); END;
   RETURN r;
 END $$;
+-- Test fixture (this transaction only): "ZZ Publicado", an F360 model already published to channel p_target
+-- (Nude 37, 2800 MXN, ready, linked to Woo product 990001 / variation 990011, published hash current), p_pairs in Bodega CDMX.
+CREATE FUNCTION pg_temp.zz_published(p_target text, p_pairs int DEFAULT 0) RETURNS uuid LANGUAGE plpgsql AS $fx$
+DECLARE pid uuid; cid uuid; vid uuid; t uuid := (SELECT id FROM f360.sales_targets WHERE key = p_target);
+BEGIN
+  INSERT INTO f360.products (name, slug, code, category_key, regular_price, description)
+    VALUES ('ZZ Publicado', 'zz-publicado', 'ZZ-PUBLICADO', 'ballerinas', 2800, 'Fixture de prueba') RETURNING id INTO pid;
+  INSERT INTO f360.product_sizes (product_id, label, sort) VALUES (pid, '37', 1);
+  INSERT INTO f360.product_colors (product_id, name, code, sort) VALUES (pid, 'Nude', 'NUDE', 1) RETURNING id INTO cid;
+  INSERT INTO f360.product_variants (product_id, color_id, size_label) VALUES (pid, cid, '37') RETURNING id INTO vid;
+  PERFORM f360.refresh_skus(pid);
+  INSERT INTO storage.objects (bucket_id, name) VALUES ('product-images', 'f360/ZZ-PUBLICADO/NUDE/a.png');
+  INSERT INTO f360.product_media (product_id, color_id, storage_path, sort) VALUES (pid, cid, 'f360/ZZ-PUBLICADO/NUDE/a.png', 1);
+  INSERT INTO f360.woo_product_links (target_id, product_id, woo_product_id, woo_status, published_hash, last_success_at)
+    VALUES (t, pid, 990001, 'publish', f360.publish_hash(pid), now());
+  INSERT INTO f360.woo_variant_links (target_id, variant_id, woo_variation_id) VALUES (t, vid, 990011);
+  IF p_pairs > 0 THEN
+    INSERT INTO f360.inventory_balances (variant_id, location_id, on_hand) SELECT vid, id, p_pairs FROM f360.locations WHERE name = 'Bodega CDMX';
+  END IF;
+  RETURN pid;
+END $fx$;
 SELECT auth_user_id AS carolina FROM f360.user_roles WHERE display_name = 'Carolina' \gset
-SELECT auth_user_id AS seller FROM f360.user_roles WHERE role = 'seller' ORDER BY created_at LIMIT 1 \gset
+-- a seller for permission checks: lab user 15550100011 gets the role inside this transaction only
+INSERT INTO f360.user_roles (auth_user_id, role, display_name, granted_by) SELECT id, 'seller', 'ZZ Vendedora', 'test (rolled back)' FROM auth.users WHERE email = '15550100011@fuxia.app'
+  ON CONFLICT (auth_user_id) DO UPDATE SET role = 'seller' RETURNING auth_user_id AS seller \gset
 SELECT set_config('t.carolina', :'carolina', true), set_config('t.seller', :'seller', true) \gset t_
 
 DO $$
 DECLARE car uuid := current_setting('t.carolina')::uuid; sel uuid := current_setting('t.seller')::uuid;
   bodega uuid := (SELECT id FROM f360.locations WHERE name = 'Bodega CDMX');
-  mac uuid := (SELECT id FROM f360.products WHERE name = 'Macarena');
+  mac uuid;
   r jsonb; pid uuid; lp uuid; dp uuid; err text;
 BEGIN
+  INSERT INTO f360.sales_targets (key, name, base_url, fulfillment_location_id, active) VALUES ('zz_arch_pub', 'ZZ publicado', 'https://zz.invalid', bodega, true);
+  mac := pg_temp.zz_published('zz_arch_pub', 2);
   r := pg_temp.as(car, $q$SELECT public.f360_create_product('ZZ Archivo', ARRAY['36','37'], '[{"name":"Negro"}]'::jsonb)$q$);
   pid := (r->>'id')::uuid;
   r := pg_temp.as(car, format($q$SELECT public.f360_product_archive_state(%L)$q$, pid));
@@ -49,7 +74,7 @@ BEGIN
   -- blockers
   r := pg_temp.as(car, format($q$SELECT public.f360_set_product_archived(%L, true, 'prueba')$q$, mac));
   PERFORM pg_temp.ok(r->>'error' LIKE '%pares en inventario%' AND r->>'error' LIKE '%publicado en la tienda%' AND (SELECT status FROM f360.products WHERE id = mac) = 'active',
-    'Macarena (pairs + published) cannot be archived; both reasons shown', r::text);
+    'a published model with pairs cannot be archived; both reasons shown', r::text);
   INSERT INTO f360.inventory_balances (variant_id, location_id, on_hand)
     SELECT id, bodega, 1 FROM f360.product_variants WHERE product_id = pid LIMIT 1;
   r := pg_temp.as(car, format($q$SELECT public.f360_product_archive_state(%L)$q$, pid));

@@ -61,10 +61,11 @@ BEGIN
   PERFORM pg_temp.as(o, format($q$SELECT public.f360_set_user_role(%L, 'seller', 'ZZ Vendedora sin B')$q$, pg_temp.id('sel2')));
   PERFORM pg_temp.as(o, format($q$SELECT public.f360_set_user_role(%L, 'viewer', 'ZZ Consulta')$q$, pg_temp.id('viewer')));
   PERFORM pg_temp.as(o, format($q$SELECT public.f360_set_location_assignment(%L, %L, true)$q$, pg_temp.id('sel'), pg_temp.id('B')));
+  PERFORM pg_temp.as(o, $q$SELECT public.f360_create_product('ZZ T Paula', ARRAY['35','36'], '[{"name":"Camel"}]'::jsonb)$q$);
   INSERT INTO t_ids SELECT 'v1', v.id FROM f360.product_variants v JOIN f360.products p ON p.id = v.product_id JOIN f360.product_colors c ON c.id = v.color_id
-    WHERE p.name = 'Demo · Paula' AND c.name = 'Camel' AND v.size_label = '35';
+    WHERE p.name = 'ZZ T Paula' AND c.name = 'Camel' AND v.size_label = '35';
   INSERT INTO t_ids SELECT 'v2', v.id FROM f360.product_variants v JOIN f360.products p ON p.id = v.product_id JOIN f360.product_colors c ON c.id = v.color_id
-    WHERE p.name = 'Demo · Paula' AND c.name = 'Camel' AND v.size_label = '36';
+    WHERE p.name = 'ZZ T Paula' AND c.name = 'Camel' AND v.size_label = '36';
   r := pg_temp.as(o, format($q$SELECT public.f360_receive_inventory(gen_random_uuid(), %L, '[{"variant_id":"%s","quantity":5},{"variant_id":"%s","quantity":1}]')$q$,
         pg_temp.id('A'), pg_temp.id('v1'), pg_temp.id('v2')));
   PERFORM pg_temp.ok(r->>'error' IS NULL AND pg_temp.bal('A', 'v1') = 5 AND pg_temp.bal('A', 'v2') = 1, 'fixture: origin has 5 + 1 pairs', coalesce(r->>'error', ''));
@@ -275,12 +276,35 @@ BEGIN
 END $$;
 
 
+-- Test fixture (this transaction only): "ZZ Publicado", an F360 model already published to channel p_target
+-- (Nude 37, 2800 MXN, ready, linked to Woo product 990001 / variation 990011, published hash current), p_pairs in Bodega CDMX.
+CREATE FUNCTION pg_temp.zz_published(p_target text, p_pairs int DEFAULT 0) RETURNS uuid LANGUAGE plpgsql AS $fx$
+DECLARE pid uuid; cid uuid; vid uuid; t uuid := (SELECT id FROM f360.sales_targets WHERE key = p_target);
+BEGIN
+  INSERT INTO f360.products (name, slug, code, category_key, regular_price, description)
+    VALUES ('ZZ Publicado', 'zz-publicado', 'ZZ-PUBLICADO', 'ballerinas', 2800, 'Fixture de prueba') RETURNING id INTO pid;
+  INSERT INTO f360.product_sizes (product_id, label, sort) VALUES (pid, '37', 1);
+  INSERT INTO f360.product_colors (product_id, name, code, sort) VALUES (pid, 'Nude', 'NUDE', 1) RETURNING id INTO cid;
+  INSERT INTO f360.product_variants (product_id, color_id, size_label) VALUES (pid, cid, '37') RETURNING id INTO vid;
+  PERFORM f360.refresh_skus(pid);
+  INSERT INTO storage.objects (bucket_id, name) VALUES ('product-images', 'f360/ZZ-PUBLICADO/NUDE/a.png');
+  INSERT INTO f360.product_media (product_id, color_id, storage_path, sort) VALUES (pid, cid, 'f360/ZZ-PUBLICADO/NUDE/a.png', 1);
+  INSERT INTO f360.woo_product_links (target_id, product_id, woo_product_id, woo_status, published_hash, last_success_at)
+    VALUES (t, pid, 990001, 'publish', f360.publish_hash(pid), now());
+  INSERT INTO f360.woo_variant_links (target_id, variant_id, woo_variation_id) VALUES (t, vid, 990011);
+  IF p_pairs > 0 THEN
+    INSERT INTO f360.inventory_balances (variant_id, location_id, on_hand) SELECT vid, id, p_pairs FROM f360.locations WHERE name = 'Bodega CDMX';
+  END IF;
+  RETURN pid;
+END $fx$;
+
 -- ═════ 9b · Online store: a send FROM the online fulfillment location queues a Woo stock push at send; TO it, only at receipt ═════
 DO $$
-DECLARE r jsonb; t uuid; v uuid; bod uuid := (SELECT fulfillment_location_id FROM f360.sales_targets WHERE active ORDER BY created_at LIMIT 1);
+DECLARE r jsonb; t uuid; v uuid; pub uuid; bod uuid := (SELECT fulfillment_location_id FROM f360.sales_targets WHERE active ORDER BY created_at LIMIT 1);
 BEGIN
-  SELECT vl.variant_id INTO v FROM f360.woo_variant_links vl
-    JOIN f360.sales_targets st ON st.id = vl.target_id AND st.active AND st.fulfillment_location_id = bod ORDER BY vl.variant_id LIMIT 1;
+  -- the online store's linked variant: this test's own published model (rolled back)
+  pub := pg_temp.zz_published((SELECT key FROM f360.sales_targets WHERE active AND fulfillment_location_id = bod ORDER BY created_at LIMIT 1));
+  SELECT id INTO v FROM f360.product_variants WHERE product_id = pub;
   PERFORM pg_temp.ok(v IS NOT NULL, 'fixture: a variant linked to the online store exists', '');
   -- 2 pairs into the online bodega for this test only (rolled back)
   PERFORM pg_temp.as(pg_temp.id('owner'), format($q$SELECT public.f360_receive_inventory(gen_random_uuid(), %L, '[{"variant_id":"%s","quantity":2}]')$q$, bod, v));

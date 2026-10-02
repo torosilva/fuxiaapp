@@ -17,7 +17,28 @@ END $$;
 SELECT auth_user_id AS owner FROM f360.user_roles WHERE display_name = 'Carolina' \gset
 SELECT id AS op FROM auth.users WHERE email = '15550100021@fuxia.app' \gset
 SELECT id AS viewer FROM auth.users WHERE email = '15550100013@fuxia.app' \gset
-SELECT id AS mac FROM f360.products WHERE name = 'Macarena' \gset
+-- Test fixture (this transaction only): "ZZ Publicado", an F360 model already published to channel p_target
+-- (Nude 37, 2800 MXN, ready, linked to Woo product 990001 / variation 990011, published hash current), p_pairs in Bodega CDMX.
+CREATE FUNCTION pg_temp.zz_published(p_target text, p_pairs int DEFAULT 0) RETURNS uuid LANGUAGE plpgsql AS $fx$
+DECLARE pid uuid; cid uuid; vid uuid; t uuid := (SELECT id FROM f360.sales_targets WHERE key = p_target);
+BEGIN
+  INSERT INTO f360.products (name, slug, code, category_key, regular_price, description)
+    VALUES ('ZZ Publicado', 'zz-publicado', 'ZZ-PUBLICADO', 'ballerinas', 2800, 'Fixture de prueba') RETURNING id INTO pid;
+  INSERT INTO f360.product_sizes (product_id, label, sort) VALUES (pid, '37', 1);
+  INSERT INTO f360.product_colors (product_id, name, code, sort) VALUES (pid, 'Nude', 'NUDE', 1) RETURNING id INTO cid;
+  INSERT INTO f360.product_variants (product_id, color_id, size_label) VALUES (pid, cid, '37') RETURNING id INTO vid;
+  PERFORM f360.refresh_skus(pid);
+  INSERT INTO storage.objects (bucket_id, name) VALUES ('product-images', 'f360/ZZ-PUBLICADO/NUDE/a.png');
+  INSERT INTO f360.product_media (product_id, color_id, storage_path, sort) VALUES (pid, cid, 'f360/ZZ-PUBLICADO/NUDE/a.png', 1);
+  INSERT INTO f360.woo_product_links (target_id, product_id, woo_product_id, woo_status, published_hash, last_success_at)
+    VALUES (t, pid, 990001, 'publish', f360.publish_hash(pid), now());
+  INSERT INTO f360.woo_variant_links (target_id, variant_id, woo_variation_id) VALUES (t, vid, 990011);
+  IF p_pairs > 0 THEN
+    INSERT INTO f360.inventory_balances (variant_id, location_id, on_hand) SELECT vid, id, p_pairs FROM f360.locations WHERE name = 'Bodega CDMX';
+  END IF;
+  RETURN pid;
+END $fx$;
+SELECT pg_temp.zz_published('woo_staging4') AS mac \gset
 SELECT set_config('t.owner', :'owner', true), set_config('t.op', :'op', true), set_config('t.viewer', :'viewer', true), set_config('t.mac', :'mac', true) \gset t_
 
 DO $$
@@ -39,7 +60,7 @@ BEGIN
     AND (SELECT (x->>'suggested')::numeric FROM jsonb_array_elements(r) x WHERE x->>'code' = 'COP') = 420000
     -- COP may already hold the real staging4 price (420000, set for P2.3B); the suggestion is only a prefill either way.
     AND coalesce((SELECT (x->>'amount')::numeric FROM jsonb_array_elements(r) x WHERE x->>'code' = 'COP'), 420000) = 420000,
-    'Macarena: MXN 2800, suggestion 420000 COP (prefill only); COP empty or the staging4 price', r::text);
+    'published model: MXN 2800, suggestion 420000 COP (prefill only); COP empty or the staging4 price', r::text);
 
   -- publication state before any price (hash must not change for products without prices)
   st := (pg_temp.as(o, format($q$SELECT public.f360_publication_status(%L, 'woo_staging4')$q$, mac)))->>'state';

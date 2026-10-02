@@ -20,17 +20,42 @@ $$ SELECT m.status FROM f360.legacy_woo_map m JOIN f360.sales_targets t ON t.id 
 CREATE FUNCTION pg_temp.order_json(p_id bigint, p_lines jsonb) RETURNS jsonb LANGUAGE sql AS
 $$ SELECT jsonb_build_object('id', p_id, 'status', 'processing', 'date_modified_gmt', '2026-10-02T12:00:00', 'currency', 'MXN', 'refunds', '[]'::jsonb, 'line_items', p_lines) $$;
 
+-- Test fixture (this transaction only): "ZZ Publicado", an F360 model already published to channel p_target
+-- (Nude 37, 2800 MXN, ready, linked to Woo product 990001 / variation 990011, published hash current), p_pairs in Bodega CDMX.
+CREATE FUNCTION pg_temp.zz_published(p_target text, p_pairs int DEFAULT 0) RETURNS uuid LANGUAGE plpgsql AS $fx$
+DECLARE pid uuid; cid uuid; vid uuid; t uuid := (SELECT id FROM f360.sales_targets WHERE key = p_target);
+BEGIN
+  INSERT INTO f360.products (name, slug, code, category_key, regular_price, description)
+    VALUES ('ZZ Publicado', 'zz-publicado', 'ZZ-PUBLICADO', 'ballerinas', 2800, 'Fixture de prueba') RETURNING id INTO pid;
+  INSERT INTO f360.product_sizes (product_id, label, sort) VALUES (pid, '37', 1);
+  INSERT INTO f360.product_colors (product_id, name, code, sort) VALUES (pid, 'Nude', 'NUDE', 1) RETURNING id INTO cid;
+  INSERT INTO f360.product_variants (product_id, color_id, size_label) VALUES (pid, cid, '37') RETURNING id INTO vid;
+  PERFORM f360.refresh_skus(pid);
+  INSERT INTO storage.objects (bucket_id, name) VALUES ('product-images', 'f360/ZZ-PUBLICADO/NUDE/a.png');
+  INSERT INTO f360.product_media (product_id, color_id, storage_path, sort) VALUES (pid, cid, 'f360/ZZ-PUBLICADO/NUDE/a.png', 1);
+  INSERT INTO f360.woo_product_links (target_id, product_id, woo_product_id, woo_status, published_hash, last_success_at)
+    VALUES (t, pid, 990001, 'publish', f360.publish_hash(pid), now());
+  INSERT INTO f360.woo_variant_links (target_id, variant_id, woo_variation_id) VALUES (t, vid, 990011);
+  IF p_pairs > 0 THEN
+    INSERT INTO f360.inventory_balances (variant_id, location_id, on_hand) SELECT vid, id, p_pairs FROM f360.locations WHERE name = 'Bodega CDMX';
+  END IF;
+  RETURN pid;
+END $fx$;
 SELECT auth_user_id AS carolina FROM f360.user_roles WHERE display_name = 'Carolina' \gset
-SELECT auth_user_id AS seller FROM f360.user_roles WHERE role = 'seller' ORDER BY created_at LIMIT 1 \gset
+-- a seller for permission checks: lab user 15550100011 gets the role inside this transaction only
+INSERT INTO f360.user_roles (auth_user_id, role, display_name, granted_by) SELECT id, 'seller', 'ZZ Vendedora', 'test (rolled back)' FROM auth.users WHERE email = '15550100011@fuxia.app'
+  ON CONFLICT (auth_user_id) DO UPDATE SET role = 'seller' RETURNING auth_user_id AS seller \gset
 SELECT set_config('t.carolina', :'carolina', true), set_config('t.seller', :'seller', true) \gset t_
 
 DO $$
 DECLARE car uuid := current_setting('t.carolina')::uuid; sel uuid := current_setting('t.seller')::uuid;
   bodega uuid := (SELECT id FROM f360.locations WHERE name = 'Bodega CDMX');
-  mac uuid := (SELECT id FROM f360.products WHERE name = 'Macarena');
+  mac uuid;
   tgt uuid; r jsonb; err text; pid uuid; pid2 uuid; v_nude35 uuid; v_verde37 uuid; cnude uuid; ev0 int; bal0 int; lk0 int; q0 int; n int; snap jsonb;
 BEGIN
-  PERFORM pg_temp.ok(car IS NOT NULL AND sel IS NOT NULL AND bodega IS NOT NULL AND mac IS NOT NULL, 'fixtures: Carolina (owner), a seller, Bodega CDMX, Macarena', '');
+  INSERT INTO f360.sales_targets (key, name, base_url, fulfillment_location_id, active) VALUES ('zz_d2p', 'ZZ D2 publicado', 'https://zz.invalid', bodega, true);
+  mac := pg_temp.zz_published('zz_d2p');
+  PERFORM pg_temp.ok(car IS NOT NULL AND sel IS NOT NULL AND bodega IS NOT NULL AND mac IS NOT NULL, 'fixtures: Carolina (owner), a seller, Bodega CDMX, a model published by F360', '');
   INSERT INTO f360.sales_targets (key, name, base_url, fulfillment_location_id, active) VALUES ('zz_d2', 'ZZ D2', 'https://zz.invalid', bodega, true) RETURNING id INTO tgt;
 
   -- ── snapshot (system) ──
@@ -127,7 +152,7 @@ BEGIN
   PERFORM pg_temp.ok(r->>'error' LIKE 'Conflicto:%' AND pg_temp.st(900401) = 'sin_correspondencia',
     'a second Woo variation onto ZZ Paula / Nude / 35 → refused as conflict, nothing changed', r::text);
   r := pg_temp.as(car, format($q$SELECT public.f360_legacy_confirm('zz_d2', ARRAY[900401], %L, NULL, NULL, 'Nude', NULL)$q$, mac));
-  PERFORM pg_temp.ok(r->>'error' LIKE '%se publica desde Fuxia 360%', 'legacy variations cannot be mixed into a model published by F360 (Macarena)', r::text);
+  PERFORM pg_temp.ok(r->>'error' LIKE '%se publica desde Fuxia 360%', 'legacy variations cannot be mixed into a model published by F360', r::text);
   r := pg_temp.as(car, $q$SELECT public.f360_legacy_confirm('zz_d2', ARRAY[900301, 900302], NULL, 'ZZ Mules', NULL, 'Verde', NULL)$q$);
   PERFORM pg_temp.ok(r->>'error' LIKE '%talla 37%', 'two variations with the same size cannot become one colour (any-colour + Verde 37)', r::text);
   r := pg_temp.as(car, $q$SELECT public.f360_legacy_confirm('zz_d2', ARRAY[900302], NULL, 'ZZ Paula', NULL, 'Verde', NULL)$q$);
@@ -161,7 +186,7 @@ BEGIN
     'legacy sources: ZZ Paula Nude ← Woo 9001 (2 sizes), Negro ← Woo 9002 (1 size after the reopen)', r::text);
   r := pg_temp.as(sel, format($q$SELECT public.f360_legacy_sources(%L)$q$, pid));
   PERFORM pg_temp.ok(r ? 'error', 'a seller cannot read legacy sources', r::text);
-  PERFORM pg_temp.ok(jsonb_array_length(pg_temp.as(car, format($q$SELECT public.f360_legacy_sources(%L)$q$, mac))) = 0, 'an F360-published model (Macarena) has no legacy sources', '');
+  PERFORM pg_temp.ok(jsonb_array_length(pg_temp.as(car, format($q$SELECT public.f360_legacy_sources(%L)$q$, mac))) = 0, 'an F360-published model has no legacy sources', '');
 
   -- ── colour swatch by hand (display only) ──
   SELECT id INTO cnude FROM f360.product_colors WHERE product_id = pid AND name = 'Nude';
@@ -217,11 +242,9 @@ BEGIN
   r := public.f360_ingest_woo_order('zz_d2', '{"delivery_id":"zz-d2-5","topic":"order.created"}',
     pg_temp.order_json(99000005, '[{"id":1,"product_id":9999,"variation_id":999901,"sku":"BALL-OTRO","quantity":1}]'));
   PERFORM pg_temp.ok(r->'lines'->0->>'outcome' = 'legacy', 'a Woo product F360 never adopted stays "legacy" (ignored, as today)', r::text);
-  r := public.f360_ingest_woo_order('woo_staging4', '{"delivery_id":"zz-d2-6","topic":"order.created"}',
-    pg_temp.order_json(99000006, jsonb_build_array(jsonb_build_object('id', 1, 'product_id', (SELECT woo_product_id FROM f360.woo_product_links pl JOIN f360.sales_targets t ON t.id = pl.target_id AND t.key = 'woo_staging4' WHERE pl.product_id = mac),
-      'variation_id', (SELECT vl.woo_variation_id FROM f360.woo_variant_links vl JOIN f360.sales_targets t ON t.id = vl.target_id AND t.key = 'woo_staging4' JOIN f360.product_variants v ON v.id = vl.variant_id WHERE v.sku = 'F360-MACARENA-NUDE-37'),
-      'sku', 'F360-MACARENA-OTRO', 'quantity', 1))));
-  PERFORM pg_temp.ok(r->'lines'->0->>'outcome' = 'sku_mismatch', 'F360-published products keep the SKU check (Macarena with a wrong SKU → sku_mismatch)', r::text);
+  r := public.f360_ingest_woo_order('zz_d2p', '{"delivery_id":"zz-d2-6","topic":"order.created"}',
+    pg_temp.order_json(99000006, '[{"id":1,"product_id":990001,"variation_id":990011,"sku":"F360-ZZ-PUBLICADO-OTRO","quantity":1}]'));
+  PERFORM pg_temp.ok(r->'lines'->0->>'outcome' = 'sku_mismatch', 'F360-published products keep the SKU check (wrong SKU → sku_mismatch)', r::text);
 
   -- ── stock push claim + reconciliation see the legacy parent from the variant link ──
   snap := public.f360_reconcile_snapshot('zz_d2');
@@ -231,7 +254,8 @@ BEGIN
   r := public.f360_sync_claim_stock('zz_d2', 10);
   PERFORM pg_temp.ok(EXISTS (SELECT 1 FROM jsonb_array_elements(r) x WHERE (x->>'woo_variation_id')::int = 900101 AND (x->>'woo_product_id')::int = 9001 AND (x->>'ats')::int = 0),
     'stock push claim carries the legacy parent and ATS 0 (Woo would show it sold out, P3)', r::text);
-  PERFORM pg_temp.ok(jsonb_array_length(public.f360_reconcile_snapshot('woo_staging4')) = 18, 'woo_staging4 (Macarena, F360-published) reconciliation unchanged: 18 variants', '');
+  snap := public.f360_reconcile_snapshot('zz_d2p');
+  PERFORM pg_temp.ok(jsonb_array_length(snap) = 1 AND (snap->0->>'woo_product_id')::int = 990001, 'F360-published reconciliation still takes the Woo parent from the product link', snap::text);
 END $$;
 
 SELECT status || ' | ' || name || ' | ' || left(coalesce(detail,''), 110) FROM t_results ORDER BY n;

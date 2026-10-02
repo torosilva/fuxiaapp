@@ -15,7 +15,9 @@ BEGIN
   RETURN r;
 END $$;
 SELECT auth_user_id AS carolina FROM f360.user_roles WHERE display_name = 'Carolina' \gset
-SELECT auth_user_id AS seller FROM f360.user_roles WHERE role = 'seller' ORDER BY created_at LIMIT 1 \gset
+-- a seller for permission checks: lab user 15550100011 gets the role inside this transaction only
+INSERT INTO f360.user_roles (auth_user_id, role, display_name, granted_by) SELECT id, 'seller', 'ZZ Vendedora', 'test (rolled back)' FROM auth.users WHERE email = '15550100011@fuxia.app'
+  ON CONFLICT (auth_user_id) DO UPDATE SET role = 'seller' RETURNING auth_user_id AS seller \gset
 SELECT id AS op FROM auth.users WHERE email = '15550100021@fuxia.app' \gset
 SELECT set_config('t.carolina', :'carolina', true), set_config('t.seller', :'seller', true), set_config('t.op', :'op', true) \gset t_
 
