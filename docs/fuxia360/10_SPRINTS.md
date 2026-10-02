@@ -54,7 +54,7 @@ Exit:
 Design every sprint below against these connected domains (see `02_TARGET_ARCHITECTURE.md` §2.1):
 - **Sprint 1 (Product)** provides the canonical `variant_id` plus `make_to_order_eligible`, which every later domain uses.
 - **Sprint 2 (Inventory)** provides locations, the movement ledger and receipts. Its receipt design must already allow `business_reference_type = production_request`, so produced pairs enter inventory the same way as any receipt.
-- **Sprint 4 (Woo)** publishes the Availability result (physical ATS across Mexico, plus make-to-order and promise), and ingests orders with canonical line identity.
+- **Sprint 4 (Woo)** publishes the channel's source-location availability (Bodega CDMX for Woo México; *superseded 2026-10-02: "physical ATS across Mexico"*, see `INVENTORY_MODEL.md`), and ingests orders with canonical line identity.
 - **Sprint 5C (Fulfillment)** decides the path per line.
 - **Sprint 5D (Production Tracking Lite)** tracks MAKE_TO_ORDER lines until receipt and fulfillment.
 - No sprint may introduce negative physical inventory to represent make-to-order demand.
@@ -116,7 +116,7 @@ Carolina acceptance:
 Build/harden:
 - product/variant create/update mapping
 - idempotent sync
-- inventory availability sync: physical ATS across all eligible Mexican locations, plus make-to-order eligibility and fulfillment promise (never central-warehouse-only)
+- ~~inventory availability sync: physical ATS across all eligible Mexican locations, plus make-to-order eligibility and fulfillment promise (never central-warehouse-only)~~ **SUPERSEDED 2026-10-02:** Woo México publica solo desde la `fulfillment_location` del canal (Bodega CDMX). Ver `INVENTORY_MODEL.md` y `09_MIGRATION_PLAN.md` Phase 5.
 - order ingestion to canonical variant
 - an explicitly approved interim order→inventory rule until allocation exists (must not assume a central warehouse)
 - refund/cancellation rules
@@ -252,3 +252,4 @@ Recommendations are advisory first.
 | **A — P2.3 Woo stock + orders** | P2.3A local/staging (done); P2.3B on SiteGround staging | P2.3B **blocked** until the SiteGround staging copy exists — `admin/P2_3_STATUS.md`, `admin/P2_3B_RUNBOOK.md` |
 | **B — Customer 360 + CRM + Growth** | Data audit, Customer 360 model, honest Clientes/Growth screens, B4 revenue plan | Customer 360 build **waits for identity decisions D-C1…D-C5** — `growth/DATA_AUDIT.md`, `growth/CUSTOMER_360_MODEL.md` |
 | **C — Physical Operations / Unified Inventory** | Stores and bazaars on the single f360 ledger; seller → role → location; transfers; atomic store sale linked to loyalty and Customer 360; retire `channel_inventory` as a master | **Design only.** Audit + target + migration plan in `ops/TRACK_C_*.md`. Blocked by S0.0A-A2 in production, S0.2, S0.3 (re-scope D-X1), S0.5 and decisions D-L1, D-M1, D-P1, D-S1 |
+| **D — Legacy Inventory Takeover** | Adoptar el catálogo Woo legacy en Fuxia 360 sin cambiar SKUs: D1 discovery → D2 mapping → D3 conteo físico de Bodega CDMX → D4 dry run → reporte de diferencias → procedimiento de cutover | **Arrancado 2026-10-02.** Se detiene antes del cutover con reporte para aprobación de Mario. Sin producción, sin envío automático de stock a Woo producción — `ops/TRACK_D_LEGACY_TAKEOVER.md` |
