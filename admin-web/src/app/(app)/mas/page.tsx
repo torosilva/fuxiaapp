@@ -1,11 +1,12 @@
 import Link from 'next/link';
-import { IconBag, IconBell, IconGrowth, IconLink, IconMove, IconReceipt, IconScissors, IconUsers } from '@/components/icons';
+import { IconBag, IconBell, IconCheck, IconGrowth, IconLink, IconMove, IconReceipt, IconScissors, IconUsers } from '@/components/icons';
 import { canWrite, getMe } from '@/lib/f360';
 
 const ITEMS = [
   { href: '/transferencias', label: 'Transferencias', icon: IconMove, live: true },
   { href: '/ventas', label: 'Ventas', icon: IconReceipt, live: true, admin: true },
   { href: '/homologacion', label: 'Homologación Woo', icon: IconLink, live: true, admin: true },
+  { href: '/conteo', label: 'Conteo de apertura', icon: IconCheck, live: true, admin: true },
   { href: '/monedas', label: 'Monedas', icon: IconReceipt, live: true, admin: true },
   { href: '/clientes', label: 'Clientes', icon: IconUsers, live: true },
   { href: '/growth', label: 'Growth', icon: IconGrowth, live: true },

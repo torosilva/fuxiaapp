@@ -355,3 +355,29 @@ export async function adjustInventoryAction(input: { idempotencyKey: string; pro
   if (r.ok) { revalidateProduct(input.productId); revalidatePath('/inventario', 'layout'); }
   return r;
 }
+
+// Track D · D3 — opening physical count (every rule is enforced again in the database; nothing here writes inventory)
+function revalidateCount() { revalidatePath('/conteo', 'layout'); }
+export async function openingStartAction(target: string, note: string): Promise<Result<unknown>> {
+  const r = await call('f360_opening_start', { p_target_key: target, p_note: note.trim() || null }); if (r.ok) revalidateCount(); return r;
+}
+export async function openingRefreshAction(id: string): Promise<Result<unknown>> {
+  const r = await call('f360_opening_refresh_scope', { p_count_id: id }); if (r.ok) revalidateCount(); return r;
+}
+export async function openingRecordAction(id: string, round: '1' | '2' | 're', lines: { variantId: string; qty: number }[]): Promise<Result<unknown>> {
+  const clean = lines.filter((l) => Number.isInteger(l.qty) && l.qty >= 0).map((l) => ({ variant_id: l.variantId, qty: l.qty }));
+  if (!clean.length) return { ok: false, error: 'Escribe al menos una cantidad.' };
+  const r = await call('f360_opening_record', { p_count_id: id, p_round: round, p_lines: clean }); if (r.ok) revalidateCount(); return r;
+}
+export async function openingAddUnlistedAction(id: string, description: string, size: string, quantity: number): Promise<Result<unknown>> {
+  const r = await call('f360_opening_add_unlisted', { p_count_id: id, p_description: description, p_size: size || null, p_quantity: quantity }); if (r.ok) revalidateCount(); return r;
+}
+export async function openingResolveUnlistedAction(unlistedId: string, resolution: string): Promise<Result<unknown>> {
+  const r = await call('f360_opening_resolve_unlisted', { p_unlisted_id: unlistedId, p_resolution: resolution }); if (r.ok) revalidateCount(); return r;
+}
+export async function openingStepAction(id: string, step: 'freeze' | 'reconcile' | 'approve' | 'cancel', note = ''): Promise<Result<unknown>> {
+  const fn = { freeze: 'f360_opening_freeze', reconcile: 'f360_opening_reconcile', approve: 'f360_opening_approve', cancel: 'f360_opening_cancel' }[step];
+  const args: Record<string, unknown> = { p_count_id: id };
+  if (step === 'approve') args.p_note = note; if (step === 'cancel') args.p_reason = note;
+  const r = await call(fn, args); if (r.ok) revalidateCount(); return r;
+}

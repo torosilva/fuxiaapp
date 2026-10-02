@@ -171,3 +171,21 @@ export type LegacySource = { color_id: string; color: string; woo_product_id: nu
 export const getLegacySources = (productId: string) => rpc<LegacySource[]>('f360_legacy_sources', { p_product_id: productId });
 export type ArchiveState = { status: 'active' | 'archived'; blockers: string[]; last_change: { to: string; by: string; at: string; reason: string } | null };
 export const getArchiveState = (productId: string) => rpc<ArchiveState>('f360_product_archive_state', { p_product_id: productId });
+
+// Track D · D3 — opening physical count
+export type OpeningStatus = 'preliminar' | 'congelado' | 'aprobado' | 'cancelado';
+export type OpeningLineStatus = 'pendiente' | 'contado_1' | 'doble_ok' | 'diferencia' | 'recontado' | 'recontar';
+export type OpeningSummary = { lines: number; pendiente: number; contado_1: number; doble_ok: number; diferencia: number; recontado: number; recontar: number;
+  final_lines: number; final_pairs: number; out_of_scope: number; unlisted_open: number; unlisted_pairs: number };
+export type OpeningState = { count: null | { id: string; status: OpeningStatus; location: string; target: { key: string; name: string };
+  started_by: string; started_at: string; frozen_by: string | null; frozen_at: string | null; reconciled_at: string | null;
+  approved_by: string | null; approved_at: string | null; approval_note: string | null; cancelled_at: string | null; cancel_reason: string | null };
+  summary?: OpeningSummary; blockers?: string[] };
+export type OpeningSize = { variant_id: string; size: string; sku: string | null; status: OpeningLineStatus; in_scope: boolean; woo_variations: number[] | null;
+  count1: number | null; count1_by: string | null; count1_done: boolean; count2: number | null; count2_by: string | null; recount: number | null; recount_by: string | null;
+  final_qty: number | null; affected: { woo_sold: number; moves: number } | null; woo_managed: boolean | null; woo_stock: number | null; difference: number | null };
+export type OpeningView = 'conteo1' | 'conteo2' | 'reconteo' | 'reporte';
+export type OpeningSheet = { view: OpeningView; me: string; models: { product_id: string; model: string; colors: { color: string; hex: string | null; sizes: OpeningSize[] }[] }[];
+  unlisted: { id: string; description: string; size: string | null; quantity: number; found_by: string; found_at: string; status: 'abierto' | 'resuelto'; resolution: string | null; resolved_by: string | null }[] };
+export const getOpeningState = () => rpc<OpeningState>('f360_opening_state', { p_count_id: null });
+export const getOpeningSheet = (id: string, view: OpeningView) => rpc<OpeningSheet>('f360_opening_sheet', { p_count_id: id, p_view: view });

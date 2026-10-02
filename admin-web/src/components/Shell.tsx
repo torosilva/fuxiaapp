@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { IconBag, IconBell, IconBoxes, IconGrowth, IconHome, IconLink, IconLogout, IconMore, IconMove, IconReceipt, IconScissors, IconShoe, IconUsers } from './icons';
+import { IconBag, IconBell, IconBoxes, IconCheck, IconGrowth, IconHome, IconLink, IconLogout, IconMore, IconMove, IconReceipt, IconScissors, IconShoe, IconUsers } from './icons';
 
 const NAV = [
   { href: '/', label: 'Inicio', icon: IconHome, live: true },
@@ -13,6 +13,7 @@ const NAV = [
   { href: '/clientes', label: 'Clientes', icon: IconUsers, live: true },
   { href: '/growth', label: 'Growth', icon: IconGrowth, live: true },
   { href: '/homologacion', label: 'Homologación', icon: IconLink, live: true, admin: true },
+  { href: '/conteo', label: 'Conteo de apertura', icon: IconCheck, live: true, admin: true },
   { href: '/avisos', label: 'Avisos', icon: IconBell, live: true },
   { href: '/produccion', label: 'Producción', icon: IconScissors, live: false },
 ];
