@@ -169,3 +169,5 @@ export type Homologation = {
 export const getHomologation = (target = 'woo_staging4') => rpc<Homologation>('f360_legacy_homologation', { p_target_key: target });
 export type LegacySource = { color_id: string; color: string; woo_product_id: number; woo_product_name: string; target_key: string; target_name: string; base_url: string; variations: number };
 export const getLegacySources = (productId: string) => rpc<LegacySource[]>('f360_legacy_sources', { p_product_id: productId });
+export type ArchiveState = { status: 'active' | 'archived'; blockers: string[]; last_change: { to: string; by: string; at: string; reason: string } | null };
+export const getArchiveState = (productId: string) => rpc<ArchiveState>('f360_product_archive_state', { p_product_id: productId });

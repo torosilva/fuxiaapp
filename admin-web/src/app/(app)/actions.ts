@@ -337,3 +337,10 @@ export async function setColorHexAction(productId: string, colorId: string, hex:
   if (r.ok) revalidateProduct(productId);
   return r;
 }
+
+export async function setProductArchivedAction(productId: string, archived: boolean, reason: string): Promise<Result<unknown>> {
+  if (reason.trim().length < 3) return { ok: false, error: 'Escribe el motivo.' };
+  const r = await call('f360_set_product_archived', { p_product_id: productId, p_archived: archived, p_reason: reason.trim() });
+  if (r.ok) { revalidateProduct(productId); revalidatePath('/homologacion'); }
+  return r;
+}

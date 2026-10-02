@@ -2,13 +2,14 @@ import Link from 'next/link';
 import { EventCard } from '@/components/EventCard';
 import { ColorDot, ProductImage } from '@/components/ProductImage';
 import { IconBack, IconCheck, IconDown } from '@/components/icons';
-import { canWrite, getLegacySources, getMe, getProduct, getProductPrices, getPublication, listCategories, listEvents, listLocations } from '@/lib/f360';
+import { canWrite, getArchiveState, getLegacySources, getMe, getProduct, getProductPrices, getPublication, listCategories, listEvents, listLocations } from '@/lib/f360';
 import { MISSING_LABEL, pares, precio } from '@/lib/format';
 import { ColorPhotos } from './ColorPhotos';
 import { ProductInfoForm } from './ProductInfoForm';
 import { PublishPanel } from './PublishPanel';
 import { PricesPanel } from './PricesPanel';
 import { StoreOrigin } from './StoreImport';
+import { ArchivePanel } from './ArchivePanel';
 import { publisherAvailable } from '@/lib/env-guard';
 
 const MISSING_ANCHOR: Record<string, string> = { precio: '#info', categoria: '#info', descripcion: '#info', fotos: '#fotos', color: '#fotos', talla: '#fotos' };
@@ -19,6 +20,7 @@ export default async function ProductoDetalle({ params, searchParams }: { params
   const edit = canWrite(me.role);
   const sources = edit ? await getLegacySources(id) : [];   // adopted from the current store (Track D)
   const legacy = sources.length > 0;
+  const archive = await getArchiveState(id);
   const color = product.colors.find((c) => c.id === sp.color) ?? product.colors[0];
   const qty = (locId: string, size: string) => color?.balances.find((b) => b.location_id === locId && b.size === size)?.on_hand ?? 0;
   const colorTotal = color?.balances.reduce((a, b) => a + b.on_hand, 0) ?? 0;
@@ -27,6 +29,9 @@ export default async function ProductoDetalle({ params, searchParams }: { params
   return (
     <div>
       <Link href="/productos" className="inline-flex items-center gap-1 text-sm text-muted hover:text-ink"><IconBack className="size-4" />Productos</Link>
+      {archive.status === 'archived' && (
+        <div className="mt-4 rounded-2xl bg-surface-2 px-5 py-4 text-ink-2" data-testid="archived-banner">Este producto está <b>archivado</b>: no aparece en las listas. Puedes reactivarlo abajo.</div>
+      )}
 
       {sp.creado && edit && (
         <div className="mt-4 rounded-2xl bg-success-soft px-5 py-4 text-success"><p className="flex items-center gap-2"><IconCheck />Producto creado. Ahora agrega las fotos de cada color y la información para la tienda.</p></div>
@@ -135,6 +140,7 @@ export default async function ProductoDetalle({ params, searchParams }: { params
             : events.map((e) => <EventCard key={e.id} e={e} />)}
         </div>
       </section>
+      {edit && <ArchivePanel productId={product.id} name={product.name} state={archive} />}
     </div>
   );
 }
