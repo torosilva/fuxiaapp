@@ -74,3 +74,16 @@ export const TRANSFER_STATUS: Record<string, string> = {
 
 export const PAYMENT_LABEL: Record<string, string> = { cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia', other: 'Otro' };
 export const dinero = (n: number | null | undefined) => `$${Number(n ?? 0).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+
+/** Swatch for a colour name from the Fuxia palette: exact name, else the first colour of "X con Y", else the longest
+ *  palette name it starts with ("Verde aceituna" → Verde aceituna, "Dorado con ocre" → Dorado). Null = no match. */
+export function suggestHex(name: string): string | null {
+  const n = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const target = n(name);
+  const byName = new Map(SWATCHES.map((s) => [n(s.name), s.hex]));
+  if (byName.has(target)) return byName.get(target)!;
+  const first = target.split(/\s+(con|y)\s+/)[0];
+  if (byName.has(first)) return byName.get(first)!;
+  const starts = SWATCHES.filter((s) => target.startsWith(n(s.name) + ' ')).sort((a, b) => b.name.length - a.name.length)[0];
+  return starts?.hex ?? null;
+}

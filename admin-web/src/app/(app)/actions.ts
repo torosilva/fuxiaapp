@@ -2,6 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { publisherAvailable } from '@/lib/env-guard';
+import { suggestHex } from '@/lib/format';
 import type { InventoryEvent, Product, Transfer } from '@/lib/f360';
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -291,6 +292,13 @@ export async function importFromStoreAction(productId: string, maxColors = 3): P
   if (Object.keys(fields).length) {
     const u = await supabase.rpc('f360_update_product', { p_product_id: productId, p_fields: fields });
     if (u.error) skipped.push(`precio/descripción: ${u.error.message}`);
+  }
+
+  // swatches: colours without one get the palette colour that matches their name (display only, editable by hand)
+  for (const s of sources) {
+    const c = product.colors.find((k) => k.id === s.color_id);
+    const hex = c && !c.hex ? suggestHex(c.name) : null;
+    if (c && hex) { const h = await supabase.rpc('f360_set_color_hex', { p_color_id: c.id, p_hex: hex }); if (!h.error) c.hex = hex; }
   }
 
   // photos: per colour, only for colours that have none yet (max 6 per colour), a few colours per call
