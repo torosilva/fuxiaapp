@@ -139,7 +139,9 @@ BEGIN
   PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) x WHERE (x->>'id')::uuid = tr), 'En camino is not listed as a location', '');
   PERFORM pg_temp.ok((SELECT (x->>'incoming')::int FROM jsonb_array_elements(r) x WHERE (x->>'id')::uuid = pg_temp.id('B')) = 2, 'destination shows 2 pairs incoming (apart from its stock)', '');
   r := pg_temp.as(pg_temp.id('owner'), $q$SELECT public.f360_home()$q$);
-  PERFORM pg_temp.ok((r->>'in_transit_pairs')::int = 2 AND (r->>'available_pairs')::int = (SELECT sum(on_hand) FROM f360.inventory_balances WHERE location_id <> tr),
+  -- in transit = this test's 2 pairs + whatever is really travelling in staging right now (robust to open transfers)
+  PERFORM pg_temp.ok((r->>'in_transit_pairs')::int = (SELECT sum(on_hand) FROM f360.inventory_balances WHERE location_id = tr) AND (r->>'in_transit_pairs')::int >= 2
+    AND (r->>'available_pairs')::int = (SELECT sum(on_hand) FROM f360.inventory_balances WHERE location_id <> tr),
     'Inicio: available and in-transit are separate numbers', format('available=%s in_transit=%s', r->>'available_pairs', r->>'in_transit_pairs'));
   r := pg_temp.as(pg_temp.id('owner'), $q$SELECT public.f360_inventory_by_location()$q$);
   PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) x WHERE (x->>'id')::uuid = tr), 'inventory by location excludes En camino', '');

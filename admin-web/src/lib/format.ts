@@ -23,7 +23,7 @@ export function fecha(iso: string): string {
 export const TRANSIT_NAME = 'En camino';
 
 // "Carolina recibió 11 pares en Bodega CDMX"
-export function eventSentence(e: { type: string; actor_name: string; total_pairs: number; lines: { to_location: string | null; from_location: string | null }[] }): string {
+export function eventSentence(e: { type: string; actor_name: string; total_pairs: number; lines: { to_location: string | null; from_location: string | null; quantity?: number }[] }): string {
   const to = e.lines[0]?.to_location;
   const from = e.lines[0]?.from_location;
   switch (e.type) {
@@ -37,6 +37,12 @@ export function eventSentence(e: { type: string; actor_name: string; total_pairs
       return `${e.actor_name} regresó ${pares(e.total_pairs)} a ${to ?? '—'}`;
     case 'WRITE_OFF':
       return `${e.actor_name} dio de baja ${pares(e.total_pairs)}${from ? ` (${from})` : ''}`;
+    case 'ADJUSTMENT': {
+      const out = e.lines.filter((l) => l.from_location).reduce((a, l) => a + (l.quantity ?? 0), 0);
+      const inn = e.lines.filter((l) => l.to_location).reduce((a, l) => a + (l.quantity ?? 0), 0);
+      const where = from ?? to ?? '—';
+      return `${e.actor_name} ajustó el inventario en ${where}: ${[out ? `quitó ${pares(out)}` : null, inn ? `agregó ${pares(inn)}` : null].filter(Boolean).join(' y ')}`;
+    }
     case 'SALE':
       return `${e.actor_name} vendió ${pares(e.total_pairs)} de ${from ?? '—'}`;
     default:

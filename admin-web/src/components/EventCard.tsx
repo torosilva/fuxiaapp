@@ -10,7 +10,7 @@ export function EventCard({ e, compact = false }: { e: InventoryEvent; compact?:
   for (const l of e.lines) {
     const k = `${l.product_id}|${l.color}`;
     if (!groups.has(k)) groups.set(k, { name: l.product_name, image: l.product_image, color: l.color, hex: l.color_hex, lines: [] });
-    groups.get(k)!.lines.push({ size: l.size, quantity: l.quantity });
+    groups.get(k)!.lines.push({ size: l.size, quantity: e.type === 'ADJUSTMENT' && l.from_location ? -l.quantity : l.quantity });
   }
   const Icon = e.type === 'TRANSFER' ? IconMove : e.type === 'SALE' ? IconBag : IconDown;
   const ref = referenceLabel(e.reference_type, e.reference_id);
@@ -28,7 +28,7 @@ export function EventCard({ e, compact = false }: { e: InventoryEvent; compact?:
                 <div className="flex items-center gap-2 text-sm font-medium text-ink-2"><span className="truncate">{g.name}</span><ColorDot hex={g.hex} className="size-3" /><span className="text-muted">{g.color}</span></div>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {g.lines.map((l) => (
-                    <span key={l.size} className="tabular rounded-md bg-surface-2 px-2 py-0.5 text-xs text-ink-2">Talla {l.size} · {l.quantity}</span>
+                    <span key={l.size} className="tabular rounded-md bg-surface-2 px-2 py-0.5 text-xs text-ink-2">Talla {l.size} · {e.type === 'ADJUSTMENT' && l.quantity > 0 ? '+' : ''}{l.quantity < 0 ? `−${-l.quantity}` : l.quantity}</span>
                   ))}
                 </div>
               </div>

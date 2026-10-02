@@ -344,3 +344,14 @@ export async function setProductArchivedAction(productId: string, archived: bool
   if (r.ok) { revalidateProduct(productId); revalidatePath('/homologacion'); }
   return r;
 }
+
+// Inventory adjustment by hand (owner only; reason mandatory; never negative — all enforced again in the database)
+export async function adjustInventoryAction(input: { idempotencyKey: string; productId: string; locationId: string; lines: { variantId: string; delta: number }[]; reason: string }): Promise<Result<InventoryEvent>> {
+  const lines = input.lines.filter((l) => Number.isInteger(l.delta) && l.delta !== 0);
+  if (!lines.length) return { ok: false, error: 'Escribe al menos un par para ajustar.' };
+  if (input.reason.trim().length < 3) return { ok: false, error: 'Escribe el motivo del ajuste.' };
+  const r = await call<InventoryEvent>('f360_adjust_inventory', { p_idempotency_key: input.idempotencyKey, p_location_id: input.locationId,
+    p_lines: lines.map((l) => ({ variant_id: l.variantId, delta: l.delta })), p_reason: input.reason.trim() });
+  if (r.ok) { revalidateProduct(input.productId); revalidatePath('/inventario', 'layout'); }
+  return r;
+}

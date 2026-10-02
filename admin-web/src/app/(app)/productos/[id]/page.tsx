@@ -10,6 +10,7 @@ import { PublishPanel } from './PublishPanel';
 import { PricesPanel } from './PricesPanel';
 import { StoreOrigin } from './StoreImport';
 import { ArchivePanel } from './ArchivePanel';
+import { AdjustPanel } from './AdjustPanel';
 import { publisherAvailable } from '@/lib/env-guard';
 
 const MISSING_ANCHOR: Record<string, string> = { precio: '#info', categoria: '#info', descripcion: '#info', fotos: '#fotos', color: '#fotos', talla: '#fotos' };
@@ -118,6 +119,7 @@ export default async function ProductoDetalle({ params, searchParams }: { params
               </tbody>
             </table>
           </div>
+          {me.role === 'owner' && <AdjustPanel key={color.id} productId={product.id} color={color} sizes={product.sizes} locations={locations} />}
         </section>
       )}
 
