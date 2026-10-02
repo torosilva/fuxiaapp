@@ -71,9 +71,21 @@
       });
     }
 
+    // Galería de Bricks (flexslider): se mueve a la foto del color, igual que al tocar su miniatura. No finge una variación
+    // (el carrito no cambia). Sin galería de Bricks se usa la función estándar de WooCommerce.
     function cambiarFoto(color) {
-      var v = variations.find(function (x) { return (x.attributes || {}).attribute_pa_color === color && x.image && x.image.src; });
-      if (v && $ && $.fn.wc_variations_image_update) $(form).wc_variations_image_update(v);
+      var v = variations.find(function (x) { return (x.attributes || {}).attribute_pa_color === color && x.image && x.image.full_src; });
+      if (!v || !$) return;
+      var galerias = document.querySelectorAll('.woocommerce-product-gallery.images.bricks-product-gallery-for-' + form.getAttribute('data-product_id'));
+      if (!galerias.length) { if ($.fn.wc_variations_image_update) $(form).wc_variations_image_update(v); return; }
+      galerias.forEach(function (g) {
+        var fs = $(g).data('flexslider');
+        if (!fs || !fs.slides) return;
+        for (var i = 0; i < fs.slides.length; i++) {
+          var img = fs.slides[i].querySelector('img');
+          if (img && img.getAttribute('data-large_image') === v.image.full_src) { if (fs.currentSlide !== i) $(g).flexslider(i); break; }
+        }
+      });
     }
 
     function elegir(btn) {
@@ -104,6 +116,10 @@
       var t = e.target.closest('.fuxia-talla');
       if (t && t.classList.contains('agotada')) { e.stopImmediatePropagation(); e.preventDefault(); }
     }, true);
+
+    // Con color sin talla (p. ej. un color agotado) WooCommerce dispara reset_image y Bricks regresa la galería a la foto 1.
+    // Después de ese regreso se vuelve a poner la foto del color elegido.
+    if ($) $(form).on('reset_image', function () { if (colorSelect.value) setTimeout(function () { cambiarFoto(colorSelect.value); }, 60); });
 
     box.hidden = false;
     var inicial = colorSelect.value && botones.querySelector('[data-color="' + colorSelect.value + '"]');
