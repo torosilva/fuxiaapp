@@ -154,6 +154,15 @@ BEGIN
     AND (r->'summary'->>'models_confirmed')::int = 2 AND (r->'summary'->>'coverage_pct')::numeric = 57.1 AND jsonb_array_length(r->'rows') = 7,
     'summary: 7 variations, 4 Woo products, 4 confirmed, 2 F360 models, 57.1 % coverage', r->>'summary');
 
+  -- ── where each confirmed colour comes from in the store (photos / price / description import) ──
+  r := pg_temp.as(car, format($q$SELECT public.f360_legacy_sources(%L)$q$, pid));
+  PERFORM pg_temp.ok(jsonb_array_length(r) = 2 AND EXISTS (SELECT 1 FROM jsonb_array_elements(r) x WHERE x->>'color' = 'Nude' AND (x->>'woo_product_id')::int = 9001 AND (x->>'variations')::int = 2)
+    AND EXISTS (SELECT 1 FROM jsonb_array_elements(r) x WHERE x->>'color' = 'Negro' AND (x->>'woo_product_id')::int = 9002 AND (x->>'variations')::int = 1),
+    'legacy sources: ZZ Paula Nude ← Woo 9001 (2 sizes), Negro ← Woo 9002 (1 size after the reopen)', r::text);
+  r := pg_temp.as(sel, format($q$SELECT public.f360_legacy_sources(%L)$q$, pid));
+  PERFORM pg_temp.ok(r ? 'error', 'a seller cannot read legacy sources', r::text);
+  PERFORM pg_temp.ok(jsonb_array_length(pg_temp.as(car, format($q$SELECT public.f360_legacy_sources(%L)$q$, mac))) = 0, 'an F360-published model (Macarena) has no legacy sources', '');
+
   -- ── legacy channel links (D4 will create them; here only the rules) ──
   BEGIN INSERT INTO f360.woo_variant_links (target_id, variant_id, woo_variation_id, origin, woo_product_id) VALUES (tgt, v_nude35, 900401, 'legacy_adopted', 9004); err := 'accepted';
   EXCEPTION WHEN OTHERS THEN err := SQLERRM; END;

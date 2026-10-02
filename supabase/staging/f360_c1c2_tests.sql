@@ -73,7 +73,7 @@ BEGIN
 END $$;
 
 DO $$
-DECLARE u uuid := current_setting('t.carolina')::uuid; err text; r jsonb; lA uuid := (SELECT v FROM t_ids WHERE k = 'lA'); lB uuid := (SELECT v FROM t_ids WHERE k = 'lB'); lN uuid := (SELECT v FROM t_ids WHERE k = 'lN');
+DECLARE u uuid := current_setting('t.carolina')::uuid; err text; r jsonb; lA uuid := (SELECT v FROM t_ids WHERE k = 'lA'); lB uuid := (SELECT v FROM t_ids WHERE k = 'lB'); lN uuid := (SELECT v FROM t_ids WHERE k = 'lN'); others uuid[]; o uuid;
 BEGIN
   -- the lab user may carry a demo seller role; for this check she must not be a seller (rolled back anyway)
   DELETE FROM f360.location_assignments WHERE auth_user_id = current_setting('t.c1')::uuid;
@@ -88,8 +88,11 @@ BEGIN
   PERFORM public.f360_set_user_role(current_setting('t.c3')::uuid, 'operator', 'Operadora Prueba');
   PERFORM public.f360_set_location_assignment(current_setting('t.c1')::uuid, lA, true);
   PERFORM public.f360_set_location_assignment(current_setting('t.c1')::uuid, lN, true);
-  -- make Carolina the LAST owner (Mario → viewer, rolled back), then try to demote her
-  PERFORM public.f360_set_user_role(current_setting('t.mario')::uuid, 'viewer', 'Mario');
+  -- make Carolina the LAST owner (every other owner → viewer, rolled back), then try to demote her
+  RESET ROLE;
+  others := ARRAY(SELECT auth_user_id FROM f360.user_roles WHERE role = 'owner' AND auth_user_id <> u);
+  PERFORM pg_temp.as_user(u, 'authenticated');
+  FOREACH o IN ARRAY others LOOP PERFORM public.f360_set_user_role(o, 'viewer', 'Otra dueña (prueba)'); END LOOP;
   BEGIN PERFORM public.f360_set_user_role(u, 'viewer', 'Carolina'); err := 'accepted'; EXCEPTION WHEN OTHERS THEN err := SQLERRM; END;
   RESET ROLE;
   PERFORM pg_temp.ok(err LIKE '%al menos una dueña%' AND (SELECT role FROM f360.user_roles WHERE auth_user_id = u) = 'owner', 'the last owner cannot be demoted', err);

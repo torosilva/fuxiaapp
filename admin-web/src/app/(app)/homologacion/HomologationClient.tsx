@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { Fragment, useMemo, useState, useTransition } from 'react';
 import type { Homologation, HomologationRow, HomologationStatus } from '@/lib/f360';
 import { confirmHomologationAction, markHomologationAction, reopenHomologationAction } from '../actions';
+import { runStoreImport } from '../productos/[id]/StoreImport';
 
 const LABEL: Record<HomologationStatus, string> = {
   propuesto: 'Propuesto', confirmado: 'Confirmado', requiere_revision: 'Requiere revisión', conflicto: 'Conflicto', sin_correspondencia: 'Sin correspondencia',
@@ -185,7 +186,13 @@ function GroupCard({ g, data, onDone }: { g: Group; data: Homologation; onDone: 
       if (!r.ok) { setMsg({ ok: false, text: `${u.wooProductName}: ${r.error}` }); break; }
       pid = r.data.product_id; done++;
     }
-    if (done) { onDone(`${done} producto${done === 1 ? '' : 's'} Woo confirmado${done === 1 ? '' : 's'} en ${modelLabel}.`); router.refresh(); }
+    if (done && pid) {
+      const head = `${done} producto${done === 1 ? '' : 's'} de la tienda confirmado${done === 1 ? '' : 's'} en ${modelLabel}.`;
+      onDone(`${head} Trayendo fotos, precio y descripción de la tienda…`);
+      const imp = await runStoreImport(pid, (t) => onDone(`${head} ${t}`));
+      onDone(`${head} ${imp.ok ? imp.text : `No se pudieron traer los datos de la tienda: ${imp.error}`}`);
+      router.refresh();
+    }
     if (done === chosen.length) setOpen(false);
   });
 

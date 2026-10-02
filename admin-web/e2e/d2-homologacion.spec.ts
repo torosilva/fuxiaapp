@@ -71,7 +71,7 @@ test('D2 · práctica: Carolina agrupa productos Woo por color bajo un modelo F3
     await expect(panel.getByLabel(/Color F360 de Cucarron negro/)).toHaveValue('Negro');
     await g.screenshot({ path: `${SHOTS}/05-confirmar-modelo-cucarron.png` });
     await panel.getByRole('button', { name: /Confirmar 3 productos Woo como Demo · Cucarron/ }).click();
-    await expect(page.getByTestId('flash')).toHaveText('3 productos Woo confirmados en Demo · Cucarron.');
+    await expect(page.getByTestId('flash')).toContainText('3 productos de la tienda confirmados en Demo · Cucarron');
     await expect(page.getByTestId('group-demo · cucarron')).toContainText('Confirmado 18');
     await page.getByTestId('group-demo · cucarron').screenshot({ path: `${SHOTS}/06-confirmado-un-modelo-tres-colores.png` });
   });
@@ -89,7 +89,7 @@ test('D2 · práctica: Carolina agrupa productos Woo por color bajo un modelo F3
     await expect(panel.getByLabel(/Incluir Mules Colectiva$/)).not.toBeChecked();   // any-colour unit never preselected
     await g.screenshot({ path: `${SHOTS}/07-mules-colores-de-la-variacion.png` });
     await panel.getByRole('button', { name: /Confirmar 3 productos Woo como Demo · Mules Colectiva/ }).click();
-    await expect(page.getByTestId('flash')).toHaveText('3 productos Woo confirmados en Demo · Mules Colectiva.');
+    await expect(page.getByTestId('flash')).toContainText('3 productos de la tienda confirmados en Demo · Mules Colectiva');
     await page.getByTestId('group-demo · mules colectiva').screenshot({ path: `${SHOTS}/08-mules-confirmado-y-bloqueado.png` });
   });
 

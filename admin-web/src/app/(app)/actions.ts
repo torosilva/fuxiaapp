@@ -240,3 +240,85 @@ export async function reopenHomologationAction(target: string, variationIds: num
   if (r.ok) revalidatePath('/homologacion');
   return r;
 }
+
+// Track D · D2 — bring the store's existing photos, price and description into a model adopted from the legacy catalog.
+// Reads the store's PUBLIC catalog only (Store API, GET, no credentials). Fills only what is still EMPTY in Fuxia 360
+// (never overwrites what a person wrote), through the same RPCs a person uses. Nothing is written to Woo.
+type WooStoreProduct = { id: number; name: string; description: string; prices: { regular_price: string; sale_price: string; currency_minor_unit: number }; on_sale: boolean; images: { src: string }[] };
+const STORE_HOSTS = /(^|\.)fuxiaballerinas\.com$/;
+function plainText(html: string) {
+  return html.replace(/<\s*br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n').replace(/<[^>]+>/g, '')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n))).replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"')
+    .replace(/&#039;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\n{3,}/g, '\n\n').trim();
+}
+async function storeProduct(baseUrl: string, id: number): Promise<WooStoreProduct | null> {
+  const u = new URL(`/wp-json/wc/store/v1/products/${id}`, baseUrl);
+  if (u.protocol !== 'https:' || !STORE_HOSTS.test(u.hostname)) return null;
+  const r = await fetch(u, { method: 'GET', headers: { Accept: 'application/json' }, cache: 'no-store' });
+  return r.ok ? ((await r.json()) as WooStoreProduct) : null;
+}
+
+export async function importFromStoreAction(productId: string, maxColors = 3): Promise<Result<{ photos: number; price: boolean; description: boolean; skipped: string[]; remaining: number }>> {
+  const supabase = await createClient();
+  const src = await supabase.rpc('f360_legacy_sources', { p_product_id: productId });
+  if (src.error) return { ok: false, error: src.error.message };
+  const sources = (src.data ?? []) as { color_id: string; color: string; woo_product_id: number; base_url: string }[];
+  if (!sources.length) return { ok: false, error: 'Este modelo no viene de la tienda actual.' };
+  const pr = await supabase.rpc('f360_get_product', { p_product_id: productId });
+  if (pr.error) return { ok: false, error: pr.error.message };
+  const product = pr.data as Product;
+  const skipped: string[] = [];
+  const woo = new Map<number, WooStoreProduct | null>();
+  for (const s of sources) if (!woo.has(s.woo_product_id)) woo.set(s.woo_product_id, await storeProduct(s.base_url, s.woo_product_id));
+  if ([...woo.values()].every((w) => !w)) return { ok: false, error: 'No se pudo leer la tienda (o es el canal de práctica).' };
+
+  // price + description: only when still empty, and only if every colour has the same price in the store
+  const fields: Record<string, unknown> = {};
+  const read = [...woo.values()].filter(Boolean) as WooStoreProduct[];
+  const money = (w: WooStoreProduct, v: string) => Number(v) / 10 ** (w.prices.currency_minor_unit ?? 0);
+  const regular = [...new Set(read.map((w) => money(w, w.prices.regular_price)))];
+  if (product.regular_price == null) {
+    if (regular.length === 1 && regular[0] > 0) {
+      fields.regular_price = regular[0];
+      const sale = [...new Set(read.map((w) => (w.on_sale ? money(w, w.prices.sale_price) : null)))];
+      if (sale.length === 1 && sale[0] != null && sale[0] < regular[0]) fields.sale_price = sale[0];
+    } else skipped.push(`precio: los colores tienen precios distintos en la tienda (${regular.join(' / ')})`);
+  }
+  if (!product.description) {
+    const d = read.map((w) => plainText(w.description || '')).find((t) => t.length > 0);
+    if (d) fields.description = d;
+  }
+  if (Object.keys(fields).length) {
+    const u = await supabase.rpc('f360_update_product', { p_product_id: productId, p_fields: fields });
+    if (u.error) skipped.push(`precio/descripción: ${u.error.message}`);
+  }
+
+  // photos: per colour, only for colours that have none yet (max 6 per colour), a few colours per call
+  let photos = 0;
+  const pending = sources.filter((x) => { const c = product.colors.find((k) => k.id === x.color_id); return c && !c.media.length && woo.get(x.woo_product_id); });
+  for (const s of pending.slice(0, maxColors)) {
+    const color = product.colors.find((c) => c.id === s.color_id)!;
+    const w = woo.get(s.woo_product_id)!;
+    const paths: string[] = [];
+    for (const img of w.images.slice(0, 6)) {
+      try {
+        const u = new URL(img.src);
+        if (u.protocol !== 'https:' || !STORE_HOSTS.test(u.hostname)) continue;
+        const r = await fetch(u, { cache: 'no-store' });
+        if (!r.ok) continue;
+        const type = r.headers.get('content-type') ?? 'image/jpeg';
+        if (!type.startsWith('image/')) continue;
+        const ext = (u.pathname.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+        const path = `f360/${product.code}/${color.code}/${crypto.randomUUID()}.${ext}`;
+        const up = await supabase.storage.from('product-images').upload(path, await r.arrayBuffer(), { contentType: type });
+        if (!up.error) paths.push(path);
+      } catch { /* one image failing does not stop the rest */ }
+    }
+    if (paths.length) {
+      const m = await supabase.rpc('f360_add_media', { p_product_id: productId, p_color_id: color.id, p_paths: paths });
+      if (m.error) skipped.push(`${color.name}: ${m.error.message}`); else photos += paths.length;
+    } else skipped.push(`${color.name}: la tienda no tiene fotos que se puedan traer`);
+  }
+  revalidateProduct(productId);
+  return { ok: true, data: { photos, price: 'regular_price' in fields, description: 'description' in fields, skipped, remaining: Math.max(0, pending.length - maxColors) } };
+}

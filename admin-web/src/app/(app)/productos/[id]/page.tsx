@@ -2,12 +2,13 @@ import Link from 'next/link';
 import { EventCard } from '@/components/EventCard';
 import { ColorDot, ProductImage } from '@/components/ProductImage';
 import { IconBack, IconCheck, IconDown } from '@/components/icons';
-import { canWrite, getMe, getProduct, getProductPrices, getPublication, listCategories, listEvents, listLocations } from '@/lib/f360';
+import { canWrite, getLegacySources, getMe, getProduct, getProductPrices, getPublication, listCategories, listEvents, listLocations } from '@/lib/f360';
 import { MISSING_LABEL, pares, precio } from '@/lib/format';
 import { ColorPhotos } from './ColorPhotos';
 import { ProductInfoForm } from './ProductInfoForm';
 import { PublishPanel } from './PublishPanel';
 import { PricesPanel } from './PricesPanel';
+import { StoreOrigin } from './StoreImport';
 import { publisherAvailable } from '@/lib/env-guard';
 
 const MISSING_ANCHOR: Record<string, string> = { precio: '#info', categoria: '#info', descripcion: '#info', fotos: '#fotos', color: '#fotos', talla: '#fotos' };
@@ -16,6 +17,8 @@ export default async function ProductoDetalle({ params, searchParams }: { params
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const [me, product, locations, events, categories, pub, prices] = await Promise.all([getMe(), getProduct(id), listLocations(), listEvents({ productId: id, limit: 20 }), listCategories(), getPublication(id), getProductPrices(id)]);
   const edit = canWrite(me.role);
+  const sources = edit ? await getLegacySources(id) : [];   // adopted from the current store (Track D)
+  const legacy = sources.length > 0;
   const color = product.colors.find((c) => c.id === sp.color) ?? product.colors[0];
   const qty = (locId: string, size: string) => color?.balances.find((b) => b.location_id === locId && b.size === size)?.on_hand ?? 0;
   const colorTotal = color?.balances.reduce((a, b) => a + b.on_hand, 0) ?? 0;
@@ -34,7 +37,7 @@ export default async function ProductoDetalle({ params, searchParams }: { params
         <div>
           <div className="flex flex-wrap items-center gap-2">
             {product.category && <span className="text-xs uppercase tracking-[0.2em] text-muted">{product.category}</span>}
-            <span className={`rounded-full px-3 py-1 text-xs font-medium ${ready ? 'bg-success-soft text-success' : 'bg-gold-soft text-ink-2'}`}>{ready ? 'Listo para publicar' : 'Borrador'}</span>
+            <span className={`rounded-full px-3 py-1 text-xs font-medium ${legacy || ready ? 'bg-success-soft text-success' : 'bg-gold-soft text-ink-2'}`}>{legacy ? 'En la tienda' : ready ? 'Listo para publicar' : 'Borrador'}</span>
           </div>
           <h1 className="font-display mt-2 break-words text-5xl text-ink md:text-6xl">{product.name}</h1>
           <p className="tabular mt-2 text-lg text-ink-2">
@@ -45,7 +48,10 @@ export default async function ProductoDetalle({ params, searchParams }: { params
             {product.colors.map((c) => <span key={c.id} className="flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-sm text-ink-2"><ColorDot hex={c.hex} className="size-3" />{c.name}</span>)}
           </div>
 
-          {!ready ? (
+          {legacy ? (
+            <StoreOrigin productId={product.id} sources={sources} canEdit={edit}
+              missing={product.readiness.missing.filter((m) => m === 'precio' || m === 'descripcion' || m === 'fotos').map((m) => (MISSING_LABEL[m] ?? m).toLowerCase())} />
+          ) : !ready ? (
             <div className="mt-6 rounded-2xl border border-line bg-surface p-5">
               <p className="text-ink">Para la tienda en línea falta:</p>
               <ul className="mt-3 space-y-2">
@@ -71,7 +77,7 @@ export default async function ProductoDetalle({ params, searchParams }: { params
         </div>
       </div>
 
-      <PublishPanel productId={product.id} pub={pub} isOwner={me.role === 'owner'} publisherReady={publisherAvailable()} />
+      {!legacy && <PublishPanel productId={product.id} pub={pub} isOwner={me.role === 'owner'} publisherReady={publisherAvailable()} />}
 
       {color && <ColorPhotos product={product} color={color} canEdit={edit} />}
       <ProductInfoForm key={`${product.regular_price}-${product.category_key}-${product.description?.length ?? 0}`} product={product} categories={categories} canEdit={edit} />
