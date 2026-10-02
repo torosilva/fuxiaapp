@@ -23,3 +23,4 @@ export const IconLogout = ({ className }: P) => (<svg {...base(className)}><path
 export const IconBell = ({ className }: P) => (<svg {...base(className)}><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z" /><path d="M10 20.5a2 2 0 0 0 4 0" /></svg>);
 export const IconTruck = ({ className }: P) => (<svg {...base(className)}><path d="M3 6.5h11v9H3z" /><path d="M14 9.5h3.5L21 13v2.5h-7" /><circle cx="7" cy="17.5" r="1.8" /><circle cx="17" cy="17.5" r="1.8" /></svg>);
 export const IconReceipt = ({ className }: P) => (<svg {...base(className)}><path d="M6 3.5h12v17l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3-2 1.3v-17Z" /><path d="M9 8h6M9 11.5h6M9 15h3.5" /></svg>);
+export const IconLink = ({ className }: P) => (<svg {...base(className)}><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></svg>);

@@ -212,3 +212,31 @@ export async function saveCurrencyAction(input: { code: string; name: string; sy
   if (r.ok) revalidatePath('/monedas');
   return r;
 }
+
+// Track D · D2 — homologation (operator+; every rule is enforced again in the database)
+export async function confirmHomologationAction(input: {
+  target: string; variationIds: number[]; productId: string | null; newModelName: string | null; categoryKey: string | null; color: string; note?: string;
+}): Promise<Result<{ product_id: string; confirmed: number }>> {
+  if (!input.variationIds.length) return { ok: false, error: 'Elige al menos una variación.' };
+  if (!input.color.trim()) return { ok: false, error: 'Escribe el color F360.' };
+  if (!input.productId && !input.newModelName?.trim()) return { ok: false, error: 'Escribe el nombre del modelo o elige uno existente.' };
+  const r = await call<{ product_id: string; confirmed: number }>('f360_legacy_confirm', {
+    p_target_key: input.target, p_variation_ids: input.variationIds, p_product_id: input.productId,
+    p_new_model_name: input.productId ? null : input.newModelName?.trim(), p_category_key: input.categoryKey || null,
+    p_color_name: input.color.trim(), p_note: input.note?.trim() || null,
+  });
+  if (r.ok) { revalidatePath('/homologacion'); revalidatePath('/productos'); }
+  return r;
+}
+export async function markHomologationAction(target: string, variationIds: number[], status: 'requiere_revision' | 'sin_correspondencia', note: string): Promise<Result<unknown>> {
+  if (note.trim().length < 3) return { ok: false, error: 'Escribe el motivo.' };
+  const r = await call('f360_legacy_mark', { p_target_key: target, p_variation_ids: variationIds, p_status: status, p_note: note.trim() });
+  if (r.ok) revalidatePath('/homologacion');
+  return r;
+}
+export async function reopenHomologationAction(target: string, variationIds: number[], reason: string): Promise<Result<unknown>> {
+  if (reason.trim().length < 3) return { ok: false, error: 'Escribe por qué se reabre.' };
+  const r = await call('f360_legacy_reopen', { p_target_key: target, p_variation_ids: variationIds, p_reason: reason.trim() });
+  if (r.ok) revalidatePath('/homologacion');
+  return r;
+}

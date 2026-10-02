@@ -149,3 +149,21 @@ export const listCurrencies = () => rpc<CurrencyList>('f360_list_currencies');
 export const canWrite = (role: Role) => role === 'owner' || role === 'operator';
 /** Who may ask for merchandise to be moved (a seller only for her assigned locations — checked in the database). */
 export const canRequestTransfer = (role: Role) => role === 'owner' || role === 'operator' || role === 'seller';
+
+// Track D · D2 — homologation of the legacy Woo catalog (operator+)
+export type HomologationStatus = 'propuesto' | 'confirmado' | 'requiere_revision' | 'conflicto' | 'sin_correspondencia';
+export type HomologationRow = {
+  woo_variation_id: number; woo_product_id: number; woo_product_name: string; woo_parent_sku: string | null; woo_category: string | null;
+  woo_size: string | null; woo_color: string | null; woo_regular_price: number | null; sold_all: number; sold_90d: number;
+  proposed_model: string | null; proposed_product_id: string | null; proposed_color: string | null; proposed_size: string | null;
+  confidence: 'alta' | 'media' | 'baja' | null; proposal_reason: string | null; status: HomologationStatus; human_locked: boolean;
+  note: string | null; decided_by_name: string | null; decided_at: string | null;
+  confirmed: { variant_id: string; product_id: string; product_name: string; color: string; size: string; sku: string | null } | null;
+};
+export type HomologationSummary = { variations: number; woo_products: number; propuesto: number; confirmado: number; requiere_revision: number;
+  conflicto: number; sin_correspondencia: number; models_proposed: number; models_confirmed: number; coverage_pct: number; snapshot_at: string | null };
+export type Homologation = {
+  target: { key: string; name: string; is_production: boolean }; can_edit: boolean; summary: HomologationSummary;
+  categories: Category[]; models: { id: string; name: string; category_key: string | null; published: boolean; colors: string[] }[]; rows: HomologationRow[];
+};
+export const getHomologation = (target = 'woo_staging4') => rpc<Homologation>('f360_legacy_homologation', { p_target_key: target });

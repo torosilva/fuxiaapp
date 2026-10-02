@@ -72,6 +72,9 @@ Keep these concepts distinct (`00_MASTER_SPEC.md` §5.1):
 - **reserved**: physical units committed per variant+location (orders, Reserve & Try, transfers in progress).
 - **physical ATS per location**: `on_hand − reserved − safety_stock`, and only where the location is eligible for the channel in question.
 - **ecommerce physical ATS per variant**: Σ physical ATS over locations eligible for online fulfillment, across Mexico. **Not** a central-warehouse figure.
+
+> **SUPERSEDED 2026-10-02 (decisión de Mario):** Woo México se alimenta **exclusivamente de Bodega CDMX** (la `fulfillment_location` del canal). No se suman tiendas, bazares ni "En camino"; Colombia también se surte hoy de Bodega CDMX (N1). Ver `INVENTORY_MODEL.md` (fuente de verdad) y `09_MIGRATION_PLAN.md` Fase 5. El texto de arriba se conserva como historia.
+
 - **make_to_order_eligible**: a variant attribute (§1). It does **not** change physical ATS.
 - **fulfillment_promise**: derived per variant (and later per customer or zone) as physical ("ships now") vs. production (currently ~5–7 days, configurable).
 

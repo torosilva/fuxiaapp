@@ -32,8 +32,12 @@ Canonical product identity, variants, SKU, size, color, cost/price metadata, Woo
 ### Inventory
 Locations, on-hand/reserved/available, receipts, transfers, adjustments, sales, returns, reservations, discrepancies and audit trail. Inventory is **distributed**: every eligible physical location in Mexico counts toward sellable availability, not just a central warehouse. WooCommerce is **not** a location (see `00_MASTER_SPEC.md` §5.1).
 
+> **SUPERSEDED 2026-10-02 (decisión de Mario):** Woo México se alimenta **exclusivamente de Bodega CDMX** (la `fulfillment_location` del canal). No se suman tiendas, bazares ni "En camino"; Colombia también se surte hoy de Bodega CDMX (N1). Ver `INVENTORY_MODEL.md` (fuente de verdad) y `09_MIGRATION_PLAN.md` Fase 5. El texto de arriba se conserva como historia.
+
 ### Availability
 Derives physical ATS per variant/location and for ecommerce (across all eligible Mexican locations), combines it with make-to-order eligibility, and produces the fulfillment promise. This is computed, never a hand-edited stock number.
+
+> **SUPERSEDED 2026-10-02 (decisión de Mario):** Woo México se alimenta **exclusivamente de Bodega CDMX** (la `fulfillment_location` del canal). No se suman tiendas, bazares ni "En camino"; Colombia también se surte hoy de Bodega CDMX (N1). Ver `INVENTORY_MODEL.md` (fuente de verdad) y `09_MIGRATION_PLAN.md` Fase 5. El texto de arriba se conserva como historia.
 
 ### Fulfillment (core; future sprints)
 Decides the fulfillment path per order line (**PHYSICAL_STOCK** or **MAKE_TO_ORDER**). For physical lines: allocation to eligible locations, fulfillment tasks per location, re-allocation plus discrepancies when a unit can't be confirmed. For make-to-order lines: it hands off to Production.
@@ -97,6 +101,8 @@ Events, campaigns, attribution, experiments, funnel and economics.
 - WooCommerce is never modeled as an inventory location.
 - A MAKE_TO_ORDER sale must never create negative physical inventory.
 - Production scope is tracking and visibility only. No BOM, MRP, raw-material planning, capacity planning or complex procurement without separate approval.
+
+> **SUPERSEDED 2026-10-02 (decisión de Mario):** Woo México se alimenta **exclusivamente de Bodega CDMX** (la `fulfillment_location` del canal). No se suman tiendas, bazares ni "En camino"; Colombia también se surte hoy de Bodega CDMX (N1). Ver `INVENTORY_MODEL.md` (fuente de verdad) y `09_MIGRATION_PLAN.md` Fase 5. La regla "Ecommerce availability…" de esta lista se conserva como historia.
 
 ## 4. Web admin
 Admin Web should be a first-class operator surface but share backend/domain logic with mobile. The audit should recommend whether the repository should become a monorepo; do not perform a monorepo conversion merely for aesthetic reasons.

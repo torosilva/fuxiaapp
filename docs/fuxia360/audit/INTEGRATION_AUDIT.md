@@ -42,6 +42,9 @@ BACKLOG #22 says **two** Woo webhooks are configured ("Fuxia App — Order Compl
 - **Stock has N+1 unreconciled numbers:** Woo's stock figure plus one independent number per channel.
   - Nothing in the repo links them: importing into a channel doesn't touch Woo stock, and a Woo sale doesn't touch any channel.
   - *Clarified 2026-09-24:* Woo's figure is **not** a central-warehouse count. Online orders are fulfilled from any eligible location in Mexico (receiving point, stores, bazaars), and make-to-order variants can sell with zero physical stock (`00_MASTER_SPEC.md` §5.1).
+
+  > **SUPERSEDED 2026-10-02 (decisión de Mario):** Woo México se alimenta **exclusivamente de Bodega CDMX** (la `fulfillment_location` del canal). No se suman tiendas, bazares ni "En camino"; Colombia también se surte hoy de Bodega CDMX (N1). Ver `../INVENTORY_MODEL.md` (fuente de verdad) y `../09_MIGRATION_PLAN.md` Fase 5. El texto de arriba se conserva como historia.
+
   - So Woo stock is effectively a hand-maintained, published availability number, and must never be treated as a location's on-hand. How it's maintained today is still [UNVERIFIED process — Q12]. That isn't a Sprint 0 item; it gets resolved during Product/Inventory/Availability design.
 - **Geolocated pricing (WCPBC)** is in use (`WooCommerceService.ts:285`; BACKLOG #29). Any future product sync must preserve per-zone prices, and field ownership for price needs a decision (06 §3).
 

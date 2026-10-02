@@ -68,6 +68,9 @@
 4. **Online sale:** Woo decrements its own stock. The Supabase side records loyalty only; **no Fuxia inventory is affected**.
 5. **Locations for online fulfillment:** the data model has no central receiving location and no concept of online-order fulfillment location. The only "online stock" figure is WooCommerce's own stock number.
    - *Clarified 2026-09-24:* online orders are **not** fulfilled only from a central warehouse. Any eligible pair anywhere in Mexico (central receiving point, store, bazaar) can fulfill an online order, and Fuxia also sells **make-to-order** (~5–7 days) when no physical pair exists.
+
+  > **SUPERSEDED 2026-10-02 (decisión de Mario):** Woo México se alimenta **exclusivamente de Bodega CDMX** (la `fulfillment_location` del canal). No se suman tiendas, bazares ni "En camino"; Colombia también se surte hoy de Bodega CDMX (N1). Ver `../INVENTORY_MODEL.md` (fuente de verdad) y `../09_MIGRATION_PLAN.md` Fase 5. El texto de arriba se conserva como historia.
+
    - Woo's stock number is therefore not a physical location and isn't reliably tied to where pairs are. Nothing in the repo models allocation, fulfillment tasks, discrepancies or production requests (see `00_MASTER_SPEC.md` §5.1).
 6. **Returns / refunds in store:** **no flow exists.**
 7. **Transfers between channels:** **no flow exists.** Stock would have to be deleted in one channel and re-added in another.

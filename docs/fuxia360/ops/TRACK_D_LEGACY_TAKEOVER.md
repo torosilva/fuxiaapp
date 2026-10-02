@@ -25,13 +25,22 @@
 | Fase | Entregable | Estado |
 |---|---|---|
 | **D1 Discovery** | `audit/trackd/D1_DISCOVERY.md`, catálogo y CSV por variación | ✅ Sobre staging4. Pendientes P1–P4 |
-| **D2 Mapping** | Tabla `woo_variation_id ↔ variante F360` aprobada por Carolina, más el cambio de esquema/código para vínculos legacy | Diseño en §3. Espera P1, P2 y P5 |
+| **D2 Mapping** | Tabla `woo_variation_id ↔ variante F360` aprobada por Carolina, más el cambio de esquema/código para vínculos legacy | ✅ Construido en staging (2026-10-02): migraciones, propuesta, pantalla y pruebas. **Reporte: `audit/trackd/D2_REPORT.md`.** Las confirmaciones son de Carolina (hoy 0) |
 | **D3 Conteo físico** | Hoja de conteo de Bodega CDMX generada del mapping; captura y aprobación del conteo | Diseño en §4 |
 | **D4 Dry run** | Carga completa en **staging**: opening balance y vínculos legacy contra staging4; pruebas de pedido y de envío | Diseño en §5 |
 | D5 Reporte | Diferencias, excepciones y procedimiento de cutover para aprobación | Al terminar D4 |
 | Cutover | — | **Fuera de Track D hasta aprobación** |
 
-## 3 · D2 Mapping (propuesta, sin implementar)
+## 3 · D2 Mapping
+
+> **Decisiones de Mario (2026-10-02), P1–P5:**
+> - **P1:** lectura pública de producción, solo para el delta.
+> - **P2:** las 18 "cualquier color" van a "Requiere revisión" (Carolina las resuelve; si no hay certeza, quedan bloqueadas para cutover).
+> - **P3:** conteo 0 = agotado. Sobre pedido solo como MAKE_TO_ORDER explícito.
+> - **P4:** ventas agregadas solo como contexto.
+> - **P5: opción B.** En F360 la estructura es modelo → color → talla; varios productos Woo se mapean al mismo modelo. La opción A (espejo) queda **rechazada**.
+>
+> Lo implementado está en `audit/trackd/D2_REPORT.md`. La tabla de abajo es el análisis original y se conserva como historia.
 
 **Ancla:**
 - `woo_variation_id` por canal (D1 H1).

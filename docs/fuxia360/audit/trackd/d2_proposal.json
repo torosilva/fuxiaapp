@@ -1,0 +1,1692 @@
+{
+ "generated_at": "2026-10-02T20:04:58.380Z",
+ "target": "woo_staging4",
+ "summary": {
+  "woo_products": 129,
+  "variations": 792,
+  "models_proposed": 76,
+  "by_status": {
+   "requiere_revision": 378,
+   "propuesto": 414
+  },
+  "by_confidence": {
+   "baja": 288,
+   "alta": 318,
+   "media": 186
+  }
+ },
+ "models": [
+  {
+   "key": "flat picudo con tach",
+   "woo_products": [
+    "128 Flats picudos con taches"
+   ]
+  },
+  {
+   "key": "mafalda laser",
+   "woo_products": [
+    "129 Mafalda laser caramelo",
+    "1018 Mafalda láser vino",
+    "1025 Mafalda láser verde",
+    "1032 Mafalda láser taupe",
+    "2810 Mafalda laser azul"
+   ]
+  },
+  {
+   "key": "mul pepa",
+   "woo_products": [
+    "130 Mules pepas"
+   ]
+  },
+  {
+   "key": "mul colectiva",
+   "woo_products": [
+    "131 Mules Colectiva"
+   ]
+  },
+  {
+   "key": "mafalda animal print",
+   "woo_products": [
+    "132 Mafalda Animal Print"
+   ]
+  },
+  {
+   "key": "mafalda cruzado",
+   "woo_products": [
+    "133 Mafalda leopardo cruzado"
+   ]
+  },
+  {
+   "key": "monedita paula",
+   "woo_products": [
+    "134 Moneditas Paula"
+   ]
+  },
+  {
+   "key": "byl puntudo",
+   "woo_products": [
+    "135 ByL puntudo"
+   ]
+  },
+  {
+   "key": "picudo estoperol",
+   "woo_products": [
+    "136 Picudos estoperoles"
+   ]
+  },
+  {
+   "key": "mafalda laser capellada alta",
+   "woo_products": [
+    "138 Mafalda Laser Capellada alta"
+   ]
+  },
+  {
+   "key": "ballerina coquette",
+   "woo_products": [
+    "139 Ballerinas coquette"
+   ]
+  },
+  {
+   "key": "ballerina tach destalonada",
+   "woo_products": [
+    "140 Ballerinas taches destalonadas"
+   ]
+  },
+  {
+   "key": "mafalda",
+   "woo_products": [
+    "141 Mafalda Denim"
+   ]
+  },
+  {
+   "key": "mafalda estoperol",
+   "woo_products": [
+    "142 Mafalda estoperoles"
+   ]
+  },
+  {
+   "key": "mafalda tach",
+   "woo_products": [
+    "143 Mafalda Taches",
+    "969 Mafalda taches negro",
+    "976 Mafalda taches taupe",
+    "983 Mafalda taches vino",
+    "990 Mafalda taches nude"
+   ]
+  },
+  {
+   "key": "bota corta",
+   "woo_products": [
+    "144 Botas cortas cafes",
+    "147 Botas Negras cortas"
+   ]
+  },
+  {
+   "key": "bota larga",
+   "woo_products": [
+    "145 Botas Largas Cafes",
+    "146 Botas Largas Negras"
+   ]
+  },
+  {
+   "key": "tacon pr",
+   "woo_products": [
+    "149 Tacon PR"
+   ]
+  },
+  {
+   "key": "plataforma arana",
+   "woo_products": [
+    "150 Plataforma araña"
+   ]
+  },
+  {
+   "key": "plataforma marcela",
+   "woo_products": [
+    "151 Plataforma Marcela"
+   ]
+  },
+  {
+   "key": "plataforma vaca",
+   "woo_products": [
+    "152 Plataforma Vaca"
+   ]
+  },
+  {
+   "key": "sandalia pelo",
+   "woo_products": [
+    "153 Sandalia pelo"
+   ]
+  },
+  {
+   "key": "paula",
+   "woo_products": [
+    "446 Paula plata con verde",
+    "453 Paula blanco con negro",
+    "467 Paula leopardo",
+    "491 Paula Vino con negro",
+    "641 Paula dorado con ocre",
+    "648 Paula verde aceituna",
+    "655 Paula azul marino",
+    "680 Paula beige con talco",
+    "694 Paula café",
+    "880 Paula bambi",
+    "887 Paula talco",
+    "2772 Paula dorado",
+    "2773 Paula negro",
+    "2774 Paula taupe",
+    "2775 Paula plata"
+   ]
+  },
+  {
+   "key": "sueco cucarron",
+   "woo_products": [
+    "460 Suecos cucarrones taupe",
+    "894 Suecos cucarrones dorado",
+    "916 Suecos cucarrones negro",
+    "923 Suecos cucarrones vino",
+    "930 Suecos cucarrones talco",
+    "937 Suecos cucarrones café",
+    "944 Suecos cucarrones verde",
+    "2807 Sueco cucarron plata",
+    "3597 Suecos cucarrones azul"
+   ]
+  },
+  {
+   "key": "tacon rmx",
+   "woo_products": [
+    "498 Tacon RMX"
+   ]
+  },
+  {
+   "key": "plataforma trenza ancha",
+   "woo_products": [
+    "505 Plataforma trenza ancha"
+   ]
+  },
+  {
+   "key": "plataforma entrelazada",
+   "woo_products": [
+    "512 Plataforma entrelazada"
+   ]
+  },
+  {
+   "key": "plataforma mono",
+   "woo_products": [
+    "535 Plataforma moño"
+   ]
+  },
+  {
+   "key": "tacon elegant",
+   "woo_products": [
+    "542 Tacones plata elegantes"
+   ]
+  },
+  {
+   "key": "tacon rmx hebilla",
+   "woo_products": [
+    "549 Tacon RMX Hebilla"
+   ]
+  },
+  {
+   "key": "sandalia monedita",
+   "woo_products": [
+    "556 Sandalias moneditas"
+   ]
+  },
+  {
+   "key": "sandalia tira amarrar",
+   "woo_products": [
+    "579 Sandalias tiras amarrar",
+    "3239 Sandalias tiras amarrar negras"
+   ]
+  },
+  {
+   "key": "sandalia flor",
+   "woo_products": [
+    "586 Sandalia flor beige",
+    "593 Sandalia flor rojas",
+    "600 Sandalia flor verdes"
+   ]
+  },
+  {
+   "key": "sandalia de cuadro",
+   "woo_products": [
+    "607 Sandalia de cuadros"
+   ]
+  },
+  {
+   "key": "sandalia flor ch",
+   "woo_products": [
+    "634 Sandalia flor CH"
+   ]
+  },
+  {
+   "key": "cucarron laser",
+   "woo_products": [
+    "687 Cucarron láser taupe",
+    "726 Cucarron láser caramelo",
+    "733 Cucarron láser talco",
+    "740 Cucarron láser negro"
+   ]
+  },
+  {
+   "key": "paula gamuza",
+   "woo_products": [
+    "701 Paula gamuza vino",
+    "873 Paula gamuza café"
+   ]
+  },
+  {
+   "key": "cucarron",
+   "woo_products": [
+    "747 Cucarron denim",
+    "782 Cucarron miel",
+    "789 Cucarron nude",
+    "796 Cucarron verde",
+    "803 Cucarron vino",
+    "824 Cucarron café",
+    "831 Cucarron negro",
+    "838 Cucarron azul marino"
+   ]
+  },
+  {
+   "key": "cucarron single",
+   "woo_products": [
+    "845 Cucarron single chocolate",
+    "2776 Cucarron single plata"
+   ]
+  },
+  {
+   "key": "ballerina resorte tach",
+   "woo_products": [
+    "1065 Ballerinas resorte taches verde",
+    "1079 Ballerinas resorte taches vino",
+    "1086 Ballerinas resorte taches taupe"
+   ]
+  },
+  {
+   "key": "ballerina resorte",
+   "woo_products": [
+    "1072 Ballerinas resorte negro"
+   ]
+  },
+  {
+   "key": "ballerina puntudo",
+   "woo_products": [
+    "1117 Ballerinas puntudo chocolate",
+    "1138 Ballerinas puntudo dorado",
+    "1175 Ballerinas puntudo negro"
+   ]
+  },
+  {
+   "key": "ballerina byl puntudo",
+   "woo_products": [
+    "1124 Ballerinas BYL puntudo negro",
+    "1131 Ballerinas BYL puntudo vino"
+   ]
+  },
+  {
+   "key": "ballerina puntudo tach",
+   "woo_products": [
+    "1168 Ballerinas puntudo vino taches"
+   ]
+  },
+  {
+   "key": "ballerina mocasin",
+   "woo_products": [
+    "1182 Ballerinas mocasines taupe"
+   ]
+  },
+  {
+   "key": "mafalda tach gamuza",
+   "woo_products": [
+    "2808 Mafalda taches gamuza cafe",
+    "2809 Mafalda taches gamuza camel"
+   ]
+  },
+  {
+   "key": "mafalda leopardo correa",
+   "woo_products": [
+    "2841 Mafalda leopardo correa negra"
+   ]
+  },
+  {
+   "key": "plataforma tira amarrar",
+   "woo_products": [
+    "2844 Plataforma tiras amarrar"
+   ]
+  },
+  {
+   "key": "plataforma nudo capellada",
+   "woo_products": [
+    "2875 Plataforma nudo capellada"
+   ]
+  },
+  {
+   "key": "sandalia tacon grueso fleco",
+   "woo_products": [
+    "2876 Sandalia tacon grueso flecos"
+   ]
+  },
+  {
+   "key": "tacon grueso estoperol",
+   "woo_products": [
+    "2877 Tacon grueso dorado estoperoles"
+   ]
+  },
+  {
+   "key": "tacon tira de amarrar",
+   "woo_products": [
+    "2878 Tacon tiras de amarrar"
+   ]
+  },
+  {
+   "key": "tre puntada",
+   "woo_products": [
+    "2908 Tres puntadas bronce"
+   ]
+  },
+  {
+   "key": "sandalia plana de espiral",
+   "woo_products": [
+    "2909 Sandalia plana de espiral verde"
+   ]
+  },
+  {
+   "key": "sandalia tira trenza",
+   "woo_products": [
+    "2910 Sandalia tiras  trenza"
+   ]
+  },
+  {
+   "key": "sandalia trapecio",
+   "woo_products": [
+    "2911 Sandalia trapecio"
+   ]
+  },
+  {
+   "key": "sandalia gladiadora",
+   "woo_products": [
+    "2912 Sandalias gladiadora"
+   ]
+  },
+  {
+   "key": "sandalia 8 trenzada",
+   "woo_products": [
+    "2943 Sandalia 8 trenzada"
+   ]
+  },
+  {
+   "key": "sandalia 8",
+   "woo_products": [
+    "2944 Sandalia 8"
+   ]
+  },
+  {
+   "key": "bota comb",
+   "woo_products": [
+    "2945 Botas comb"
+   ]
+  },
+  {
+   "key": "ballerina con broche de piedra",
+   "woo_products": [
+    "3228 Ballerinas doradas con broche de piedras"
+   ]
+  },
+  {
+   "key": "mule punta afilada con tacon",
+   "woo_products": [
+    "3261 Mule punta afilada champagne con tacon"
+   ]
+  },
+  {
+   "key": "slingback punta afilada",
+   "woo_products": [
+    "3274 Slingback punta afilada nude"
+   ]
+  },
+  {
+   "key": "croc",
+   "woo_products": [
+    "3287 Croc"
+   ]
+  },
+  {
+   "key": "mafalda chocolate tach",
+   "woo_products": [
+    "3303 Mafalda chocolate taches dorados"
+   ]
+  },
+  {
+   "key": "loafer suede",
+   "woo_products": [
+    "3315 Loafer suede café"
+   ]
+  },
+  {
+   "key": "sandalia doble tira",
+   "woo_products": [
+    "3328 Sandalia doble tira nude"
+   ]
+  },
+  {
+   "key": "slingback flat mesh",
+   "woo_products": [
+    "3344 Slingback flat mesh dorada"
+   ]
+  },
+  {
+   "key": "wedge cruzada",
+   "woo_products": [
+    "3355 Wedge cruzada negra"
+   ]
+  },
+  {
+   "key": "wedge fleco",
+   "woo_products": [
+    "3366 Wedge fleco taupe"
+   ]
+  },
+  {
+   "key": "loafer clasico",
+   "woo_products": [
+    "3379 Loafer clásico"
+   ]
+  },
+  {
+   "key": "tacon mule cruzado",
+   "woo_products": [
+    "3391 Tacon mule cruzado plateado"
+   ]
+  },
+  {
+   "key": "slingback punta afilada tach",
+   "woo_products": [
+    "3404 Slingback punta afilada nude taches"
+   ]
+  },
+  {
+   "key": "sandalia flat doble tira trenzada",
+   "woo_products": [
+    "3416 Sandalia flat doble tira trenzada topo"
+   ]
+  },
+  {
+   "key": "peep toe",
+   "woo_products": [
+    "3428 Peep toe topo"
+   ]
+  },
+  {
+   "key": "sandalia flip flop con canutillo",
+   "woo_products": [
+    "3440 Sandalia flip flop plateada con canutillos"
+   ]
+  }
+ ],
+ "products": [
+  {
+   "woo_product_id": 128,
+   "woo_product": "Flats picudos con taches",
+   "legacy_sku": null,
+   "model": "Flats picudos con taches",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 129,
+   "woo_product": "Mafalda laser caramelo",
+   "legacy_sku": null,
+   "model": "Mafalda láser",
+   "color": null,
+   "how": "multicolor",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 1018,
+   "woo_product": "Mafalda láser vino",
+   "legacy_sku": "MFL-LSR-VNO",
+   "model": "Mafalda láser",
+   "color": "Vino",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 1025,
+   "woo_product": "Mafalda láser verde",
+   "legacy_sku": "MFL-LSR-VDE",
+   "model": "Mafalda láser",
+   "color": "Verde",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 1032,
+   "woo_product": "Mafalda láser taupe",
+   "legacy_sku": "MFL-LSR-TPE",
+   "model": "Mafalda láser",
+   "color": "Taupe",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2810,
+   "woo_product": "Mafalda laser azul",
+   "legacy_sku": "MFL-LSR-AZL2",
+   "model": "Mafalda láser",
+   "color": "Azul",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 130,
+   "woo_product": "Mules pepas",
+   "legacy_sku": null,
+   "model": "Mules pepas",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 131,
+   "woo_product": "Mules Colectiva",
+   "legacy_sku": null,
+   "model": "Mules Colectiva",
+   "color": null,
+   "how": "multicolor",
+   "variations": 24
+  },
+  {
+   "woo_product_id": 132,
+   "woo_product": "Mafalda Animal Print",
+   "legacy_sku": null,
+   "model": "Mafalda Animal Print",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 133,
+   "woo_product": "Mafalda leopardo cruzado",
+   "legacy_sku": null,
+   "model": "Mafalda cruzado",
+   "color": "Leopardo",
+   "how": "color_en_medio",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 134,
+   "woo_product": "Moneditas Paula",
+   "legacy_sku": null,
+   "model": "Moneditas Paula",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 135,
+   "woo_product": "ByL puntudo",
+   "legacy_sku": null,
+   "model": "ByL puntudo",
+   "color": null,
+   "how": "multicolor",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 136,
+   "woo_product": "Picudos estoperoles",
+   "legacy_sku": null,
+   "model": "Picudos estoperoles",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 138,
+   "woo_product": "Mafalda Laser Capellada alta",
+   "legacy_sku": null,
+   "model": "Mafalda Laser Capellada alta",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 139,
+   "woo_product": "Ballerinas coquette",
+   "legacy_sku": null,
+   "model": "Ballerinas coquette",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 140,
+   "woo_product": "Ballerinas taches destalonadas",
+   "legacy_sku": null,
+   "model": "Ballerinas taches destalonadas",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 141,
+   "woo_product": "Mafalda Denim",
+   "legacy_sku": null,
+   "model": "Mafalda",
+   "color": "Denim",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 142,
+   "woo_product": "Mafalda estoperoles",
+   "legacy_sku": null,
+   "model": "Mafalda estoperoles",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 143,
+   "woo_product": "Mafalda Taches",
+   "legacy_sku": null,
+   "model": "Mafalda taches",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 969,
+   "woo_product": "Mafalda taches negro",
+   "legacy_sku": "MFL-TCH-NGO",
+   "model": "Mafalda taches",
+   "color": "Negro",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 976,
+   "woo_product": "Mafalda taches taupe",
+   "legacy_sku": "MFL-TCH-TPE",
+   "model": "Mafalda taches",
+   "color": "Taupe",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 983,
+   "woo_product": "Mafalda taches vino",
+   "legacy_sku": "MFL-TCH-VNO",
+   "model": "Mafalda taches",
+   "color": "Vino",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 990,
+   "woo_product": "Mafalda taches nude",
+   "legacy_sku": "MFL-TCH-NDE",
+   "model": "Mafalda taches",
+   "color": "Nude",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 144,
+   "woo_product": "Botas cortas cafes",
+   "legacy_sku": null,
+   "model": "Botas cortas",
+   "color": "Café",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 147,
+   "woo_product": "Botas Negras cortas",
+   "legacy_sku": null,
+   "model": "Botas cortas",
+   "color": "Negro",
+   "how": "color_en_medio",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 145,
+   "woo_product": "Botas Largas Cafes",
+   "legacy_sku": null,
+   "model": "Botas Largas",
+   "color": "Café",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 146,
+   "woo_product": "Botas Largas Negras",
+   "legacy_sku": null,
+   "model": "Botas Largas",
+   "color": "Negro",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 149,
+   "woo_product": "Tacon PR",
+   "legacy_sku": null,
+   "model": "Tacon PR",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 150,
+   "woo_product": "Plataforma araña",
+   "legacy_sku": null,
+   "model": "Plataforma araña",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 151,
+   "woo_product": "Plataforma Marcela",
+   "legacy_sku": null,
+   "model": "Plataforma Marcela",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 152,
+   "woo_product": "Plataforma Vaca",
+   "legacy_sku": null,
+   "model": "Plataforma Vaca",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 153,
+   "woo_product": "Sandalia pelo",
+   "legacy_sku": null,
+   "model": "Sandalia pelo",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 446,
+   "woo_product": "Paula plata con verde",
+   "legacy_sku": "BALL-PAULA-PLT",
+   "model": "Paula",
+   "color": "Plata con verde",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 453,
+   "woo_product": "Paula blanco con negro",
+   "legacy_sku": "BALL-PAULA-BCO",
+   "model": "Paula",
+   "color": "Blanco con negro",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 467,
+   "woo_product": "Paula leopardo",
+   "legacy_sku": "BALL-PAULA-LPD",
+   "model": "Paula",
+   "color": "Leopardo",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 491,
+   "woo_product": "Paula Vino con negro",
+   "legacy_sku": "BALL-PAULA-VNO",
+   "model": "Paula",
+   "color": "Vino con negro",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 641,
+   "woo_product": "Paula dorado con ocre",
+   "legacy_sku": "BALL-PAULA-DRA",
+   "model": "Paula",
+   "color": "Dorado con ocre",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 648,
+   "woo_product": "Paula verde aceituna",
+   "legacy_sku": "BALL-PAULA-VDE",
+   "model": "Paula",
+   "color": "Verde aceituna",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 655,
+   "woo_product": "Paula azul marino",
+   "legacy_sku": "BALL-PAULA-AZL",
+   "model": "Paula",
+   "color": "Azul marino",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 680,
+   "woo_product": "Paula beige con talco",
+   "legacy_sku": "BALL-PAULA-BGE",
+   "model": "Paula",
+   "color": "Beige con talco",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 694,
+   "woo_product": "Paula café",
+   "legacy_sku": "BALL-PAULA-CFE",
+   "model": "Paula",
+   "color": "Café",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 880,
+   "woo_product": "Paula bambi",
+   "legacy_sku": "BALL-PAULA-BMB",
+   "model": "Paula",
+   "color": "Bambi",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 887,
+   "woo_product": "Paula talco",
+   "legacy_sku": "BALL-PAULA-TCO",
+   "model": "Paula",
+   "color": "Talco",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2772,
+   "woo_product": "Paula dorado",
+   "legacy_sku": "BALL-PAULA-DRD",
+   "model": "Paula",
+   "color": "Dorado",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2773,
+   "woo_product": "Paula negro",
+   "legacy_sku": "BALL-PAULA-NGO",
+   "model": "Paula",
+   "color": "Negro",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2774,
+   "woo_product": "Paula taupe",
+   "legacy_sku": "BALL-PAULA-TPE",
+   "model": "Paula",
+   "color": "Taupe",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2775,
+   "woo_product": "Paula plata",
+   "legacy_sku": "BALL-PAULA-PLT2",
+   "model": "Paula",
+   "color": "Plata",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 460,
+   "woo_product": "Suecos cucarrones taupe",
+   "legacy_sku": "SUE-CUCARRON-TPE",
+   "model": "Suecos cucarrones",
+   "color": "Taupe",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 894,
+   "woo_product": "Suecos cucarrones dorado",
+   "legacy_sku": "SUE-CUCARRON-DRD",
+   "model": "Suecos cucarrones",
+   "color": "Dorado",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 916,
+   "woo_product": "Suecos cucarrones negro",
+   "legacy_sku": "SUE-CUCARRON-NGO",
+   "model": "Suecos cucarrones",
+   "color": "Negro",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 923,
+   "woo_product": "Suecos cucarrones vino",
+   "legacy_sku": "SUE-CUCARRON-VNO",
+   "model": "Suecos cucarrones",
+   "color": "Vino",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 930,
+   "woo_product": "Suecos cucarrones talco",
+   "legacy_sku": "SUE-CUCARRON-TCO",
+   "model": "Suecos cucarrones",
+   "color": "Talco",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 937,
+   "woo_product": "Suecos cucarrones café",
+   "legacy_sku": "SUE-CUCARRON-CFE",
+   "model": "Suecos cucarrones",
+   "color": "Café",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 944,
+   "woo_product": "Suecos cucarrones verde",
+   "legacy_sku": "SUE-CUCARRON-VDE",
+   "model": "Suecos cucarrones",
+   "color": "Verde",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2807,
+   "woo_product": "Sueco cucarron plata",
+   "legacy_sku": "SUE-CUCARRON-PLT",
+   "model": "Suecos cucarrones",
+   "color": "Plata",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3597,
+   "woo_product": "Suecos cucarrones azul",
+   "legacy_sku": "SUE-CUCARRON-TPE-1",
+   "model": "Suecos cucarrones",
+   "color": "Azul",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 498,
+   "woo_product": "Tacon RMX",
+   "legacy_sku": null,
+   "model": "Tacon RMX",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 505,
+   "woo_product": "Plataforma trenza ancha",
+   "legacy_sku": null,
+   "model": "Plataforma trenza ancha",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 512,
+   "woo_product": "Plataforma entrelazada",
+   "legacy_sku": null,
+   "model": "Plataforma entrelazada",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 535,
+   "woo_product": "Plataforma moño",
+   "legacy_sku": null,
+   "model": "Plataforma moño",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 542,
+   "woo_product": "Tacones plata elegantes",
+   "legacy_sku": null,
+   "model": "Tacones elegantes",
+   "color": "Plata",
+   "how": "color_en_medio",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 549,
+   "woo_product": "Tacon RMX Hebilla",
+   "legacy_sku": null,
+   "model": "Tacon RMX Hebilla",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 556,
+   "woo_product": "Sandalias moneditas",
+   "legacy_sku": null,
+   "model": "Sandalias moneditas",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 579,
+   "woo_product": "Sandalias tiras amarrar",
+   "legacy_sku": null,
+   "model": "Sandalias tiras amarrar",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3239,
+   "woo_product": "Sandalias tiras amarrar negras",
+   "legacy_sku": "SND-PLN-8-TRZ-1",
+   "model": "Sandalias tiras amarrar",
+   "color": "Negro",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 586,
+   "woo_product": "Sandalia flor beige",
+   "legacy_sku": null,
+   "model": "Sandalia flor",
+   "color": "Beige",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 593,
+   "woo_product": "Sandalia flor rojas",
+   "legacy_sku": null,
+   "model": "Sandalia flor",
+   "color": "Rojo",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 600,
+   "woo_product": "Sandalia flor verdes",
+   "legacy_sku": null,
+   "model": "Sandalia flor",
+   "color": "Verde",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 607,
+   "woo_product": "Sandalia de cuadros",
+   "legacy_sku": null,
+   "model": "Sandalia de cuadros",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 634,
+   "woo_product": "Sandalia flor CH",
+   "legacy_sku": null,
+   "model": "Sandalia flor CH",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 687,
+   "woo_product": "Cucarron láser taupe",
+   "legacy_sku": "BALL-CUCARRON-LSR-TPE",
+   "model": "Cucarron láser",
+   "color": "Taupe",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 726,
+   "woo_product": "Cucarron láser caramelo",
+   "legacy_sku": "BALL-CUCARRON-LSR-CML",
+   "model": "Cucarron láser",
+   "color": "Caramelo",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 733,
+   "woo_product": "Cucarron láser talco",
+   "legacy_sku": "BALL-CUCARRON-LSR-TCO",
+   "model": "Cucarron láser",
+   "color": "Talco",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 740,
+   "woo_product": "Cucarron láser negro",
+   "legacy_sku": "BALL-CUCARRON-LSR-NGO",
+   "model": "Cucarron láser",
+   "color": "Negro",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 701,
+   "woo_product": "Paula gamuza vino",
+   "legacy_sku": "BALL-PAULA-GMZ-VNO",
+   "model": "Paula gamuza",
+   "color": "Vino",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 873,
+   "woo_product": "Paula gamuza café",
+   "legacy_sku": "BALL-PAULA-GMZ-CFE",
+   "model": "Paula gamuza",
+   "color": "Café",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 747,
+   "woo_product": "Cucarron denim",
+   "legacy_sku": "BALL-CUCARRON-DMN",
+   "model": "Cucarron",
+   "color": "Denim",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 782,
+   "woo_product": "Cucarron miel",
+   "legacy_sku": "BALL-CUCARRON-MEL",
+   "model": "Cucarron",
+   "color": "Miel",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 789,
+   "woo_product": "Cucarron nude",
+   "legacy_sku": "BALL-CUCARRON-NDE",
+   "model": "Cucarron",
+   "color": "Nude",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 796,
+   "woo_product": "Cucarron verde",
+   "legacy_sku": "BALL-CUCARRON-VDE",
+   "model": "Cucarron",
+   "color": "Verde",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 803,
+   "woo_product": "Cucarron vino",
+   "legacy_sku": "BALL-CUCARRON-VNO",
+   "model": "Cucarron",
+   "color": "Vino",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 824,
+   "woo_product": "Cucarron café",
+   "legacy_sku": "BALL-CUCARRON-CFE",
+   "model": "Cucarron",
+   "color": "Café",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 831,
+   "woo_product": "Cucarron negro",
+   "legacy_sku": "BALL-CUCARRON-NGO",
+   "model": "Cucarron",
+   "color": "Negro",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 838,
+   "woo_product": "Cucarron azul marino",
+   "legacy_sku": "BALL-CUCARRON-AZL",
+   "model": "Cucarron",
+   "color": "Azul marino",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 845,
+   "woo_product": "Cucarron single chocolate",
+   "legacy_sku": "BALL-CUCARRON-SGL-CLT",
+   "model": "Cucarron single",
+   "color": "Chocolate",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2776,
+   "woo_product": "Cucarron single plata",
+   "legacy_sku": "BALL-CUCARRON-SGL-PLT",
+   "model": "Cucarron single",
+   "color": "Plata",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 1065,
+   "woo_product": "Ballerinas resorte taches verde",
+   "legacy_sku": "BALL-RSRT-TCH-VDE",
+   "model": "Ballerinas resorte taches",
+   "color": "Verde",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 1079,
+   "woo_product": "Ballerinas resorte taches vino",
+   "legacy_sku": "BALL-RSRT-TCH-VNO",
+   "model": "Ballerinas resorte taches",
+   "color": "Vino",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 1086,
+   "woo_product": "Ballerinas resorte taches taupe",
+   "legacy_sku": "BALL-RSRT-TCH-TPE",
+   "model": "Ballerinas resorte taches",
+   "color": "Taupe",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 1072,
+   "woo_product": "Ballerinas resorte negro",
+   "legacy_sku": "BALL-RSRT-TCH-NGO",
+   "model": "Ballerinas resorte",
+   "color": "Negro",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 1117,
+   "woo_product": "Ballerinas puntudo chocolate",
+   "legacy_sku": "BALL-PNT-BYL-CHL",
+   "model": "Ballerinas puntudo",
+   "color": "Chocolate",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 1138,
+   "woo_product": "Ballerinas puntudo dorado",
+   "legacy_sku": "BALL-PNT-BYL-DRD",
+   "model": "Ballerinas puntudo",
+   "color": "Dorado",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 1175,
+   "woo_product": "Ballerinas puntudo negro",
+   "legacy_sku": "BALL-PNT-TCH-NGO",
+   "model": "Ballerinas puntudo",
+   "color": "Negro",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 1124,
+   "woo_product": "Ballerinas BYL puntudo negro",
+   "legacy_sku": "BALL-PNT-BYL-NGO",
+   "model": "Ballerinas BYL puntudo",
+   "color": "Negro",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 1131,
+   "woo_product": "Ballerinas BYL puntudo vino",
+   "legacy_sku": "BALL-PNT-BYL-VNO",
+   "model": "Ballerinas BYL puntudo",
+   "color": "Vino",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 1168,
+   "woo_product": "Ballerinas puntudo vino taches",
+   "legacy_sku": "BALL-PNT-TCH-VNO",
+   "model": "Ballerinas puntudo taches",
+   "color": "Vino",
+   "how": "color_en_medio",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 1182,
+   "woo_product": "Ballerinas mocasines taupe",
+   "legacy_sku": "BALL-MCS-TPE",
+   "model": "Ballerinas mocasines",
+   "color": "Taupe",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2808,
+   "woo_product": "Mafalda taches gamuza cafe",
+   "legacy_sku": "MFL-TCH-GMZ-CFE",
+   "model": "Mafalda taches gamuza",
+   "color": "Café",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2809,
+   "woo_product": "Mafalda taches gamuza camel",
+   "legacy_sku": "MFL-TCH-GMZ-CML",
+   "model": "Mafalda taches gamuza",
+   "color": "Camel",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2841,
+   "woo_product": "Mafalda leopardo correa negra",
+   "legacy_sku": "MFL-LPD-CRN-NGO",
+   "model": "Mafalda leopardo correa",
+   "color": "Negro",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2844,
+   "woo_product": "Plataforma tiras amarrar",
+   "legacy_sku": "SND-PLT-TIR-AMR",
+   "model": "Plataforma tiras amarrar",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2875,
+   "woo_product": "Plataforma nudo capellada",
+   "legacy_sku": "SND-PLT-NDO-CAP",
+   "model": "Plataforma nudo capellada",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2876,
+   "woo_product": "Sandalia tacon grueso flecos",
+   "legacy_sku": "SND-TAC-GR-FLC",
+   "model": "Sandalia tacon grueso flecos",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2877,
+   "woo_product": "Tacon grueso dorado estoperoles",
+   "legacy_sku": "SND-TAC-GR-DRD-EST",
+   "model": "Tacon grueso estoperoles",
+   "color": "Dorado",
+   "how": "color_en_medio",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2878,
+   "woo_product": "Tacon tiras de amarrar",
+   "legacy_sku": "SND-TAC-TIR-AMR",
+   "model": "Tacon tiras de amarrar",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2908,
+   "woo_product": "Tres puntadas bronce",
+   "legacy_sku": "SND-3PTD-BRZ",
+   "model": "Tres puntadas",
+   "color": "Bronce",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2909,
+   "woo_product": "Sandalia plana de espiral verde",
+   "legacy_sku": "SND-PLN-ESP-VDE",
+   "model": "Sandalia plana de espiral",
+   "color": "Verde",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2910,
+   "woo_product": "Sandalia tiras  trenza",
+   "legacy_sku": "SND-PLN-TIR-TRZ",
+   "model": "Sandalia tiras  trenza",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2911,
+   "woo_product": "Sandalia trapecio",
+   "legacy_sku": "SND-PLN-TRAP",
+   "model": "Sandalia trapecio",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2912,
+   "woo_product": "Sandalias gladiadora",
+   "legacy_sku": "SND-PLN-GLAD",
+   "model": "Sandalias gladiadora",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2943,
+   "woo_product": "Sandalia 8 trenzada",
+   "legacy_sku": "SND-PLN-8-TRZ",
+   "model": "Sandalia 8 trenzada",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2944,
+   "woo_product": "Sandalia 8",
+   "legacy_sku": "SND-PLN-8",
+   "model": "Sandalia 8",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 2945,
+   "woo_product": "Botas comb",
+   "legacy_sku": "BOT-COMB",
+   "model": "Botas comb",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3228,
+   "woo_product": "Ballerinas doradas con broche de piedras",
+   "legacy_sku": "BALL-PAULA-TPE-1",
+   "model": "Ballerinas con broche de piedras",
+   "color": "Dorado",
+   "how": "color_en_medio",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3261,
+   "woo_product": "Mule punta afilada champagne con tacon",
+   "legacy_sku": "SND-PLT-TIR-AMR-1",
+   "model": "Mule punta afilada con tacon",
+   "color": "Champagne",
+   "how": "color_en_medio",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3274,
+   "woo_product": "Slingback punta afilada nude",
+   "legacy_sku": "SND-PLT-TIR-AMR-1-1",
+   "model": "Slingback punta afilada",
+   "color": "Nude",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3287,
+   "woo_product": "Croc",
+   "legacy_sku": "BALL-PAULA-TPE-1-1",
+   "model": "Croc",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3303,
+   "woo_product": "Mafalda chocolate taches dorados",
+   "legacy_sku": "BALL-PAULA-TPE-1-1-1",
+   "model": "Mafalda chocolate taches",
+   "color": "Dorado",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3315,
+   "woo_product": "Loafer suede café",
+   "legacy_sku": "BALL-PAULA-TPE-1-1-1-1",
+   "model": "Loafer suede",
+   "color": "Café",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3328,
+   "woo_product": "Sandalia doble tira nude",
+   "legacy_sku": "SND-PLT-TIR-AMR-1-1-1",
+   "model": "Sandalia doble tira",
+   "color": "Nude",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3344,
+   "woo_product": "Slingback flat mesh dorada",
+   "legacy_sku": "SND-PLN-8-TRZ-1-1",
+   "model": "Slingback flat mesh",
+   "color": "Dorado",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3355,
+   "woo_product": "Wedge cruzada negra",
+   "legacy_sku": "SND-PLT-TIR-AMR-1-1-1-1",
+   "model": "Wedge cruzada",
+   "color": "Negro",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3366,
+   "woo_product": "Wedge fleco taupe",
+   "legacy_sku": "SND-PLT-TIR-AMR-1-1-1-1-1",
+   "model": "Wedge fleco",
+   "color": "Taupe",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3379,
+   "woo_product": "Loafer clásico",
+   "legacy_sku": "BALL-PAULA-TPE-1-1-1-1-1",
+   "model": "Loafer clásico",
+   "color": null,
+   "how": "sin_color",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3391,
+   "woo_product": "Tacon mule cruzado plateado",
+   "legacy_sku": "SND-PLT-TIR-AMR-1-1-1-1-1-1",
+   "model": "Tacon mule cruzado",
+   "color": "Plateado",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3404,
+   "woo_product": "Slingback punta afilada nude taches",
+   "legacy_sku": "BALL-PAULA-TPE-1-1-1-1-1-1",
+   "model": "Slingback punta afilada taches",
+   "color": "Nude",
+   "how": "color_en_medio",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3416,
+   "woo_product": "Sandalia flat doble tira trenzada topo",
+   "legacy_sku": "SND-PLN-8-TRZ-1-1-1",
+   "model": "Sandalia flat doble tira trenzada",
+   "color": "Topo",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3428,
+   "woo_product": "Peep toe topo",
+   "legacy_sku": "SND-PLT-TIR-AMR-1-1-1-1-1-1-1",
+   "model": "Peep toe",
+   "color": "Topo",
+   "how": "nombre",
+   "variations": 6
+  },
+  {
+   "woo_product_id": 3440,
+   "woo_product": "Sandalia flip flop plateada con canutillos",
+   "legacy_sku": "SND-PLN-8-TRZ-1-1-1-1",
+   "model": "Sandalia flip flop con canutillos",
+   "color": "Plateado",
+   "how": "color_en_medio",
+   "variations": 6
+  }
+ ]
+}

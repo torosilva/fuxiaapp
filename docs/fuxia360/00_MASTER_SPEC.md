@@ -87,6 +87,9 @@ Inventory is not merely an editable number. Material changes must be explainable
 
 ### 5.1 Distributed fulfillment and make-to-order (clarification, 2026-09-24)
 - **Online orders aren't fulfilled only from a central warehouse.** Any eligible physical pair anywhere in Mexico can fulfill an ecommerce order: the central receiving point, a store, a bazaar, or another eligible location.
+
+> **SUPERSEDED 2026-10-02 (decisión de Mario):** Woo México se alimenta **exclusivamente de Bodega CDMX** (la `fulfillment_location` del canal). No se suman tiendas, bazares ni "En camino"; Colombia también se surte hoy de Bodega CDMX (N1). Ver `INVENTORY_MODEL.md` (fuente de verdad) y `09_MIGRATION_PLAN.md` Fase 5. El texto de arriba se conserva como historia.
+
 - **Today that distributed inventory isn't reliably synchronized.** Carolina knows roughly where stock is, but there's no trustworthy per-variant, per-location record.
 - **Fuxia also sells make-to-order.** A sellable variant with no physical stock in Mexico can still be sold online and produced after the order. The current delivery expectation for that is about 5–7 days.
 - **WooCommerce is not a physical inventory location.** Woo's stock figure is a published, derived number, not a place where pairs exist.

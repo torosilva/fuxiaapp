@@ -1,0 +1,181 @@
+-- Rollback of 20261007000200_f360_d2_legacy_channel_links.sql.
+-- Refuses to run while any legacy_adopted link exists (unlink them first, auditably). Restores the three functions
+-- exactly as they were (ingest: 20260928000400; claim + reconcile: 20260928000100).
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM f360.woo_variant_links WHERE origin = 'legacy_adopted') THEN
+    RAISE EXCEPTION 'Hay vínculos legacy_adopted: no se revierte sin quitarlos antes.';
+  END IF;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.f360_ingest_woo_order(p_target_key text, p_delivery jsonb, p_order jsonb) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+DECLARE
+  t f360.sales_targets; prev f360.woo_orders;
+  v_order bigint := (p_order->>'id')::bigint;
+  v_status text := p_order->>'status';
+  v_mod timestamptz := ((p_order->>'date_modified_gmt')::timestamp AT TIME ZONE 'UTC');
+  v_delivery text := nullif(p_delivery->>'delivery_id', '');
+  v_paid boolean; li jsonb; v_line bigint; v_var bigint; v_sku text; v_qty int; v_variant uuid; v_vsku text; v_product uuid;
+  v_on_hand int; v_event uuid; v_outcome text; lines jsonb := '[]'; v_result text; v_sold_any boolean; r jsonb; v_label text; v_seen_refunds bigint[];
+BEGIN
+  t := f360.target_by_key(p_target_key);
+  IF v_order IS NULL OR v_status IS NULL OR v_mod IS NULL THEN RAISE EXCEPTION 'Pedido incompleto.'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended(t.id::text || ':' || v_order, 0));   -- same order: one at a time
+
+  -- Woo's X-WC-Webhook-Delivery-ID is hash(webhook id + current SECOND): two orders delivered by the same webhook in the
+  -- same second share it. So a delivery is a duplicate only for the same order AND topic (order version + line keys
+  -- remain the real idempotency guarantees).
+  IF v_delivery IS NOT NULL AND EXISTS (SELECT 1 FROM f360.woo_webhook_deliveries d WHERE d.target_id = t.id AND d.delivery_id = v_delivery
+      AND d.woo_order_id = v_order AND d.topic IS NOT DISTINCT FROM (p_delivery->>'topic')
+      AND d.result NOT IN ('error', 'rejected_signature')) THEN
+    INSERT INTO f360.woo_webhook_deliveries (target_id, delivery_id, topic, woo_order_id, woo_status, woo_modified_at, result)
+      VALUES (t.id, v_delivery, p_delivery->>'topic', v_order, v_status, v_mod, 'duplicate_delivery');
+    RETURN jsonb_build_object('result', 'duplicate_delivery', 'order_id', v_order);
+  END IF;
+
+  SELECT * INTO prev FROM f360.woo_orders WHERE target_id = t.id AND woo_order_id = v_order FOR UPDATE;
+  IF prev.woo_order_id IS NOT NULL AND v_mod < prev.woo_modified_at THEN
+    v_result := 'stale';
+  ELSIF prev.woo_order_id IS NOT NULL AND v_mod = prev.woo_modified_at AND v_status = prev.woo_status
+        AND coalesce((SELECT array_agg((x->>'id')::bigint ORDER BY (x->>'id')::bigint) FROM jsonb_array_elements(p_order->'refunds') x), '{}') <@ prev.refund_ids THEN
+    v_result := 'duplicate';
+  END IF;
+  IF v_result IS NOT NULL THEN
+    INSERT INTO f360.woo_webhook_deliveries (target_id, delivery_id, topic, woo_order_id, woo_status, woo_modified_at, result, detail)
+      VALUES (t.id, v_delivery, p_delivery->>'topic', v_order, v_status, v_mod, v_result,
+              CASE WHEN v_result = 'stale' THEN jsonb_build_object('current_status', prev.woo_status, 'current_modified', prev.woo_modified_at) END);
+    RETURN jsonb_build_object('result', v_result, 'order_id', v_order);
+  END IF;
+
+  INSERT INTO f360.woo_orders (target_id, woo_order_id, woo_status, woo_modified_at, currency)
+    VALUES (t.id, v_order, v_status, v_mod, p_order->>'currency')
+    ON CONFLICT (target_id, woo_order_id) DO UPDATE SET woo_status = EXCLUDED.woo_status, woo_modified_at = EXCLUDED.woo_modified_at, updated_at = now();
+
+  v_paid := v_status IN ('processing', 'completed');
+  IF v_paid THEN
+    FOR li IN SELECT * FROM jsonb_array_elements(coalesce(p_order->'line_items', '[]')) LOOP
+      v_line := (li->>'id')::bigint; v_var := nullif(li->>'variation_id', '')::bigint; v_sku := nullif(li->>'sku', ''); v_qty := (li->>'quantity')::int;
+      IF v_line IS NULL OR v_qty IS NULL OR v_qty <= 0 THEN CONTINUE; END IF;
+      IF EXISTS (SELECT 1 FROM f360.woo_order_lines WHERE target_id = t.id AND woo_order_id = v_order AND woo_line_id = v_line) THEN
+        lines := lines || jsonb_build_object('line', v_line, 'sku', v_sku, 'outcome', 'already_recorded');
+        CONTINUE;   -- each line affects stock at most once, ever
+      END IF;
+      v_variant := NULL; v_event := NULL; v_product := NULL;
+      SELECT vl.variant_id, v.sku, v.product_id INTO v_variant, v_vsku, v_product FROM f360.woo_variant_links vl
+        JOIN f360.product_variants v ON v.id = vl.variant_id WHERE vl.target_id = t.id AND vl.woo_variation_id = v_var;
+      IF v_variant IS NULL THEN
+        IF coalesce(v_sku, '') LIKE 'F360-%' OR EXISTS (SELECT 1 FROM f360.woo_product_links WHERE target_id = t.id AND woo_product_id = (li->>'product_id')::bigint) THEN
+          v_outcome := 'unknown_sku';
+          PERFORM f360.open_exception(t.id, 'unknown_sku', 'unknown_sku:' || v_order || ':' || v_line,
+            format('Venta en línea de un artículo que Fuxia 360 no reconoce (SKU %s, pedido #%s). No se descontó inventario.', coalesce(v_sku, 'sin SKU'), v_order),
+            jsonb_build_object('sku', v_sku, 'woo_variation_id', v_var, 'quantity', v_qty), NULL, NULL, v_order);
+        ELSE
+          v_outcome := 'legacy';   -- product not managed by Fuxia 360: ignored on purpose (legacy catalog)
+        END IF;
+      ELSIF v_sku IS DISTINCT FROM v_vsku THEN
+        v_outcome := 'sku_mismatch';
+        PERFORM f360.open_exception(t.id, 'sku_mismatch', 'sku_mismatch:' || v_order || ':' || v_line,
+          format('El pedido #%s trae el SKU %s pero esa variación en Fuxia 360 es %s. No se descontó inventario.', v_order, coalesce(v_sku, '—'), v_vsku),
+          jsonb_build_object('sku', v_sku, 'expected', v_vsku, 'quantity', v_qty), v_product, v_variant, v_order);
+      ELSE
+        -- lock this variant's Bodega balance: concurrent sales of the last pair are serialized here
+        INSERT INTO f360.inventory_balances (variant_id, location_id, on_hand) VALUES (v_variant, t.fulfillment_location_id, 0)
+          ON CONFLICT (variant_id, location_id) DO NOTHING;
+        SELECT on_hand INTO v_on_hand FROM f360.inventory_balances WHERE variant_id = v_variant AND location_id = t.fulfillment_location_id FOR UPDATE;
+        v_label := f360.variant_label(v_variant);
+        IF v_on_hand >= v_qty THEN
+          INSERT INTO f360.inventory_events (event_type, idempotency_key, actor_auth_user_id, actor_name, actor_role, note, business_reference_type, business_reference_id)
+            VALUES ('SALE', md5('woo-sale:' || t.key || ':' || v_order || ':' || v_line)::uuid, NULL, 'Tienda en línea', 'system',
+                    'Pedido #' || v_order, 'woo_order', t.key || ':' || v_order)
+            RETURNING id INTO v_event;
+          INSERT INTO f360.inventory_movements (event_id, variant_id, from_location_id, to_location_id, quantity)
+            VALUES (v_event, v_variant, t.fulfillment_location_id, NULL, v_qty);
+          UPDATE f360.inventory_balances SET on_hand = on_hand - v_qty, last_event_id = v_event, updated_at = now()
+            WHERE variant_id = v_variant AND location_id = t.fulfillment_location_id;
+          -- Woo already discounted this sale itself: what Fuxia expects Woo to show drops by the same amount.
+          UPDATE f360.woo_variant_links SET last_pushed_stock = greatest(0, coalesce(last_pushed_stock, 0) - v_qty)
+            WHERE target_id = t.id AND variant_id = v_variant;
+          v_outcome := 'sold';
+        ELSE
+          v_outcome := 'oversold';   -- never negative: record the alert, move nothing
+          PERFORM f360.open_exception(t.id, 'oversell', 'oversell:' || v_order || ':' || v_line,
+            format('Venta en línea sin existencia: %s — pedido #%s pidió %s, Bodega CDMX tenía %s. Hay que decidir cómo surtirlo.', v_label, v_order, v_qty, v_on_hand),
+            jsonb_build_object('requested', v_qty, 'on_hand', v_on_hand, 'sku', v_sku), v_product, v_variant, v_order);
+        END IF;
+      END IF;
+      INSERT INTO f360.woo_order_lines (target_id, woo_order_id, woo_line_id, woo_product_id, woo_variation_id, sku, quantity, variant_id, outcome, sale_event_id)
+        VALUES (t.id, v_order, v_line, (li->>'product_id')::bigint, v_var, v_sku, v_qty, v_variant, v_outcome, v_event);
+      lines := lines || jsonb_build_object('line', v_line, 'sku', v_sku, 'qty', v_qty, 'outcome', v_outcome);
+    END LOOP;
+  END IF;
+
+  -- Cancellation / refund AFTER a sale: DW4 policy is not decided → record it, never restock automatically.
+  SELECT EXISTS (SELECT 1 FROM f360.woo_order_lines WHERE target_id = t.id AND woo_order_id = v_order AND outcome = 'sold') INTO v_sold_any;
+  IF v_sold_any AND v_status IN ('cancelled', 'refunded', 'failed') THEN
+    PERFORM f360.open_exception(t.id, CASE WHEN v_status = 'refunded' THEN 'refund_after_sale' ELSE 'cancel_after_sale' END,
+      v_status || ':' || v_order,
+      format('El pedido #%s pasó a "%s" después de registrarse la venta. No se regresó inventario: falta la política de cancelaciones/devoluciones (decisión pendiente de Mario, DW4).', v_order, v_status),
+      jsonb_build_object('status', v_status), NULL, NULL, v_order);
+  END IF;
+  IF v_sold_any THEN
+    SELECT refund_ids INTO v_seen_refunds FROM f360.woo_orders WHERE target_id = t.id AND woo_order_id = v_order;
+    FOR r IN SELECT x FROM jsonb_array_elements(coalesce(p_order->'refunds', '[]')) x LOOP
+      IF NOT ((r->>'id')::bigint = ANY (v_seen_refunds)) THEN
+        PERFORM f360.open_exception(t.id, 'refund_after_sale', 'refund:' || v_order || ':' || (r->>'id'),
+          format('El pedido #%s tiene un reembolso (#%s). Reembolso ≠ devolución física: no se regresó inventario (decisión pendiente, DW4).', v_order, r->>'id'),
+          r, NULL, NULL, v_order);
+      END IF;
+    END LOOP;
+  END IF;
+  UPDATE f360.woo_orders SET refund_ids = coalesce((SELECT array_agg(DISTINCT (x->>'id')::bigint) FROM jsonb_array_elements(p_order->'refunds') x), '{}') || refund_ids
+    WHERE target_id = t.id AND woo_order_id = v_order;
+
+  v_result := CASE WHEN v_paid THEN 'applied' ELSE 'not_paid' END;
+  INSERT INTO f360.woo_webhook_deliveries (target_id, delivery_id, topic, woo_order_id, woo_status, woo_modified_at, result, detail)
+    VALUES (t.id, v_delivery, p_delivery->>'topic', v_order, v_status, v_mod, v_result, jsonb_build_object('lines', lines));
+  RETURN jsonb_build_object('result', v_result, 'order_id', v_order, 'status', v_status, 'lines', lines);
+END $$;
+
+CREATE OR REPLACE FUNCTION public.f360_sync_claim_stock(p_target_key text, p_limit integer DEFAULT 100) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+DECLARE t f360.sales_targets; out jsonb;
+BEGIN
+  t := f360.target_by_key(p_target_key);
+  WITH picked AS (
+    SELECT q.target_id, q.variant_id FROM f360.stock_sync_queue q
+    WHERE q.target_id = t.id AND q.next_attempt_at <= clock_timestamp() AND (q.claimed_at IS NULL OR q.claimed_at < clock_timestamp() - interval '2 minutes')
+    ORDER BY q.requested_at LIMIT greatest(1, least(p_limit, 500)) FOR UPDATE SKIP LOCKED
+  ), claimed AS (
+    UPDATE f360.stock_sync_queue q SET claimed_at = clock_timestamp() FROM picked
+    WHERE q.target_id = picked.target_id AND q.variant_id = picked.variant_id RETURNING q.variant_id, q.claimed_at, q.attempts
+  )
+  SELECT coalesce(jsonb_agg(jsonb_build_object('variant_id', c.variant_id, 'claimed_at', c.claimed_at, 'attempts', c.attempts,
+      'sku', v.sku, 'woo_product_id', pl.woo_product_id, 'woo_variation_id', vl.woo_variation_id,
+      'ats', f360.online_ats(v.id, t.fulfillment_location_id), 'expected', vl.last_pushed_stock)), '[]')
+    INTO out
+  FROM claimed c JOIN f360.product_variants v ON v.id = c.variant_id
+  JOIN f360.woo_variant_links vl ON vl.target_id = t.id AND vl.variant_id = v.id
+  JOIN f360.woo_product_links pl ON pl.target_id = t.id AND pl.product_id = v.product_id;
+  RETURN out;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.f360_reconcile_snapshot(p_target_key text) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+DECLARE t f360.sales_targets;
+BEGIN
+  t := f360.target_by_key(p_target_key);
+  RETURN (SELECT coalesce(jsonb_agg(jsonb_build_object('variant_id', v.id, 'sku', v.sku, 'label', f360.variant_label(v.id),
+      'woo_product_id', pl.woo_product_id, 'woo_variation_id', vl.woo_variation_id, 'ats', f360.online_ats(v.id, t.fulfillment_location_id),
+      'expected', vl.last_pushed_stock) ORDER BY v.sku), '[]')
+    FROM f360.woo_variant_links vl JOIN f360.product_variants v ON v.id = vl.variant_id AND v.status = 'active'
+    JOIN f360.woo_product_links pl ON pl.target_id = t.id AND pl.product_id = v.product_id
+    WHERE vl.target_id = t.id);
+END $$;
+
+DROP TRIGGER IF EXISTS sync_jobs_legacy_guard ON f360.sync_jobs;
+DROP FUNCTION IF EXISTS f360.sync_job_legacy_guard();
+DROP TRIGGER IF EXISTS woo_variant_links_guard ON f360.woo_variant_links;
+DROP FUNCTION IF EXISTS f360.woo_variant_link_guard();
+DROP INDEX IF EXISTS f360.woo_variant_links_legacy_product_idx;
+ALTER TABLE f360.woo_variant_links DROP CONSTRAINT IF EXISTS woo_variant_links_legacy_parent,
+  DROP COLUMN IF EXISTS woo_product_id, DROP COLUMN IF EXISTS origin;

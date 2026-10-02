@@ -35,6 +35,8 @@ Woo should receive the approved ecommerce `available_to_sell`, not independently
 - the variant's **MAKE_TO_ORDER_ELIGIBLE** flag. A variant with zero physical ATS may still be sellable online, on the production promise;
 - the resulting **FULFILLMENT_PROMISE** (physical vs. production, currently ~5–7 days), which must reach the storefront so the customer sees an honest delivery expectation.
 
+> **SUPERSEDED 2026-10-02 (decisión de Mario):** Woo México se alimenta **exclusivamente de Bodega CDMX** (la `fulfillment_location` del canal). No se suman tiendas, bazares ni "En camino"; Colombia también se surte hoy de Bodega CDMX (N1). Ver `INVENTORY_MODEL.md` (fuente de verdad) y `09_MIGRATION_PLAN.md` Fase 5. La regla de esta lista se conserva como historia.
+
 The formula for ecommerce availability is TBD and must consider:
 - eligible locations (all of Mexico, per location eligibility flags)
 - reservations and allocations

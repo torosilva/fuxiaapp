@@ -1,0 +1,435 @@
+{
+ "source": "staging4 wc-analytics/reports/variations (aggregates only; staging4 is a clone of production ~2026-09-24)",
+ "read_at": "2026-10-02T19:49:57.856Z",
+ "window_90d_from": "2026-07-04T19:49:56",
+ "use": "context for review only; NEVER inventory or opening balance",
+ "rows": [
+  {
+   "product_id": 701,
+   "variation_id": 704,
+   "sold_all": 3,
+   "orders_all": 3,
+   "sold_90d": 3
+  },
+  {
+   "product_id": 873,
+   "variation_id": 876,
+   "sold_all": 3,
+   "orders_all": 3,
+   "sold_90d": 3
+  },
+  {
+   "product_id": 2944,
+   "variation_id": 2960,
+   "sold_all": 3,
+   "orders_all": 3,
+   "sold_90d": 3
+  },
+  {
+   "product_id": 128,
+   "variation_id": 442,
+   "sold_all": 2,
+   "orders_all": 2,
+   "sold_90d": 2
+  },
+  {
+   "product_id": 130,
+   "variation_id": 426,
+   "sold_all": 2,
+   "orders_all": 2,
+   "sold_90d": 2
+  },
+  {
+   "product_id": 641,
+   "variation_id": 643,
+   "sold_all": 2,
+   "orders_all": 2,
+   "sold_90d": 2
+  },
+  {
+   "product_id": 687,
+   "variation_id": 689,
+   "sold_all": 2,
+   "orders_all": 2,
+   "sold_90d": 2
+  },
+  {
+   "product_id": 687,
+   "variation_id": 690,
+   "sold_all": 2,
+   "orders_all": 2,
+   "sold_90d": 2
+  },
+  {
+   "product_id": 789,
+   "variation_id": 793,
+   "sold_all": 2,
+   "orders_all": 1,
+   "sold_90d": 2
+  },
+  {
+   "product_id": 824,
+   "variation_id": 826,
+   "sold_all": 2,
+   "orders_all": 2,
+   "sold_90d": 2
+  },
+  {
+   "product_id": 894,
+   "variation_id": 897,
+   "sold_all": 2,
+   "orders_all": 2,
+   "sold_90d": 2
+  },
+  {
+   "product_id": 1182,
+   "variation_id": 1188,
+   "sold_all": 2,
+   "orders_all": 2,
+   "sold_90d": 2
+  },
+  {
+   "product_id": 128,
+   "variation_id": 443,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 130,
+   "variation_id": 423,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 460,
+   "variation_id": 462,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 460,
+   "variation_id": 464,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 491,
+   "variation_id": 496,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 0
+  },
+  {
+   "product_id": 641,
+   "variation_id": 644,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 641,
+   "variation_id": 645,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 655,
+   "variation_id": 679,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 680,
+   "variation_id": 686,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 694,
+   "variation_id": 697,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 701,
+   "variation_id": 725,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 726,
+   "variation_id": 727,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 726,
+   "variation_id": 729,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 726,
+   "variation_id": 732,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 733,
+   "variation_id": 738,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 740,
+   "variation_id": 743,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 747,
+   "variation_id": 750,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 782,
+   "variation_id": 786,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 789,
+   "variation_id": 792,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 789,
+   "variation_id": 794,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 796,
+   "variation_id": 801,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 803,
+   "variation_id": 805,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 824,
+   "variation_id": 827,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 831,
+   "variation_id": 833,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 831,
+   "variation_id": 835,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 838,
+   "variation_id": 841,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 873,
+   "variation_id": 875,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 873,
+   "variation_id": 878,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 880,
+   "variation_id": 882,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 880,
+   "variation_id": 883,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 880,
+   "variation_id": 885,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 894,
+   "variation_id": 899,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 916,
+   "variation_id": 919,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 923,
+   "variation_id": 926,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 923,
+   "variation_id": 928,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 944,
+   "variation_id": 968,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 976,
+   "variation_id": 979,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 976,
+   "variation_id": 981,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 1032,
+   "variation_id": 1035,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 1124,
+   "variation_id": 1126,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 2772,
+   "variation_id": 2780,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 2774,
+   "variation_id": 2796,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 2808,
+   "variation_id": 2825,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 2809,
+   "variation_id": 2836,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 2878,
+   "variation_id": 2904,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 2944,
+   "variation_id": 2958,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 2944,
+   "variation_id": 2961,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 3315,
+   "variation_id": 3320,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  },
+  {
+   "product_id": 3621,
+   "variation_id": 3624,
+   "sold_all": 1,
+   "orders_all": 1,
+   "sold_90d": 1
+  }
+ ]
+}

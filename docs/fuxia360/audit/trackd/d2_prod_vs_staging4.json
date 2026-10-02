@@ -1,0 +1,107 @@
+{
+ "summary": {
+  "read_at": "2026-10-02T19:49:30.457Z",
+  "method": "public Store API, GET, no credentials",
+  "production": {
+   "products": 129,
+   "variations": 792
+  },
+  "staging4": {
+   "products": 130,
+   "variations": 810
+  },
+  "only_in_production": 0,
+  "only_in_staging4": 1,
+  "changed": 0
+ },
+ "only_in_production": [],
+ "only_in_staging4": [
+  {
+   "id": 3621,
+   "name": "Macarena",
+   "slug": "macarena",
+   "sku": "F360-MACARENA",
+   "type": "variable",
+   "price": "2800",
+   "sale": null,
+   "categories": "ballerinas",
+   "attributes": "Color:Negro/Nude/Rojo · Medida:35/36/37/38/39/40",
+   "in_stock": true,
+   "variations": [
+    {
+     "id": 3622,
+     "attrs": "Color=nude,Medida=35"
+    },
+    {
+     "id": 3623,
+     "attrs": "Color=nude,Medida=36"
+    },
+    {
+     "id": 3624,
+     "attrs": "Color=nude,Medida=37"
+    },
+    {
+     "id": 3625,
+     "attrs": "Color=nude,Medida=38"
+    },
+    {
+     "id": 3626,
+     "attrs": "Color=nude,Medida=39"
+    },
+    {
+     "id": 3627,
+     "attrs": "Color=nude,Medida=40"
+    },
+    {
+     "id": 3628,
+     "attrs": "Color=negro,Medida=35"
+    },
+    {
+     "id": 3629,
+     "attrs": "Color=negro,Medida=36"
+    },
+    {
+     "id": 3630,
+     "attrs": "Color=negro,Medida=37"
+    },
+    {
+     "id": 3631,
+     "attrs": "Color=negro,Medida=38"
+    },
+    {
+     "id": 3632,
+     "attrs": "Color=negro,Medida=39"
+    },
+    {
+     "id": 3633,
+     "attrs": "Color=negro,Medida=40"
+    },
+    {
+     "id": 3634,
+     "attrs": "Color=rojo,Medida=35"
+    },
+    {
+     "id": 3635,
+     "attrs": "Color=rojo,Medida=36"
+    },
+    {
+     "id": 3636,
+     "attrs": "Color=rojo,Medida=37"
+    },
+    {
+     "id": 3637,
+     "attrs": "Color=rojo,Medida=38"
+    },
+    {
+     "id": 3638,
+     "attrs": "Color=rojo,Medida=39"
+    },
+    {
+     "id": 3639,
+     "attrs": "Color=rojo,Medida=40"
+    }
+   ]
+  }
+ ],
+ "changed": []
+}

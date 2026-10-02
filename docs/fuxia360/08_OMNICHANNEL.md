@@ -29,6 +29,8 @@ The formula must be approved before customer-facing launch.
 
 Physical ATS for ecommerce is summed across **all** eligible locations in Mexico, never just a central warehouse. Make-to-order eligibility can make a variant sellable with zero physical ATS, but it never inflates physical ATS. See `00_MASTER_SPEC.md` §5.1 for the five distinct concepts (on-hand, reserved, physical ATS, make-to-order eligible, fulfillment promise).
 
+> **SUPERSEDED 2026-10-02 (decisión de Mario):** Woo México se alimenta **exclusivamente de Bodega CDMX** (la `fulfillment_location` del canal). No se suman tiendas, bazares ni "En camino"; Colombia también se surte hoy de Bodega CDMX (N1). Ver `INVENTORY_MODEL.md` (fuente de verdad) y `09_MIGRATION_PLAN.md` Fase 5. El texto de arriba se conserva como historia.
+
 ## 4. Store availability
 MVP:
 - resolve canonical variant from Woo PDP
