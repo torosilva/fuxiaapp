@@ -58,6 +58,10 @@ export const SWATCHES: { name: string; hex: string }[] = [
   { name: 'Negro', hex: '#1C1A17' }, { name: 'Blanco', hex: '#F4F1EA' }, { name: 'Nude', hex: '#D8B9A0' },
   { name: 'Camel', hex: '#B07A4A' }, { name: 'Rojo', hex: '#9E2A2B' }, { name: 'Rosa', hex: '#E3A6B4' },
   { name: 'Azul marino', hex: '#1F2A44' }, { name: 'Dorado', hex: '#B8860B' }, { name: 'Plata', hex: '#B9B9B9' },
+  { name: 'Café', hex: '#6B4226' }, { name: 'Chocolate', hex: '#4B2E20' }, { name: 'Taupe', hex: '#8B7D6B' }, { name: 'Vino', hex: '#6D1A2A' },
+  { name: 'Verde', hex: '#4A6B3A' }, { name: 'Verde aceituna', hex: '#6B6B2A' }, { name: 'Talco', hex: '#E8DCD0' }, { name: 'Beige', hex: '#D9C3A5' },
+  { name: 'Bambi', hex: '#C49A6C' }, { name: 'Caramelo', hex: '#A8662F' }, { name: 'Miel', hex: '#C68E3F' }, { name: 'Ocre', hex: '#C08A2E' },
+  { name: 'Leopardo', hex: '#B8864B' }, { name: 'Denim', hex: '#4A6A8A' }, { name: 'Gris', hex: '#8E8E8E' }, { name: 'Bronce', hex: '#8C6A3F' },
 ];
 
 /** "woo_local:123" → "Pedido #123". */

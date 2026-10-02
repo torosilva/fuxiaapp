@@ -322,3 +322,10 @@ export async function importFromStoreAction(productId: string, maxColors = 3): P
   revalidateProduct(productId);
   return { ok: true, data: { photos, price: 'regular_price' in fields, description: 'description' in fields, skipped, remaining: Math.max(0, pending.length - maxColors) } };
 }
+
+export async function setColorHexAction(productId: string, colorId: string, hex: string | null): Promise<Result<Product>> {
+  if (hex && !/^#[0-9a-fA-F]{6}$/.test(hex)) return { ok: false, error: 'Color no válido.' };
+  const r = await call<Product>('f360_set_color_hex', { p_color_id: colorId, p_hex: hex });
+  if (r.ok) revalidateProduct(productId);
+  return r;
+}

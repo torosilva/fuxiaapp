@@ -28,7 +28,7 @@ DO $$
 DECLARE car uuid := current_setting('t.carolina')::uuid; sel uuid := current_setting('t.seller')::uuid;
   bodega uuid := (SELECT id FROM f360.locations WHERE name = 'Bodega CDMX');
   mac uuid := (SELECT id FROM f360.products WHERE name = 'Macarena');
-  tgt uuid; r jsonb; err text; pid uuid; pid2 uuid; v_nude35 uuid; v_verde37 uuid; ev0 int; bal0 int; lk0 int; q0 int; n int; snap jsonb;
+  tgt uuid; r jsonb; err text; pid uuid; pid2 uuid; v_nude35 uuid; v_verde37 uuid; cnude uuid; ev0 int; bal0 int; lk0 int; q0 int; n int; snap jsonb;
 BEGIN
   PERFORM pg_temp.ok(car IS NOT NULL AND sel IS NOT NULL AND bodega IS NOT NULL AND mac IS NOT NULL, 'fixtures: Carolina (owner), a seller, Bodega CDMX, Macarena', '');
   INSERT INTO f360.sales_targets (key, name, base_url, fulfillment_location_id, active) VALUES ('zz_d2', 'ZZ D2', 'https://zz.invalid', bodega, true) RETURNING id INTO tgt;
@@ -162,6 +162,16 @@ BEGIN
   r := pg_temp.as(sel, format($q$SELECT public.f360_legacy_sources(%L)$q$, pid));
   PERFORM pg_temp.ok(r ? 'error', 'a seller cannot read legacy sources', r::text);
   PERFORM pg_temp.ok(jsonb_array_length(pg_temp.as(car, format($q$SELECT public.f360_legacy_sources(%L)$q$, mac))) = 0, 'an F360-published model (Macarena) has no legacy sources', '');
+
+  -- ── colour swatch by hand (display only) ──
+  SELECT id INTO cnude FROM f360.product_colors WHERE product_id = pid AND name = 'Nude';
+  r := pg_temp.as(car, format($q$SELECT public.f360_set_color_hex(%L, '#d8b9a0')$q$, cnude));
+  PERFORM pg_temp.ok((SELECT hex FROM f360.product_colors WHERE product_id = pid AND name = 'Nude') = '#D8B9A0'
+    AND (SELECT sku FROM f360.product_variants WHERE id = v_nude35) = 'F360-ZZ-PAULA-NUDE-35', 'Carolina sets the Nude swatch by hand; SKU unchanged', r::text);
+  r := pg_temp.as(car, format($q$SELECT public.f360_set_color_hex(%L, 'rojo')$q$, cnude));
+  PERFORM pg_temp.ok(r->>'error' = 'Color no válido.', 'an invalid swatch is refused', r::text);
+  r := pg_temp.as(sel, format($q$SELECT public.f360_set_color_hex(%L, '#000000')$q$, cnude));
+  PERFORM pg_temp.ok(r ? 'error', 'a seller cannot change a swatch', r::text);
 
   -- ── legacy channel links (D4 will create them; here only the rules) ──
   BEGIN INSERT INTO f360.woo_variant_links (target_id, variant_id, woo_variation_id, origin, woo_product_id) VALUES (tgt, v_nude35, 900401, 'legacy_adopted', 9004); err := 'accepted';

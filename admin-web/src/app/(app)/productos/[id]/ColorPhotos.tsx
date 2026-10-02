@@ -7,7 +7,7 @@ import { IconCamera, IconCheck, IconPlus, IconX } from '@/components/icons';
 import type { Color, Product } from '@/lib/f360';
 import { imageUrl, SWATCHES } from '@/lib/format';
 import { createClient } from '@/lib/supabase/browser';
-import { addColorAction, addMediaAction, removeMediaAction, setPrimaryMediaAction } from '../../actions';
+import { addColorAction, addMediaAction, removeMediaAction, setColorHexAction, setPrimaryMediaAction } from '../../actions';
 
 // Photos per color + add a color later (the model is never recreated).
 export function ColorPhotos({ product, color, canEdit }: { product: Product; color: Color; canEdit: boolean }) {
@@ -17,6 +17,8 @@ export function ColorPhotos({ product, color, canEdit }: { product: Product; col
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [newColor, setNewColor] = useState('');
+  const [picking, setPicking] = useState(false);
+  const [custom, setCustom] = useState(color.hex ?? '#C9BFAE');
 
   const upload = (files: FileList | null) => {
     if (!files?.length) return;
@@ -97,9 +99,30 @@ export function ColorPhotos({ product, color, canEdit }: { product: Product; col
 
       <div className="mt-5 rounded-3xl border border-line bg-surface p-5">
         <div className="flex items-center justify-between">
-          <p className="flex items-center gap-2 text-lg text-ink"><ColorDot hex={color.hex} />{color.name}</p>
+          <p className="flex items-center gap-2 text-lg text-ink"><ColorDot hex={color.hex} className="size-5" />{color.name}
+            {canEdit && <button type="button" onClick={() => setPicking(!picking)} className="ml-1 text-sm text-muted underline decoration-line underline-offset-4">{picking ? 'Listo' : color.hex ? 'Cambiar circulito' : 'Elegir circulito'}</button>}
+          </p>
           {color.media.length === 0 && <span className="rounded-full bg-gold-soft px-3 py-1 text-xs text-ink-2">Faltan fotos</span>}
         </div>
+        {picking && canEdit && (
+          <div className="mt-4 rounded-2xl bg-bg p-4" data-testid="swatch-picker">
+            <p className="text-sm text-ink-2">El circulito de <b>{color.name}</b> en Fuxia 360 (solo se ve aquí; no cambia la tienda ni el SKU).</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[...SWATCHES].sort((a, b) => Number(color.name.toLowerCase().includes(b.name.toLowerCase())) - Number(color.name.toLowerCase().includes(a.name.toLowerCase()))).map((s) => (
+                <button key={s.name} type="button" disabled={pending} onClick={() => run(() => setColorHexAction(product.id, color.id, s.hex))}
+                  className={`flex items-center gap-2 rounded-full border px-3 py-2 text-sm ${color.hex?.toUpperCase() === s.hex.toUpperCase() ? 'border-ink text-ink' : 'border-line bg-surface text-ink-2 hover:border-gold/50'}`}>
+                  <ColorDot hex={s.hex} />{s.name}
+                </button>
+              ))}
+              <label className="flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-2 text-sm text-ink-2">Otro
+                <input type="color" aria-label={`Otro color para ${color.name}`} value={custom} disabled={pending}
+                  onChange={(e) => setCustom(e.target.value)} className="h-6 w-8 cursor-pointer border-0 bg-transparent p-0" />
+                <button type="button" disabled={pending} onClick={() => run(() => setColorHexAction(product.id, color.id, custom))} className="rounded-full bg-ink px-2.5 py-0.5 text-xs text-surface">Usar</button>
+              </label>
+              {color.hex && <button type="button" disabled={pending} onClick={() => run(() => setColorHexAction(product.id, color.id, null))} className="px-2 text-sm text-muted underline">Quitar</button>}
+            </div>
+          </div>
+        )}
         <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
           {color.media.map((m, i) => (
             <div key={m.id} className="group relative aspect-square overflow-hidden rounded-2xl border border-line">
