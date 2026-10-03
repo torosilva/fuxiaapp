@@ -1,4 +1,14 @@
 <p class="f360-sobrepedido" hidden>Esta talla y color se entrega en <b>5 a 7 días hábiles</b>.</p>
+<div class="f360-medida">
+  <p class="f360-med-t">¿No encontraste tu color y talla? <b>Lo hacemos a la medida.</b></p>
+  <button type="button" class="f360-med-abrir">Platicar con Hilo</button>
+</div>
+<div class="f360-hilo" hidden role="dialog" aria-label="Hilo · a la medida">
+  <div class="f360-hilo-top"><span><b>Hilo</b> · Fuxia a la medida</span><button type="button" class="f360-hilo-x" aria-label="Cerrar">×</button></div>
+  <div class="f360-hilo-log" aria-live="polite"></div>
+  <div class="f360-hilo-chips"></div>
+  <form class="f360-hilo-in"><input type="text" autocomplete="off" aria-label="Tu respuesta"><input type="text" name="website" tabindex="-1" autocomplete="off" class="f360-hp" aria-hidden="true"><button type="submit">Enviar</button></form>
+</div>
 <div class="f360-inmediata" hidden>
   <p class="f360-inm-titulo">✓ Entrega inmediata hoy en <b class="f360-inm-tiendas"></b></p>
   <button type="button" class="f360-inm-boton">Fuxia Gold: apártalo 2 horas</button>
@@ -20,6 +30,23 @@
 .f360-inmediata [hidden], .f360-inmediata[hidden], .f360-sobrepedido[hidden] { display: none !important; }
 .f360-sobrepedido { margin: 12px 0 0; padding: 10px 14px; border-left: 3px solid #B8966E; background: #fbf7f0; font-size: 14px; color: #4a433a; }
 .woocommerce-variation-availability .available-on-backorder { display: none; }   /* Woo's own "bajo pedido" text: replaced by ours */
+.f360-medida { margin: 14px 0 0; padding: 12px 14px; border: 1px dashed #B8966E; border-radius: 6px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.f360-med-t { margin: 0; font-size: 14px; color: #4a433a; }
+.f360-med-abrir { height: 38px; padding: 0 14px; border: 0; border-radius: 4px; background: #B8966E; color: #fff; cursor: pointer; font-size: 14px; }
+.f360-hilo[hidden] { display: none !important; }
+.f360-hilo { position: fixed; right: 16px; bottom: 16px; z-index: 99999; width: min(360px, calc(100vw - 32px)); max-height: min(560px, calc(100vh - 32px)); display: flex; flex-direction: column; background: #fffdf9; border: 1px solid #e6dfd4; border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.18); font-family: inherit; }
+.f360-hilo-top { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid #eee5d8; font-size: 14px; color: #4a433a; }
+.f360-hilo-x { border: 0; background: none; font-size: 22px; cursor: pointer; color: #8c7a63; }
+.f360-hilo-log { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.f360-hilo-log p { margin: 0; padding: 9px 12px; border-radius: 12px; font-size: 14px; line-height: 1.35; max-width: 85%; }
+.f360-hilo-log .h { background: #f3ece1; color: #3b342c; align-self: flex-start; }
+.f360-hilo-log .c { background: #B8966E; color: #fff; align-self: flex-end; }
+.f360-hilo-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 8px; }
+.f360-hilo-chips button { padding: 6px 10px; border: 1px solid #B8966E; border-radius: 16px; background: #fff; color: #8c6414; font-size: 13px; cursor: pointer; }
+.f360-hilo-in { display: flex; gap: 8px; padding: 10px 14px 14px; border-top: 1px solid #eee5d8; }
+.f360-hilo-in input { flex: 1; height: 40px; padding: 0 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
+.f360-hilo-in button { height: 40px; padding: 0 14px; border: 0; border-radius: 6px; background: #1a1a1a; color: #fff; cursor: pointer; }
+.f360-hp { position: absolute !important; left: -9999px !important; width: 1px !important; height: 1px !important; opacity: 0 !important; }
 .f360-inmediata { margin: 18px 0; padding: 14px 16px; border: 1px solid #e6dfd4; border-radius: 6px; background: #fffdf9; font-family: inherit; }
 .f360-inm-titulo { margin: 0 0 10px; font-size: 14px; color: #3f6b4f; }
 .f360-inm-boton, .f360-inm-enviar, .f360-inm-apartar { height: 42px; padding: 0 16px; border: 1px solid #B8966E; background: #fff; color: #8c6414; cursor: pointer; font-size: 14px; border-radius: 4px; }
@@ -62,10 +89,61 @@
     if (window.MutationObserver) new MutationObserver(poner).observe(cont, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style'] });
     window.addEventListener('load', poner);
   }
+
+  // "¿No encontraste tu color y talla? Lo hacemos a la medida" (Mario 2026-10-03): Hilo (HiloLabs) asks color, size or
+  // foot length, name and WhatsApp, and leaves a request for the team in Fuxia 360. No price, no payment here.
+  function aLaMedida(mexico) {
+    var cta = document.querySelector('.f360-medida'), w = document.querySelector('.f360-hilo');
+    if (!cta || !w) return;
+    var form = document.querySelector('form.variations_form');
+    var anchor = form && (form.querySelector('.single_variation_wrap') || form);
+    if (anchor) anchor.parentNode.insertBefore(cta, anchor.nextSibling);
+    document.body.appendChild(w);
+    var log = w.querySelector('.f360-hilo-log'), chips = w.querySelector('.f360-hilo-chips'), input = w.querySelector('.f360-hilo-in input');
+    var titulo = (document.querySelector('h1') || {}).textContent || document.title.split('–')[0];
+    var producto = String(titulo).trim();
+    var d = {}, paso = 0;
+    var tallas = mexico ? ['22', '23', '24', '25', '26', '27'] : ['35', '36', '37', '38', '39', '40'];
+    function decir(t, quien) { var p = document.createElement('p'); p.className = quien || 'h'; p.textContent = t; log.appendChild(p); log.scrollTop = log.scrollHeight; }
+    function opciones(xs) { chips.innerHTML = ''; (xs || []).forEach(function (x) { var b = document.createElement('button'); b.type = 'button'; b.textContent = x; b.onclick = function () { responder(x); }; chips.appendChild(b); }); }
+    var PASOS = [
+      function () { decir('¡Hola! Soy Hilo 💛 Hacemos tus ' + producto + ' a la medida. ¿Qué color te gustaría?'); opciones([]); input.placeholder = 'Ej. verde olivo'; },
+      function () { decir('¡Me encanta! ¿Qué talla usas' + (mexico ? ' (talla mexicana)' : '') + '? Si no la sabes, mide tu pie en centímetros.'); opciones(tallas.concat(['Mido mi pie'])); input.placeholder = mexico ? 'Ej. 24' : 'Ej. 37'; },
+      function () { decir('¿Cuántos centímetros mide tu pie, del talón a la punta del dedo más largo?'); opciones([]); input.placeholder = 'Ej. 24.5'; },
+      function () { decir('¿Cómo te llamas?'); opciones([]); input.placeholder = 'Tu nombre'; },
+      function () { decir('¿A qué WhatsApp te escribimos para darte precio y tiempo?'); opciones([]); input.placeholder = '55 1234 5678'; input.type = 'tel'; },
+      function () { decir('¿Algo más que quieras contarnos? (tacón, ocasión, fecha…)'); opciones(['No, así está bien']); input.placeholder = 'Opcional'; input.type = 'text'; }
+    ];
+    function siguiente(n) { paso = n; PASOS[n](); input.value = ''; input.focus(); }
+    function enviar() {
+      opciones([]); decir('Un momento…');
+      var tallaTienda = d.size && mexico ? String(Number(d.size) + 13) : d.size;
+      api({ action: 'a_la_medida', phone: d.phone, name: d.name, color: d.color, size: d.size ? d.size + (mexico ? ' MX' : '') : '',
+            store_size: tallaTienda && /^(3[5-9]|40)$/.test(tallaTienda) ? tallaTienda : '', foot_cm: d.foot || '', note: d.note || '',
+            woo_product_id: form ? form.getAttribute('data-product_id') : '', product_name: producto, country: mexico ? 'mx' : (location.pathname.split('/')[1] || ''),
+            website: w.querySelector('.f360-hp').value })
+        .then(function () { decir('¡Listo, ' + d.name + '! Carolina te escribe por WhatsApp para darte precio y tiempo de tus ' + producto + ' en color ' + d.color + '. 💛'); paso = 99; input.disabled = true; })
+        .catch(function (e) { decir(e.message); siguiente(4); });
+    }
+    function responder(t) {
+      t = String(t || '').trim(); if (!t && paso !== 5) return;
+      decir(t || '—', 'c');
+      if (paso === 0) { d.color = t; siguiente(1); }
+      else if (paso === 1) { if (/mid/i.test(t)) siguiente(2); else { d.size = t.replace(/[^0-9.]/g, ''); siguiente(3); } }
+      else if (paso === 2) { d.foot = t.replace(',', '.').replace(/[^0-9.]/g, ''); siguiente(3); }
+      else if (paso === 3) { d.name = t; siguiente(4); }
+      else if (paso === 4) { if (t.replace(/\D/g, '').length < 10) { decir('¿Me lo pasas a 10 dígitos?'); return; } d.phone = t; siguiente(5); }
+      else if (paso === 5) { d.note = /^no, así está bien$/i.test(t) ? '' : t; enviar(); }
+    }
+    w.querySelector('.f360-hilo-in').addEventListener('submit', function (e) { e.preventDefault(); responder(input.value); });
+    cta.querySelector('.f360-med-abrir').addEventListener('click', function () { w.hidden = false; if (!log.childNodes.length) siguiente(0); else input.focus(); });
+    w.querySelector('.f360-hilo-x').addEventListener('click', function () { w.hidden = true; });
+  }
   function init() {
     // "5 a 7 días hábiles" va en todos los países; entrega inmediata y tallas mexicanas solo en México (raíz o /mx/).
     var mexico = !(/^\/[a-z]{2}\//.test(location.pathname) && !/^\/mx\//.test(location.pathname));
     if (mexico) tallasMexico();
+    aLaMedida(mexico);
     var form = document.querySelector('form.variations_form');
     var box = document.querySelector('.f360-inmediata');
     if (!form || !box || !window.jQuery) return;

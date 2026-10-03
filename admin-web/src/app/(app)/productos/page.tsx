@@ -4,6 +4,7 @@ import { IconPlus, IconSearch } from '@/components/icons';
 import { canWrite, getMe, listCategories, listProducts } from '@/lib/f360';
 import { pares, precio } from '@/lib/format';
 import { StoreContentPush } from './StoreContentPush';
+import { ConsolidatePanel } from './ConsolidatePanel';
 
 export default async function Productos({ searchParams }: { searchParams: Promise<{ q?: string; categoria?: string }> }) {
   const { q, categoria } = await searchParams;
@@ -16,14 +17,15 @@ export default async function Productos({ searchParams }: { searchParams: Promis
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="font-display text-5xl text-ink">Productos</h1>
-        <Link href="/sobre-pedido" className="ml-auto rounded-full px-5 py-3 text-ink-2 ring-1 ring-line">Pedidos de 5 a 7 días</Link>
+        <Link href="/a-la-medida" className="ml-auto rounded-full px-5 py-3 text-ink-2 ring-1 ring-line">A la medida</Link>
+        <Link href="/sobre-pedido" className="rounded-full px-5 py-3 text-ink-2 ring-1 ring-line">Pedidos de 5 a 7 días</Link>
         {canWrite(me.role) && (
           <Link href="/productos/nuevo" className="flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-surface transition hover:bg-ink-2">
             <IconPlus className="size-5" />Nuevo producto
           </Link>
         )}
       </div>
-      {me.role === 'owner' && !categoria && !q && <div className="mt-6"><StoreContentPush /></div>}
+      {me.role === 'owner' && !categoria && !q && <div className="mt-6 grid gap-4 lg:grid-cols-2"><ConsolidatePanel /><StoreContentPush /></div>}
       <form className="relative mt-6 max-w-md" role="search">
         <IconSearch className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted" />
         <input name="q" defaultValue={q} placeholder="Busca por nombre o color" className="w-full rounded-full border border-line bg-surface py-3.5 pl-12 pr-4 text-base outline-none focus:border-gold" />

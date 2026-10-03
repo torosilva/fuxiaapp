@@ -206,3 +206,8 @@ export const listReservations = (locationId?: string) => rpc<Reservation[]>('f36
 export type MadeToOrder = { id: string; order: number; store: string; product: string; color: string; size: string; sku: string; quantity: number;
   status: 'pendiente' | 'en_proceso' | 'enviado' | 'cancelado'; created_at: string; updated_at: string; updated_by: string | null; note: string | null; ship_by: string | null };
 export const listMadeToOrder = () => rpc<MadeToOrder[]>('f360_made_to_order_list', { p_days: 90 });
+
+// "Lo hacemos a la medida" (Mario 2026-10-03): requests left through Hilo's chat on the product page.
+export type CustomRequest = { id: string; product: string; product_id: string | null; color: string; size: string | null; store_size: string | null; foot_cm: number | null;
+  name: string; phone: string; note: string | null; country: string | null; status: 'nueva' | 'contactada' | 'cotizada' | 'cerrada' | 'descartada'; created_at: string; updated_by: string | null };
+export const listCustomRequests = () => rpc<CustomRequest[]>('f360_custom_requests_list', { p_days: 90 });

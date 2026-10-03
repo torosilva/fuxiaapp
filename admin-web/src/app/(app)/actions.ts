@@ -86,6 +86,8 @@ export async function setPrimaryMediaAction(productId: string, mediaId: string):
 
 // P2.2 · Publish/sync to the online store (owner only; checked in the database AND again by the publisher).
 // The publisher runs server-side with the store credentials; the browser never sees them.
+const STAGING_STORE = 'woo_staging4';   // the only store merges are approved for
+
 export async function publishAction(productId: string, idempotencyKey: string): Promise<Result<{ status: string; error: string | null }>> {
   // Checked BEFORE creating a job: without a publisher a job would sit in the queue forever.
   if (!publisherAvailable()) return { ok: false, error: 'La publicación en WooCommerce todavía no está disponible en este ambiente.' };
@@ -107,6 +109,48 @@ export async function publishAction(productId: string, idempotencyKey: string): 
   }
   revalidatePath(`/productos/${productId}`);
   return out;
+}
+
+// One store product per model (Mario 2026-10-03): merge models sold as one store product per colour. Owner only;
+// the database refuses production targets. start → publish each job (the normal publisher) → finish.
+export type ConsolidationItem = { product_id: string; name: string; job_id: string | null; status: string };
+export async function consolidateStartAction(productIds?: string[]) {
+  return call<{ items: ConsolidationItem[]; skipped: { product_id: string; name: string; missing: string[] }[] }>('f360_consolidate_start',
+    { p_target_key: STAGING_STORE, p_product_ids: productIds ?? null, p_legacy_paths: {} });
+}
+export async function runPublishJobAction(jobId: string, productId: string): Promise<Result<{ status: string; error: string | null }>> {
+  if (!publisherAvailable()) return { ok: false, error: 'La publicación en WooCommerce todavía no está disponible en este ambiente.' };
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' };
+  try {
+    const res = await fetch(process.env.F360_PUBLISHER_URL!, { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_id: jobId }), cache: 'no-store', signal: AbortSignal.timeout(280_000) });
+    const body = await res.json().catch(() => ({}));
+    revalidatePath(`/productos/${productId}`);
+    return res.ok ? { ok: true, data: { status: body.outcome?.status ?? 'failed', error: body.outcome?.error ?? null } } : { ok: false, error: body.error ?? 'No se pudo publicar.' };
+  } catch {
+    return { ok: false, error: 'No hubo respuesta del publicador. Puedes reintentar: no se duplicará nada.' };
+  }
+}
+export async function consolidateFinishAction(productId: string) {
+  const r = await call<{ status: string; new_path: string }>('f360_consolidate_finish', { p_target_key: STAGING_STORE, p_product_id: productId });
+  if (r.ok) { revalidatePath('/productos'); revalidatePath(`/productos/${productId}`); }
+  return r;
+}
+export type Consolidation = { product_id: string; name: string; status: string; job_status: string | null; job_error: string | null; new_woo_product_id: number | null;
+  new_path: string; legacy_products: { woo_product_id: number; name: string }[]; requested_at: string; finished_at: string | null };
+/** Redirect list: old per-colour product URL → new single product URL (read from the store, owner only). */
+export async function consolidationRedirectsAction() {
+  const list = await call<Consolidation[]>('f360_consolidations', { p_target_key: STAGING_STORE });
+  if (!list.ok) return list;
+  const ids = list.data.flatMap((c) => [...c.legacy_products.map((l) => l.woo_product_id), ...(c.new_woo_product_id ? [c.new_woo_product_id] : [])]);
+  const links = await contentCall<{ items: Record<string, { permalink: string | null; status: string | null }> }>({ action: 'permalinks', ids });
+  if (!links.ok) return links;
+  const path = (u: string | null | undefined) => { try { return u ? new URL(u).pathname : null; } catch { return null; } };
+  const rows = list.data.filter((c) => c.status === 'publicada').flatMap((c) => c.legacy_products.map((l) => ({
+    model: c.name, from: path(links.data.items[l.woo_product_id]?.permalink), to: path(links.data.items[c.new_woo_product_id ?? 0]?.permalink) ?? c.new_path })));
+  return { ok: true as const, data: { list: list.data, rows } };
 }
 
 // P2.3A · Avisos de sincronización
@@ -360,6 +404,11 @@ export async function importFromStoreAction(productId: string, maxColors = 3): P
 export async function setMadeToOrderStatusAction(id: string, status: 'pendiente' | 'en_proceso' | 'enviado' | 'cancelado'): Promise<Result<unknown>> {
   const r = await call('f360_made_to_order_set', { p_id: id, p_status: status, p_note: null });
   if (r.ok) revalidatePath('/sobre-pedido');
+  return r;
+}
+export async function setCustomRequestStatusAction(id: string, status: 'nueva' | 'contactada' | 'cotizada' | 'cerrada' | 'descartada'): Promise<Result<unknown>> {
+  const r = await call('f360_custom_request_set', { p_id: id, p_status: status });
+  if (r.ok) revalidatePath('/a-la-medida');
   return r;
 }
 /** Sobre pedido on/off for a model (operator+; validated again in the database). */

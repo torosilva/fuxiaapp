@@ -24,7 +24,7 @@ const KB: { keywords: string[]; answer: string; escalate?: boolean }[] = [
   // ── TALLAS ──────────────────────────────────────────────────────────────────
   {
     keywords: ['talla', 'tamaño', 'medir', 'pie', 'size', 'guía de tallas', 'qué talla'],
-    answer: 'Te recomiendo medir tu pie por la noche (cuando está más relajado) parada sobre una hoja, marcando el talón y la punta del dedo más largo. La distancia en centímetros corresponde a tu talla mexicana. Si estás entre dos tallas, pide la mayor. También tenemos guía de tallas detallada en cada producto.',
+    answer: 'Nuestras tallas y su equivalencia mexicana: 35 = MX 22, 36 = MX 23, 37 = MX 24, 38 = MX 25, 39 = MX 26, 40 = MX 27. Si no sabes tu talla, mide tu pie por la noche parada sobre una hoja, del talón a la punta del dedo más largo, y revisa la guía de tallas de cada producto. Si estás entre dos tallas, pide la mayor.',   // Mario 2026-10-03: MX = talla − 13 (MX 25 = 38)
   },
   {
     keywords: ['calce', 'fit', 'tallan grandes', 'tallan chicas'],

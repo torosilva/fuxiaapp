@@ -33,6 +33,17 @@ export async function handleSync(req: Request, env: SyncEnv, opts: SyncOptions =
   const woo = syncAdapter(env, opts);
   try {
     // Fuxia 360 content → the current store's products (owners only, one store product per call; the DB refuses production)
+    // Store links of some products (owners): old per-colour product → new single product, for the redirect list.
+    if (action === 'permalinks') {
+      if (role !== 'owner') return json({ error: 'Solo una dueña.' }, 403);
+      const ids = (((body as { ids?: unknown }).ids as unknown[]) ?? []).map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 200);
+      const out: Record<string, { permalink: string | null; status: string | null }> = {};
+      for (const id of ids) {
+        try { const p = await woo.getProduct(id) as (Awaited<ReturnType<typeof woo.getProduct>> & { permalink?: string }) | null; out[id] = { permalink: p?.permalink ?? null, status: p?.status ?? null }; }
+        catch { out[id] = { permalink: null, status: null }; }
+      }
+      return json({ items: out });
+    }
     if (action === 'content_list' || action === 'content') {
       if (role !== 'owner') return json({ error: 'Solo una dueña puede mandar contenido a la tienda.' }, 403);
       if (action === 'content_list') return json({ items: await rpc('f360_legacy_content_list', { p_target_key: env.WOO_TARGET_KEY, p_product_ids: body.product_ids ?? null }) });

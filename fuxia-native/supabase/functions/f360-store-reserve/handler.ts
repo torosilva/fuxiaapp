@@ -1,5 +1,6 @@
 // f360-store-reserve — public endpoint for the store's product page: "Entrega inmediata" + "Apártalo 2 horas" (Fuxia Gold).
-// Actions (POST JSON): availability {woo_variation_id} · send_code {phone} · reserve {phone, code, woo_variation_id, location_id}.
+// Actions (POST JSON): availability {woo_variation_id} · send_code {phone} · reserve {phone, code, woo_variation_id, location_id}
+// · a_la_medida {phone, name, color, size?, store_size?, foot_cm?, note?, woo_product_id, product_name, country} (Hilo chat).
 // STAGING / testing: only TEST_PHONES can reserve, with TEST_CODE (no WhatsApp is sent). Every rule (Gold, 2 pairs,
 // 2 hours, free pair) is enforced again in the database. CORS limited to ALLOWED_ORIGINS. Runtime-agnostic (Deno / Node).
 export type ReserveEnv = { SUPABASE_URL: string; SUPABASE_SERVICE_ROLE_KEY: string; ALLOWED_ORIGINS: string; TEST_PHONES: string; TEST_CODE: string };
@@ -49,6 +50,22 @@ export async function handleReserve(req: Request, env: ReserveEnv, fetchImpl: ty
 
   const phone = normalizePhone(body.phone);
   if (!phone) return json({ error: 'Escribe tu teléfono a 10 dígitos.' }, 400);
+
+  // "¿No encontraste tu color y talla? Lo hacemos a la medida" (Mario 2026-10-03): Hilo's chat on the product page
+  // leaves a request for the team. Any phone (it is a lead, not a sale); the DB caps it at 3 per phone per day.
+  if (body.action === 'a_la_medida') {
+    const text = (v: unknown, max: number) => String(v ?? '').replace(/[<>]/g, '').trim().slice(0, max);
+    if ((body as { website?: unknown }).website) return json({ ok: true });                 // honeypot: bots fill hidden fields
+    const color = text(body.color, 80), name = text(body.name, 80);
+    if (!color) return json({ error: 'Dinos qué color te gustaría.' }, 400);
+    if (!name) return json({ error: 'Dinos tu nombre.' }, 400);
+    const foot = Number(String(body.foot_cm ?? '').replace(',', '.'));
+    const r = await rpc<{ id: string; product: string }>('f360_custom_request_create', { p: {
+      target_key: text(body.target_key, 40) || 'woo_staging4', woo_product_id: String(Number(body.woo_product_id) || ''),
+      product_name: text(body.product_name, 200), color, size: text(body.size, 20), store_size: text(body.store_size, 10),
+      foot_cm: Number.isFinite(foot) && foot >= 18 && foot <= 32 ? String(foot) : '', name, phone, note: text(body.note, 500), country: text(body.country, 8) } });
+    return r.ok ? json({ ok: true, product: r.data.product }) : json({ error: r.error }, 400);
+  }
 
   if (body.action === 'send_code') {
     const g = await rpc<{ exists: boolean; gold: boolean; first_name?: string }>('f360_gold_check', { p_phone: phone });

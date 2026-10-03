@@ -45,3 +45,15 @@ test('reserve: wrong code refused before touching the database; right code reser
   assert.equal(ok.status, 200);
   assert.deepEqual(calls.at(-1), { fn: 'f360_reserve_for_phone', args: { p_phone: '+15550100099', p_location_id: 'l', p_variant_id: 'v315' } });
 });
+test('a la medida: any phone leaves a request (validated); honeypot ignored', async () => {
+  const calls: { fn: string; args: any }[] = [];
+  let r = await handleReserve(post({ action: 'a_la_medida', phone: '55 1234 5678', name: 'Ana <b>', color: 'Verde', size: '25', woo_product_id: 145, product_name: 'Botas' }), env,
+    fakeFetch({ f360_custom_request_create: { id: 'x', product: 'Botas Largas' } }, calls));
+  assert.deepEqual(await r.json(), { ok: true, product: 'Botas Largas' });
+  assert.equal(calls[0].args.p.phone, '+525512345678'); assert.equal(calls[0].args.p.name, 'Ana b');
+  r = await handleReserve(post({ action: 'a_la_medida', phone: '55 1234 5678', name: 'Ana', color: '' }), env, fakeFetch({}));
+  assert.equal(r.status, 400);
+  const c2: any[] = [];
+  r = await handleReserve(post({ action: 'a_la_medida', phone: '55 1234 5678', name: 'x', color: 'y', website: 'spam' }), env, fakeFetch({}, c2));
+  assert.equal(c2.length, 0);
+});
