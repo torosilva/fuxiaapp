@@ -1,0 +1,97 @@
+<!--
+  Fuxia 360 · "Entrega inmediata" + "Apártalo 2 horas" (Fuxia Gold) para la página de producto (Bricks → elemento "Code",
+  con "Ejecutar código"). Dónde va: plantilla de producto individual, debajo del botón de comprar (o al final del elemento
+  de tallas). No cambia nada del formulario de WooCommerce.
+
+  Qué hace:
+    · al elegir talla (y color), pregunta a Fuxia 360 en qué tiendas hay un par LIBRE de esa talla hoy
+      (sin mostrar cantidades) y muestra "Entrega inmediata hoy en: Tienda Polanco";
+    · si hay tienda: botón "Fuxia Gold: apártalo 2 horas" → teléfono → código → apartado. El par queda separado en la
+      tienda 2 horas; si la clienta no llega, se libera solo (sin consecuencias).
+  STAGING: endpoint de staging y solo teléfonos de prueba (código de prueba, no se envía WhatsApp).
+-->
+<div class="f360-inmediata" hidden>
+  <p class="f360-inm-titulo">✓ Entrega inmediata hoy en <b class="f360-inm-tiendas"></b></p>
+  <button type="button" class="f360-inm-boton">Fuxia Gold: apártalo 2 horas</button>
+  <div class="f360-inm-flujo" hidden>
+    <div class="f360-inm-paso f360-inm-tel">
+      <label>Tu teléfono (el de tu cuenta Fuxia)<input type="tel" inputmode="tel" autocomplete="tel" placeholder="55 1234 5678"></label>
+      <button type="button" class="f360-inm-enviar">Enviar código</button>
+    </div>
+    <div class="f360-inm-paso f360-inm-cod" hidden>
+      <p class="f360-inm-hola"></p>
+      <label class="f360-inm-tienda-label" hidden>Tienda<select class="f360-inm-tienda"></select></label>
+      <label>Código<input type="text" inputmode="numeric" maxlength="6" placeholder="6 dígitos" class="f360-inm-codigo"></label>
+      <button type="button" class="f360-inm-apartar">Apartar 2 horas</button>
+    </div>
+    <p class="f360-inm-msg" role="status"></p>
+  </div>
+</div>
+<style>
+.f360-inmediata [hidden], .f360-inmediata[hidden] { display: none !important; }
+.f360-inmediata { margin: 18px 0; padding: 14px 16px; border: 1px solid #e6dfd4; border-radius: 6px; background: #fffdf9; font-family: inherit; }
+.f360-inm-titulo { margin: 0 0 10px; font-size: 14px; color: #3f6b4f; }
+.f360-inm-boton, .f360-inm-enviar, .f360-inm-apartar { height: 42px; padding: 0 16px; border: 1px solid #B8966E; background: #fff; color: #8c6414; cursor: pointer; font-size: 14px; border-radius: 4px; }
+.f360-inm-boton:hover, .f360-inm-enviar:hover, .f360-inm-apartar:hover { background: #B8966E; color: #fff; }
+.f360-inm-flujo { margin-top: 12px; }
+.f360-inm-paso { display: grid; gap: 10px; }
+.f360-inm-paso label { display: grid; gap: 4px; font-size: 13px; color: #4a433a; }
+.f360-inm-paso input, .f360-inm-paso select { height: 40px; padding: 0 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; }
+.f360-inm-msg { margin: 10px 0 0; font-size: 13px; }
+.f360-inm-msg.ok { color: #3f6b4f; } .f360-inm-msg.err { color: #9b2c2c; }
+</style>
+<script>
+(function () {
+  var ENDPOINT = 'https://faltxpkaicwpnlqaxrdu.supabase.co/functions/v1/f360-store-reserve';   // STAGING
+  function api(body) {
+    return fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'No se pudo.'); return j; }); });
+  }
+  function init() {
+    var form = document.querySelector('form.variations_form');
+    var box = document.querySelector('.f360-inmediata');
+    if (!form || !box || !window.jQuery) return;
+    var $ = window.jQuery;
+    var anchor = form.querySelector('.single_variation_wrap') || form;
+    anchor.parentNode.insertBefore(box, anchor.nextSibling);
+    var q = function (s) { return box.querySelector(s); };
+    var variation = null, stores = [], phone = '';
+    function msg(t, ok) { var m = q('.f360-inm-msg'); m.textContent = t || ''; m.className = 'f360-inm-msg ' + (ok ? 'ok' : 'err'); }
+    function reset() { box.hidden = true; q('.f360-inm-flujo').hidden = true; q('.f360-inm-boton').hidden = false; q('.f360-inm-tel').hidden = false; q('.f360-inm-cod').hidden = true; msg(''); }
+    $(form).on('found_variation', function (e, v) {
+      variation = v && v.variation_id; reset(); if (!variation) return;
+      var asked = variation;
+      api({ action: 'availability', woo_variation_id: variation }).then(function (j) {
+        if (asked !== variation) return;                       // the customer changed size meanwhile
+        stores = j.stores || [];
+        if (!stores.length) return;
+        q('.f360-inm-tiendas').textContent = stores.map(function (s) { return s.name; }).join(' · ');
+        var sel = q('.f360-inm-tienda'); sel.innerHTML = '';
+        stores.forEach(function (s) { var o = document.createElement('option'); o.value = s.location_id; o.textContent = s.name; sel.appendChild(o); });
+        q('.f360-inm-tienda-label').hidden = stores.length < 2;
+        box.hidden = false;
+      }).catch(function () { /* sin disponibilidad: no se muestra nada */ });
+    });
+    $(form).on('reset_data hide_variation', reset);
+    q('.f360-inm-boton').addEventListener('click', function () { q('.f360-inm-flujo').hidden = false; q('.f360-inm-boton').hidden = true; });
+    q('.f360-inm-enviar').addEventListener('click', function () {
+      phone = q('.f360-inm-tel input').value; msg('Revisando tu cuenta…', true);
+      api({ action: 'send_code', phone: phone }).then(function (j) {
+        q('.f360-inm-tel').hidden = true; q('.f360-inm-cod').hidden = false;
+        q('.f360-inm-hola').textContent = (j.first_name ? '¡Hola, ' + j.first_name + '! ' : '') + (j.test ? 'Modo prueba: escribe el código de prueba.' : 'Te enviamos un código por WhatsApp.');
+        msg('');
+      }).catch(function (e) { msg(e.message); });
+    });
+    q('.f360-inm-apartar').addEventListener('click', function () {
+      msg('Apartando…', true);
+      api({ action: 'reserve', phone: phone, code: q('.f360-inm-codigo').value, woo_variation_id: variation, location_id: q('.f360-inm-tienda').value || (stores[0] && stores[0].location_id) })
+        .then(function (j) {
+          var hasta = new Date(j.reservation.expires_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }).replace(/\.$/, '');
+          q('.f360-inm-cod').hidden = true;
+          msg('¡Listo! Te lo apartamos en ' + j.reservation.store + ' hasta las ' + hasta + ' (2 horas). En la tienda pregunta por tu apartado Fuxia Gold.', true);
+        }).catch(function (e) { msg(e.message); });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>

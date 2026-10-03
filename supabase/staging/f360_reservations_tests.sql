@@ -105,6 +105,15 @@ BEGIN
   PERFORM pg_temp.ok(r ? 'error', 'reserving by phone is service-only (after the WhatsApp code)', r::text);
   r := public.f360_reserve_for_phone('+15550100011', loc, v2);
   PERFORM pg_temp.ok(r->>'store' = 'ZZ Res Tienda' AND (SELECT channel FROM f360.reservations WHERE id = (r->>'id')::uuid) = 'web', 'service reserves for a verified phone (channel web)', r::text);
+  -- web: Gold check before sending a code (service only; first name + boolean, nothing else)
+  r := public.f360_gold_check('+15550100011');
+  PERFORM pg_temp.ok(r->>'exists' = 'true' AND r->>'gold' = 'true' AND r ? 'first_name' AND NOT (r ? 'points'), 'gold check: Gold customer → first name + true only', r::text);
+  r := public.f360_gold_check('+15550100012');
+  PERFORM pg_temp.ok(r->>'gold' = 'false', 'gold check: non-Gold customer → false', r::text);
+  r := public.f360_gold_check('+15559999999');
+  PERFORM pg_temp.ok(r->>'exists' = 'false', 'gold check: unknown phone → not a customer', r::text);
+  r := pg_temp.as(c1, $q$SELECT public.f360_gold_check('+15550100011')$q$);
+  PERFORM pg_temp.ok(r ? 'error', 'gold check is service-only', r::text);
 END $$;
 
 SELECT status || ' | ' || name || ' | ' || left(coalesce(detail,''), 110) FROM t_results ORDER BY n;
