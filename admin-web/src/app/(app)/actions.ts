@@ -416,6 +416,12 @@ export async function markStoreShipmentSentAction(id: string): Promise<Result<un
   if (r.ok) revalidatePath('/sobre-pedido');
   return r;
 }
+/** "Nuevas" in the store: true = always new, false = never, null = automatic (45 days, not from the old catalog). */
+export async function setProductNewAction(productId: string, value: boolean | null): Promise<Result<unknown>> {
+  const r = await call('f360_set_product_new', { p_product_id: productId, p_value: value });
+  if (r.ok) revalidateProduct(productId);
+  return r;
+}
 /** Sobre pedido on/off for a model (operator+; validated again in the database). */
 export async function setMakeToOrderAction(productId: string, on: boolean, reason: string): Promise<Result<unknown>> {
   const r = await call('f360_set_make_to_order', { p_product_id: productId, p_on: on, p_reason: reason || null });

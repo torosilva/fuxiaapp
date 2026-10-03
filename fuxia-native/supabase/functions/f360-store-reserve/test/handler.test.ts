@@ -57,3 +57,9 @@ test('a la medida: any phone leaves a request (validated); honeypot ignored', as
   r = await handleReserve(post({ action: 'a_la_medida', phone: '55 1234 5678', name: 'x', color: 'y', website: 'spam' }), env, fakeFetch({}, c2));
   assert.equal(c2.length, 0);
 });
+test('catalog: availability states for the shop page, store origin only', async () => {
+  const calls: any[] = [];
+  const r = await handleReserve(post({ action: 'catalog' }), env, fakeFetch({ f360_storefront_catalog: { items: [{ woo_product_id: 1, name: 'X', colors: [] }] } }, calls));
+  assert.deepEqual((await r.json()).items[0].name, 'X');
+  assert.equal((await handleReserve(post({ action: 'catalog' }, 'https://evil.example'), env, fakeFetch({}))).status, 403);
+});

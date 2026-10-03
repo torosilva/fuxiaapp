@@ -1,6 +1,6 @@
 // f360-store-reserve — public endpoint for the store's product page: "Entrega inmediata" + "Apártalo 2 horas" (Fuxia Gold).
 // Actions (POST JSON): availability {woo_variation_id} · send_code {phone} · reserve {phone, code, woo_variation_id, location_id}
-// · a_la_medida {phone, name, color, size?, store_size?, foot_cm?, note?, woo_product_id, product_name, country} (Hilo chat).
+// · catalog {} (shop page filters) · a_la_medida {phone, name, color, size?, store_size?, foot_cm?, note?, woo_product_id, product_name, country} (Hilo chat).
 // STAGING / testing: only TEST_PHONES can reserve, with TEST_CODE (no WhatsApp is sent). Every rule (Gold, 2 pairs,
 // 2 hours, free pair) is enforced again in the database. CORS limited to ALLOWED_ORIGINS. Runtime-agnostic (Deno / Node).
 export type ReserveEnv = { SUPABASE_URL: string; SUPABASE_SERVICE_ROLE_KEY: string; ALLOWED_ORIGINS: string; TEST_PHONES: string; TEST_CODE: string };
@@ -20,6 +20,8 @@ function safeEqual(a: string, b: string) {
   let x = 0; for (let i = 0; i < a.length; i++) x |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return x === 0;
 }
+
+let catalogCache: { at: number; data: unknown } | null = null;
 
 export async function handleReserve(req: Request, env: ReserveEnv, fetchImpl: typeof fetch = fetch): Promise<Response> {
   const origin = req.headers.get('Origin') ?? '';
@@ -41,6 +43,18 @@ export async function handleReserve(req: Request, env: ReserveEnv, fetchImpl: ty
   };
   const testPhones = new Set(env.TEST_PHONES.split(',').map((p) => normalizePhone(p)).filter(Boolean) as string[]);
   const variation = Number(body.woo_variation_id);
+
+  // Shop page (Mario 2026-10-03): colours, sizes and availability states per store product + best sellers / new.
+  // No quantities or prices. Cached 2 minutes per function instance.
+  if (body.action === 'catalog') {
+    const now = Date.now();
+    if (!catalogCache || now - catalogCache.at > 120_000) {
+      const r = await rpc<{ items: unknown[] }>('f360_storefront_catalog', { p_target_key: 'woo_staging4' });
+      if (!r.ok) return json({ error: r.error }, 400);
+      catalogCache = { at: now, data: r.data };
+    }
+    return json(catalogCache.data);
+  }
 
   if (body.action === 'availability') {
     if (!Number.isInteger(variation) || variation <= 0) return json({ error: 'Talla no válida.' }, 400);

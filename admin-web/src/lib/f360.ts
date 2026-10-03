@@ -16,7 +16,7 @@ export type Color = { id: string; name: string; code: string; hex: string | null
 export type Product = {
   id: string; name: string; code: string; codes_locked: boolean; category: string | null; category_key: string | null;
   description: string | null; short_description: string | null; regular_price: number | null; sale_price: number | null;
-  make_to_order?: boolean; image_path: string | null; readiness: Readiness; online_location: { id: string; name: string } | null;
+  make_to_order?: boolean; new_override?: boolean | null; image_path: string | null; readiness: Readiness; online_location: { id: string; name: string } | null;
   sizes: string[]; colors: Color[]; pairs: number;
 };
 export type EventLine = { product_id: string; product_name: string; product_image: string | null; color: string; color_hex: string | null; size: string; sku?: string | null; quantity: number; from_location: string | null; to_location: string | null };
