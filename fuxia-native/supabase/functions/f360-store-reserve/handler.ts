@@ -44,6 +44,13 @@ export async function handleReserve(req: Request, env: ReserveEnv, fetchImpl: ty
   const testPhones = new Set(env.TEST_PHONES.split(',').map((p) => normalizePhone(p)).filter(Boolean) as string[]);
   const variation = Number(body.woo_variation_id);
 
+  // Shop search terms (no personal data) → "Más buscados"
+  if (body.action === 'search_log') {
+    const term = String(body.term ?? '').replace(/[<>]/g, '').trim().slice(0, 60);
+    if (term.length >= 3) await rpc('f360_log_search', { p_term: term, p_country: String(body.country ?? '').slice(0, 8) });
+    return json({ ok: true });
+  }
+
   // Shop page (Mario 2026-10-03): colours, sizes and availability states per store product + best sellers / new.
   // No quantities or prices. Cached 2 minutes per function instance.
   if (body.action === 'catalog') {
@@ -51,7 +58,8 @@ export async function handleReserve(req: Request, env: ReserveEnv, fetchImpl: ty
     if (!catalogCache || now - catalogCache.at > 120_000) {
       const r = await rpc<{ items: unknown[] }>('f360_storefront_catalog', { p_target_key: 'woo_staging4' });
       if (!r.ok) return json({ error: r.error }, 400);
-      catalogCache = { at: now, data: r.data };
+      const top = await rpc<string[]>('f360_top_searches', { p_days: 30, p_limit: 6 });
+      catalogCache = { at: now, data: { ...r.data, top_searches: top.ok ? top.data : [] } };
     }
     return json(catalogCache.data);
   }

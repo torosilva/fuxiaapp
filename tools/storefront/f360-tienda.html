@@ -17,9 +17,10 @@
       <button type="button" class="f360-t-toggle" aria-expanded="true">Ocultar filtros</button>
     </div>
     <div class="f360-t-cuerpo">
+    <div class="f360-t-fila f360-t-fila-cat" hidden><span class="f360-t-et">Categoría</span><div class="f360-t-cats"></div></div>
     <div class="f360-t-fila"><span class="f360-t-et">Color</span><div class="f360-t-colores"></div></div>
     <div class="f360-t-fila"><span class="f360-t-et f360-t-et-talla">Talla</span><div class="f360-t-tallas"></div></div>
-    <div class="f360-t-fila f360-t-fila-inm" hidden><label class="f360-t-inm"><input type="checkbox"> Solo <b>entrega inmediata</b> en Zona Metropolitana</label></div>
+    <div class="f360-t-fila f360-t-fila-inm" hidden><label class="f360-t-inm"><input type="checkbox"> <b>Entrega inmediata</b> en Zona Metropolitana</label></div>
     </div>
     <p class="f360-t-res" role="status"></p>
   </div>
@@ -43,9 +44,11 @@
 .f360-t-bwrap { position: relative; flex: 1; }
 .f360-t-sug { position: absolute; left: 0; right: 0; top: 48px; margin: 0; padding: 6px 0; list-style: none; background: #fff; border: 1px solid #e6dfd4; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.12); max-height: 320px; overflow-y: auto; z-index: 60; }
 .f360-t-sug li { padding: 9px 14px; font-size: 14px; cursor: pointer; display: flex; justify-content: space-between; gap: 10px; }
+.f360-t-sug { max-height: 420px; }
 .f360-t-sug li small { color: #9A9A96; font-size: 12px; }
 .f360-t-sug li:hover, .f360-t-sug li[aria-selected="true"] { background: #f7f2ea; }
 .f360-t-sug .f360-t-sug-h { cursor: default; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #83734C; background: none !important; }
+.brxe-woocommerce-products-filter.f360-oculto { display: none !important; }
 .f360-t-toggle { flex: 0 0 auto; height: 44px; padding: 0 16px; border: 1px solid #d9d2c5; border-radius: 22px; background: #fff; cursor: pointer; font: inherit; font-size: 13px; color: #4a433a; }
 .f360-t-filtros.cerrado .f360-t-cuerpo { display: none; }
 .f360-t-filtros.compacto { padding: 10px 14px; }
@@ -55,7 +58,7 @@
 .f360-t-buscar { width: 100%; height: 44px; padding: 0 14px; border: 1px solid #d9d2c5; border-radius: 22px; font-size: 15px; font-family: inherit; box-sizing: border-box; }
 .f360-t-fila { display: flex; gap: 12px; align-items: flex-start; margin-top: 14px; }
 .f360-t-et { flex: 0 0 72px; padding-top: 8px; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #83734C; }
-.f360-t-colores, .f360-t-tallas { display: flex; flex-wrap: wrap; gap: 8px; }
+.f360-t-colores, .f360-t-tallas, .f360-t-cats { display: flex; flex-wrap: wrap; gap: 8px; }
 .f360-t-chip { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 12px; border: 1px solid #d9d2c5; border-radius: 18px; background: #fff; cursor: pointer; font-size: 13px; font-family: inherit; color: #242424; }
 .f360-t-chip i { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,.15); }
 .f360-t-mas { border-style: dashed; color: #8c6414; }
@@ -100,7 +103,7 @@
     window.addEventListener('scroll', function () { if (!pend) { pend = true; requestAnimationFrame(function () { pend = false; fijar(); }); } }, { passive: true });
     fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'catalog' }) })
       .then(function (r) { return r.json(); })
-      .then(function (cat) { arrancar(box, grid, cat.items || []); })
+      .then(function (cat) { arrancar(box, grid, cat.items || [], cat.top_searches || []); })
       .catch(function () { box.hidden = true; });
   }
 
@@ -129,12 +132,12 @@
       }).catch(function () { destino.hidden = true; });
   }
 
-  function arrancar(box, grid, items) {
+  function arrancar(box, grid, items, buscados) {
     var porWoo = {};
     items.forEach(function (it) { (porWoo[it.woo_product_id] = porWoo[it.woo_product_id] || []).push(it); });
     var q = function (s) { return box.querySelector(s); };
     var masRes = document.querySelector('.f360-t-mas-res'), rails = document.querySelector('.f360-t-rails');
-    var sel = { colores: {}, tallas: {}, texto: '', inm: false };
+    var sel = { colores: {}, tallas: {}, texto: '', inm: false, cats: {} };
     var activos = function (o) { return Object.keys(o).filter(function (k) { return o[k]; }); };
     var uno = function (xs) { var seen = {}; return xs.filter(function (it) { if (seen[it.product_id]) return false; seen[it.product_id] = 1; return true; }); };
 
@@ -168,6 +171,20 @@
       mas.onclick = function () { box.querySelectorAll('.f360-t-extra').forEach(function (b) { b.hidden = false; }); mas.hidden = true; };
       q('.f360-t-colores').appendChild(mas);
     }
+    // categories inside the same bar (the separate Bricks category filter is hidden so customers don't get lost)
+    var catDe = function (li) { var m = li.className.match(/\bproduct_cat-([a-z0-9-]+)/g) || []; return m.map(function (x) { return x.replace('product_cat-', ''); }); };
+    var cats = {};
+    if (grid) grid.querySelectorAll(':scope > li.product').forEach(function (li) { catDe(li).forEach(function (c) { cats[c] = (cats[c] || 0) + 1; }); });
+    var etiqueta = function (slug) { var t = slug.replace(/-/g, ' '); return t.charAt(0).toUpperCase() + t.slice(1); };
+    Object.keys(cats).sort().forEach(function (c) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'f360-t-chip'; b.setAttribute('aria-pressed', 'false'); b.textContent = etiqueta(c);
+      b.onclick = function () { sel.cats[c] = !sel.cats[c]; b.setAttribute('aria-pressed', String(!!sel.cats[c])); aplicar(); };
+      q('.f360-t-cats').appendChild(b);
+    });
+    if (Object.keys(cats).length > 1) {
+      q('.f360-t-fila-cat').hidden = false;
+      var bf = document.querySelector('.brxe-woocommerce-products-filter'); if (bf && !/[?&]b_product_cat/.test(location.search)) bf.classList.add('f360-oculto');
+    }
     q('.f360-t-et-talla').textContent = mexico ? 'Talla MX' : 'Talla';
     TALLAS.forEach(function (t) {
       var b = document.createElement('button'); b.type = 'button'; b.className = 'f360-t-chip f360-t-talla'; b.textContent = mx(t); b.setAttribute('aria-pressed', 'false');
@@ -178,26 +195,40 @@
 
     // search with suggestions: models (from Fuxia 360 and the cards on the page) and colours
     var input = q('.f360-t-buscar'), sug = q('.f360-t-sug');
-    var modelos = {};
-    items.forEach(function (it) { modelos[norm(it.name)] = it.name; });
-    if (grid) grid.querySelectorAll('li.product h2, li.product h3, li.product h4, li.product h5').forEach(function (h) { var t = h.textContent.trim(); if (t && !modelos[norm(t)]) modelos[norm(t)] = t; });
+    // one entry per MODEL (Fuxia 360 name), plus store products Fuxia 360 doesn't know yet
+    var modelos = {}, enF360 = {};
+    items.forEach(function (it) { modelos[norm(it.name)] = it.name; enF360[it.woo_product_id] = 1; });
+    if (grid) grid.querySelectorAll(':scope > li.product').forEach(function (li) {
+      var m = li.className.match(/\bpost-(\d+)\b/); if (m && enF360[m[1]]) return;
+      var h = li.querySelector('h2, h3, h4, h5'); var t = h && h.textContent.trim(); if (t && !modelos[norm(t)]) modelos[norm(t)] = t; });
+    var populares = uno(items.filter(function (it) { return it.sold > 0; }).sort(function (a, b) { return b.sold - a.sold; })).slice(0, 5).map(function (it) { return it.name; });
     function sugerir() {
       var t = norm(input.value).trim();
-      var ms = Object.keys(modelos).filter(function (k) { return !t || k.indexOf(t) >= 0; }).sort().slice(0, 10).map(function (k) { return modelos[k]; });
+      var ms = Object.keys(modelos).filter(function (k) { return !t || k.indexOf(t) >= 0; }).sort().map(function (k) { return modelos[k]; });
       var cs = orden.filter(function (k) { return t && k.indexOf(t) >= 0; }).slice(0, 5);
       sug.innerHTML = '';
       var add = function (txt, sub, fn, h) { var li = document.createElement('li'); if (h) li.className = 'f360-t-sug-h'; else { li.setAttribute('role', 'option'); li.onmousedown = function (e) { e.preventDefault(); fn(); }; }
         li.appendChild(document.createTextNode(txt)); if (sub) { var sm = document.createElement('small'); sm.textContent = sub; li.appendChild(sm); } sug.appendChild(li); };
-      if (ms.length) { add(t ? 'Modelos' : 'Todos los modelos', '', null, true); ms.forEach(function (m) { add(m, '', function () { input.value = m; sel.texto = norm(m); cerrarSug(); aplicar(); }); }); }
+      var elegir = function (m) { return function () { input.value = m; sel.texto = norm(m); cerrarSug(); aplicar(); registrar(m); }; };
+      if (!t && buscados.length) { add('Más buscados', '', null, true); buscados.forEach(function (m) { add(m, '', elegir(m)); }); }
+      else if (!t && populares.length) { add('Populares', '', null, true); populares.forEach(function (m) { add(m, '', elegir(m)); }); }
+      if (ms.length) { add(t ? 'Modelos' : 'Todos los modelos (' + ms.length + ')', '', null, true); ms.forEach(function (m) { add(m, '', elegir(m)); }); }
       if (cs.length) { add('Colores', '', null, true); cs.forEach(function (k) { add(colores[k].name, 'filtrar por color', function () {
         input.value = ''; sel.texto = ''; sel.colores[k] = true; var b = q('.f360-t-chip[data-k="' + k + '"]'); if (b) { b.hidden = false; b.setAttribute('aria-pressed', 'true'); } cerrarSug(); aplicar(); }); }); }
       sug.hidden = !sug.children.length; input.setAttribute('aria-expanded', String(!sug.hidden));
+    }
+    // what customers look for (to build "Más buscados"): sent once per term, no personal data
+    var enviados = {};
+    function registrar(t) {
+      t = String(t || '').trim().slice(0, 60); var k = norm(t); if (k.length < 3 || enviados[k]) return; enviados[k] = 1;
+      fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'search_log', term: t, country: mexico ? 'mx' : pais.replace(/\//g, '') }), keepalive: true }).catch(function () {});
     }
     function cerrarSug() { sug.hidden = true; input.setAttribute('aria-expanded', 'false'); }
     input.addEventListener('focus', sugerir);
     input.addEventListener('blur', function () { setTimeout(cerrarSug, 120); });
     var tm; input.addEventListener('input', function () { sugerir(); clearTimeout(tm); tm = setTimeout(function () { sel.texto = norm(input.value).trim(); aplicar(); }, 150); });
-    input.addEventListener('keydown', function (e) { if (e.key === 'Escape') { cerrarSug(); input.blur(); } if (e.key === 'Enter') { e.preventDefault(); cerrarSug(); } });
+    input.addEventListener('keydown', function (e) { if (e.key === 'Escape') { cerrarSug(); input.blur(); } if (e.key === 'Enter') { e.preventDefault(); cerrarSug(); registrar(input.value); } });
+    input.addEventListener('change', function () { registrar(input.value); });
 
     function cumple(it, c, cols, tal, inm) {
       if (cols.length && cols.indexOf(norm(c.name)) < 0) return false;
@@ -222,11 +253,12 @@
       var cards = grid.querySelectorAll(':scope > li.product'), n = 0, visibles = {};
       cards.forEach(function (li) {
         var m = li.className.match(/\bpost-(\d+)\b/); var nombre = (li.querySelector('h2, h3, h4, h5') || {}).textContent || '';
-        var ver = !m || pasa(Number(m[1]), nombre);
+        var cs = activos(sel.cats);
+        var ver = (!cs.length || catDe(li).some(function (c) { return cs.indexOf(c) >= 0; })) && (!m || pasa(Number(m[1]), nombre));
         li.style.display = ver ? '' : 'none'; if (ver) { n++; if (m) visibles[m[1]] = 1; }
       });
       var cols = activos(sel.colores), tal = activos(sel.tallas);
-      var activo = sel.texto || sel.inm || cols.length || tal.length;
+      var activo = sel.texto || sel.inm || cols.length || tal.length || activos(sel.cats).length;
       var res = q('.f360-t-res'); res.textContent = activo ? (n ? n + (n === 1 ? ' modelo' : ' modelos') : 'No encontramos ese color y talla.') : '';
       if (activo) {
         var b = document.createElement('button'); b.type = 'button'; b.textContent = 'Limpiar filtros'; b.onclick = limpiar; res.appendChild(b);
@@ -242,7 +274,7 @@
       } else { masRes.hidden = true; masRes.innerHTML = ''; }
     }
     function limpiar() {
-      sel = { colores: {}, tallas: {}, texto: '', inm: false };
+      sel = { colores: {}, tallas: {}, texto: '', inm: false, cats: {} };
       box.querySelectorAll('.f360-t-chip:not(.f360-t-mas)').forEach(function (b) { b.setAttribute('aria-pressed', 'false'); });
       input.value = ''; var c = q('.f360-t-inm input'); if (c) c.checked = false;
       aplicar();

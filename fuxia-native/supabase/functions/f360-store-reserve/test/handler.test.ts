@@ -63,3 +63,11 @@ test('catalog: availability states for the shop page, store origin only', async 
   assert.deepEqual((await r.json()).items[0].name, 'X');
   assert.equal((await handleReserve(post({ action: 'catalog' }, 'https://evil.example'), env, fakeFetch({}))).status, 403);
 });
+test('search_log: records the term only (short terms ignored)', async () => {
+  const calls: any[] = [];
+  await handleReserve(post({ action: 'search_log', term: 'botas <b>', country: 'mx' }), env, fakeFetch({ f360_log_search: null }, calls));
+  assert.deepEqual(calls[0].args, { p_term: 'botas b', p_country: 'mx' });
+  const c2: any[] = [];
+  await handleReserve(post({ action: 'search_log', term: 'ab' }), env, fakeFetch({}, c2));
+  assert.equal(c2.length, 0);
+});
