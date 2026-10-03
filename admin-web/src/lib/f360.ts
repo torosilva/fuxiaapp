@@ -211,3 +211,7 @@ export const listMadeToOrder = () => rpc<MadeToOrder[]>('f360_made_to_order_list
 export type CustomRequest = { id: string; product: string; product_id: string | null; color: string; size: string | null; store_size: string | null; foot_cm: number | null;
   name: string; phone: string; note: string | null; country: string | null; status: 'nueva' | 'contactada' | 'cotizada' | 'cerrada' | 'descartada'; created_at: string; updated_by: string | null };
 export const listCustomRequests = () => rpc<CustomRequest[]>('f360_custom_requests_list', { p_days: 90 });
+
+// Stores are warehouses too (Mario 2026-10-03): online orders a store has to ship.
+export type StoreShipment = { id: string; order: number; store: string; label: string; quantity: number; status: 'por_enviar' | 'enviado'; created_at: string; shipped_at: string | null; shipped_by: string | null };
+export const listStoreShipments = () => rpc<StoreShipment[]>('f360_online_store_shipments', { p_days: 30 });

@@ -12,7 +12,7 @@
 <div class="f360-inmediata" hidden>
   <div class="f360-inm-envio" hidden>
     <p class="f360-inm-envio-t"></p>
-    <p class="f360-inm-envio-n">CDMX y área metropolitana · <span class="f360-cambio-i">Si no te quedan, cámbialas de talla sin problema.</span></p>
+    <p class="f360-inm-envio-n">Si no te quedan, cámbialas de talla sin problema.</p>
   </div>
   <div class="f360-inm-probar" hidden>
   <p class="f360-inm-titulo">¿Prefieres probártelas? Están hoy en <b class="f360-inm-tiendas"></b></p>
@@ -179,11 +179,11 @@
       }, 0);
       if (sobre) sobre.hidden = !bajoPedido;
       if (!mexico) return;
-      // Envío (Mario 2026-10-03): online orders ship from Bodega CDMX. With a pair there: 8 a. m.–7 p. m. (CDMX time)
-      // → "Recíbelo hoy en 2 horas"; later → tomorrow from 8 a. m. A pair that is only in a store is offered to try on.
+      // Entrega (Mario 2026-10-03): stores are warehouses too, so "in stock" = Bodega CDMX or any store. 8 a. m.–7 p. m.
+      // (CDMX time) → "Entrega inmediata en Zona Metropolitana"; later → tomorrow from 8 a. m. Try-on in a store is offered too.
       if (v.is_in_stock && !bajoPedido) {
         var h = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;
-        q('.f360-inm-envio-t').textContent = h >= 8 && h < 19 ? '🛵 Recíbelo hoy en 2 horas en tu casa' : '🛵 Recíbelo mañana a partir de las 8 a. m.';
+        q('.f360-inm-envio-t').textContent = h >= 8 && h < 19 ? '🛵 Entrega inmediata en Zona Metropolitana' : '🛵 Entrega mañana a partir de las 8 a. m. en Zona Metropolitana';
         q('.f360-inm-envio').hidden = false; box.hidden = false;
       }
       var asked = variation;

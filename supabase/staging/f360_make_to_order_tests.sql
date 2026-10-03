@@ -1,5 +1,5 @@
 -- "Sobre pedido" (Mario 2026-10-03) — database tests (STAGING). One transaction, ROLLED BACK.
--- Uses the staging4 target and Botas Largas Negras 35 (Woo variation 308, linked, 0 pairs in Bodega).
+-- Uses the staging4 target and an own model (fake Woo variation 308) with 0 pairs anywhere.
 BEGIN;
 CREATE TEMP TABLE t_results (n serial, status text, name text, detail text) ON COMMIT DROP;
 CREATE FUNCTION pg_temp.ok(p_cond boolean, p_name text, p_detail text) RETURNS void LANGUAGE sql AS
@@ -22,10 +22,11 @@ DO $$
 DECLARE car uuid := current_setting('t.carolina')::uuid; r jsonb; v uuid; pid uuid; bodega uuid; before_on int; n int; ord bigint := 990000001;
   order_json jsonb;
 BEGIN
-  SELECT vl.variant_id, v2.product_id INTO v, pid FROM f360.woo_variant_links vl JOIN f360.product_variants v2 ON v2.id = vl.variant_id
-    JOIN f360.sales_targets t ON t.id = vl.target_id AND t.key = 'woo_staging4' WHERE vl.woo_variation_id = 308;
+  pid := (pg_temp.as(car, $q$SELECT public.f360_create_product('ZZ Pedido', ARRAY['35'], '[{"name":"Negro"}]'::jsonb)$q$)->>'id')::uuid;
+  SELECT id INTO v FROM f360.product_variants WHERE product_id = pid;
+  INSERT INTO f360.woo_product_links (target_id, product_id, woo_product_id) SELECT id, pid, 991146 FROM f360.sales_targets WHERE key = 'woo_staging4';
+  INSERT INTO f360.woo_variant_links (target_id, variant_id, woo_variation_id, last_pushed_stock) SELECT id, v, 308, 0 FROM f360.sales_targets WHERE key = 'woo_staging4';
   SELECT fulfillment_location_id INTO bodega FROM f360.sales_targets WHERE key = 'woo_staging4';
-  UPDATE f360.inventory_balances SET on_hand = 0 WHERE variant_id = v AND location_id = bodega;
   PERFORM pg_temp.ok(v IS NOT NULL AND (SELECT make_to_order FROM f360.products WHERE id = pid), 'fixture: linked size at 0; models start as "sobre pedido"', '');
 
   -- the stock push tells Woo to keep it orderable
@@ -35,7 +36,7 @@ BEGIN
 
   -- a paid online order of that size: nothing moves, the line becomes "sobre pedido"
   order_json := jsonb_build_object('id', ord, 'status', 'processing', 'date_modified_gmt', '2026-10-03T18:00:00', 'currency', 'MXN',
-    'line_items', jsonb_build_array(jsonb_build_object('id', 1, 'product_id', 146, 'variation_id', 308, 'sku', '', 'quantity', 1)), 'refunds', '[]'::jsonb);
+    'line_items', jsonb_build_array(jsonb_build_object('id', 1, 'product_id', 146, 'variation_id', 308, 'sku', (SELECT sku FROM f360.product_variants WHERE id = v), 'quantity', 1)), 'refunds', '[]'::jsonb);
   SELECT count(*) INTO n FROM f360.inventory_movements;
   r := public.f360_ingest_woo_order('woo_staging4', jsonb_build_object('delivery_id', 'test-mto-1', 'topic', 'order.updated'), order_json);
   PERFORM pg_temp.ok(r->'lines'->0->>'outcome' = 'sobre_pedido' AND (SELECT count(*) FROM f360.inventory_movements) = n

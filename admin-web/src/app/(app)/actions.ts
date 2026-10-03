@@ -411,6 +411,11 @@ export async function setCustomRequestStatusAction(id: string, status: 'nueva' |
   if (r.ok) revalidatePath('/a-la-medida');
   return r;
 }
+export async function markStoreShipmentSentAction(id: string): Promise<Result<unknown>> {
+  const r = await call('f360_online_store_shipment_sent', { p_id: id });
+  if (r.ok) revalidatePath('/sobre-pedido');
+  return r;
+}
 /** Sobre pedido on/off for a model (operator+; validated again in the database). */
 export async function setMakeToOrderAction(productId: string, on: boolean, reason: string): Promise<Result<unknown>> {
   const r = await call('f360_set_make_to_order', { p_product_id: productId, p_on: on, p_reason: reason || null });

@@ -315,14 +315,16 @@ BEGIN
   r := pg_temp.as(pg_temp.id('op'), format($q$SELECT public.f360_send_transfer(gen_random_uuid(), %L)$q$, t));
   PERFORM pg_temp.ok(r->>'status' = 'in_transit' AND EXISTS (SELECT 1 FROM f360.stock_sync_queue WHERE variant_id = v),
     'send from the online bodega queues a Woo stock push immediately (pairs no longer sellable online)', coalesce(r->>'error', ''));
-  PERFORM pg_temp.ok(f360.online_ats(v, bod) = (SELECT on_hand FROM f360.inventory_balances WHERE variant_id = v AND location_id = bod),
-    'online availability = bodega on hand (En camino never counted)', f360.online_ats(v, bod)::text);
+  PERFORM pg_temp.ok(f360.online_ats(v, bod) = (SELECT coalesce(sum(on_hand), 0) FROM f360.inventory_balances WHERE variant_id = v
+      AND (location_id = bod OR location_id IN (SELECT f360.online_store_locations()))),
+    'online availability = bodega + stores (En camino never counted; 20261007002100)', f360.online_ats(v, bod)::text);
   -- the other direction: B → online bodega; the push happens only when the bodega confirms receipt
   PERFORM pg_temp.as(pg_temp.id('sel'), format($q$SELECT public.f360_receive_transfer(gen_random_uuid(), %L)$q$, t));
   DELETE FROM f360.stock_sync_queue WHERE variant_id = v;
   r := pg_temp.as(pg_temp.id('op'), format($q$SELECT public.f360_request_transfer(gen_random_uuid(), %L, %L, '[{"variant_id":"%s","quantity":1}]', NULL, true)$q$, pg_temp.id('B'), bod, v));
   t := (r->>'id')::uuid;
-  PERFORM pg_temp.ok(r->>'status' = 'in_transit' AND NOT EXISTS (SELECT 1 FROM f360.stock_sync_queue WHERE variant_id = v), 'sent TO the online bodega: no push while en camino', coalesce(r->>'error', ''));
+  PERFORM pg_temp.ok(r->>'status' = 'in_transit' AND EXISTS (SELECT 1 FROM f360.stock_sync_queue WHERE variant_id = v) = (pg_temp.id('B') IN (SELECT f360.online_store_locations())),
+    'sent TO the online bodega: pushed only if the origin is an online store (its pair left online stock)', coalesce(r->>'error', ''));
   r := pg_temp.as(pg_temp.id('owner'), format($q$SELECT public.f360_receive_transfer(gen_random_uuid(), %L)$q$, t));
   PERFORM pg_temp.ok(EXISTS (SELECT 1 FROM f360.stock_sync_queue WHERE variant_id = v), 'push queued when the online bodega confirms receipt', coalesce(r->>'error', ''));
   PERFORM pg_temp.ledger_ok('online bodega round trip');
