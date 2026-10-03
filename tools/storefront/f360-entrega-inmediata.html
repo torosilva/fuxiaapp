@@ -1,4 +1,4 @@
-<p class="f360-sobrepedido" hidden>Esta talla y color se entrega en <b>5 a 7 días hábiles</b>.<span class="f360-cambio">Si no te quedan, <a class="f360-cambios-link" href="/cambios-y-devoluciones/">cámbialas</a> (hasta 2 cambios por compra).</span></p>
+<p class="f360-sobrepedido" hidden>Esta talla y color se entrega en <b>5 a 7 días hábiles</b>.<span class="f360-cambio">Si no te quedan, <a class="f360-cambios-link" href="/cambios/">cámbialas</a> (hasta 2 cambios por compra).</span></p>
 <div class="f360-medida">
   <p class="f360-med-t">¿No encontraste tu color y talla? <b>Lo hacemos a la medida.</b></p>
   <button type="button" class="f360-med-abrir">¡Pregúntale a Hilo!</button>
@@ -12,7 +12,7 @@
 <div class="f360-inmediata" hidden>
   <div class="f360-inm-envio" hidden>
     <p class="f360-inm-envio-t"></p>
-    <p class="f360-inm-envio-n">Si no te quedan, <a class="f360-cambios-link" href="/cambios-y-devoluciones/">cámbialas</a> (hasta 2 cambios por compra).</p>
+    <p class="f360-inm-envio-n">Si no te quedan, <a class="f360-cambios-link" href="/cambios/">cámbialas</a> (hasta 2 cambios por compra).</p>
   </div>
   <div class="f360-inm-probar" hidden>
   <p class="f360-inm-titulo">¿Prefieres probártelas? Están hoy en <b class="f360-inm-tiendas"></b></p>
@@ -156,7 +156,7 @@
     // "5 a 7 días hábiles" va en todos los países; entrega inmediata y tallas mexicanas solo en México (raíz o /mx/).
     var mexico = !(/^\/[a-z]{2}\//.test(location.pathname) && !/^\/mx\//.test(location.pathname));
     var pais = (location.pathname.match(/^\/[a-z]{2}\//) || ['/'])[0];         // keep the country: /mx/… or /co/…
-    document.querySelectorAll('.f360-cambios-link').forEach(function (a) { a.href = pais + 'cambios-y-devoluciones/'; });
+    document.querySelectorAll('.f360-cambios-link').forEach(function (a) { a.href = pais + 'cambios/'; });
     if (mexico) tallasMexico();
     aLaMedida(mexico);
     var form = document.querySelector('form.variations_form');
