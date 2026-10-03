@@ -1,4 +1,4 @@
-<p class="f360-sobrepedido" hidden>Esta talla y color se entrega en <b>5 a 7 días hábiles</b>.</p>
+<p class="f360-sobrepedido" hidden>Esta talla y color se entrega en <b>5 a 7 días hábiles</b>.<span class="f360-cambio">Si no te quedan, cámbialas de talla sin problema.</span></p>
 <div class="f360-medida">
   <p class="f360-med-t">¿No encontraste tu color y talla? <b>Lo hacemos a la medida.</b></p>
   <button type="button" class="f360-med-abrir">Platicar con Hilo</button>
@@ -10,8 +10,13 @@
   <form class="f360-hilo-in"><input type="text" autocomplete="off" aria-label="Tu respuesta"><input type="text" name="website" tabindex="-1" autocomplete="off" class="f360-hp" aria-hidden="true"><button type="submit">Enviar</button></form>
 </div>
 <div class="f360-inmediata" hidden>
-  <p class="f360-inm-titulo">✓ Entrega inmediata hoy en <b class="f360-inm-tiendas"></b></p>
-  <button type="button" class="f360-inm-boton">Fuxia Gold: apártalo 2 horas</button>
+  <div class="f360-inm-envio" hidden>
+    <p class="f360-inm-envio-t"></p>
+    <p class="f360-inm-envio-n">CDMX y área metropolitana · <span class="f360-cambio-i">Si no te quedan, cámbialas de talla sin problema.</span></p>
+  </div>
+  <div class="f360-inm-probar" hidden>
+  <p class="f360-inm-titulo">¿Prefieres probártelas? Están hoy en <b class="f360-inm-tiendas"></b></p>
+  <button type="button" class="f360-inm-boton">Fuxia Gold: te las apartamos 2 horas</button>
   <div class="f360-inm-flujo" hidden>
     <div class="f360-inm-paso f360-inm-tel">
       <label>Tu teléfono (el de tu cuenta Fuxia)<input type="tel" inputmode="tel" autocomplete="tel" placeholder="55 1234 5678"></label>
@@ -24,6 +29,7 @@
       <button type="button" class="f360-inm-apartar">Apartar 2 horas</button>
     </div>
     <p class="f360-inm-msg" role="status"></p>
+  </div>
   </div>
 </div>
 <style>
@@ -47,8 +53,14 @@
 .f360-hilo-in input { flex: 1; height: 40px; padding: 0 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
 .f360-hilo-in button { height: 40px; padding: 0 14px; border: 0; border-radius: 6px; background: #1a1a1a; color: #fff; cursor: pointer; }
 .f360-hp { position: absolute !important; left: -9999px !important; width: 1px !important; height: 1px !important; opacity: 0 !important; }
+.f360-cambio { display: block; margin-top: 4px; font-size: 13px; color: #6b6156; }
+.f360-inm-envio-t { margin: 0; font-size: 16px; font-weight: 600; color: #2f5a3f; }
+.f360-inm-envio-n { margin: 4px 0 0; font-size: 13px; color: #6b6156; }
+.f360-inm-envio + .f360-inm-probar:not([hidden]) { margin-top: 14px; padding-top: 12px; border-top: 1px solid #eee5d8; }
+.f360-colores-header .f360-color-nombre { display: none !important; }   /* the selected button already says the colour */
+.brxe-product-content, .brxe-product-content p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
 .f360-inmediata { margin: 18px 0; padding: 14px 16px; border: 1px solid #e6dfd4; border-radius: 6px; background: #fffdf9; font-family: inherit; }
-.f360-inm-titulo { margin: 0 0 10px; font-size: 14px; color: #3f6b4f; }
+.f360-inm-titulo { margin: 0 0 10px; font-size: 14px; color: #4a433a; }
 .f360-inm-boton, .f360-inm-enviar, .f360-inm-apartar { height: 42px; padding: 0 16px; border: 1px solid #B8966E; background: #fff; color: #8c6414; cursor: pointer; font-size: 14px; border-radius: 4px; }
 .f360-inm-boton:hover, .f360-inm-enviar:hover, .f360-inm-apartar:hover { background: #B8966E; color: #fff; }
 .f360-inm-flujo { margin-top: 12px; }
@@ -155,12 +167,25 @@
     var q = function (s) { return box.querySelector(s); };
     var variation = null, stores = [], phone = '';
     function msg(t, ok) { var m = q('.f360-inm-msg'); m.textContent = t || ''; m.className = 'f360-inm-msg ' + (ok ? 'ok' : 'err'); }
-    function reset() { if (sobre) sobre.hidden = true; box.hidden = true; q('.f360-inm-flujo').hidden = true; q('.f360-inm-boton').hidden = false; q('.f360-inm-tel').hidden = false; q('.f360-inm-cod').hidden = true; msg(''); }
+    function reset() { if (sobre) sobre.hidden = true; box.hidden = true; q('.f360-inm-envio').hidden = true; q('.f360-inm-probar').hidden = true; q('.f360-inm-flujo').hidden = true; q('.f360-inm-boton').hidden = false; q('.f360-inm-tel').hidden = false; q('.f360-inm-cod').hidden = true; msg(''); }
     $(form).on('found_variation', function (e, v) {
       variation = v && v.variation_id; reset(); if (!variation) return;
       // 5–7 días hábiles (Mario 2026-10-03; never called "sobre pedido" to the customer): no stock but orderable → Woo marks it "available-on-backorder"
-      if (sobre) sobre.hidden = !(v.backorders_allowed && /available-on-backorder/.test(v.availability_html || ''));
+      var bajoPedido = !!(v.backorders_allowed && /available-on-backorder/.test(v.availability_html || ''));
+      setTimeout(function () {    // Woo adds "(puede reservarse)" to the stock line when 5–7 días is on: our lines say it better
+        document.querySelectorAll('.woocommerce-variation-availability .stock').forEach(function (el) {
+          el.textContent = el.textContent.replace(/\s*\(puede reservarse\)/i, '');
+        });
+      }, 0);
+      if (sobre) sobre.hidden = !bajoPedido;
       if (!mexico) return;
+      // Envío (Mario 2026-10-03): online orders ship from Bodega CDMX. With a pair there: 8 a. m.–7 p. m. (CDMX time)
+      // → "Recíbelo hoy en 2 horas"; later → tomorrow from 8 a. m. A pair that is only in a store is offered to try on.
+      if (v.is_in_stock && !bajoPedido) {
+        var h = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;
+        q('.f360-inm-envio-t').textContent = h >= 8 && h < 19 ? '🛵 Recíbelo hoy en 2 horas en tu casa' : '🛵 Recíbelo mañana a partir de las 8 a. m.';
+        q('.f360-inm-envio').hidden = false; box.hidden = false;
+      }
       var asked = variation;
       api({ action: 'availability', woo_variation_id: variation }).then(function (j) {
         if (asked !== variation) return;                       // the customer changed size meanwhile
@@ -170,7 +195,7 @@
         var sel = q('.f360-inm-tienda'); sel.innerHTML = '';
         stores.forEach(function (s) { var o = document.createElement('option'); o.value = s.location_id; o.textContent = s.name; sel.appendChild(o); });
         q('.f360-inm-tienda-label').hidden = stores.length < 2;
-        box.hidden = false;
+        q('.f360-inm-probar').hidden = false; box.hidden = false;
       }).catch(function () { /* sin disponibilidad: no se muestra nada */ });
     });
     $(form).on('reset_data hide_variation', reset);

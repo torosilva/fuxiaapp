@@ -71,7 +71,7 @@ export async function handle(req: Request, env: PublisherEnv, opts: HandlerOptio
     await rec.step({ step: 'preflight', action: 'error', ok: false, message });
     outcome = { status: 'failed', error: message, summary: { woo_product_id: null, woo_status: null, variations: 0, created: 0, updated: 0, hidden: 0, stock_pushed: 0, mismatches: [] } };
   } else {
-    let adapter = restAdapter({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET });
+    let adapter = restAdapter({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET, timeoutMs: 140_000 });   // creating a product with many photos: the store sideloads each one
     if (opts.wrapAdapter) adapter = opts.wrapAdapter(adapter);
     outcome = await publish(snap, adapter, rec, { storageBase: env.STORAGE_PUBLIC_BASE || env.SUPABASE_URL, allowProduction: false });
   }
