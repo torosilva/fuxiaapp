@@ -1,12 +1,16 @@
 import Link from 'next/link';
 import { ColorDot, ProductImage } from '@/components/ProductImage';
 import { IconPlus, IconSearch } from '@/components/icons';
-import { canWrite, getMe, listProducts } from '@/lib/f360';
+import { canWrite, getMe, listCategories, listProducts } from '@/lib/f360';
 import { pares, precio } from '@/lib/format';
 
-export default async function Productos({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const { q } = await searchParams;
-  const [me, products] = await Promise.all([getMe(), listProducts(q)]);
+export default async function Productos({ searchParams }: { searchParams: Promise<{ q?: string; categoria?: string }> }) {
+  const { q, categoria } = await searchParams;
+  const [me, all, categories] = await Promise.all([getMe(), listProducts(q), listCategories()]);
+  const tabs = [...categories.map((c) => ({ key: c.key, name: c.name })), { key: 'sin', name: 'Sin categoría' }];
+  const inTab = (key: string | null, tab: string) => (tab === 'sin' ? !key : key === tab);
+  const products = categoria ? all.filter((p) => inTab(p.category_key, categoria)) : all;
+  const href = (cat?: string) => `/productos?${new URLSearchParams({ ...(q ? { q } : {}), ...(cat ? { categoria: cat } : {}) })}`;
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -20,11 +24,20 @@ export default async function Productos({ searchParams }: { searchParams: Promis
       <form className="relative mt-6 max-w-md" role="search">
         <IconSearch className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted" />
         <input name="q" defaultValue={q} placeholder="Busca por nombre o color" className="w-full rounded-full border border-line bg-surface py-3.5 pl-12 pr-4 text-base outline-none focus:border-gold" />
+        {categoria && <input type="hidden" name="categoria" value={categoria} />}
       </form>
+      <nav className="mt-4 flex flex-wrap gap-2" data-testid="category-tabs">
+        <Link href={href()} className={`rounded-full px-4 py-2 text-sm ${!categoria ? 'bg-ink text-surface' : 'bg-surface text-ink-2 ring-1 ring-line'}`}>Todos <span className="tabular opacity-70">{all.length}</span></Link>
+        {tabs.map((t) => {
+          const n = all.filter((p) => inTab(p.category_key, t.key)).length;
+          if (!n && t.key === 'sin') return null;
+          return <Link key={t.key} href={href(t.key)} data-testid={`cat-${t.key}`} className={`rounded-full px-4 py-2 text-sm ${categoria === t.key ? 'bg-ink text-surface' : 'bg-surface text-ink-2 ring-1 ring-line'}`}>{t.name} <span className="tabular opacity-70">{n}</span></Link>;
+        })}
+      </nav>
 
       {products.length === 0 ? (
         <div className="mt-10 rounded-3xl border border-dashed border-line bg-surface p-10 text-center">
-          <p className="text-lg text-ink-2">{q ? `No encontramos “${q}”.` : 'Todavía no hay productos.'}</p>
+          <p className="text-lg text-ink-2">{q ? `No encontramos “${q}”.` : categoria ? 'No hay productos en esta categoría.' : 'Todavía no hay productos.'}</p>
           {canWrite(me.role) && !q && <Link href="/productos/nuevo" className="mt-4 inline-block rounded-full bg-ink px-5 py-3 text-surface">Crear el primero</Link>}
         </div>
       ) : (
@@ -33,7 +46,7 @@ export default async function Productos({ searchParams }: { searchParams: Promis
             <Link key={p.id} href={`/productos/${p.id}`} className="group overflow-hidden rounded-2xl border border-line bg-surface transition hover:border-gold/40">
               <div className="relative aspect-[4/3] overflow-hidden">
                 <ProductImage path={p.image_path} name={p.name} className="transition duration-500 group-hover:scale-[1.03]" />
-                <span className={`absolute left-3 top-3 rounded-full px-2.5 py-0.5 text-xs font-medium ${p.ready ? 'bg-success-soft text-success' : 'bg-gold-soft text-ink-2'}`}>{p.ready ? 'Listo' : 'Borrador'}</span>
+                <span className={`absolute left-3 top-3 rounded-full px-2.5 py-0.5 text-xs font-medium ${p.from_store || p.ready ? 'bg-success-soft text-success' : 'bg-gold-soft text-ink-2'}`}>{p.from_store ? 'En la tienda' : p.ready ? 'Listo' : 'Borrador'}</span>
               </div>
               <div className="p-4">
                 <div className="font-display text-2xl leading-tight text-ink">{p.name}</div>

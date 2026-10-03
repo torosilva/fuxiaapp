@@ -381,3 +381,10 @@ export async function openingStepAction(id: string, step: 'freeze' | 'reconcile'
   if (step === 'approve') args.p_note = note; if (step === 'cancel') args.p_reason = note;
   const r = await call(fn, args); if (r.ok) revalidateCount(); return r;
 }
+
+export async function removeColorAction(productId: string, colorId: string, reason: string): Promise<Result<Product>> {
+  if (reason.trim().length < 3) return { ok: false, error: 'Escribe el motivo.' };
+  const r = await call<Product>('f360_remove_color', { p_color_id: colorId, p_reason: reason.trim() });
+  if (r.ok) revalidateProduct(productId);
+  return r;
+}

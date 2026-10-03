@@ -6,7 +6,7 @@ export type Role = 'owner' | 'operator' | 'seller' | 'viewer';
 export type Me = { display_name: string; role: Role };
 export type Location = { id: string; name: string; type: string; is_authoritative: boolean; sales_sync_pending: boolean; pairs: number;
   ledger_authority?: 'legacy' | 'f360'; sellable?: boolean; starts_on?: string | null; ends_on?: string | null; incoming?: number };
-export type ProductSummary = { id: string; name: string; code: string; category: string | null; image_path: string | null; regular_price: number | null; sale_price: number | null; ready: boolean; colors: { name: string; hex: string | null }[]; pairs: number };
+export type ProductSummary = { id: string; name: string; code: string; category: string | null; category_key: string | null; from_store: boolean; image_path: string | null; regular_price: number | null; sale_price: number | null; ready: boolean; colors: { name: string; hex: string | null }[]; pairs: number };
 export type Variant = { id: string; size: string; sku: string | null };
 export type Media = { id: string; path: string };
 export type Category = { key: string; name: string };
@@ -189,3 +189,4 @@ export type OpeningSheet = { view: OpeningView; me: string; models: { product_id
   unlisted: { id: string; description: string; size: string | null; quantity: number; found_by: string; found_at: string; status: 'abierto' | 'resuelto'; resolution: string | null; resolved_by: string | null }[] };
 export const getOpeningState = () => rpc<OpeningState>('f360_opening_state', { p_count_id: null });
 export const getOpeningSheet = (id: string, view: OpeningView) => rpc<OpeningSheet>('f360_opening_sheet', { p_count_id: id, p_view: view });
+export const getColorRemoveState = (colorId: string) => rpc<{ blockers: string[] }>('f360_color_remove_state', { p_color_id: colorId });

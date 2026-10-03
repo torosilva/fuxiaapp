@@ -45,8 +45,11 @@ function buildGroups(rows: HomologationRow[]): Group[] {
 }
 
 // 0 = everything pending is ready to confirm · 1 = partly ready · 2 = conflict · 3 = needs a decision · 4 = done
+// A row is decided when it is confirmed, or a person marked it "sin correspondencia" (e.g. "no existe").
+const decided = (r: HomologationRow) => r.status === 'confirmado' || (r.status === 'sin_correspondencia' && r.human_locked);
+
 function priority(g: Group) {
-  const pending = g.units.flatMap((u) => u.rows).filter((r) => r.status !== 'confirmado');
+  const pending = g.units.flatMap((u) => u.rows).filter((r) => !decided(r));
   if (!pending.length) return 4;
   if (pending.every((r) => r.status === 'propuesto')) return 0;
   if (pending.some((r) => r.status === 'propuesto')) return 1;
@@ -56,10 +59,11 @@ function priority(g: Group) {
 
 // What the person has to do with this Woo product, in plain words.
 function todo(u: Unit): string {
-  const r = u.rows.find((x) => x.status !== 'confirmado') ?? u.rows[0];
+  const r = u.rows.find((x) => !decided(x)) ?? u.rows.find((x) => x.status !== 'confirmado') ?? u.rows[0];
   if (r.status === 'confirmado') return `Listo${r.decided_by_name ? ` · confirmó ${r.decided_by_name}` : ''}`;
   if (r.status === 'propuesto') return 'Revisa que modelo y color estén bien y confirma';
   if (r.status === 'conflicto') return 'Otro producto de la tienda quedó con el mismo modelo, color y talla: decide cuál es';
+  if (r.status === 'sin_correspondencia' && r.human_locked) return `Decidido: no se usa${r.note ? ` (“${r.note}”)` : ''}${r.decided_by_name ? ` · ${r.decided_by_name}` : ''}`;
   if (r.human_locked) return r.note ? `Marcado: ${r.note}` : 'Marcado por una persona';
   const why = r.proposal_reason ?? '';
   if (/cualquier color/.test(why)) return 'La tienda vende esta talla en “cualquier color”: solo confírmala si sabes qué color sale';
@@ -81,6 +85,10 @@ export function HomologationClient({ data }: { data: Homologation }) {
           || u.rows.some((r) => String(r.woo_variation_id) === q))) }))
     .filter((g) => g.units.length);
   const s = data.summary;
+  const nDiscarded = data.rows.filter((r) => r.status === 'sin_correspondencia' && r.human_locked).length;
+  const nDecided = s.confirmado + nDiscarded;
+  const nPending = s.variations - nDecided;
+  const pctDecided = s.variations ? Math.round((1000 * nDecided) / s.variations) / 10 : 0;
   const count = (f: HomologationStatus | 'todos') => (f === 'todos' ? s.variations : s[f]);
 
   return (
@@ -99,15 +107,15 @@ export function HomologationClient({ data }: { data: Homologation }) {
       </ol>
 
       <div className="mt-5" data-testid="progress">
-        <div className="flex items-baseline justify-between text-sm"><span className="text-ink">Avance: <b className="tabular">{s.confirmado}</b> de <span className="tabular">{s.variations}</span> tallas confirmadas</span><span className="tabular text-muted">{s.coverage_pct}%</span></div>
-        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-success" style={{ width: `${s.coverage_pct}%` }} /></div>
+        <div className="flex items-baseline justify-between text-sm"><span className="text-ink">Avance: <b className="tabular">{nDecided}</b> de <span className="tabular">{s.variations}</span> tallas decididas · {s.confirmado} confirmadas, {nDiscarded} marcadas “no existe”</span><span className="tabular text-muted">{pctDecided}%</span></div>
+        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-success" style={{ width: `${pctDecided}%` }} /></div>
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="homologation-summary">
         <Stat label="Variaciones Woo" value={s.variations} sub={`${s.woo_products} productos Woo`} />
         <Stat label="Modelos F360 propuestos" value={s.models_proposed} sub={`${s.models_confirmed} con algo confirmado`} />
         <Stat label="Confirmadas" value={s.confirmado} sub={`${s.coverage_pct}% de cobertura`} tone="text-success" />
-        <Stat label="Falta tu decisión" value={s.requiere_revision + s.conflicto + s.sin_correspondencia} sub={`${s.propuesto} listas para confirmar`} tone={s.conflicto ? 'text-danger' : undefined} />
+        <Stat label="Falta tu decisión" value={nPending - s.propuesto} sub={`${s.propuesto} listas para confirmar`} tone={s.conflicto ? 'text-danger' : undefined} />
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -150,7 +158,7 @@ function GroupCard({ g, data, onDone }: { g: Group; data: Homologation; onDone: 
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const pendingUnits = g.units.filter((u) => u.rows.some((r) => r.status !== 'confirmado'));
+  const pendingUnits = g.units.filter((u) => u.rows.some((r) => !decided(r)));
   const existing = data.models.filter((m) => !m.published);
   const firstCat = g.units[0]?.category?.split('|')[0] ?? '';
   const [mode, setMode] = useState<'new' | 'existing'>(g.proposedProductId ? 'existing' : 'new');

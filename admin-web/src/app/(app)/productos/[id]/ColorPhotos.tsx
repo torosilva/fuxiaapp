@@ -7,10 +7,10 @@ import { IconCamera, IconCheck, IconPlus, IconX } from '@/components/icons';
 import type { Color, Product } from '@/lib/f360';
 import { imageUrl, SWATCHES } from '@/lib/format';
 import { createClient } from '@/lib/supabase/browser';
-import { addColorAction, addMediaAction, removeMediaAction, setColorHexAction, setPrimaryMediaAction } from '../../actions';
+import { addColorAction, addMediaAction, removeColorAction, removeMediaAction, setColorHexAction, setPrimaryMediaAction } from '../../actions';
 
 // Photos per color + add a color later (the model is never recreated).
-export function ColorPhotos({ product, color, canEdit }: { product: Product; color: Color; canEdit: boolean }) {
+export function ColorPhotos({ product, color, canEdit, removeBlockers = [] }: { product: Product; color: Color; canEdit: boolean; removeBlockers?: string[] }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [pending, start] = useTransition();
@@ -18,6 +18,8 @@ export function ColorPhotos({ product, color, canEdit }: { product: Product; col
   const [adding, setAdding] = useState(false);
   const [newColor, setNewColor] = useState('');
   const [picking, setPicking] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [removeReason, setRemoveReason] = useState('');
   const [custom, setCustom] = useState(color.hex ?? '#C9BFAE');
 
   const upload = (files: FileList | null) => {
@@ -145,6 +147,28 @@ export function ColorPhotos({ product, color, canEdit }: { product: Product; col
           )}
         </div>
         <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" aria-label={`Fotos de ${color.name}`} onChange={(e) => upload(e.target.files)} />
+        {canEdit && (
+          <div className="mt-5 border-t border-line pt-4" data-testid="remove-color">
+            {removeBlockers.length ? (
+              <details className="text-sm text-muted"><summary className="cursor-pointer">¿Quitar {color.name}? No se puede todavía</summary>
+                <ul className="mt-2 list-disc pl-5">{removeBlockers.map((b) => <li key={b}>{b}</li>)}</ul></details>
+            ) : !removing ? (
+              <button type="button" onClick={() => setRemoving(true)} className="text-sm text-danger underline">Quitar este color ({color.name})</button>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-ink-2">Se quita {color.name} con sus tallas y fotos. Motivo:</span>
+                <input aria-label="Motivo para quitar el color" value={removeReason} onChange={(e) => setRemoveReason(e.target.value)} className="min-w-56 flex-1 rounded-xl border border-line bg-bg px-3 py-2 text-sm" />
+                <button type="button" disabled={pending} onClick={() => start(async () => {
+                  setError(null);
+                  const r = await removeColorAction(product.id, color.id, removeReason);
+                  if (!r.ok) { setError(r.error); return; }
+                  setRemoving(false); setRemoveReason(''); router.replace(`/productos/${product.id}#fotos`, { scroll: false }); router.refresh();
+                })} className="rounded-xl bg-danger px-4 py-2 text-sm text-surface">Quitar color</button>
+                <button type="button" onClick={() => setRemoving(false)} className="text-sm text-muted">Cancelar</button>
+              </div>
+            )}
+          </div>
+        )}
         {error && <p role="alert" className="mt-3 rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{error}</p>}
         {!error && pending && <p className="mt-3 flex items-center gap-2 text-sm text-muted"><IconCheck className="size-4" />Guardando…</p>}
       </div>

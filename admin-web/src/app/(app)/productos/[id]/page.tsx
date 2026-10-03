@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { EventCard } from '@/components/EventCard';
 import { ColorDot, ProductImage } from '@/components/ProductImage';
 import { IconBack, IconCheck, IconDown } from '@/components/icons';
-import { canWrite, getArchiveState, getLegacySources, getMe, getProduct, getProductPrices, getPublication, listCategories, listEvents, listLocations } from '@/lib/f360';
+import { canWrite, getArchiveState, getColorRemoveState, getLegacySources, getMe, getProduct, getProductPrices, getPublication, listCategories, listEvents, listLocations } from '@/lib/f360';
 import { MISSING_LABEL, pares, precio } from '@/lib/format';
 import { ColorPhotos } from './ColorPhotos';
 import { ProductInfoForm } from './ProductInfoForm';
@@ -23,6 +23,7 @@ export default async function ProductoDetalle({ params, searchParams }: { params
   const legacy = sources.length > 0;
   const archive = await getArchiveState(id);
   const color = product.colors.find((c) => c.id === sp.color) ?? product.colors[0];
+  const removeBlockers = edit && color ? (await getColorRemoveState(color.id)).blockers : [];
   const qty = (locId: string, size: string) => color?.balances.find((b) => b.location_id === locId && b.size === size)?.on_hand ?? 0;
   const colorTotal = color?.balances.reduce((a, b) => a + b.on_hand, 0) ?? 0;
   const ready = product.readiness.ready;
@@ -85,7 +86,7 @@ export default async function ProductoDetalle({ params, searchParams }: { params
 
       {!legacy && <PublishPanel productId={product.id} pub={pub} isOwner={me.role === 'owner'} publisherReady={publisherAvailable()} />}
 
-      {color && <ColorPhotos product={product} color={color} canEdit={edit} />}
+      {color && <ColorPhotos product={product} color={color} canEdit={edit} removeBlockers={removeBlockers} />}
       <ProductInfoForm key={`${product.regular_price}-${product.category_key}-${product.description?.length ?? 0}`} product={product} categories={categories} canEdit={edit} />
       <PricesPanel key={prices.map((p) => `${p.code}:${p.amount}`).join('|')} productId={product.id} prices={prices} canEdit={edit} />
 
