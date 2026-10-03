@@ -8,25 +8,49 @@
   STAGING: servicio de staging.
 -->
 <div class="f360-tienda">
-  <div class="f360-t-rails"></div>
   <div class="f360-t-filtros">
-    <input type="search" class="f360-t-buscar" placeholder="Busca tu modelo o color" aria-label="Buscar modelo o color">
+    <div class="f360-t-top">
+      <div class="f360-t-bwrap">
+        <input type="search" class="f360-t-buscar" placeholder="Busca tu modelo o color" aria-label="Buscar modelo o color" autocomplete="off" role="combobox" aria-expanded="false">
+        <ul class="f360-t-sug" role="listbox" hidden></ul>
+      </div>
+      <button type="button" class="f360-t-toggle" aria-expanded="true">Ocultar filtros</button>
+    </div>
+    <div class="f360-t-cuerpo">
     <div class="f360-t-fila"><span class="f360-t-et">Color</span><div class="f360-t-colores"></div></div>
     <div class="f360-t-fila"><span class="f360-t-et f360-t-et-talla">Talla</span><div class="f360-t-tallas"></div></div>
     <div class="f360-t-fila f360-t-fila-inm" hidden><label class="f360-t-inm"><input type="checkbox"> Solo <b>entrega inmediata</b> en Zona Metropolitana</label></div>
+    </div>
     <p class="f360-t-res" role="status"></p>
   </div>
+  <div class="f360-t-mas-res" hidden></div>
+  <div class="f360-t-rails"></div>
 </div>
 <style>
-.f360-tienda { margin: 8px 0 28px; font-family: inherit; color: #242424; }
+.f360-tienda { margin: 8px 0 28px; background: #fff; font-family: inherit; color: #242424; }
 .f360-tienda [hidden] { display: none !important; }
 .f360-t-rail { margin: 0 0 28px; }
+.f360-t-rails { margin-top: 36px; }
 .f360-t-rail h3 { margin: 0 0 12px; font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #83734C; }
 .f360-t-cards { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 190px); gap: 14px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x mandatory; }
 .f360-t-card { scroll-snap-align: start; text-decoration: none; color: inherit; }
 .f360-t-card img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; background: #f5f2ec; border-radius: 4px; display: block; }
 .f360-t-card b { display: block; margin-top: 8px; font-size: 14px; font-weight: 500; }
 .f360-t-card span { font-size: 13px; color: #6B6B68; }
+.f360-tienda { position: sticky; top: var(--f360-sticky-top, 0px); z-index: 50; }
+.f360-t-filtros { box-shadow: 0 6px 18px rgba(0,0,0,.05); }
+.f360-t-top { display: flex; gap: 10px; align-items: center; }
+.f360-t-bwrap { position: relative; flex: 1; }
+.f360-t-sug { position: absolute; left: 0; right: 0; top: 48px; margin: 0; padding: 6px 0; list-style: none; background: #fff; border: 1px solid #e6dfd4; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.12); max-height: 320px; overflow-y: auto; z-index: 60; }
+.f360-t-sug li { padding: 9px 14px; font-size: 14px; cursor: pointer; display: flex; justify-content: space-between; gap: 10px; }
+.f360-t-sug li small { color: #9A9A96; font-size: 12px; }
+.f360-t-sug li:hover, .f360-t-sug li[aria-selected="true"] { background: #f7f2ea; }
+.f360-t-sug .f360-t-sug-h { cursor: default; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #83734C; background: none !important; }
+.f360-t-toggle { flex: 0 0 auto; height: 44px; padding: 0 16px; border: 1px solid #d9d2c5; border-radius: 22px; background: #fff; cursor: pointer; font: inherit; font-size: 13px; color: #4a433a; }
+.f360-t-filtros.cerrado .f360-t-cuerpo { display: none; }
+.f360-t-filtros.compacto { padding: 10px 14px; }
+.f360-t-filtros.compacto .f360-t-res { margin-top: 6px; }
+.f360-t-mas-res { margin: 28px 0 0; }
 .f360-t-filtros { padding: 16px 18px; border: 1px solid #ece6db; border-radius: 6px; background: #fffdf9; }
 .f360-t-buscar { width: 100%; height: 44px; padding: 0 14px; border: 1px solid #d9d2c5; border-radius: 22px; font-size: 15px; font-family: inherit; box-sizing: border-box; }
 .f360-t-fila { display: flex; gap: 12px; align-items: flex-start; margin-top: 14px; }
@@ -57,25 +81,83 @@
     var box = document.querySelector('.f360-tienda');
     var grid = document.querySelector('.brxe-woocommerce-products ul.products') || document.querySelector('ul.products');
     if (!box) return;
-    if (grid) grid.parentNode.insertBefore(box, grid);
+    if (grid) {
+      grid.parentNode.insertBefore(box, grid);
+      // below the catalogue: "También te pueden gustar" (few results) and then Más vendidas / Nuevas
+      var despues = grid.closest('.brxe-woocommerce-products') || grid;
+      despues.parentNode.insertBefore(box.querySelector('.f360-t-rails'), despues.nextSibling);
+      despues.parentNode.insertBefore(box.querySelector('.f360-t-mas-res'), despues.nextSibling);
+    }
+    // the search bar stays visible under the site's sticky header
+    var header = document.querySelector('#brx-header');
+    var fijar = function () {
+      var pos = header ? getComputedStyle(header).position : '';
+      var h = header && (pos === 'fixed' || pos === 'sticky') ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
+      box.style.setProperty('--f360-sticky-top', Math.round(h + 8) + 'px');
+    };
+    var pend = false;
+    fijar(); window.addEventListener('resize', fijar);
+    window.addEventListener('scroll', function () { if (!pend) { pend = true; requestAnimationFrame(function () { pend = false; fijar(); }); } }, { passive: true });
     fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'catalog' }) })
       .then(function (r) { return r.json(); })
       .then(function (cat) { arrancar(box, grid, cat.items || []); })
       .catch(function () { box.hidden = true; });
   }
 
+  // product cards from the store's own data (photo, name, price, link)
+  function tarjetas(destino, titulo, ids) {
+    destino.innerHTML = '';
+    if (!ids.length) { destino.hidden = true; return Promise.resolve(); }
+    return fetch(pais + 'wp-json/wc/store/v1/products?per_page=' + ids.length + '&include=' + ids.join(','))
+      .then(function (r) { return r.json(); })
+      .then(function (prods) {
+        var byId = {}; (prods || []).forEach(function (p) { byId[p.id] = p; });
+        var lista = ids.map(function (id) { return byId[id]; }).filter(Boolean);
+        if (!lista.length) { destino.hidden = true; return; }
+        var sec = document.createElement('section'); sec.className = 'f360-t-rail';
+        var h = document.createElement('h3'); h.textContent = titulo; sec.appendChild(h);
+        var row = document.createElement('div'); row.className = 'f360-t-cards'; sec.appendChild(row);
+        lista.forEach(function (p) {
+          var a = document.createElement('a'); a.className = 'f360-t-card'; a.href = p.permalink;
+          var img = document.createElement('img'); img.loading = 'lazy'; img.alt = p.name; img.src = (p.images && p.images[0] && (p.images[0].thumbnail || p.images[0].src)) || '';
+          var b = document.createElement('b'); b.textContent = p.name.replace(/&amp;/g, '&');
+          var s = document.createElement('span'); var pr = p.prices || {}; var dec = pr.currency_minor_unit || 0;
+          s.textContent = (pr.currency_prefix || '$') + Number(pr.price / Math.pow(10, dec)).toLocaleString('es-MX') + (pr.currency_suffix || '');
+          a.appendChild(img); a.appendChild(b); a.appendChild(s); row.appendChild(a);
+        });
+        destino.appendChild(sec); destino.hidden = false;
+      }).catch(function () { destino.hidden = true; });
+  }
+
   function arrancar(box, grid, items) {
     var porWoo = {};
     items.forEach(function (it) { (porWoo[it.woo_product_id] = porWoo[it.woo_product_id] || []).push(it); });
     var q = function (s) { return box.querySelector(s); };
+    var masRes = document.querySelector('.f360-t-mas-res'), rails = document.querySelector('.f360-t-rails');
     var sel = { colores: {}, tallas: {}, texto: '', inm: false };
+    var activos = function (o) { return Object.keys(o).filter(function (k) { return o[k]; }); };
+    var uno = function (xs) { var seen = {}; return xs.filter(function (it) { if (seen[it.product_id]) return false; seen[it.product_id] = 1; return true; }); };
 
-    // colours: one chip per colour name, with its circle
+    // show / hide the filters (remembered on this device)
+    var filtros = q('.f360-t-filtros'), tog = q('.f360-t-toggle');
+    var cerrar = function (c) { filtros.classList.toggle('cerrado', c); filtros.classList.toggle('compacto', c && compacto); tog.textContent = c ? 'Filtros' : 'Ocultar filtros'; tog.setAttribute('aria-expanded', String(!c)); };
+    try { cerrar(localStorage.getItem('f360-filtros') === 'cerrado'); } catch (e) {}
+    tog.onclick = function () { var c = !filtros.classList.contains('cerrado'); cerrar(c); abiertoAMano = !c; if (!compacto) { try { localStorage.setItem('f360-filtros', c ? 'cerrado' : 'abierto'); } catch (e) {} } };
+    // while scrolling the catalogue the bar shrinks to the search box + "Filtros" (opens on demand); full again at the top
+    var compacto = false, abiertoAMano = false, inicio = box.getBoundingClientRect().top + window.scrollY;
+    window.addEventListener('scroll', function () {
+      var c = window.scrollY > inicio + 40;
+      if (c === compacto) return;
+      compacto = c; abiertoAMano = false;
+      if (c) cerrar(true); else { var pref = false; try { pref = localStorage.getItem('f360-filtros') === 'cerrado'; } catch (e) {} cerrar(pref); }
+    }, { passive: true });
+
+    // colours: one chip per colour name, with its circle (most common first)
     var colores = {}, cuenta = {};
     items.forEach(function (it) { (it.colors || []).forEach(function (c) { var k = norm(c.name); if (!colores[k]) colores[k] = c; cuenta[k] = (cuenta[k] || 0) + 1; }); });
-    var orden = Object.keys(colores).sort(function (a, b) { return cuenta[b] - cuenta[a] || a.localeCompare(b); });   // most common first
+    var orden = Object.keys(colores).sort(function (a, b) { return cuenta[b] - cuenta[a] || a.localeCompare(b); });
     orden.forEach(function (k, i) {
-      var b = document.createElement('button'); b.type = 'button'; b.className = 'f360-t-chip'; b.setAttribute('aria-pressed', 'false');
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'f360-t-chip'; b.setAttribute('aria-pressed', 'false'); b.dataset.k = k;
       b.innerHTML = '<i></i><span></span>'; b.querySelector('i').style.background = colores[k].hex || '#ddd'; b.querySelector('span').textContent = colores[k].name;
       b.onclick = function () { sel.colores[k] = !sel.colores[k]; b.setAttribute('aria-pressed', String(!!sel.colores[k])); aplicar(); };
       if (i >= 12) { b.hidden = true; b.classList.add('f360-t-extra'); }
@@ -93,12 +175,39 @@
       q('.f360-t-tallas').appendChild(b);
     });
     if (mexico) { q('.f360-t-fila-inm').hidden = false; q('.f360-t-inm input').onchange = function (e) { sel.inm = e.target.checked; aplicar(); }; }
-    var tm; q('.f360-t-buscar').addEventListener('input', function (e) { clearTimeout(tm); tm = setTimeout(function () { sel.texto = norm(e.target.value).trim(); aplicar(); }, 150); });
 
+    // search with suggestions: models (from Fuxia 360 and the cards on the page) and colours
+    var input = q('.f360-t-buscar'), sug = q('.f360-t-sug');
+    var modelos = {};
+    items.forEach(function (it) { modelos[norm(it.name)] = it.name; });
+    if (grid) grid.querySelectorAll('li.product h2, li.product h3, li.product h4, li.product h5').forEach(function (h) { var t = h.textContent.trim(); if (t && !modelos[norm(t)]) modelos[norm(t)] = t; });
+    function sugerir() {
+      var t = norm(input.value).trim();
+      var ms = Object.keys(modelos).filter(function (k) { return !t || k.indexOf(t) >= 0; }).sort().slice(0, 10).map(function (k) { return modelos[k]; });
+      var cs = orden.filter(function (k) { return t && k.indexOf(t) >= 0; }).slice(0, 5);
+      sug.innerHTML = '';
+      var add = function (txt, sub, fn, h) { var li = document.createElement('li'); if (h) li.className = 'f360-t-sug-h'; else { li.setAttribute('role', 'option'); li.onmousedown = function (e) { e.preventDefault(); fn(); }; }
+        li.appendChild(document.createTextNode(txt)); if (sub) { var sm = document.createElement('small'); sm.textContent = sub; li.appendChild(sm); } sug.appendChild(li); };
+      if (ms.length) { add(t ? 'Modelos' : 'Todos los modelos', '', null, true); ms.forEach(function (m) { add(m, '', function () { input.value = m; sel.texto = norm(m); cerrarSug(); aplicar(); }); }); }
+      if (cs.length) { add('Colores', '', null, true); cs.forEach(function (k) { add(colores[k].name, 'filtrar por color', function () {
+        input.value = ''; sel.texto = ''; sel.colores[k] = true; var b = q('.f360-t-chip[data-k="' + k + '"]'); if (b) { b.hidden = false; b.setAttribute('aria-pressed', 'true'); } cerrarSug(); aplicar(); }); }); }
+      sug.hidden = !sug.children.length; input.setAttribute('aria-expanded', String(!sug.hidden));
+    }
+    function cerrarSug() { sug.hidden = true; input.setAttribute('aria-expanded', 'false'); }
+    input.addEventListener('focus', sugerir);
+    input.addEventListener('blur', function () { setTimeout(cerrarSug, 120); });
+    var tm; input.addEventListener('input', function () { sugerir(); clearTimeout(tm); tm = setTimeout(function () { sel.texto = norm(input.value).trim(); aplicar(); }, 150); });
+    input.addEventListener('keydown', function (e) { if (e.key === 'Escape') { cerrarSug(); input.blur(); } if (e.key === 'Enter') { e.preventDefault(); cerrarSug(); } });
+
+    function cumple(it, c, cols, tal, inm) {
+      if (cols.length && cols.indexOf(norm(c.name)) < 0) return false;
+      var ok = function (st) { return inm ? st === 'inmediata' : (st === 'inmediata' || st === 'pedido'); };
+      if (tal.length) return tal.some(function (t) { return ok((c.sizes || {})[t]); });
+      return Object.keys(c.sizes || {}).some(function (t) { return ok(c.sizes[t]); });
+    }
     function pasa(woo, nombre) {
       var lista = porWoo[woo] || [];
-      var cols = Object.keys(sel.colores).filter(function (k) { return sel.colores[k]; });
-      var tal = Object.keys(sel.tallas).filter(function (k) { return sel.tallas[k]; });
+      var cols = activos(sel.colores), tal = activos(sel.tallas);
       if (sel.texto) {
         var hay = norm(nombre).indexOf(sel.texto) >= 0 || lista.some(function (it) { return norm(it.name).indexOf(sel.texto) >= 0 ||
           (it.colors || []).some(function (c) { return norm(c.name).indexOf(sel.texto) >= 0; }); });
@@ -106,65 +215,46 @@
       }
       if (!cols.length && !tal.length && !sel.inm) return true;
       if (!lista.length) return false;                       // without Fuxia 360 data we cannot promise colour/size
-      return lista.some(function (it) {
-        return (it.colors || []).some(function (c) {
-          if (cols.length && cols.indexOf(norm(c.name)) < 0) return false;
-          var ok = function (st) { return sel.inm ? st === 'inmediata' : (st === 'inmediata' || st === 'pedido'); };
-          if (tal.length) return tal.some(function (t) { return ok((c.sizes || {})[t]); });
-          return Object.keys(c.sizes || {}).some(function (t) { return ok(c.sizes[t]); });
-        });
-      });
+      return lista.some(function (it) { return (it.colors || []).some(function (c) { return cumple(it, c, cols, tal, sel.inm); }); });
     }
     function aplicar() {
       if (!grid) return;
-      var cards = grid.querySelectorAll(':scope > li.product'), n = 0;
+      var cards = grid.querySelectorAll(':scope > li.product'), n = 0, visibles = {};
       cards.forEach(function (li) {
         var m = li.className.match(/\bpost-(\d+)\b/); var nombre = (li.querySelector('h2, h3, h4, h5') || {}).textContent || '';
         var ver = !m || pasa(Number(m[1]), nombre);
-        li.style.display = ver ? '' : 'none'; if (ver) n++;
+        li.style.display = ver ? '' : 'none'; if (ver) { n++; if (m) visibles[m[1]] = 1; }
       });
-      var activo = sel.texto || sel.inm || Object.keys(sel.colores).some(function (k) { return sel.colores[k]; }) || Object.keys(sel.tallas).some(function (k) { return sel.tallas[k]; });
+      var cols = activos(sel.colores), tal = activos(sel.tallas);
+      var activo = sel.texto || sel.inm || cols.length || tal.length;
       var res = q('.f360-t-res'); res.textContent = activo ? (n ? n + (n === 1 ? ' modelo' : ' modelos') : 'No encontramos ese color y talla.') : '';
       if (activo) {
         var b = document.createElement('button'); b.type = 'button'; b.textContent = 'Limpiar filtros'; b.onclick = limpiar; res.appendChild(b);
-        if (!n) { var a = document.createTextNode(' ¿Te lo hacemos a la medida? Abre cualquier modelo y pregúntale a Hilo.'); res.appendChild(a); }
+        if (!n) res.appendChild(document.createTextNode(' ¿Te lo hacemos a la medida? Abre cualquier modelo y pregúntale a Hilo.'));
       }
+      // few results → "También te pueden gustar": same colour in 5–7 días / other sizes, or your size in other colours
+      if (activo && n < 4 && (cols.length || tal.length || sel.inm)) {
+        var cand = uno(items.filter(function (it) {
+          if (visibles[it.woo_product_id]) return false;
+          return (it.colors || []).some(function (c) { return (cols.length && cumple(it, c, cols, tal, false)) || (cols.length && cumple(it, c, cols, [], false)) || (tal.length && cumple(it, c, [], tal, false)); });
+        }).sort(function (a, b) { return b.sold - a.sold; })).slice(0, 8);
+        tarjetas(masRes, 'También te pueden gustar', cand.map(function (it) { return it.woo_product_id; }));
+      } else { masRes.hidden = true; masRes.innerHTML = ''; }
     }
     function limpiar() {
       sel = { colores: {}, tallas: {}, texto: '', inm: false };
       box.querySelectorAll('.f360-t-chip:not(.f360-t-mas)').forEach(function (b) { b.setAttribute('aria-pressed', 'false'); });
-      q('.f360-t-buscar').value = ''; var c = q('.f360-t-inm input'); if (c) c.checked = false;
+      input.value = ''; var c = q('.f360-t-inm input'); if (c) c.checked = false;
       aplicar();
     }
 
-    // Más vendidas / Nuevas: only on the main shop page (no category chosen); photos/prices/links from the store itself
+    // after the catalogue: Más vendidas and Nuevas (main shop page only)
     if (/[?&]b_product_cat/.test(location.search)) return;
-    var uno = function (xs) { var seen = {}; return xs.filter(function (it) { if (seen[it.product_id]) return false; seen[it.product_id] = 1; return true; }); };
     var top = uno(items.filter(function (it) { return it.sold > 0; }).sort(function (a, b) { return b.sold - a.sold; })).slice(0, 10);
     var nuevas = uno(items.filter(function (it) { return it.is_new; })).slice(0, 10);
-    var ids = top.concat(nuevas).map(function (it) { return it.woo_product_id; });
-    if (!ids.length) return;
-    fetch(pais + 'wp-json/wc/store/v1/products?per_page=' + ids.length + '&include=' + ids.join(','))
-      .then(function (r) { return r.json(); })
-      .then(function (prods) {
-        var byId = {}; (prods || []).forEach(function (p) { byId[p.id] = p; });
-        [['Más vendidas', top], ['Nuevas', nuevas]].forEach(function (par) {
-          var lista = par[1].map(function (it) { return byId[it.woo_product_id]; }).filter(Boolean);
-          if (!lista.length) return;
-          var sec = document.createElement('section'); sec.className = 'f360-t-rail';
-          var h = document.createElement('h3'); h.textContent = par[0]; sec.appendChild(h);
-          var row = document.createElement('div'); row.className = 'f360-t-cards'; sec.appendChild(row);
-          lista.forEach(function (p) {
-            var a = document.createElement('a'); a.className = 'f360-t-card'; a.href = p.permalink;
-            var img = document.createElement('img'); img.loading = 'lazy'; img.alt = p.name; img.src = (p.images && p.images[0] && (p.images[0].thumbnail || p.images[0].src)) || '';
-            var b = document.createElement('b'); b.textContent = p.name.replace(/&amp;/g, '&');
-            var s = document.createElement('span'); var pr = p.prices || {}; var dec = pr.currency_minor_unit || 0;
-            s.textContent = (pr.currency_prefix || '$') + Number(pr.price / Math.pow(10, dec)).toLocaleString('es-MX') + (pr.currency_suffix || '');
-            a.appendChild(img); a.appendChild(b); a.appendChild(s); row.appendChild(a);
-          });
-          q('.f360-t-rails').appendChild(sec);
-        });
-      }).catch(function () {});
+    var r1 = document.createElement('div'), r2 = document.createElement('div'); rails.appendChild(r1); rails.appendChild(r2);
+    tarjetas(r1, 'Más vendidas', top.map(function (it) { return it.woo_product_id; }));
+    tarjetas(r2, 'Nuevas', nuevas.map(function (it) { return it.woo_product_id; }));
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
