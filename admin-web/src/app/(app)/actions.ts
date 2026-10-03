@@ -135,6 +135,32 @@ export async function reconcileNowAction(): Promise<Result<{ checked: number; in
   }
 }
 
+/** Fuxia 360 content (photos, description, price, colour name) → the current store's products. Owner only; the
+ *  database refuses production targets. One store product per call so the page can show progress. */
+async function contentCall<T>(body: Record<string, unknown>): Promise<Result<T>> {
+  if (!publisherAvailable()) return { ok: false, error: 'La conexión con WooCommerce todavía no está disponible en este ambiente.' };
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' };
+  const url = new URL('f360-woo-sync', process.env.F360_PUBLISHER_URL!).toString();
+  try {
+    const res = await fetch(url, { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body), cache: 'no-store', signal: AbortSignal.timeout(140_000) });
+    const out = await res.json().catch(() => ({}));
+    return res.ok ? { ok: true, data: out as T } : { ok: false, error: out.error ?? 'No se pudo.' };
+  } catch {
+    return { ok: false, error: 'La tienda tardó demasiado en responder.' };
+  }
+}
+export type StoreContentItem = { woo_product_id: number; product_id: string; name: string; last_push: string | null };
+export async function storeContentListAction(productIds?: string[]) {
+  const r = await contentCall<{ items: StoreContentItem[] }>({ action: 'content_list', product_ids: productIds ?? null });
+  return r.ok ? { ok: true as const, data: r.data.items } : r;
+}
+export async function storeContentPushAction(wooProductId: number) {
+  return contentCall<{ ok: boolean; name: string; photos: number; message: string }>({ action: 'content', woo_product_id: wooProductId });
+}
+
 // B4 · Plan (owner only; validated again in the database)
 export async function saveGrowthPlanAction(year: number, northStar: number, note: string): Promise<Result<unknown>> {
   const r = await call('f360_save_growth_plan', { p_year: year, p_north_star: northStar, p_note: note || null });

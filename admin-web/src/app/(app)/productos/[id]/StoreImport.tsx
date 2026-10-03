@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import type { LegacySource } from '@/lib/f360';
 import { importFromStoreAction, linkProductsAction } from '../../actions';
+import { StoreContentPush } from '../StoreContentPush';
 
 /** Brings the store's photos, price and description into the model, a few colours per call, until done. */
 export async function runStoreImport(productId: string, onProgress?: (text: string) => void) {
@@ -48,6 +49,7 @@ export function StoreOrigin({ productId, sources, canEdit, missing, owner = fals
             const r = await linkProductsAction(sources[0].target_key, [productId], 'Ensayo desde la ficha del modelo');
             setMsg(r.ok ? (r.data.linked ? `Ligadas ${r.data.linked} tallas; la tienda se actualiza en ~1 minuto.` : `Ya estaba ligado; se reenviaron ${r.data.queued} tallas.`) : r.error); router.refresh();
           })} className="mt-2 rounded-full border border-ink px-4 py-2 text-sm text-ink">Mostrar cantidades en la tienda de pruebas</button>
+          <div className="mt-4"><StoreContentPush productIds={[productId]} label="Mandar fotos, descripción y precio de este modelo" /></div>
         </div>
       )}
       {msg && <p className="mt-3 text-sm text-ink-2" role="status">{msg}</p>}

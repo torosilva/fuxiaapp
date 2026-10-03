@@ -3,6 +3,7 @@ import { ColorDot, ProductImage } from '@/components/ProductImage';
 import { IconPlus, IconSearch } from '@/components/icons';
 import { canWrite, getMe, listCategories, listProducts } from '@/lib/f360';
 import { pares, precio } from '@/lib/format';
+import { StoreContentPush } from './StoreContentPush';
 
 export default async function Productos({ searchParams }: { searchParams: Promise<{ q?: string; categoria?: string }> }) {
   const { q, categoria } = await searchParams;
@@ -21,6 +22,7 @@ export default async function Productos({ searchParams }: { searchParams: Promis
           </Link>
         )}
       </div>
+      {me.role === 'owner' && !categoria && !q && <div className="mt-6"><StoreContentPush /></div>}
       <form className="relative mt-6 max-w-md" role="search">
         <IconSearch className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted" />
         <input name="q" defaultValue={q} placeholder="Busca por nombre o color" className="w-full rounded-full border border-line bg-surface py-3.5 pl-12 pr-4 text-base outline-none focus:border-gold" />

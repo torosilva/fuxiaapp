@@ -1,15 +1,3 @@
-<!--
-  Fuxia 360 · "Entrega inmediata" + "Apártalo 2 horas" (Fuxia Gold) para la página de producto (Bricks → elemento "Code",
-  con "Ejecutar código"). Dónde va: plantilla de producto individual, debajo del botón de comprar (o al final del elemento
-  de tallas). No cambia nada del formulario de WooCommerce.
-
-  Qué hace:
-    · al elegir talla (y color), pregunta a Fuxia 360 en qué tiendas hay un par LIBRE de esa talla hoy
-      (sin mostrar cantidades) y muestra "Entrega inmediata hoy en: Tienda Polanco";
-    · si hay tienda: botón "Fuxia Gold: apártalo 2 horas" → teléfono → código → apartado. El par queda separado en la
-      tienda 2 horas; si la clienta no llega, se libera solo (sin consecuencias).
-  STAGING: endpoint de staging y solo teléfonos de prueba (código de prueba, no se envía WhatsApp).
--->
 <div class="f360-inmediata" hidden>
   <p class="f360-inm-titulo">✓ Entrega inmediata hoy en <b class="f360-inm-tiendas"></b></p>
   <button type="button" class="f360-inm-boton">Fuxia Gold: apártalo 2 horas</button>
@@ -41,6 +29,7 @@
 .f360-inm-msg.ok { color: #3f6b4f; } .f360-inm-msg.err { color: #9b2c2c; }
 </style>
 <script>
+/* Fuxia 360 · Entrega inmediata + Apártalo 2 horas (Fuxia Gold). STAGING. Fuente: tools/storefront/f360-entrega-inmediata.md */
 (function () {
   var ENDPOINT = 'https://faltxpkaicwpnlqaxrdu.supabase.co/functions/v1/f360-store-reserve';   // STAGING
   function api(body) {
@@ -48,6 +37,8 @@
       .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'No se pudo.'); return j; }); });
   }
   function init() {
+    // Solo la tienda de México (raíz o /mx/): las tiendas físicas están en México; en /co/ u otro país no se muestra.
+    if (/^\/[a-z]{2}\//.test(location.pathname) && !/^\/mx\//.test(location.pathname)) return;
     var form = document.querySelector('form.variations_form');
     var box = document.querySelector('.f360-inmediata');
     if (!form || !box || !window.jQuery) return;
