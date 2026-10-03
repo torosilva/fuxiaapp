@@ -4,7 +4,7 @@ import { stockToPush } from './mapping.ts';
 import type { WooAdapter, WooVariation } from './types.ts';
 
 export type Rpc = <T>(fn: string, args: Record<string, unknown>) => Promise<T>;
-type Claim = { variant_id: string; claimed_at: string; attempts: number; sku: string; woo_product_id: number; woo_variation_id: number; ats: number; expected: number | null };
+type Claim = { variant_id: string; claimed_at: string; attempts: number; sku: string; woo_product_id: number; woo_variation_id: number; ats: number; expected: number | null; backorders?: 'notify' | 'no' };
 type Result = { variant_id: string; claimed_at: string; ok: boolean; ats: number; expected: number | null; woo_before: number | null; pushed: number | null; error: string | null };
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -29,13 +29,14 @@ export async function pushStock(rpc: Rpc, woo: WooAdapter, targetKey: string, li
       const w = vars.find((v) => v.id === c.woo_variation_id);
       if (!w) { results.push({ ...base(c), ok: false, woo_before: null, pushed: null, error: 'La variación ya no existe en la tienda.' }); continue; }
       const qty = stockToPush(c.ats, c.expected, w.stock_quantity);
-      if (w.manage_stock === true && w.stock_quantity === qty) results.push({ ...base(c), ok: true, woo_before: w.stock_quantity, pushed: qty, error: null });
+      // backorders: 'notify' = sobre pedido (orderable at 0, Mario 2026-10-03), 'no' = blocked at 0
+      if (w.manage_stock === true && w.stock_quantity === qty && (w.backorders ?? 'no') === (c.backorders ?? 'no')) results.push({ ...base(c), ok: true, woo_before: w.stock_quantity, pushed: qty, error: null });
       else updates.push({ c, qty, before: w.stock_quantity });
     }
     for (let i = 0; i < updates.length; i += 100) {
       const chunk = updates.slice(i, i + 100);
       try {
-        const r = await woo.batchVariations(pid, { update: chunk.map((u) => ({ id: u.c.woo_variation_id, manage_stock: true, stock_quantity: u.qty, backorders: 'no' })) }, 'stock');
+        const r = await woo.batchVariations(pid, { update: chunk.map((u) => ({ id: u.c.woo_variation_id, manage_stock: true, stock_quantity: u.qty, backorders: u.c.backorders ?? 'no' })) }, 'stock');
         chunk.forEach((u, k) => {
           const item = r.update?.[k] as { error?: { message: string } } | undefined;
           results.push(item && !item.error

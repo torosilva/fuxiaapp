@@ -44,6 +44,8 @@ BEGIN
   v36 := (SELECT (x->>'id')::uuid FROM jsonb_array_elements(p->'colors'->0->'variants') x WHERE x->>'size' = '36');
   v37 := (SELECT (x->>'id')::uuid FROM jsonb_array_elements(p->'colors'->0->'variants') x WHERE x->>'size' = '37');
   INSERT INTO t_ids VALUES ('p', (p->>'id')::uuid), ('v36', v36), ('v37', v37), ('t', tid);
+  -- this model is NOT sobre pedido (20261007001500): an order without stock must stay an oversell alert here
+  UPDATE f360.products SET make_to_order = false WHERE id = (p->>'id')::uuid;
   INSERT INTO f360.woo_product_links (target_id, product_id, woo_product_id) VALUES (tid, (p->>'id')::uuid, 9000);
   INSERT INTO f360.woo_variant_links (target_id, variant_id, woo_variation_id, last_pushed_stock) VALUES (tid, v36, 9036, 0), (tid, v37, 9037, 2);
   PERFORM pg_temp.as_user(u, 'authenticated');

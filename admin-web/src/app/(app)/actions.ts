@@ -357,6 +357,18 @@ export async function importFromStoreAction(productId: string, maxColors = 3): P
   return { ok: true, data: { photos, price: 'regular_price' in fields, description: 'description' in fields, skipped, remaining: Math.max(0, pending.length - maxColors) } };
 }
 
+export async function setMadeToOrderStatusAction(id: string, status: 'pendiente' | 'en_proceso' | 'enviado' | 'cancelado'): Promise<Result<unknown>> {
+  const r = await call('f360_made_to_order_set', { p_id: id, p_status: status, p_note: null });
+  if (r.ok) revalidatePath('/sobre-pedido');
+  return r;
+}
+/** Sobre pedido on/off for a model (operator+; validated again in the database). */
+export async function setMakeToOrderAction(productId: string, on: boolean, reason: string): Promise<Result<unknown>> {
+  const r = await call('f360_set_make_to_order', { p_product_id: productId, p_on: on, p_reason: reason || null });
+  if (r.ok) revalidateProduct(productId);
+  return r;
+}
+
 export async function setColorHexAction(productId: string, colorId: string, hex: string | null): Promise<Result<Product>> {
   if (hex && !/^#[0-9a-fA-F]{6}$/.test(hex)) return { ok: false, error: 'Color no válido.' };
   const r = await call<Product>('f360_set_color_hex', { p_color_id: colorId, p_hex: hex });

@@ -10,6 +10,7 @@ import { PublishPanel } from './PublishPanel';
 import { PricesPanel } from './PricesPanel';
 import { StoreOrigin } from './StoreImport';
 import { ArchivePanel } from './ArchivePanel';
+import { MakeToOrderPanel } from './MakeToOrderPanel';
 import { AdjustPanel } from './AdjustPanel';
 import { publisherAvailable } from '@/lib/env-guard';
 
@@ -143,6 +144,7 @@ export default async function ProductoDetalle({ params, searchParams }: { params
             : events.map((e) => <EventCard key={e.id} e={e} />)}
         </div>
       </section>
+      {edit && <MakeToOrderPanel productId={product.id} on={product.make_to_order !== false} />}
       {edit && <ArchivePanel productId={product.id} name={product.name} state={archive} />}
     </div>
   );

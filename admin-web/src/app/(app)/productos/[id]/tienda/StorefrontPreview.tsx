@@ -19,6 +19,7 @@ export function StorefrontPreview({ product, initialColorId }: { product: Produc
   const stock = variant && color ? online(color.id, variant.size) : 0;
   const photos = color?.media ?? [];
   const totalVariations = product.colors.length * product.sizes.length;
+  const sobrePedido = product.make_to_order !== false;   // a size at 0 can still be bought, shipped in 5–7 business days
 
   const matrix = useMemo(() => product.colors.map((c) => ({
     color: c, rows: c.variants.map((v) => ({ sku: v.sku, size: v.size, stock: online(c.id, v.size) })),
@@ -78,9 +79,9 @@ export function StorefrontPreview({ product, initialColorId }: { product: Produc
             {color.variants.map((v) => {
               const n = online(color.id, v.size);
               return (
-                <button key={v.id} type="button" disabled={n === 0} aria-pressed={size === v.size} aria-label={`Talla ${v.size}${n === 0 ? ' agotada' : ''}`}
+                <button key={v.id} type="button" disabled={n === 0 && !sobrePedido} aria-pressed={size === v.size} aria-label={`Talla ${v.size}${n === 0 ? (sobrePedido ? ' se entrega en 5 a 7 días hábiles' : ' agotada') : ''}`}
                   onClick={() => setSize(v.size)}
-                  className={`tabular rounded-xl border py-3 text-lg ${size === v.size ? 'border-ink bg-ink text-surface' : n === 0 ? 'cursor-not-allowed border-line text-line line-through' : 'border-line text-ink hover:border-ink'}`}>
+                  className={`tabular rounded-xl border py-3 text-lg ${size === v.size ? 'border-ink bg-ink text-surface' : n === 0 && !sobrePedido ? 'cursor-not-allowed border-line text-line line-through' : n === 0 ? 'border-dashed border-line text-ink-2 hover:border-ink' : 'border-line text-ink hover:border-ink'}`}>
                   {v.size}
                 </button>
               );
@@ -91,14 +92,16 @@ export function StorefrontPreview({ product, initialColorId }: { product: Produc
             {variant ? (
               <>
                 <p className="text-ink"><strong>{product.name} · {color.name} · {variant.size}</strong></p>
-                <p className="tabular mt-1 text-ink-2">{stock} {stock === 1 ? 'disponible' : 'disponibles'} en línea</p>
+                {stock === 0 && sobrePedido
+                  ? <p className="mt-1 text-ink-2">Esta talla y color se entrega en <b>5 a 7 días hábiles</b></p>
+                  : <p className="tabular mt-1 text-ink-2">{stock} {stock === 1 ? 'disponible' : 'disponibles'} en línea</p>}
                 <p className="mt-1 font-mono text-xs text-muted">{variant.sku}</p>
               </>
             ) : (
-              <p className="text-ink-2">{color.variants.some((v) => online(color.id, v.size) > 0) ? 'Elige una talla' : `Sin existencia en línea para ${color.name}`}</p>
+              <p className="text-ink-2">{sobrePedido || color.variants.some((v) => online(color.id, v.size) > 0) ? 'Elige una talla' : `Sin existencia en línea para ${color.name}`}</p>
             )}
           </div>
-          <button type="button" disabled={!variant || stock === 0} className="mt-4 w-full rounded-2xl bg-ink py-4 text-lg text-surface disabled:bg-surface-2 disabled:text-muted">Añadir al carrito (vista previa)</button>
+          <button type="button" disabled={!variant || (stock === 0 && !sobrePedido)} className="mt-4 w-full rounded-2xl bg-ink py-4 text-lg text-surface disabled:bg-surface-2 disabled:text-muted">Añadir al carrito (vista previa)</button>
         </div>
       </div>
 

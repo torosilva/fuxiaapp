@@ -16,7 +16,7 @@ export type Color = { id: string; name: string; code: string; hex: string | null
 export type Product = {
   id: string; name: string; code: string; codes_locked: boolean; category: string | null; category_key: string | null;
   description: string | null; short_description: string | null; regular_price: number | null; sale_price: number | null;
-  image_path: string | null; readiness: Readiness; online_location: { id: string; name: string } | null;
+  make_to_order?: boolean; image_path: string | null; readiness: Readiness; online_location: { id: string; name: string } | null;
   sizes: string[]; colors: Color[]; pairs: number;
 };
 export type EventLine = { product_id: string; product_name: string; product_image: string | null; color: string; color_hex: string | null; size: string; sku?: string | null; quantity: number; from_location: string | null; to_location: string | null };
@@ -201,3 +201,8 @@ export type Reservation = { id: string; location_id: string; store: string; vari
   customer: string; phone_last4: string; channel: 'app' | 'web' | 'tienda'; status: 'activa' | 'vendida' | 'vencida' | 'cancelada';
   created_at: string; expires_at: string; closed_at: string | null; closed_by: string | null; closed_reason: string | null };
 export const listReservations = (locationId?: string) => rpc<Reservation[]>('f360_reservations', { p_location_id: locationId ?? null, p_days: 7 });
+
+// Sobre pedido (Mario 2026-10-03): online orders of a size without stock, to be made and shipped in 5–7 business days.
+export type MadeToOrder = { id: string; order: number; store: string; product: string; color: string; size: string; sku: string; quantity: number;
+  status: 'pendiente' | 'en_proceso' | 'enviado' | 'cancelado'; created_at: string; updated_at: string; updated_by: string | null; note: string | null; ship_by: string | null };
+export const listMadeToOrder = () => rpc<MadeToOrder[]>('f360_made_to_order_list', { p_days: 90 });

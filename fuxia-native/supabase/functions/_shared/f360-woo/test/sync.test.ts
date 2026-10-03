@@ -123,3 +123,14 @@ test('applyVisibility: hide → private (never deleted), show → the previous s
   await applyVisibility(rpc, woo, 't');
   assert.equal((await woo.getProduct(pid))!.status, 'publish');
 });
+
+test('push: sobre pedido → size at 0 stays orderable (backorders notify); turning it off blocks it again', async () => {
+  const { store, woo, pid, v38 } = await setup();
+  let db = fakeDb([{ variant_id: 'b', claimed_at: 't', sku: 's', woo_product_id: pid, woo_variation_id: v38, ats: 0, expected: 0, backorders: 'notify' }]);
+  await pushStock(db.rpc, woo, 'woo_local');
+  assert.equal(store.variations.get(v38)?.stock_quantity, 0);
+  assert.equal((store.variations.get(v38) as { backorders?: string }).backorders, 'notify');
+  db = fakeDb([{ variant_id: 'b', claimed_at: 't', sku: 's', woo_product_id: pid, woo_variation_id: v38, ats: 0, expected: 0, backorders: 'no' }]);
+  await pushStock(db.rpc, woo, 'woo_local');
+  assert.equal((store.variations.get(v38) as { backorders?: string }).backorders, 'no');
+});

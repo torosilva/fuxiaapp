@@ -1,3 +1,4 @@
+<p class="f360-sobrepedido" hidden>Esta talla y color se entrega en <b>5 a 7 días hábiles</b>.</p>
 <div class="f360-inmediata" hidden>
   <p class="f360-inm-titulo">✓ Entrega inmediata hoy en <b class="f360-inm-tiendas"></b></p>
   <button type="button" class="f360-inm-boton">Fuxia Gold: apártalo 2 horas</button>
@@ -16,7 +17,9 @@
   </div>
 </div>
 <style>
-.f360-inmediata [hidden], .f360-inmediata[hidden] { display: none !important; }
+.f360-inmediata [hidden], .f360-inmediata[hidden], .f360-sobrepedido[hidden] { display: none !important; }
+.f360-sobrepedido { margin: 12px 0 0; padding: 10px 14px; border-left: 3px solid #B8966E; background: #fbf7f0; font-size: 14px; color: #4a433a; }
+.woocommerce-variation-availability .available-on-backorder { display: none; }   /* Woo's own "bajo pedido" text: replaced by ours */
 .f360-inmediata { margin: 18px 0; padding: 14px 16px; border: 1px solid #e6dfd4; border-radius: 6px; background: #fffdf9; font-family: inherit; }
 .f360-inm-titulo { margin: 0 0 10px; font-size: 14px; color: #3f6b4f; }
 .f360-inm-boton, .f360-inm-enviar, .f360-inm-apartar { height: 42px; padding: 0 16px; border: 1px solid #B8966E; background: #fff; color: #8c6414; cursor: pointer; font-size: 14px; border-radius: 4px; }
@@ -60,21 +63,26 @@
     window.addEventListener('load', poner);
   }
   function init() {
-    // Solo la tienda de México (raíz o /mx/): las tiendas físicas están en México; en /co/ u otro país no se muestra.
-    if (/^\/[a-z]{2}\//.test(location.pathname) && !/^\/mx\//.test(location.pathname)) return;
-    tallasMexico();
+    // "5 a 7 días hábiles" va en todos los países; entrega inmediata y tallas mexicanas solo en México (raíz o /mx/).
+    var mexico = !(/^\/[a-z]{2}\//.test(location.pathname) && !/^\/mx\//.test(location.pathname));
+    if (mexico) tallasMexico();
     var form = document.querySelector('form.variations_form');
     var box = document.querySelector('.f360-inmediata');
     if (!form || !box || !window.jQuery) return;
     var $ = window.jQuery;
     var anchor = form.querySelector('.single_variation_wrap') || form;
     anchor.parentNode.insertBefore(box, anchor.nextSibling);
+    var sobre = document.querySelector('.f360-sobrepedido');
+    if (sobre) anchor.parentNode.insertBefore(sobre, box);
     var q = function (s) { return box.querySelector(s); };
     var variation = null, stores = [], phone = '';
     function msg(t, ok) { var m = q('.f360-inm-msg'); m.textContent = t || ''; m.className = 'f360-inm-msg ' + (ok ? 'ok' : 'err'); }
-    function reset() { box.hidden = true; q('.f360-inm-flujo').hidden = true; q('.f360-inm-boton').hidden = false; q('.f360-inm-tel').hidden = false; q('.f360-inm-cod').hidden = true; msg(''); }
+    function reset() { if (sobre) sobre.hidden = true; box.hidden = true; q('.f360-inm-flujo').hidden = true; q('.f360-inm-boton').hidden = false; q('.f360-inm-tel').hidden = false; q('.f360-inm-cod').hidden = true; msg(''); }
     $(form).on('found_variation', function (e, v) {
       variation = v && v.variation_id; reset(); if (!variation) return;
+      // 5–7 días hábiles (Mario 2026-10-03; never called "sobre pedido" to the customer): no stock but orderable → Woo marks it "available-on-backorder"
+      if (sobre) sobre.hidden = !(v.backorders_allowed && /available-on-backorder/.test(v.availability_html || ''));
+      if (!mexico) return;
       var asked = variation;
       api({ action: 'availability', woo_variation_id: variation }).then(function (j) {
         if (asked !== variation) return;                       // the customer changed size meanwhile

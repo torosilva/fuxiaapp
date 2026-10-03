@@ -230,10 +230,11 @@ BEGIN
     pg_temp.order_json(99000002, '[{"id":1,"product_id":9001,"variation_id":900101,"quantity":1}]'));
   PERFORM pg_temp.ok(r->'lines'->0->>'outcome' = 'sold' AND (SELECT on_hand FROM f360.inventory_balances WHERE variant_id = v_nude35 AND location_id = bodega) = 0,
     'legacy order line with NO SKU at all → still resolved by variation_id (Bodega 1 → 0)', r::text);
+  UPDATE f360.products SET make_to_order = false WHERE id = (SELECT product_id FROM f360.product_variants WHERE id = v_nude35);   -- 5–7 días off
   r := public.f360_ingest_woo_order('zz_d2', '{"delivery_id":"zz-d2-3","topic":"order.created"}',
     pg_temp.order_json(99000003, '[{"id":1,"product_id":9001,"variation_id":900101,"quantity":1}]'));
   PERFORM pg_temp.ok(r->'lines'->0->>'outcome' = 'oversold' AND (SELECT on_hand FROM f360.inventory_balances WHERE variant_id = v_nude35 AND location_id = bodega) = 0,
-    'count 0 means 0: a further sale is "oversold", never negative', r::text);
+    'count 0 means 0: a further sale is "oversold" (model without 5–7 días), never negative', r::text);
   SELECT count(*) INTO n FROM f360.sync_exceptions WHERE target_id = tgt AND kind = 'unknown_sku';
   r := public.f360_ingest_woo_order('zz_d2', '{"delivery_id":"zz-d2-4","topic":"order.created"}',
     pg_temp.order_json(99000004, '[{"id":1,"product_id":9003,"variation_id":900301,"quantity":1}]'));

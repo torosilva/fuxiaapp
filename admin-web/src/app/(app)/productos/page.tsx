@@ -16,6 +16,7 @@ export default async function Productos({ searchParams }: { searchParams: Promis
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="font-display text-5xl text-ink">Productos</h1>
+        <Link href="/sobre-pedido" className="ml-auto rounded-full px-5 py-3 text-ink-2 ring-1 ring-line">Pedidos de 5 a 7 días</Link>
         {canWrite(me.role) && (
           <Link href="/productos/nuevo" className="flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-surface transition hover:bg-ink-2">
             <IconPlus className="size-5" />Nuevo producto
