@@ -33,7 +33,13 @@
 .f360-t-rail { margin: 0 0 28px; }
 .f360-t-rails { margin-top: 36px; }
 .f360-t-rail h3 { margin: 0 0 12px; font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #83734C; }
-.f360-t-cards { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 190px); gap: 14px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x mandatory; }
+.f360-t-rail { position: relative; max-width: 100%; overflow: hidden; }
+.f360-t-cards { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 4 * 16px) / 5); gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; }
+.f360-t-cards::-webkit-scrollbar { display: none; }
+.f360-t-flecha { position: absolute; top: calc(50% - 10px); width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e6dfd4; background: rgba(255,255,255,.92); cursor: pointer; font-size: 18px; color: #242424; box-shadow: 0 4px 14px rgba(0,0,0,.08); z-index: 2; }
+.f360-t-flecha.izq { left: 6px; } .f360-t-flecha.der { right: 6px; }
+@media (max-width: 900px) { .f360-t-cards { grid-auto-columns: calc((100% - 2 * 16px) / 3); } }
+@media (max-width: 560px) { .f360-t-cards { grid-auto-columns: calc((100% - 16px) / 2); } }
 .f360-t-card { scroll-snap-align: start; text-decoration: none; color: inherit; }
 .f360-t-card img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; background: #f5f2ec; border-radius: 4px; display: block; }
 .f360-t-card b { display: block; margin-top: 8px; font-size: 14px; font-weight: 500; }
@@ -128,6 +134,17 @@
           s.textContent = (pr.currency_prefix || '$') + Number(pr.price / Math.pow(10, dec)).toLocaleString('es-MX') + (pr.currency_suffix || '');
           a.appendChild(img); a.appendChild(b); a.appendChild(s); row.appendChild(a);
         });
+        // carousel: arrows + turns by itself every 4 s (pauses on hover/touch; respects "reduce motion")
+        var paso = function (d) { var w = row.clientWidth; var fin = row.scrollLeft + w >= row.scrollWidth - 4;
+          row.scrollTo({ left: d > 0 ? (fin ? 0 : row.scrollLeft + w) : Math.max(0, row.scrollLeft - w) }); };
+        if (lista.length > 2) {
+          [['izq', '‹', -1], ['der', '›', 1]].forEach(function (f) { var bt = document.createElement('button'); bt.type = 'button'; bt.className = 'f360-t-flecha ' + f[0];
+            bt.setAttribute('aria-label', f[2] < 0 ? 'Anteriores' : 'Siguientes'); bt.textContent = f[1]; bt.onclick = function () { paso(f[2]); }; sec.appendChild(bt); });
+          var pausa = false, quieto = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          sec.addEventListener('mouseenter', function () { pausa = true; }); sec.addEventListener('mouseleave', function () { pausa = false; });
+          sec.addEventListener('touchstart', function () { pausa = true; }, { passive: true });
+          if (!quieto) setInterval(function () { if (!pausa && !document.hidden && row.scrollWidth > row.clientWidth + 4) paso(1); }, 4000);
+        }
         destino.appendChild(sec); destino.hidden = false;
       }).catch(function () { destino.hidden = true; });
   }
