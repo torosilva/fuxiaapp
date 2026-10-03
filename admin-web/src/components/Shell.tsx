@@ -14,6 +14,7 @@ const NAV = [
   { href: '/growth', label: 'Growth', icon: IconGrowth, live: true },
   { href: '/homologacion', label: 'Homologación', icon: IconLink, live: true, admin: true },
   { href: '/conteo', label: 'Conteo de apertura', icon: IconCheck, live: true, admin: true },
+  { href: '/tiendas', label: 'Tiendas', icon: IconBoxes, live: true, admin: true },
   { href: '/avisos', label: 'Avisos', icon: IconBell, live: true },
   { href: '/produccion', label: 'Producción', icon: IconScissors, live: false },
 ];

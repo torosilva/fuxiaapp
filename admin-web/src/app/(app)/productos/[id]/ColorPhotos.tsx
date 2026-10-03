@@ -7,7 +7,7 @@ import { IconCamera, IconCheck, IconPlus, IconX } from '@/components/icons';
 import type { Color, Product } from '@/lib/f360';
 import { imageUrl, SWATCHES } from '@/lib/format';
 import { createClient } from '@/lib/supabase/browser';
-import { addColorAction, addMediaAction, removeColorAction, removeMediaAction, setColorHexAction, setPrimaryMediaAction } from '../../actions';
+import { addColorAction, addMediaAction, removeColorAction, removeMediaAction, renameColorAction, setColorHexAction, setPrimaryMediaAction } from '../../actions';
 
 // Photos per color + add a color later (the model is never recreated).
 export function ColorPhotos({ product, color, canEdit, removeBlockers = [] }: { product: Product; color: Color; canEdit: boolean; removeBlockers?: string[] }) {
@@ -19,6 +19,7 @@ export function ColorPhotos({ product, color, canEdit, removeBlockers = [] }: { 
   const [newColor, setNewColor] = useState('');
   const [picking, setPicking] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [renaming, setRenaming] = useState<string | null>(null);
   const [removeReason, setRemoveReason] = useState('');
   const [custom, setCustom] = useState(color.hex ?? '#C9BFAE');
 
@@ -101,9 +102,20 @@ export function ColorPhotos({ product, color, canEdit, removeBlockers = [] }: { 
 
       <div className="mt-5 rounded-3xl border border-line bg-surface p-5">
         <div className="flex items-center justify-between">
+          {renaming !== null ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <input aria-label="Nuevo nombre del color" value={renaming} onChange={(e) => setRenaming(e.target.value)} className="rounded-xl border border-line bg-bg px-3 py-2 text-ink" />
+              <button type="button" disabled={pending} onClick={() => run(async () => { const r = await renameColorAction(product.id, color.id, renaming); if (r.ok) setRenaming(null); return r; })}
+                className="rounded-xl bg-ink px-3 py-2 text-sm text-surface">Guardar</button>
+              <button type="button" onClick={() => setRenaming(null)} className="text-sm text-muted">Cancelar</button>
+              <span className="text-xs text-muted">Solo cambia el nombre que se ve; el SKU no cambia.</span>
+            </div>
+          ) : (
           <p className="flex items-center gap-2 text-lg text-ink"><ColorDot hex={color.hex} className="size-5" />{color.name}
+            {canEdit && <button type="button" onClick={() => setRenaming(color.name)} className="ml-1 text-sm text-muted underline decoration-line underline-offset-4">Cambiar nombre</button>}
             {canEdit && <button type="button" onClick={() => setPicking(!picking)} className="ml-1 text-sm text-muted underline decoration-line underline-offset-4">{picking ? 'Listo' : color.hex ? 'Cambiar circulito' : 'Elegir circulito'}</button>}
           </p>
+          )}
           {color.media.length === 0 && <span className="rounded-full bg-gold-soft px-3 py-1 text-xs text-ink-2">Faltan fotos</span>}
         </div>
         {picking && canEdit && (

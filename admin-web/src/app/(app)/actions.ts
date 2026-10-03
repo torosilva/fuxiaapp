@@ -404,3 +404,17 @@ export async function openingLoadAction(id: string, idempotencyKey: string): Pro
 export async function linkChannelAction(target: string): Promise<Result<{ linked: number; queued: number; total_links: number }>> {
   const r = await call<{ linked: number; queued: number; total_links: number }>('f360_legacy_link_channel', { p_target_key: target }); if (r.ok) revalidateCount(); return r;
 }
+
+export async function renameColorAction(productId: string, colorId: string, name: string): Promise<Result<Product>> {
+  if (!name.trim()) return { ok: false, error: 'Escribe el nombre del color.' };
+  const r = await call<Product>('f360_rename_color', { p_color_id: colorId, p_name: name.trim() });
+  if (r.ok) revalidateProduct(productId);
+  return r;
+}
+export async function createLocationAction(input: { name: string; type: 'store' | 'bazaar' | 'warehouse'; legacyChannelId: string | null; startsOn: string | null; endsOn: string | null }): Promise<Result<unknown>> {
+  if (!input.name.trim()) return { ok: false, error: 'Escribe el nombre.' };
+  const r = await call('f360_create_location', { p_name: input.name.trim(), p_type: input.type, p_legacy_channel_id: input.legacyChannelId,
+    p_sellable: null, p_starts_on: input.startsOn || null, p_ends_on: input.endsOn || null });
+  if (r.ok) { revalidatePath('/tiendas'); revalidatePath('/inventario', 'layout'); }
+  return r;
+}

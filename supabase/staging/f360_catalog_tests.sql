@@ -67,6 +67,20 @@ BEGIN
   PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM f360.product_colors WHERE id = nude), 'second unused colour removed', r::text);
   r := pg_temp.as(car, format($q$SELECT public.f360_color_remove_state(%L)$q$, negro));
   PERFORM pg_temp.ok((r->'blockers')::text LIKE '%único color%', 'the last colour of a model is never removed (archive the model instead)', r::text);
+  -- rename a colour: name only, SKU unchanged
+  r := pg_temp.as(car, format($q$SELECT public.f360_rename_color(%L, 'Negro charol')$q$, negro));
+  PERFORM pg_temp.ok((SELECT name FROM f360.product_colors WHERE id = negro) = 'Negro charol'
+    AND (SELECT sku FROM f360.product_variants WHERE color_id = negro AND size_label = '36') = 'F360-ZZ-COLORES-NEGRO-36'
+    AND EXISTS (SELECT 1 FROM f360.catalog_changes WHERE product_id = pid AND what = 'rename_color' AND detail->>'from' = 'Negro'),
+    'a colour is renamed; its SKU stays the same; logged', r::text);
+  PERFORM pg_temp.as(car, format($q$SELECT public.f360_add_color(%L, 'Vino', NULL)$q$, pid));
+  r := pg_temp.as(car, format($q$SELECT public.f360_rename_color(%L, 'vino')$q$, negro));
+  PERFORM pg_temp.ok(r->>'error' LIKE '%ya tiene un color%', 'two colours of a model cannot share a name', r::text);
+  r := pg_temp.as(sel, format($q$SELECT public.f360_rename_color(%L, 'X')$q$, negro));
+  PERFORM pg_temp.ok(r ? 'error', 'a seller cannot rename a colour', r::text);
+  r := pg_temp.as(car, $q$SELECT public.f360_legacy_channels_available()$q$);
+  PERFORM pg_temp.ok(jsonb_typeof(r) = 'array' AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) x JOIN f360.locations l ON l.legacy_channel_id = (x->>'id')::uuid),
+    'available legacy stores = not yet linked to a location', r::text);
   BEGIN UPDATE f360.catalog_changes SET reason = 'x'; err := 'accepted'; EXCEPTION WHEN OTHERS THEN err := SQLERRM; END;
   PERFORM pg_temp.ok(err LIKE '%no se puede modificar%', 'catalog history is append-only', err);
 END $$;

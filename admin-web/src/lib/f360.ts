@@ -193,3 +193,5 @@ export const getColorRemoveState = (colorId: string) => rpc<{ blockers: string[]
 export type ChannelState = { target: string; links: number; queue: number; last_push: string | null; opening_loaded: boolean;
   visibility: { woo_product_id: number; pending: 'ocultar' | 'mostrar' | null; last: { kind: 'ocultar' | 'mostrar'; status: 'pendiente' | 'hecho' | 'error'; by: string; at: string; error: string | null } | null }[] };
 export const getChannelState = (target = 'woo_staging4') => rpc<ChannelState>('f360_legacy_channel_state', { p_target_key: target });
+export type LegacyChannel = { id: string; name: string; type: string; active: boolean; legacy_pairs: number };
+export const listLegacyChannelsAvailable = () => rpc<LegacyChannel[]>('f360_legacy_channels_available');
