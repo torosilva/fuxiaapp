@@ -195,3 +195,9 @@ export type ChannelState = { target: string; links: number; queue: number; last_
 export const getChannelState = (target = 'woo_staging4') => rpc<ChannelState>('f360_legacy_channel_state', { p_target_key: target });
 export type LegacyChannel = { id: string; name: string; type: string; active: boolean; legacy_pairs: number };
 export const listLegacyChannelsAvailable = () => rpc<LegacyChannel[]>('f360_legacy_channels_available');
+
+// Apartado Gold + entrega inmediata (phase 1-2)
+export type Reservation = { id: string; location_id: string; store: string; variant_id: string; product: string; color: string; color_hex: string | null; size: string; sku: string | null;
+  customer: string; phone_last4: string; channel: 'app' | 'web' | 'tienda'; status: 'activa' | 'vendida' | 'vencida' | 'cancelada';
+  created_at: string; expires_at: string; closed_at: string | null; closed_by: string | null; closed_reason: string | null };
+export const listReservations = (locationId?: string) => rpc<Reservation[]>('f360_reservations', { p_location_id: locationId ?? null, p_days: 7 });

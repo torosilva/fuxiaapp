@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { IconBag, IconBell, IconBoxes, IconCheck, IconGrowth, IconLink, IconMove, IconReceipt, IconScissors, IconUsers } from '@/components/icons';
+import { IconBag, IconBell, IconBoxes, IconCheck, IconClock, IconGrowth, IconLink, IconMove, IconReceipt, IconScissors, IconUsers } from '@/components/icons';
 import { canWrite, getMe } from '@/lib/f360';
 
 const ITEMS = [
@@ -8,6 +8,7 @@ const ITEMS = [
   { href: '/homologacion', label: 'Homologación Woo', icon: IconLink, live: true, admin: true },
   { href: '/conteo', label: 'Conteo de apertura', icon: IconCheck, live: true, admin: true },
   { href: '/tiendas', label: 'Tiendas y ubicaciones', icon: IconBoxes, live: true, admin: true },
+  { href: '/apartados', label: 'Apartados Gold', icon: IconClock, live: true, admin: true },
   { href: '/monedas', label: 'Monedas', icon: IconReceipt, live: true, admin: true },
   { href: '/clientes', label: 'Clientes', icon: IconUsers, live: true },
   { href: '/growth', label: 'Growth', icon: IconGrowth, live: true },

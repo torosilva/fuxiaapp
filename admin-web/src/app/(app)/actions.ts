@@ -418,3 +418,9 @@ export async function createLocationAction(input: { name: string; type: 'store' 
   if (r.ok) { revalidatePath('/tiendas'); revalidatePath('/inventario', 'layout'); }
   return r;
 }
+
+export async function cancelReservationAction(id: string, reason: string): Promise<Result<unknown>> {
+  if (reason.trim().length < 3) return { ok: false, error: 'Escribe el motivo.' };
+  const r = await call('f360_reservation_cancel', { p_reservation_id: id, p_reason: reason.trim() });
+  if (r.ok) revalidatePath('/apartados'); return r;
+}
