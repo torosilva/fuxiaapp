@@ -1,7 +1,7 @@
 // f360-woo-sync — drains the stock push queue and/or reconciles Fuxia 360 ↔ Woo for ONE target.
 // Callers: a scheduler (Bearer F360_SYNC_SECRET) or an owner/operator from Fuxia 360 ("Revisar ahora", user JWT).
 import { restAdapter } from '../_shared/f360-woo/rest.ts';
-import { pushStock, reconcile } from '../_shared/f360-woo/sync.ts';
+import { applyVisibility, pushStock, reconcile } from '../_shared/f360-woo/sync.ts';
 import { f360User, serviceRpc, type SupabaseEnv } from '../_shared/f360-woo/supabase.ts';
 import { safeEqual } from '../_shared/f360-woo/orders.ts';
 import type { WooAdapter } from '../_shared/f360-woo/types.ts';
@@ -37,7 +37,8 @@ export async function handleSync(req: Request, env: SyncEnv, opts: SyncOptions =
       const pushedAfter = run.drifted || run.missing ? await pushStock(rpc, woo, env.WOO_TARGET_KEY) : null;
       return json({ reconcile: run, pushedBefore, pushedAfter });
     }
-    return json({ push: await pushStock(rpc, woo, env.WOO_TARGET_KEY) });
+    // every tick: push queued stock, then hide/show store products as requested (D4)
+    return json({ push: await pushStock(rpc, woo, env.WOO_TARGET_KEY), visibility: await applyVisibility(rpc, woo, env.WOO_TARGET_KEY) });
   } catch (e) {
     return json({ error: `No se pudo completar: ${(e as Error).message}` }, 502);
   }

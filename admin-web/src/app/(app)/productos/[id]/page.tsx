@@ -56,7 +56,7 @@ export default async function ProductoDetalle({ params, searchParams }: { params
           </div>
 
           {legacy ? (
-            <StoreOrigin productId={product.id} sources={sources} canEdit={edit}
+            <StoreOrigin productId={product.id} sources={sources} canEdit={edit} owner={me.role === 'owner'}
               missing={product.readiness.missing.filter((m) => m === 'precio' || m === 'descripcion' || m === 'fotos').map((m) => (MISSING_LABEL[m] ?? m).toLowerCase())} />
           ) : !ready ? (
             <div className="mt-6 rounded-2xl border border-line bg-surface p-5">

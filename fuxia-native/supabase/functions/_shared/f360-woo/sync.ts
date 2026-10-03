@@ -68,3 +68,26 @@ export async function reconcile(rpc: Rpc, woo: WooAdapter, targetKey: string, re
   return rpc<{ id: string; checked: number; in_sync: number; drifted: number; missing: number }>('f360_reconcile_finish',
     { p_target_key: targetKey, p_run: { requested_by_name: requestedBy, items } });
 }
+
+type VisClaim = { id: string; woo_product_id: number; kind: 'ocultar' | 'mostrar'; restore_status: string | null };
+
+/** Applies queued "hide / show again" requests for store products a person marked "no existe" (D4).
+ *  Hide = Woo status 'private' (never deleted); show = the status it had before hiding. */
+export async function applyVisibility(rpc: Rpc, woo: WooAdapter, targetKey: string) {
+  const claims = await rpc<VisClaim[]>('f360_visibility_claim', { p_target_key: targetKey });
+  if (!claims.length) return { claimed: 0, ok: 0, failed: 0 };
+  const results: { id: string; ok: boolean; before: string | null; after: string | null; error: string | null }[] = [];
+  for (const c of claims) {
+    try {
+      const p = await woo.getProduct(c.woo_product_id);
+      if (!p) { results.push({ id: c.id, ok: false, before: null, after: null, error: 'El producto ya no existe en la tienda.' }); continue; }
+      const target = c.kind === 'ocultar' ? 'private' : (c.restore_status && c.restore_status !== 'private' ? c.restore_status : 'publish');
+      if (p.status !== target) await woo.updateProduct(c.woo_product_id, { status: target });
+      results.push({ id: c.id, ok: true, before: p.status, after: target, error: null });
+    } catch (e) {
+      results.push({ id: c.id, ok: false, before: null, after: null, error: `Tienda no disponible: ${msg(e)}` });
+    }
+  }
+  const r = await rpc<{ ok: number; failed: number }>('f360_visibility_result', { p_target_key: targetKey, p_results: results });
+  return { claimed: claims.length, ...r };
+}

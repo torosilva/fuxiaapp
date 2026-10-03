@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import type { OpeningLineStatus, OpeningSheet, OpeningSize, OpeningStatus, OpeningView } from '@/lib/f360';
 import { ColorDot } from '@/components/ProductImage';
-import { openingAddUnlistedAction, openingRecordAction, openingRefreshAction, openingResolveUnlistedAction, openingStartAction, openingStepAction } from '../actions';
+import { linkChannelAction, openingAddUnlistedAction, openingLoadAction, openingRecordAction, openingRefreshAction, openingResolveUnlistedAction, openingStartAction, openingStepAction } from '../actions';
 
 const LINE: Record<OpeningLineStatus, { label: string; tone: string }> = {
   pendiente: { label: 'Sin contar', tone: 'bg-surface-2 text-muted' }, contado_1: { label: 'Falta 2º conteo', tone: 'bg-surface-2 text-ink-2' },
@@ -37,6 +37,7 @@ export function CountControls({ id, status, owner, blockers }: { id: string; sta
   const [ask, setAsk] = useState<null | 'approve' | 'cancel'>(null);
   const [note, setNote] = useState('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [loadKey] = useState(() => crypto.randomUUID());
   const [pending, start] = useTransition();
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>, ok: string) => start(async () => {
     const r = await fn(); setMsg(r.ok ? { ok: true, text: ok } : { ok: false, text: r.error ?? 'No se pudo.' }); if (r.ok) { setAsk(null); setNote(''); } router.refresh();
@@ -49,6 +50,8 @@ export function CountControls({ id, status, owner, blockers }: { id: string; sta
         {owner && status === 'preliminar' && <button type="button" disabled={pending} onClick={() => run(() => openingStepAction(id, 'freeze'), 'Bodega congelada. Ahora reconcilia y termina los reconteos.')} className="rounded-full border border-danger px-4 py-2 text-sm text-danger">Congelar bodega (ventana final)</button>}
         {status === 'congelado' && <button type="button" disabled={pending} onClick={() => run(() => openingStepAction(id, 'reconcile'), 'Reconciliado: revisa “Reconteo” por si algo vendió o se movió después de contarse.')} className="rounded-full border border-line px-4 py-2 text-sm text-ink-2">Reconciliar ventas y movimientos</button>}
         {owner && status === 'congelado' && <button type="button" disabled={pending || blockers.length > 0} onClick={() => setAsk('approve')} className="rounded-full bg-ink px-4 py-2 text-sm text-surface disabled:opacity-40">Aprobar conteo</button>}
+        {owner && status === 'aprobado' && <button type="button" disabled={pending} data-testid="load-opening" onClick={() => run(() => openingLoadAction(id, loadKey), 'Inventario inicial cargado en Bodega CDMX.')} className="rounded-full bg-ink px-4 py-2 text-sm text-surface">Cargar inventario inicial</button>}
+        {owner && status === 'cargado' && <button type="button" disabled={pending} onClick={() => run(async () => { const r = await linkChannelAction('woo_staging4'); return r.ok ? { ok: true } : r; }, 'Tienda ligada: las cantidades se envían en ~1 minuto (0 = agotado).')} className="rounded-full bg-ink px-4 py-2 text-sm text-surface">Ligar la tienda completa</button>}
         {owner && open && <button type="button" disabled={pending} onClick={() => setAsk('cancel')} className="ml-auto rounded-full px-4 py-2 text-sm text-muted underline">Cancelar conteo</button>}
       </div>
       {status === 'congelado' && blockers.length > 0 && (

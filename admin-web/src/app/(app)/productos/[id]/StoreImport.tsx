@@ -2,7 +2,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import type { LegacySource } from '@/lib/f360';
-import { importFromStoreAction } from '../../actions';
+import { importFromStoreAction, linkProductsAction } from '../../actions';
 
 /** Brings the store's photos, price and description into the model, a few colours per call, until done. */
 export async function runStoreImport(productId: string, onProgress?: (text: string) => void) {
@@ -19,7 +19,7 @@ export async function runStoreImport(productId: string, onProgress?: (text: stri
 }
 
 // Shown instead of the "falta para la tienda" checklist on a model adopted from the current store.
-export function StoreOrigin({ productId, sources, canEdit, missing }: { productId: string; sources: LegacySource[]; canEdit: boolean; missing: string[] }) {
+export function StoreOrigin({ productId, sources, canEdit, missing, owner = false }: { productId: string; sources: LegacySource[]; canEdit: boolean; missing: string[]; owner?: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
@@ -40,6 +40,15 @@ export function StoreOrigin({ productId, sources, canEdit, missing }: { productI
         <button type="button" onClick={run} disabled={pending} className="mt-4 rounded-full bg-ink px-5 py-3 text-sm text-surface disabled:opacity-50">
           {pending ? 'Trayendo…' : 'Traer fotos, precio y descripción de la tienda'}
         </button>
+      )}
+      {owner && sources[0]?.target_key !== undefined && (
+        <div className="mt-4 border-t border-line pt-4">
+          <p className="text-sm text-ink-2">Ensayo en la tienda de pruebas: envía a {sources[0].target_name} las cantidades reales de este modelo (lo que hay en Bodega CDMX; con 0 sale agotado).</p>
+          <button type="button" disabled={pending} onClick={() => start(async () => {
+            const r = await linkProductsAction(sources[0].target_key, [productId], 'Ensayo desde la ficha del modelo');
+            setMsg(r.ok ? (r.data.linked ? `Ligadas ${r.data.linked} tallas; la tienda se actualiza en ~1 minuto.` : `Ya estaba ligado; se reenviaron ${r.data.queued} tallas.`) : r.error); router.refresh();
+          })} className="mt-2 rounded-full border border-ink px-4 py-2 text-sm text-ink">Mostrar cantidades en la tienda de pruebas</button>
+        </div>
       )}
       {msg && <p className="mt-3 text-sm text-ink-2" role="status">{msg}</p>}
       {notes.length > 0 && <ul className="mt-1 list-disc pl-5 text-xs text-muted">{notes.map((n) => <li key={n}>{n}</li>)}</ul>}

@@ -173,7 +173,7 @@ export type ArchiveState = { status: 'active' | 'archived'; blockers: string[]; 
 export const getArchiveState = (productId: string) => rpc<ArchiveState>('f360_product_archive_state', { p_product_id: productId });
 
 // Track D · D3 — opening physical count
-export type OpeningStatus = 'preliminar' | 'congelado' | 'aprobado' | 'cancelado';
+export type OpeningStatus = 'preliminar' | 'congelado' | 'aprobado' | 'cargado' | 'cancelado';
 export type OpeningLineStatus = 'pendiente' | 'contado_1' | 'doble_ok' | 'diferencia' | 'recontado' | 'recontar';
 export type OpeningSummary = { lines: number; pendiente: number; contado_1: number; doble_ok: number; diferencia: number; recontado: number; recontar: number;
   final_lines: number; final_pairs: number; out_of_scope: number; unlisted_open: number; unlisted_pairs: number };
@@ -190,3 +190,6 @@ export type OpeningSheet = { view: OpeningView; me: string; models: { product_id
 export const getOpeningState = () => rpc<OpeningState>('f360_opening_state', { p_count_id: null });
 export const getOpeningSheet = (id: string, view: OpeningView) => rpc<OpeningSheet>('f360_opening_sheet', { p_count_id: id, p_view: view });
 export const getColorRemoveState = (colorId: string) => rpc<{ blockers: string[] }>('f360_color_remove_state', { p_color_id: colorId });
+export type ChannelState = { target: string; links: number; queue: number; last_push: string | null; opening_loaded: boolean;
+  visibility: { woo_product_id: number; pending: 'ocultar' | 'mostrar' | null; last: { kind: 'ocultar' | 'mostrar'; status: 'pendiente' | 'hecho' | 'error'; by: string; at: string; error: string | null } | null }[] };
+export const getChannelState = (target = 'woo_staging4') => rpc<ChannelState>('f360_legacy_channel_state', { p_target_key: target });

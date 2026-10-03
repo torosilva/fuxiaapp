@@ -388,3 +388,19 @@ export async function removeColorAction(productId: string, colorId: string, reas
   if (r.ok) revalidateProduct(productId);
   return r;
 }
+
+// Track D · D4 (staging) — store visibility, opening load, channel links. All rules enforced again in the database.
+export async function storeVisibilityAction(target: string, wooProductId: number, kind: 'ocultar' | 'mostrar', reason: string): Promise<Result<unknown>> {
+  const r = await call('f360_store_visibility_request', { p_target_key: target, p_woo_product_id: wooProductId, p_kind: kind, p_reason: reason.trim() });
+  if (r.ok) revalidatePath('/homologacion'); return r;
+}
+export async function linkProductsAction(target: string, productIds: string[], reason: string): Promise<Result<{ linked: number; queued: number }>> {
+  const r = await call<{ linked: number; queued: number }>('f360_legacy_link_products', { p_target_key: target, p_product_ids: productIds, p_reason: reason.trim() });
+  if (r.ok) productIds.forEach(revalidateProduct); return r;
+}
+export async function openingLoadAction(id: string, idempotencyKey: string): Promise<Result<unknown>> {
+  const r = await call('f360_opening_load', { p_count_id: id, p_idempotency_key: idempotencyKey }); if (r.ok) { revalidateCount(); revalidatePath('/inventario', 'layout'); } return r;
+}
+export async function linkChannelAction(target: string): Promise<Result<{ linked: number; queued: number; total_links: number }>> {
+  const r = await call<{ linked: number; queued: number; total_links: number }>('f360_legacy_link_channel', { p_target_key: target }); if (r.ok) revalidateCount(); return r;
+}

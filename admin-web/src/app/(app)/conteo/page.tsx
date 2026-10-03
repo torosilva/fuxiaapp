@@ -10,7 +10,7 @@ const VIEWS: { key: OpeningView | 'sinficha'; label: string }[] = [
   { key: 'conteo1', label: '1 · Conteo' }, { key: 'conteo2', label: '2 · Segundo conteo (a ciegas)' }, { key: 'reconteo', label: 'Reconteo' },
   { key: 'sinficha', label: 'Pares sin ficha' }, { key: 'reporte', label: 'Reporte' },
 ];
-const STATUS: Record<string, string> = { preliminar: 'Conteo preliminar', congelado: 'Bodega congelada', aprobado: 'Aprobado por Mario', cancelado: 'Cancelado' };
+const STATUS: Record<string, string> = { preliminar: 'Conteo preliminar', congelado: 'Bodega congelada', aprobado: 'Aprobado por Mario', cargado: 'Inventario inicial cargado', cancelado: 'Cancelado' };
 
 export default async function Conteo({ searchParams }: { searchParams: Promise<{ vista?: string }> }) {
   const me = await getMe();
@@ -47,6 +47,7 @@ export default async function Conteo({ searchParams }: { searchParams: Promise<{
       </div>
       {c.status === 'congelado' && <p className="mt-4 rounded-2xl bg-danger-soft px-5 py-3 text-sm text-danger">Bodega CDMX está congelada desde {c.frozen_at ? fecha(c.frozen_at) : ''}: no se puede recibir, mover ni ajustar mercancía ahí hasta aprobar o cancelar el conteo. Mantén esta ventana corta.</p>}
       {c.status === 'aprobado' && <p className="mt-4 rounded-2xl bg-success-soft px-5 py-3 text-sm text-success">Aprobado por {c.approved_by}: “{c.approval_note}”. El inventario todavía no se carga: eso es un paso aparte que Mario autoriza.</p>}
+      {c.status === 'cargado' && <p className="mt-4 rounded-2xl bg-success-soft px-5 py-3 text-sm text-success">El conteo aprobado ya es el inventario inicial de {c.location}. La bodega ya no está congelada. Falta ligar la tienda para que muestre estas cantidades.</p>}
 
       <div className="mt-6" data-testid="count-progress">
         <div className="flex items-baseline justify-between text-sm"><span className="text-ink">Tallas con conteo final: <b className="tabular">{done}</b> de <span className="tabular">{s.lines}</span> · <b className="tabular">{s.final_pairs}</b> pares</span><span className="tabular text-muted">{pct}%</span></div>

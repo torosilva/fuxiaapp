@@ -1,8 +1,8 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { Fragment, useMemo, useState, useTransition } from 'react';
-import type { Homologation, HomologationRow, HomologationStatus } from '@/lib/f360';
-import { confirmHomologationAction, markHomologationAction, reopenHomologationAction } from '../actions';
+import type { ChannelState, Homologation, HomologationRow, HomologationStatus } from '@/lib/f360';
+import { confirmHomologationAction, markHomologationAction, reopenHomologationAction, storeVisibilityAction } from '../actions';
 import { runStoreImport } from '../productos/[id]/StoreImport';
 
 const LABEL: Record<HomologationStatus, string> = {
@@ -73,7 +73,13 @@ function todo(u: Unit): string {
   return 'Revisa modelo y color';
 }
 
-export function HomologationClient({ data }: { data: Homologation }) {
+type Vis = ChannelState['visibility'][number];
+const isNoExiste = (u: Unit) => u.rows.every((r) => r.status === 'sin_correspondencia' && r.human_locked);
+
+export function HomologationClient({ data, visibility }: { data: Homologation; visibility: Vis[] }) {
+  const router = useRouter();
+  const [hiding, startHiding] = useTransition();
+  const vis = useMemo(() => new Map(visibility.map((v) => [v.woo_product_id, v])), [visibility]);
   const [filter, setFilter] = useState<HomologationStatus | 'todos'>('todos');
   const [query, setQuery] = useState('');
   const [flash, setFlash] = useState<string | null>(null);
@@ -89,6 +95,14 @@ export function HomologationClient({ data }: { data: Homologation }) {
   const nDecided = s.confirmado + nDiscarded;
   const nPending = s.variations - nDecided;
   const pctDecided = s.variations ? Math.round((1000 * nDecided) / s.variations) / 10 : 0;
+  const noExiste = [...new Map(groups.flatMap((g) => g.units).filter(isNoExiste).map((u) => [u.wooProductId, u])).values()];
+  const hidden = (id: number) => { const v = vis.get(id); return !!v && !v.pending && v.last?.kind === 'ocultar' && v.last.status === 'hecho'; };
+  const toHide = noExiste.filter((u) => !hidden(u.wooProductId) && !vis.get(u.wooProductId)?.pending);
+  const hideAll = () => startHiding(async () => {
+    let n = 0; let err = '';
+    for (const u of toHide) { const r = await storeVisibilityAction(data.target.key, u.wooProductId, 'ocultar', 'Marcado “no existe” en Homologación'); if (r.ok) n++; else err = r.error; }
+    setFlash(`${n} productos enviados a ocultar en la tienda (se aplican en ~1 minuto).${err ? ` Error: ${err}` : ''}`); router.refresh();
+  });
   const count = (f: HomologationStatus | 'todos') => (f === 'todos' ? s.variations : s[f]);
 
   return (
@@ -129,11 +143,18 @@ export function HomologationClient({ data }: { data: Homologation }) {
           className="ml-auto w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-gold sm:w-80" />
       </div>
 
+      {noExiste.length > 0 && (
+        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-surface p-4" data-testid="no-existe-panel">
+          <p className="flex-1 text-sm text-ink-2"><b>{noExiste.length} productos de la tienda</b> se marcaron “no existe”. Siguen publicados en la tienda: {noExiste.filter((u) => hidden(u.wooProductId)).length} ya ocultos.
+            Ocultarlos los deja como <i>privados</i> en Woo (no se borran y se pueden volver a mostrar).</p>
+          {toHide.length > 0 && <button type="button" disabled={hiding} onClick={hideAll} className="rounded-full bg-ink px-4 py-2 text-sm text-surface disabled:opacity-40">{hiding ? 'Enviando…' : `Ocultar de la tienda (${toHide.length})`}</button>}
+        </div>
+      )}
       {flash && <p className="mt-4 rounded-xl bg-success-soft px-4 py-3 text-sm text-success" role="status" data-testid="flash">{flash}</p>}
 
       <div className="mt-6 grid gap-4">
         {visible.length === 0 && <p className="rounded-2xl border border-line bg-surface p-6 text-muted">Nada con ese filtro.</p>}
-        {visible.map((g) => <GroupCard key={g.key} g={g} data={data} onDone={setFlash} />)}
+        {visible.map((g) => <GroupCard key={g.key} g={g} data={data} onDone={setFlash} vis={vis} />)}
       </div>
     </div>
   );
@@ -154,7 +175,7 @@ function Badge({ status }: { status: HomologationStatus | 'mixto' }) {
   return <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs ${TONE[status]}`}>{LABEL[status]}</span>;
 }
 
-function GroupCard({ g, data, onDone }: { g: Group; data: Homologation; onDone: (text: string) => void }) {
+function GroupCard({ g, data, onDone, vis }: { g: Group; data: Homologation; onDone: (text: string) => void; vis: Map<number, Vis> }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -301,6 +322,7 @@ function GroupCard({ g, data, onDone }: { g: Group; data: Homologation; onDone: 
                     <td className="px-3 py-3"><div className="flex flex-col items-start gap-1"><Badge status={u.status} />{conf && u.status !== 'confirmado' && <span className="text-xs text-muted">confianza {conf}</span>}</div></td>
                     <td className="max-w-xs px-3 py-3 text-ink-2">{todo(u)}</td>
                     <td className="px-3 py-3 text-right">
+                      {isNoExiste(u) && <StoreVisibility target={data.target.key} unit={u} v={vis.get(u.wooProductId)} onDone={onDone} />}
                       {u.rows.some((r) => r.status === 'confirmado')
                         ? <button type="button" onClick={() => { setAction({ unit: u, kind: 'reopen' }); setReason(''); }} className="text-xs text-muted underline">Reabrir</button>
                         : <select aria-label={`Marcar ${u.wooProductName}`} value="" onChange={(e) => { setAction({ unit: u, kind: e.target.value as 'requiere_revision' | 'sin_correspondencia' }); setReason(''); }}
@@ -344,5 +366,24 @@ function GroupCard({ g, data, onDone }: { g: Group; data: Homologation; onDone: 
       </div>
       {!open && msg && <p className={`mx-5 my-3 rounded-xl px-4 py-2 text-sm ${msg.ok ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger'}`}>{msg.text}</p>}
     </section>
+  );
+}
+
+function StoreVisibility({ target, unit, v, onDone }: { target: string; unit: Unit; v: Vis | undefined; onDone: (t: string) => void }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const ask = (kind: 'ocultar' | 'mostrar') => start(async () => {
+    const r = await storeVisibilityAction(target, unit.wooProductId, kind, kind === 'ocultar' ? 'Marcado “no existe” en Homologación' : 'Se vuelve a mostrar');
+    onDone(r.ok ? `${unit.wooProductName}: ${kind === 'ocultar' ? 'se ocultará' : 'se volverá a mostrar'} en la tienda en ~1 minuto.` : r.error); router.refresh();
+  });
+  if (v?.pending) return <span className="mb-1 block text-xs text-muted">{v.pending === 'ocultar' ? 'Ocultándose en la tienda…' : 'Mostrándose en la tienda…'}</span>;
+  const isHidden = v?.last?.kind === 'ocultar' && v.last.status === 'hecho';
+  return (
+    <div className="mb-1 text-xs">
+      {v?.last?.status === 'error' && <span className="block text-danger">No se pudo: {v.last.error}</span>}
+      {isHidden
+        ? <span className="text-success">Oculto en la tienda · <button type="button" disabled={pending} onClick={() => ask('mostrar')} className="text-muted underline">Volver a mostrar</button></span>
+        : <button type="button" disabled={pending} onClick={() => ask('ocultar')} className="rounded-full border border-line px-3 py-1 text-ink-2">Ocultar de la tienda</button>}
+    </div>
   );
 }

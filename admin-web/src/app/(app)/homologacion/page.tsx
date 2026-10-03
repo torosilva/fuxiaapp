@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { canWrite, getHomologation, getMe } from '@/lib/f360';
+import { canWrite, getChannelState, getHomologation, getMe } from '@/lib/f360';
 import { HomologationClient } from './HomologationClient';
 
 // Track D · D2 — Carolina tells Fuxia 360 which model / colour / size each existing Woo variation is.
@@ -9,6 +9,7 @@ export default async function Homologacion({ searchParams }: { searchParams: Pro
   const me = await getMe();
   if (!canWrite(me.role)) redirect('/');
   const { canal } = await searchParams;
-  const data = await getHomologation(canal && /^[a-z0-9_]+$/.test(canal) ? canal : undefined);
-  return <HomologationClient data={data} />;
+  const key = canal && /^[a-z0-9_]+$/.test(canal) ? canal : undefined;
+  const [data, channel] = await Promise.all([getHomologation(key), getChannelState(key)]);
+  return <HomologationClient data={data} visibility={channel.visibility} />;
 }

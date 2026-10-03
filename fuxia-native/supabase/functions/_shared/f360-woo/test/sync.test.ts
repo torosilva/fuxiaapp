@@ -102,3 +102,24 @@ test('order minimization drops every customer field', () => {
   for (const bad of ['Ana', 'ana@x.com', '555', 'Calle', 'hola', 'billing', 'shipping', 'customer']) assert.ok(!s.includes(bad), bad);
   assert.deepEqual(m.line_items[0], { id: 1, product_id: 5, variation_id: 6, sku: 'F360-X', quantity: 1 });
 });
+
+test('applyVisibility: hide → private (never deleted), show → the previous status; failures reported', async () => {
+  const { woo, pid } = await setup();
+  await woo.updateProduct(pid, { status: 'publish' });
+  const sent: Record<string, unknown>[] = [];
+  const queue = [{ id: 'r1', woo_product_id: pid, kind: 'ocultar', restore_status: null }, { id: 'r2', woo_product_id: 999999, kind: 'ocultar', restore_status: null }];
+  const rpc: Rpc = async <T,>(fn: string, args: Record<string, unknown>) => {
+    if (fn === 'f360_visibility_claim') return queue.splice(0) as T;
+    if (fn === 'f360_visibility_result') { sent.push(...(args.p_results as Record<string, unknown>[])); return { ok: 1, failed: 1 } as T; }
+    throw new Error(fn);
+  };
+  const { applyVisibility } = await import('../sync.ts');
+  const r = await applyVisibility(rpc, woo, 't');
+  assert.equal(r.claimed, 2);
+  assert.equal((await woo.getProduct(pid))!.status, 'private');
+  assert.deepEqual(sent.find((x) => x.id === 'r1'), { id: 'r1', ok: true, before: 'publish', after: 'private', error: null });
+  assert.equal(sent.find((x) => x.id === 'r2')!.ok, false);
+  queue.push({ id: 'r3', woo_product_id: pid, kind: 'mostrar', restore_status: 'publish' });
+  await applyVisibility(rpc, woo, 't');
+  assert.equal((await woo.getProduct(pid))!.status, 'publish');
+});
