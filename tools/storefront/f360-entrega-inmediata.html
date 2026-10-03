@@ -36,9 +36,33 @@
     return fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'No se pudo.'); return j; }); });
   }
+  // Tallas en México: el selector de la tienda muestra en /mx/ CENTÍMETROS (23, 24, 25, 25.5…) y una clienta mexicana
+  // lee "25" como su talla 25, que es la 38. Aquí los botones muestran la talla mexicana (talla de la tienda − 13:
+  // 38 → 25; decisión de Mario 2026-10-03) y el título dice "Talla (México)". Otro script de la tienda reescribe los
+  // botones después de cargar (y escondía la 38 = 25.5 cm), por eso se vigilan y se vuelve a poner la talla mexicana
+  // y a mostrar la 38. Lo que se compra NO cambia:
+  // la talla real sigue en data-co (35–40).
+  var MX = { '35': '22', '36': '23', '37': '24', '38': '25', '39': '26', '40': '27' };
+  function tallasMexico() {
+    var cont = document.querySelector('.fuxia-tallas-botones');
+    if (!cont) return;
+    var titulo = document.querySelector('.fuxia-tallas-header > span');
+    var poner = function () {
+      cont.querySelectorAll('.fuxia-talla').forEach(function (t) {
+        var mx = MX[t.dataset.co];
+        if (mx && t.textContent !== mx) t.textContent = mx;
+        if (mx && t.style.display === 'none') t.style.display = '';     // la 38 (25.5 cm) venía escondida en /mx/
+      });
+      if (titulo && titulo.textContent !== 'Talla (México)') titulo.textContent = 'Talla (México)';
+    };
+    poner();
+    if (window.MutationObserver) new MutationObserver(poner).observe(cont, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style'] });
+    window.addEventListener('load', poner);
+  }
   function init() {
     // Solo la tienda de México (raíz o /mx/): las tiendas físicas están en México; en /co/ u otro país no se muestra.
     if (/^\/[a-z]{2}\//.test(location.pathname) && !/^\/mx\//.test(location.pathname)) return;
+    tallasMexico();
     var form = document.querySelector('form.variations_form');
     var box = document.querySelector('.f360-inmediata');
     if (!form || !box || !window.jQuery) return;
