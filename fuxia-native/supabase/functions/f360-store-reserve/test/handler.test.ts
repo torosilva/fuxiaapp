@@ -79,3 +79,10 @@ test('scarcity: boolean only; errors and bad input fail closed', async () => {
   r = await handleReserve(post({ action: 'scarcity', woo_variation_id: 'abc' }), env, fakeFetch({}));
   assert.deepEqual(await r.json(), { reliable: false });
 });
+test('contacto: completes the Hilo case of the conversation with name + phone', async () => {
+  const calls: any[] = [];
+  const r = await handleReserve(post({ action: 'contacto', conversation_id: 'conv1', name: 'Ana', phone: '55 1234 5678', product_name: 'Botas' }), env, fakeFetch({ f360_case_upsert: { id: 'c1' } }, calls));
+  assert.deepEqual(await r.json(), { ok: true });
+  assert.equal(calls[0].args.p.conversation_id, 'conv1'); assert.equal(calls[0].args.p.phone, '+525512345678');
+  assert.equal((await handleReserve(post({ action: 'contacto', name: 'Ana', phone: '55 1234 5678' }), env, fakeFetch({}))).status, 400);
+});

@@ -215,3 +215,9 @@ export const listCustomRequests = () => rpc<CustomRequest[]>('f360_custom_reques
 // Stores are warehouses too (Mario 2026-10-03): online orders a store has to ship.
 export type StoreShipment = { id: string; order: number; store: string; label: string; quantity: number; status: 'por_enviar' | 'enviado'; created_at: string; shipped_at: string | null; shipped_by: string | null };
 export const listStoreShipments = () => rpc<StoreShipment[]>('f360_online_store_shipments', { p_days: 30 });
+
+// Bandeja de clientas (Mario 2026-10-04): Hilo escalations (app/web/WhatsApp) + "a la medida", all in Fuxia 360.
+export type CustomerCase = { id: string; kind: 'escalacion' | 'a_la_medida'; source: string; status: 'nueva' | 'en_atencion' | 'resuelta' | 'descartada';
+  reason: string | null; summary: string | null; transcript: { role: string; content: string }[]; name: string | null; phone: string | null; email: string | null;
+  country: string | null; product: string | null; color: string | null; size: string | null; page_url: string | null; created_at: string; updated_at: string; updated_by: string | null };
+export const listInbox = () => rpc<CustomerCase[]>('f360_inbox_list', { p_days: 90 });

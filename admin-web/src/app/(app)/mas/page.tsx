@@ -10,6 +10,7 @@ const ITEMS = [
   { href: '/tiendas', label: 'Tiendas y ubicaciones', icon: IconBoxes, live: true, admin: true },
   { href: '/apartados', label: 'Apartados Gold', icon: IconClock, live: true, admin: true },
   { href: '/monedas', label: 'Monedas', icon: IconReceipt, live: true, admin: true },
+  { href: '/bandeja', label: 'Bandeja de clientas', icon: IconUsers, live: true },
   { href: '/clientes', label: 'Clientes', icon: IconUsers, live: true },
   { href: '/growth', label: 'Growth', icon: IconGrowth, live: true },
   { href: '/pedidos', label: 'Pedidos', icon: IconBag, live: false },

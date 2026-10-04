@@ -422,6 +422,11 @@ export async function setProductNewAction(productId: string, value: boolean | nu
   if (r.ok) revalidateProduct(productId);
   return r;
 }
+export async function setCaseStatusAction(id: string, status: 'nueva' | 'en_atencion' | 'resuelta' | 'descartada'): Promise<Result<unknown>> {
+  const r = await call('f360_case_set', { p_id: id, p_status: status });
+  if (r.ok) revalidatePath('/bandeja');
+  return r;
+}
 /** Sobre pedido on/off for a model (operator+; validated again in the database). */
 export async function setMakeToOrderAction(productId: string, on: boolean, reason: string): Promise<Result<unknown>> {
   const r = await call('f360_set_make_to_order', { p_product_id: productId, p_on: on, p_reason: reason || null });

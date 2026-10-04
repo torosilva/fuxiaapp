@@ -81,6 +81,19 @@ export async function handleReserve(req: Request, env: ReserveEnv, fetchImpl: ty
   const phone = normalizePhone(body.phone);
   if (!phone) return json({ error: 'Escribe tu teléfono a 10 dígitos.' }, 400);
 
+  // Contact left in the web chat after Hilo escalated (Bandeja de clientas): completes the case of that conversation.
+  if (body.action === 'contacto') {
+    const text = (v: unknown, max: number) => String(v ?? '').replace(/[<>]/g, '').trim().slice(0, max);
+    if ((body as { website?: unknown }).website) return json({ ok: true });                 // honeypot
+    const conv = text(body.conversation_id, 100), name = text(body.name, 80);
+    if (!conv) return json({ error: 'Falta la conversación.' }, 400);
+    if (!name) return json({ error: 'Dinos tu nombre.' }, 400);
+    const r = await rpc<{ id: string }>('f360_case_upsert', { p: { conversation_id: conv, source: 'hilo_web', name, phone,
+      product: text(body.product_name, 200) || null, color: text(body.color, 80) || null, size: text(body.size, 20) || null,
+      country: text(body.country, 8) || null, page_url: text(body.page_url, 300) || null } });
+    return r.ok ? json({ ok: true }) : json({ error: r.error }, 400);
+  }
+
   // "¿No encontraste tu color y talla? Lo hacemos a la medida" (Mario 2026-10-03): Hilo's chat on the product page
   // leaves a request for the team. Any phone (it is a lead, not a sale); the DB caps it at 3 per phone per day.
   if (body.action === 'a_la_medida') {
