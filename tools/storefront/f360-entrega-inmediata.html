@@ -1,10 +1,10 @@
 <p class="f360-sobrepedido" hidden>Esta talla y color se entrega en <b>5 a 7 días hábiles</b>.<span class="f360-cambio">Si no te quedan, <a class="f360-cambios-link" href="/cambios/">cámbialas</a>.</span></p>
 <div class="f360-medida">
-  <p class="f360-med-t">¿No encontraste tu color y talla? <b>Lo hacemos a la medida.</b></p>
+  <p class="f360-med-t">¿Dudas con tu talla o no encontraste tu color? <b>Lo hacemos a la medida.</b></p>
   <button type="button" class="f360-med-abrir">¡Pregúntale a Hilo!</button>
 </div>
-<div class="f360-hilo" hidden role="dialog" aria-label="Hilo · a la medida">
-  <div class="f360-hilo-top"><span><b>Hilo</b> · Fuxia a la medida</span><button type="button" class="f360-hilo-x" aria-label="Cerrar">×</button></div>
+<div class="f360-hilo" hidden role="dialog" aria-label="Hilo, asesora Fuxia">
+  <div class="f360-hilo-top"><span><b>Hilo</b> · tu asesora Fuxia</span><button type="button" class="f360-hilo-x" aria-label="Cerrar">×</button></div>
   <div class="f360-hilo-log" aria-live="polite"></div>
   <div class="f360-hilo-chips"></div>
   <form class="f360-hilo-in"><input type="text" autocomplete="off" aria-label="Tu respuesta"><input type="text" name="website" tabindex="-1" autocomplete="off" class="f360-hp" aria-hidden="true"><button type="submit">Enviar</button></form>
@@ -47,6 +47,9 @@
 .f360-hilo-log p { margin: 0; padding: 9px 12px; border-radius: 12px; font-size: 14px; line-height: 1.35; max-width: 85%; }
 .f360-hilo-log .h { background: #f3ece1; color: #3b342c; align-self: flex-start; }
 .f360-hilo-log .c { background: #B8966E; color: #fff; align-self: flex-end; }
+.f360-hilo-log .h a { color: #8c6414; text-decoration: underline; word-break: break-word; }
+.f360-hilo-log .t { color: #9A9A96; font-style: italic; background: none; padding: 2px 4px; }
+.f360-hilo-log p { white-space: pre-line; }
 .f360-hilo-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 8px; }
 .f360-hilo-chips button { padding: 6px 10px; border: 1px solid #B8966E; border-radius: 16px; background: #fff; color: #8c6414; font-size: 13px; cursor: pointer; }
 .f360-hilo-in { display: flex; gap: 8px; padding: 10px 14px 14px; border-top: 1px solid #eee5d8; }
@@ -112,6 +115,10 @@
 
   // "¿No encontraste tu color y talla? Lo hacemos a la medida" (Mario 2026-10-03): Hilo (HiloLabs) asks color, size or
   // foot length, name and WhatsApp, and leaves a request for the team in Fuxia 360. No price, no payment here.
+  // Hilo (HiloLabs, the same agent as the app — Mario 2026-10-04): free chat about THIS shoe. The page context (model,
+  // colour, size, country) travels in metadata and in a short note on the first message. "Lo quiero a la medida" (or an
+  // escalation, or Hilo not answering) opens the guided form that leaves a request in Fuxia 360 (f360.custom_requests).
+  var HILO_URL = 'https://web-production-8cc5a.up.railway.app/api/v1/chat/web';
   function aLaMedida(mexico) {
     var cta = document.querySelector('.f360-medida'), w = document.querySelector('.f360-hilo');
     if (!cta || !w) return;
@@ -122,19 +129,60 @@
     var log = w.querySelector('.f360-hilo-log'), chips = w.querySelector('.f360-hilo-chips'), input = w.querySelector('.f360-hilo-in input');
     var titulo = (document.querySelector('h1') || {}).textContent || document.title.split('–')[0];
     var producto = String(titulo).trim();
-    var d = {}, paso = 0;
+    var d = {}, paso = 0, modo = 'chat', primero = true, ocupado = false;
     var tallas = mexico ? ['22', '23', '24', '25', '26', '27'] : ['35', '36', '37', '38', '39', '40'];
-    function decir(t, quien) { var p = document.createElement('p'); p.className = quien || 'h'; p.textContent = t; log.appendChild(p); log.scrollTop = log.scrollHeight; }
+    var uid = (function () { var k = 'f360_hilo_uid', v = null; try { v = localStorage.getItem(k); } catch (e) {}
+      if (!v) { v = 'web-' + Math.random().toString(36).slice(2) + Date.now().toString(36); try { localStorage.setItem(k, v); } catch (e) {} } return v; })();
+    function decir(t, quien) {
+      var p = document.createElement('p'); p.className = quien || 'h';
+      String(t).split(/(https?:\/\/[^\s)]+)/).forEach(function (parte, i) {      // links as real anchors, text as text (no HTML)
+        if (i % 2) { var a = document.createElement('a'); a.href = parte; a.target = '_blank'; a.rel = 'noopener'; a.textContent = parte.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''); p.appendChild(a); }
+        else parte.split(/\*\*([^*]+)\*\*/).forEach(function (q, k) {           // Hilo's **bold** → <b> (as text, never HTML)
+          if (k % 2) { var bb = document.createElement('b'); bb.textContent = q; p.appendChild(bb); } else p.appendChild(document.createTextNode(q));
+        });
+      });
+      log.appendChild(p); log.scrollTop = log.scrollHeight; return p;
+    }
     function opciones(xs) { chips.innerHTML = ''; (xs || []).forEach(function (x) { var b = document.createElement('button'); b.type = 'button'; b.textContent = x; b.onclick = function () { responder(x); }; chips.appendChild(b); }); }
+    function contexto() {
+      var color = (document.querySelector('.f360-color.selected') || {}).dataset; color = color && color.nombre;
+      var talla = document.querySelector('.fuxia-talla.selected');
+      return { producto: producto, color: color || null, talla_mx: talla && mexico ? talla.textContent.trim() : null,
+               talla_tienda: talla ? talla.dataset.co : null, pais: mexico ? 'mx' : (location.pathname.split('/')[1] || ''), url: location.href.split('?')[0] };
+    }
+    var OPC_CHAT = ['¿Qué talla me queda?', '¿Cuándo me llega?', 'Lo quiero a la medida'];
+    function preguntarHilo(texto) {
+      if (ocupado) return; ocupado = true;
+      var c = contexto(), msg = texto;
+      if (primero) msg = '[Estoy viendo ' + c.producto + (c.color ? ' · color ' + c.color : '') + (c.talla_mx ? ' · talla ' + c.talla_mx + ' MX' : (c.talla_tienda ? ' · talla ' + c.talla_tienda : '')) + ' · tienda ' + (c.pais || 'mx').toUpperCase() + '] ' + texto;
+      var escribiendo = decir('Hilo está escribiendo…', 't');
+      var ctl = window.AbortController ? new AbortController() : null; var tm = setTimeout(function () { if (ctl) ctl.abort(); }, 60000);
+      fetch(HILO_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-App-Platform': 'web' }, signal: ctl ? ctl.signal : undefined,
+        body: JSON.stringify({ user_id: uid, message: msg.slice(0, 3900), metadata: { source: 'web_pdp', page: c } }) })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (j) {
+          primero = false; escribiendo.remove(); decir(j.response || '…');
+          if (j.escalate) { decir('Para que una persona del equipo te escriba, déjame tu nombre y WhatsApp.'); iniciarFormulario(3); }
+          else opciones(OPC_CHAT.filter(function (o) { return o !== texto; }));
+        })
+        .catch(function () { escribiendo.remove(); decir('Ahorita no puedo responder. ¿Te ayudo a pedirlas a la medida? Te escribimos por WhatsApp.'); iniciarFormulario(0); })
+        .then(function () { clearTimeout(tm); ocupado = false; });
+    }
+    // guided "a la medida" form (fallback) → Fuxia 360 request
     var PASOS = [
-      function () { decir('¡Hola! Soy Hilo 💛 Hacemos tus ' + producto + ' a la medida. ¿Qué color te gustaría?'); opciones([]); input.placeholder = 'Ej. verde olivo'; },
+      function () { decir('¡Va! Hacemos tus ' + producto + ' a la medida. ¿Qué color te gustaría?'); opciones([]); input.placeholder = 'Ej. verde olivo'; },
       function () { decir('¡Me encanta! ¿Qué talla usas' + (mexico ? ' (talla mexicana)' : '') + '? Si no la sabes, mide tu pie en centímetros.'); opciones(tallas.concat(['Mido mi pie'])); input.placeholder = mexico ? 'Ej. 24' : 'Ej. 37'; },
       function () { decir('¿Cuántos centímetros mide tu pie, del talón a la punta del dedo más largo?'); opciones([]); input.placeholder = 'Ej. 24.5'; },
       function () { decir('¿Cómo te llamas?'); opciones([]); input.placeholder = 'Tu nombre'; },
-      function () { decir('¿A qué WhatsApp te escribimos para darte precio y tiempo?'); opciones([]); input.placeholder = '55 1234 5678'; input.type = 'tel'; },
+      function () { decir('¿A qué WhatsApp te escribimos?'); opciones([]); input.placeholder = '55 1234 5678'; input.type = 'tel'; },
       function () { decir('¿Algo más que quieras contarnos? (tacón, ocasión, fecha…)'); opciones(['No, así está bien']); input.placeholder = 'Opcional'; input.type = 'text'; }
     ];
     function siguiente(n) { paso = n; PASOS[n](); input.value = ''; input.focus(); }
+    function iniciarFormulario(desde) {
+      modo = 'form'; var c = contexto();
+      if (desde >= 3) { d.color = d.color || c.color || 'por definir'; if (c.talla_mx || c.talla_tienda) d.size = c.talla_mx || c.talla_tienda; }
+      siguiente(desde);
+    }
     function enviar() {
       opciones([]); decir('Un momento…');
       var tallaTienda = d.size && mexico ? String(Number(d.size) + 13) : d.size;
@@ -142,11 +190,18 @@
             store_size: tallaTienda && /^(3[5-9]|40)$/.test(tallaTienda) ? tallaTienda : '', foot_cm: d.foot || '', note: d.note || '',
             woo_product_id: form ? form.getAttribute('data-product_id') : '', product_name: producto, country: mexico ? 'mx' : (location.pathname.split('/')[1] || ''),
             website: w.querySelector('.f360-hp').value })
-        .then(function () { decir('¡Listo, ' + d.name + '! Carolina te escribe por WhatsApp para darte precio y tiempo de tus ' + producto + ' en color ' + d.color + '. 💛'); paso = 99; input.disabled = true; })
+        .then(function () { decir('¡Listo, ' + d.name + '! Carolina te escribe por WhatsApp. 💛 Si tienes otra duda, pregúntame aquí.'); modo = 'chat'; opciones(['¿Qué talla me queda?', '¿Cuándo me llega?']); input.placeholder = 'Escribe tu pregunta'; })
         .catch(function (e) { decir(e.message); siguiente(4); });
     }
     function responder(t) {
-      t = String(t || '').trim(); if (!t && paso !== 5) return;
+      t = String(t || '').trim();
+      if (modo === 'chat') {
+        if (!t) return;
+        decir(t, 'c'); input.value = '';
+        if (/a la medida/i.test(t)) { iniciarFormulario(0); return; }
+        preguntarHilo(t); return;
+      }
+      if (!t && paso !== 5) return;
       decir(t || '—', 'c');
       if (paso === 0) { d.color = t; siguiente(1); }
       else if (paso === 1) { if (/mid/i.test(t)) siguiente(2); else { d.size = t.replace(/[^0-9.]/g, ''); siguiente(3); } }
@@ -156,7 +211,11 @@
       else if (paso === 5) { d.note = /^no, así está bien$/i.test(t) ? '' : t; enviar(); }
     }
     w.querySelector('.f360-hilo-in').addEventListener('submit', function (e) { e.preventDefault(); responder(input.value); });
-    cta.querySelector('.f360-med-abrir').addEventListener('click', function () { w.hidden = false; if (!log.childNodes.length) siguiente(0); else input.focus(); });
+    cta.querySelector('.f360-med-abrir').addEventListener('click', function () {
+      w.hidden = false;
+      if (!log.childNodes.length) { decir('¡Hola! Soy Hilo 💛 ¿En qué te ayudo con tus ' + producto + '? Pregúntame de tallas, entrega o si las quieres a la medida.'); opciones(OPC_CHAT); input.placeholder = 'Escribe tu pregunta'; }
+      input.focus();
+    });
     w.querySelector('.f360-hilo-x').addEventListener('click', function () { w.hidden = true; });
   }
   // Reseñas: while a model has 0 reviews the block ("0,0 · Basado en 0 reseñas") is hidden — it hurts more than it helps.
