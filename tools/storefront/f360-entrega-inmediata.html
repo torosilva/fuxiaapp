@@ -213,7 +213,7 @@
     w.querySelector('.f360-hilo-in').addEventListener('submit', function (e) { e.preventDefault(); responder(input.value); });
     cta.querySelector('.f360-med-abrir').addEventListener('click', function () {
       w.hidden = false;
-      if (!log.childNodes.length) { decir('¡Hola! Soy Hilo 💛 ¿En qué te ayudo con tus ' + producto + '? Pregúntame de tallas, entrega o si las quieres a la medida.'); opciones(OPC_CHAT); input.placeholder = 'Escribe tu pregunta'; }
+      if (!log.childNodes.length) { decir('Pregúntame lo que quieras de tus ' + producto + ': tallas, entrega o si las quieres a la medida. 💛');   // Hilo introduces itself in its first answer opciones(OPC_CHAT); input.placeholder = 'Escribe tu pregunta'; }
       input.focus();
     });
     w.querySelector('.f360-hilo-x').addEventListener('click', function () { w.hidden = true; });
