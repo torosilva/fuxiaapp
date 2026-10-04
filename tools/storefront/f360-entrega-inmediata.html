@@ -231,6 +231,7 @@
     }
     w.querySelector('.f360-hilo-in').addEventListener('submit', function (e) { e.preventDefault(); responder(input.value); });
     cta.querySelector('.f360-med-abrir').addEventListener('click', function () {
+      if (window.FuxiaHilo) { window.FuxiaHilo.open({ chat: true }); return; }   // site-wide Hilo installed: one chat for the whole site
       w.hidden = false;
       if (!log.childNodes.length) { decir('Pregúntame lo que quieras de tus ' + producto + ': tallas, entrega o si las quieres a la medida. 💛'); opciones(OPC_CHAT);   /* Hilo introduces itself in its first answer */ input.placeholder = 'Escribe tu pregunta'; }
       input.focus();
