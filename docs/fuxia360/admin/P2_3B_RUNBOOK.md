@@ -42,11 +42,38 @@ This is done by a script modeled on `scripts/f360/woo_local_target.mjs`, reviewe
 
 ## 3 · Deploy the three functions to Supabase STAGING ✋
 
-- **Commands:**
+- **Commands:** (corrected 2026-10-04; the original line omitted `--no-verify-jwt` for `f360-woo-publish` / `f360-woo-sync`)
   ```
-  supabase functions deploy f360-woo-publish f360-woo-sync --project-ref faltxpkaicwpnlqaxrdu
-  supabase functions deploy f360-woo-orders --no-verify-jwt --project-ref faltxpkaicwpnlqaxrdu
+  scripts/f360/deploy_woo_functions.sh f360-woo-publish f360-woo-sync f360-woo-orders
   ```
+  The wrapper is the only supported way to deploy them. It is equivalent to `supabase functions deploy <fn…> --no-verify-jwt --project-ref faltxpkaicwpnlqaxrdu`, waits for a cron tick and then runs the guard.
+
+### Deployment invariant (JWT): the three Woo functions run WITHOUT gateway JWT verification
+
+| Function | `verify_jwt` | Who calls it | How it authenticates |
+|---|---|---|---|
+| `f360-woo-sync` | **false** | pg_cron every minute (`f360.woo_sync_tick`, stock push) and every 15 min (`f360.commerce_poll_tick`); "Revisar ahora" from admin | `Bearer F360_SYNC_SECRET` (**not a JWT**) or the owner/operator user JWT, checked inside the function |
+| `f360-woo-orders` | **false** | Woo webhooks | HMAC `X-WC-Webhook-Signature` |
+| `f360-woo-publish` | **false** (as deployed today, v7) | admin-web (owner) | Validates the user session with `/auth/v1/user` and requires role `owner` (`f360-woo-publish/handler.ts:41-53`) |
+
+- **Why it matters:** a deploy **without** `--no-verify-jwt` flips `verify_jwt` to `true`. From then on, the Supabase gateway rejects the cron Bearer before the function runs. Every tick answers `401 UNAUTHORIZED_INVALID_JWT_FORMAT` and the stock push stops.
+- **Verify after every deploy (required):**
+  ```
+  scripts/s00a/run.sh ../f360/check_woo_functions.mjs
+  ```
+  Read-only. It checks two things:
+  - `verify_jwt=false` on all three functions (`supabase functions list --project-ref faltxpkaicwpnlqaxrdu --output json`);
+  - **smoke test:** the last cron response in `net._http_response` (last 3 minutes) is **200**.
+
+  Exit code 1 means the deploy is broken.
+- **Rollback:** run `scripts/f360/deploy_woo_functions.sh <function>` again. It restores `verify_jwt=false` in about 1 minute. If the code itself is the problem, check out the previous commit and redeploy with the same script. The stock queue (`f360.stock_sync_queue`) and the commerce cursor are persistent, so missed ticks are recovered on the next one.
+- **Incident 2026-10-04 (staging), evidence:**
+  - G1-B deployed `f360-woo-sync` without the flag (v11, `verify_jwt=true`).
+  - `net._http_response` ids 6104 and 6105, at **17:47:00 and 17:48:00 UTC**, answered `401 {"code":"UNAUTHORIZED_INVALID_JWT_FORMAT"}`. The previous tick (6103, 17:46) had answered 200.
+  - It was redeployed with `--no-verify-jwt` (v12, `verify_jwt=false`), and from **17:49:00 UTC** (id 6106) it answers **200** again.
+  - **Impact:** none. The queue was empty (`claimed 0`) and is persistent.
+  - The guard reproduces the evidence: `check_woo_functions.mjs --at=2026-10-04T17:48:30Z` → FAIL (401); `--at=2026-10-04T17:51:30Z` → OK.
+  - `pg_net` purges old responses after a few hours, so the ids above are the permanent record.
 - **Secrets** (staging only, set by Mario): `WOO_TARGET_KEY=woo_siteground`, `WOO_BASE_URL`, `WOO_USER`, `WOO_SECRET`, `WOO_WEBHOOK_SECRET`, `F360_SYNC_SECRET`.
 - **Scheduler:** every minute, `f360-woo-sync {action:"push"}`; reconciliation per decision SY1.
 - **Remote admin:** Vercel staging gets `F360_PUBLISHER_URL=https://faltxpkaicwpnlqaxrdu.supabase.co/functions/v1/f360-woo-publish`. This is not localhost, so the guard allows it.

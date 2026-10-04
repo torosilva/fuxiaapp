@@ -117,6 +117,16 @@ export const getSyncBadge = () => rpc<number>('f360_sync_badge');
 
 export const getGrowthPlan = (year: number) => rpc<GrowthPlan>('f360_growth_plan', { p_year: year });
 
+// G1 Commerce Facts (ACTUAL only, original currency, owner/operator). Never summed across currencies.
+export type CommerceGroup = { currency: string; market: string; origin: string; channel: string; orders: number; units: number; product_gross: number;
+  discounts: number; product_sales: number; shipping: number; tax: number; fees: number; order_total: number; refunds: number; net_product_sales: number;
+  aov_product: number; average_order_total: number; quality: { VERIFIED: number; PARTIAL: number; UNVERIFIED: number } };
+export type CommerceSummary = { from: string | null; to: string | null; kind: 'ACTUAL'; groups: CommerceGroup[];
+  not_counted: { currency: string; payment_state: string; status_class: string; orders: number; order_total: number; paid_order_total: number | null }[];
+  payment_states: Record<string, number>; meta_purchase_signal: string;
+  sources: { target: string; freshness: 'VERIFIED' | 'STALE' | 'UNVERIFIED'; last_success_at: string | null; last_attempt_at: string | null; last_error: string | null; last_webhook_at: string | null }[] };
+export const getCommerceSummary = (from?: string, to?: string) => rpc<CommerceSummary>('f360_commerce_summary', { p_from: from || null, p_to: to || null });
+
 export const listTransfers = (view: TransferView = 'all') => rpc<TransferList>('f360_list_transfers', { p_view: view });
 export const getTransfer = (id: string) => rpc<Transfer>('f360_get_transfer', { p_transfer_id: id });
 export const getTransferLocations = () => rpc<TransferLocations>('f360_transfer_locations');

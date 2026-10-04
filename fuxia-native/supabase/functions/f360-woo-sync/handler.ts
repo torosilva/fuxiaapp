@@ -6,9 +6,10 @@ import { pushContent } from '../_shared/f360-woo/content.ts';
 import { f360User, serviceRpc, type SupabaseEnv } from '../_shared/f360-woo/supabase.ts';
 import { safeEqual } from '../_shared/f360-woo/orders.ts';
 import type { WooAdapter } from '../_shared/f360-woo/types.ts';
+import { commercePoll, commerceWoo, type CommerceWoo } from '../_shared/f360-woo/commerce.ts';
 
 export type SyncEnv = SupabaseEnv & { WOO_TARGET_KEY: string; WOO_BASE_URL: string; WOO_USER: string; WOO_SECRET: string; F360_SYNC_SECRET?: string };
-export type SyncOptions = { wrapAdapter?: (a: WooAdapter) => WooAdapter };
+export type SyncOptions = { wrapAdapter?: (a: WooAdapter) => WooAdapter; commerceWoo?: CommerceWoo };
 
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -49,6 +50,12 @@ export async function handleSync(req: Request, env: SyncEnv, opts: SyncOptions =
       if (action === 'content_list') return json({ items: await rpc('f360_legacy_content_list', { p_target_key: env.WOO_TARGET_KEY, p_product_ids: body.product_ids ?? null }) });
       if (!Number.isInteger(body.woo_product_id)) return json({ error: 'Falta el producto de la tienda.' }, 400);
       return json(await pushContent(rpc, woo, env.WOO_TARGET_KEY, body.woo_product_id!, env.SUPABASE_URL, who));
+    }
+    // G1 Commerce Facts heartbeat (cron every 15 min, or owner/operator): captures economics of orders modified since
+    // the cursor. Its success is what makes the online source fresh (STALE never depends on order activity).
+    if (action === 'commerce_poll') {
+      const cw = opts.commerceWoo ?? commerceWoo({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET });
+      return json(await commercePoll(rpc, cw, env.WOO_TARGET_KEY, 'poll'));
     }
     if (action === 'reconcile') {
       const pushedBefore = await pushStock(rpc, woo, env.WOO_TARGET_KEY);

@@ -1,9 +1,12 @@
+import { redirect } from 'next/navigation';
 import { AvailabilityPill, DataStatusTable } from '@/components/DataStatus';
+import { canWrite, getMe } from '@/lib/f360';
 import { CUSTOMER_FIELDS, IDENTITY_DECISIONS, SEGMENTS } from '@/lib/data-audit';
 
 // Customer 360 (B1/B2) — honest state. The customer model is designed (docs/fuxia360/growth/CUSTOMER_360_MODEL.md)
 // but NOT built: it waits for identity decisions that could otherwise merge or duplicate people. No invented data.
-export default function Clientes() {
+export default async function Clientes() {
+  if (!canWrite((await getMe()).role)) redirect('/');   // D-G1-05: customer and financial intelligence is owner/operator only
   return (
     <div>
       <h1 className="font-display text-5xl text-ink">Clientes</h1>
