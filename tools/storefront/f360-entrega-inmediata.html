@@ -185,11 +185,17 @@
     var sobre = document.querySelector('.f360-sobrepedido');
     if (sobre) anchor.parentNode.insertBefore(sobre, box);
     var q = function (s) { return box.querySelector(s); };
-    // Woo adds "(puede reservarse)" to the stock line when 5–7 días is on (it renders AFTER our handler): clean it whenever it appears
+    // Stock line (CRO-5a, Mario 2026-10-04): NO quantitative scarcity ("3 disponibles", "último par", "quedan X") unless
+    // Fuxia 360 says every location behind the online ATS is certified (opening count / cutover). Fail closed: any
+    // stock text with a number stays hidden until the answer is {reliable:true}. Texts without numbers (e.g. "Agotado")
+    // are untouched. Woo's "(puede reservarse)" is always removed (the 5–7 días line says it).
+    var contarOk = false;
     var limpiarStock = function () {
       form.querySelectorAll('.woocommerce-variation-availability .stock').forEach(function (el) {
-        var t = el.textContent.replace(/\s*\(puede reservarse\)/i, '').replace(/^\s*1 disponibles/i, '¡Último par!');
+        var t = el.textContent.replace(/\s*\(puede reservarse\)/i, '');
         if (t !== el.textContent) el.textContent = t;
+        var conNumero = /\d|[úu]ltimo par|quedan/i.test(t);   // numbers or scarcity wording
+        if (conNumero && !contarOk) el.style.setProperty('display', 'none', 'important'); else el.style.removeProperty('display');
       });
     };
     if (window.MutationObserver) new MutationObserver(limpiarStock).observe(form, { childList: true, subtree: true, characterData: true });
@@ -200,6 +206,12 @@
       variation = v && v.variation_id; reset(); if (!variation) return;
       // 5–7 días hábiles (Mario 2026-10-03; never called "sobre pedido" to the customer): no stock but orderable → Woo marks it "available-on-backorder"
       var bajoPedido = !!(v.backorders_allowed && /available-on-backorder/.test(v.availability_html || ''));
+      contarOk = false; limpiarStock();
+      var preguntado = variation;
+      api({ action: 'scarcity', woo_variation_id: variation }).then(function (j) {
+        if (preguntado !== variation) return;
+        contarOk = j && j.reliable === true; limpiarStock();
+      }).catch(function () { /* sin respuesta: el número sigue oculto */ });
 
       if (sobre) sobre.hidden = !bajoPedido;
       if (!mexico) return;

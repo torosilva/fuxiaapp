@@ -1,6 +1,6 @@
 // f360-store-reserve — public endpoint for the store's product page: "Entrega inmediata" + "Apártalo 2 horas" (Fuxia Gold).
 // Actions (POST JSON): availability {woo_variation_id} · send_code {phone} · reserve {phone, code, woo_variation_id, location_id}
-// · catalog {} (shop page filters) · a_la_medida {phone, name, color, size?, store_size?, foot_cm?, note?, woo_product_id, product_name, country} (Hilo chat).
+// · scarcity {woo_variation_id} (CRO-5a) · catalog {} (shop page filters) · a_la_medida {phone, name, color, size?, store_size?, foot_cm?, note?, woo_product_id, product_name, country} (Hilo chat).
 // STAGING / testing: only TEST_PHONES can reserve, with TEST_CODE (no WhatsApp is sent). Every rule (Gold, 2 pairs,
 // 2 hours, free pair) is enforced again in the database. CORS limited to ALLOWED_ORIGINS. Runtime-agnostic (Deno / Node).
 export type ReserveEnv = { SUPABASE_URL: string; SUPABASE_SERVICE_ROLE_KEY: string; ALLOWED_ORIGINS: string; TEST_PHONES: string; TEST_CODE: string };
@@ -62,6 +62,14 @@ export async function handleReserve(req: Request, env: ReserveEnv, fetchImpl: ty
       catalogCache = { at: now, data: { ...r.data, top_searches: top.ok ? top.data : [] } };
     }
     return json(catalogCache.data);
+  }
+
+  // CRO-5a: may the store show a stock COUNT for this variation? Only when every location behind the online ATS is
+  // certified (opening count / cutover). Boolean only; unknown variation ⇒ false.
+  if (body.action === 'scarcity') {
+    if (!Number.isInteger(variation) || variation <= 0) return json({ reliable: false });
+    const r = await rpc<{ reliable: boolean }>('f360_scarcity_state', { p_woo_variation_id: variation });
+    return json({ reliable: r.ok ? r.data.reliable === true : false });
   }
 
   if (body.action === 'availability') {

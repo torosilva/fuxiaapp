@@ -71,3 +71,11 @@ test('search_log: records the term only (short terms ignored)', async () => {
   await handleReserve(post({ action: 'search_log', term: 'ab' }), env, fakeFetch({}, c2));
   assert.equal(c2.length, 0);
 });
+test('scarcity: boolean only; errors and bad input fail closed', async () => {
+  let r = await handleReserve(post({ action: 'scarcity', woo_variation_id: 3733 }), env, fakeFetch({ f360_scarcity_state: { reliable: true } }));
+  assert.deepEqual(await r.json(), { reliable: true });
+  r = await handleReserve(post({ action: 'scarcity', woo_variation_id: 3733 }), env, fakeFetch({ f360_scarcity_state: new Error('x') }));
+  assert.deepEqual(await r.json(), { reliable: false });
+  r = await handleReserve(post({ action: 'scarcity', woo_variation_id: 'abc' }), env, fakeFetch({}));
+  assert.deepEqual(await r.json(), { reliable: false });
+});
