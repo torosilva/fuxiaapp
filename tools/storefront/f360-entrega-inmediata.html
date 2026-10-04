@@ -60,6 +60,13 @@
 .f360-inm-envio + .f360-inm-probar:not([hidden]) { margin-top: 14px; padding-top: 12px; border-top: 1px solid #eee5d8; }
 .f360-colores-header .f360-color-nombre { display: none !important; }   /* the selected button already says the colour */
 .brxe-product-content, .brxe-product-content p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+/* Productos relacionados: se acomodan al ancho (antes 4 columnas fijas: se cortaban en pantallas medianas) */
+.brxe-product-related { width: 100% !important; max-width: 100% !important; min-width: 0; box-sizing: border-box; }
+.brxe-product-related ul.products { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(min(170px, 45%), 1fr)) !important; gap: 18px !important; width: 100% !important; }
+.brxe-product-related ul.products > li.product { width: auto !important; max-width: none !important; margin: 0 !important; min-width: 0; }
+.brxe-product-related ul.products img { width: 100%; height: auto; }
+/* un "Precio del producto" suelto que quedó debajo de los relacionados en la plantilla */
+#brxe-cscgdv.brxe-product-price { display: none !important; }   /* id del elemento en la plantilla Producto Fuxia */
 .f360-inmediata { margin: 18px 0; padding: 14px 16px; border: 1px solid #e6dfd4; border-radius: 6px; background: #fffdf9; font-family: inherit; }
 .f360-inm-titulo { margin: 0 0 10px; font-size: 14px; color: #4a433a; }
 .f360-inm-boton, .f360-inm-enviar, .f360-inm-apartar { height: 42px; padding: 0 16px; border: 1px solid #B8966E; background: #fff; color: #8c6414; cursor: pointer; font-size: 14px; border-radius: 4px; }
