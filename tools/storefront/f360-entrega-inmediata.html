@@ -150,7 +150,15 @@
       return { producto: producto, color: color || null, talla_mx: talla && mexico ? talla.textContent.trim() : null,
                talla_tienda: talla ? talla.dataset.co : null, pais: mexico ? 'mx' : (location.pathname.split('/')[1] || ''), url: location.href.split('?')[0] };
     }
-    var OPC_CHAT = ['¿Qué talla me queda?', '¿Cuándo me llega?', 'Lo quiero a la medida'];
+    var OPC_CHAT = ['¿Qué talla me queda?', '¿Cuándo me llega?', 'Lo quiero a la medida', 'Escribir por WhatsApp'];
+    // WhatsApp of the customer's country (public numbers from the site footer); opens with the shoe already written
+    var WA = { mx: '525567914188', co: '573166912433' };
+    function abrirWhatsApp() {
+      var c = contexto(), num = WA[c.pais] || WA.mx;
+      var txt = 'Hola, estoy viendo ' + c.producto + (c.color ? ' color ' + c.color : '') + (c.talla_mx ? ' talla ' + c.talla_mx + ' MX' : (c.talla_tienda ? ' talla ' + c.talla_tienda : '')) + ' en la tienda en línea. ' + c.url;
+      window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+      decir('Te abrí WhatsApp con el modelo que estás viendo. 💛');
+    }
     function preguntarHilo(texto) {
       if (ocupado) return; ocupado = true;
       var c = contexto(), msg = texto;
@@ -199,6 +207,7 @@
         if (!t) return;
         decir(t, 'c'); input.value = '';
         if (/a la medida/i.test(t)) { iniciarFormulario(0); return; }
+        if (/^escribir por whatsapp$/i.test(t)) { abrirWhatsApp(); return; }
         preguntarHilo(t); return;
       }
       if (!t && paso !== 5) return;
