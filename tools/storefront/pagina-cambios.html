@@ -1,6 +1,27 @@
 <!-- Fuxia Ballerinas · página "Cambios" (dirección: /cambios/). Pegar en un elemento Code (o bloque HTML)
-     de la página. Usa el CSS .fx-page que ya está en Ajustes → Código personalizado → CSS.
+     de la página. Trae su propio CSS (.fx-page). Publicada en staging4 como página 4080 (/cambios/).
      Política (Carolina 2026-10-03): no hay devoluciones; sí se puede cambiar (sin límite de veces); pares con descuento no tienen cambio; la clienta paga el envío a la tienda más cercana y Fuxia el de regreso. -->
+<style>
+:root{--page-ink:#242424;--page-muted:#6B6B68;--page-gold:#83734C;--page-gold-light:#B7A578;--page-line:rgba(36,36,36,0.10);}
+.fx-page{max-width:720px;margin:0 auto;padding:64px 24px 96px;font-family:'Montserrat',sans-serif;color:var(--page-ink);}
+.fx-page-eyebrow{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--page-gold);margin:0 0 14px;}
+.fx-page h1{font-size:32px;font-weight:700;line-height:1.2;margin:0 0 16px;color:var(--page-ink);}
+.fx-page-intro{font-size:15.5px;line-height:1.7;color:var(--page-muted);margin:0 0 40px;padding-bottom:32px;border-bottom:1px solid var(--page-line);}
+.fx-page h2{font-size:19px;font-weight:600;margin:40px 0 16px;padding-top:28px;border-top:1px solid var(--page-line);color:var(--page-ink);}
+.fx-page h2:first-of-type{border-top:none;padding-top:0;margin-top:0;}
+.fx-page p{font-size:14.5px;line-height:1.75;color:var(--page-muted);margin:0 0 16px;}
+.fx-page ul,.fx-page ol{margin:0 0 16px;padding-left:20px;}
+.fx-page li{font-size:14.5px;line-height:1.75;color:var(--page-muted);margin-bottom:6px;}
+.fx-page strong{color:var(--page-ink);font-weight:600;}
+.fx-page a{color:var(--page-ink);text-decoration:underline;text-decoration-color:var(--page-gold);text-underline-offset:3px;}
+.fx-page a:hover{color:var(--page-gold);}
+.fx-page-cta{margin-top:56px;padding:28px 26px;background:var(--page-ink);border-radius:2px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+.fx-page-cta p{margin:0;color:#F5F5F5;font-size:14px;font-weight:500;}
+.fx-page-cta a{display:inline-flex;align-items:center;gap:8px;background:var(--page-gold);color:#1a1a1a;text-decoration:none;font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:12px 20px;border-radius:2px;white-space:nowrap;}
+.fx-page-cta a:hover{background:var(--page-gold-light);}
+.fx-page-cta svg{width:15px;height:15px;}
+@media (max-width:640px){.fx-page{padding:40px 20px 72px;}.fx-page h1{font-size:26px;}.fx-page-cta{flex-direction:column;align-items:flex-start;}}
+</style>
 <div class="fx-page">
   <p class="fx-page-eyebrow">Ayuda</p>
   <h1>Cambios</h1>
