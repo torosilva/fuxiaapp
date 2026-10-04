@@ -16,12 +16,15 @@
       </div>
       <button type="button" class="f360-t-toggle" aria-expanded="true">Ocultar filtros</button>
     </div>
-    <div class="f360-t-cuerpo">
+    <div class="f360-t-cuerpo" role="dialog" aria-label="Filtros">
+    <div class="f360-t-hoja-top"><b>Filtros</b><button type="button" class="f360-t-x" aria-label="Cerrar filtros">✕</button></div>
     <div class="f360-t-fila f360-t-fila-cat" hidden><span class="f360-t-et">Categoría</span><div class="f360-t-cats"></div></div>
     <div class="f360-t-fila"><span class="f360-t-et">Color</span><div class="f360-t-colores"></div></div>
     <div class="f360-t-fila"><span class="f360-t-et f360-t-et-talla">Talla</span><div class="f360-t-tallas"></div></div>
     <div class="f360-t-fila f360-t-fila-inm" hidden><label class="f360-t-inm"><input type="checkbox"> <b>Entrega inmediata</b> en Zona Metropolitana</label></div>
+    <div class="f360-t-pie"><button type="button" class="f360-t-limpiar">Limpiar</button><button type="button" class="f360-t-ver">Ver modelos</button></div>
     </div>
+    <div class="f360-t-velo" hidden></div>
     <p class="f360-t-res" role="status"></p>
   </div>
   <div class="f360-t-mas-res" hidden></div>
@@ -60,6 +63,7 @@
 li.product.f360-fuera { display: none !important; }
 .f360-t-toggle { flex: 0 0 auto; height: 44px; padding: 0 16px; border: 1px solid #d9d2c5; border-radius: 22px; background: #fff; cursor: pointer; font: inherit; font-size: 13px; color: #4a433a; }
 .f360-t-filtros.cerrado .f360-t-cuerpo { display: none; }
+.f360-t-hoja-top, .f360-t-pie { display: none; }
 .f360-t-filtros.compacto { padding: 10px 14px; }
 .f360-t-filtros.compacto .f360-t-res { margin-top: 6px; }
 .f360-t-mas-res { margin: 28px 0 0; }
@@ -81,9 +85,18 @@ li.product.f360-fuera { display: none !important; }
   .f360-t-filtros { padding: 10px 12px; }
   .f360-t-fila { flex-direction: column; gap: 6px; margin-top: 12px; }
   .f360-t-et { flex: none; padding-top: 0; }
-  .f360-t-colores, .f360-t-tallas, .f360-t-cats { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 0 12px 2px; }
-  .f360-t-colores::-webkit-scrollbar, .f360-t-tallas::-webkit-scrollbar, .f360-t-cats::-webkit-scrollbar { display: none; }
   .f360-t-chip { flex: 0 0 auto; }
+  /* mobile: the filters open as a bottom sheet with its own scroll; the page behind does not move */
+  .f360-tienda.f360-hoja-abierta { z-index: 2147483000; }
+  .f360-t-velo { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 1; }
+  .f360-t-filtros:not(.cerrado) .f360-t-cuerpo { position: fixed; left: 0; right: 0; bottom: 0; top: 10vh; top: 10dvh; z-index: 2; background: #fff; border-radius: 16px 16px 0 0;
+    padding: 0 16px; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; box-shadow: 0 -10px 30px rgba(0,0,0,.15); box-sizing: border-box; }
+  .f360-t-hoja-top { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; align-items: center; margin: 0 -16px; padding: 14px 16px; background: #fff; border-bottom: 1px solid #f0ebe2; font-size: 16px; }
+  .f360-t-x { width: 40px; height: 40px; border: 0 !important; background: none !important; font-size: 20px; color: #242424 !important; cursor: pointer; padding: 0 !important; }
+  .f360-t-pie { position: sticky; bottom: 0; display: flex; gap: 10px; margin: 18px -16px 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid #f0ebe2; }
+  .f360-t-pie button { display: flex; align-items: center; justify-content: center; padding: 0 !important; text-align: center; height: 48px; border-radius: 24px; font: inherit; font-size: 15px; cursor: pointer; }
+  .f360-t-limpiar { flex: 0 0 auto; padding: 0 18px !important; border: 1px solid #d9d2c5 !important; background: #fff !important; color: #4a433a !important; }
+  .f360-t-ver { flex: 1; border: 0 !important; background: #242424 !important; color: #fff !important; font-weight: 600; }
   .f360-t-toggle { padding: 0 12px; }
   .f360-t-buscar { font-size: 16px; }   /* 16px: iPhone doesn't zoom in on focus */
 }
@@ -170,16 +183,28 @@ li.product.f360-fuera { display: none !important; }
     var activos = function (o) { return Object.keys(o).filter(function (k) { return o[k]; }); };
     var uno = function (xs) { var seen = {}; return xs.filter(function (it) { if (seen[it.product_id]) return false; seen[it.product_id] = 1; return true; }); };
 
-    // show / hide the filters (remembered on this device)
-    var filtros = q('.f360-t-filtros'), tog = q('.f360-t-toggle');
-    var cerrar = function (c) { filtros.classList.toggle('cerrado', c); filtros.classList.toggle('compacto', c && compacto); tog.textContent = c ? 'Filtros' : 'Ocultar filtros'; tog.setAttribute('aria-expanded', String(!c)); };
     var movil = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
-    var prefCerrado = function () { var v = null; try { v = localStorage.getItem('f360-filtros'); } catch (e) {} return v ? v === 'cerrado' : movil; };
+    // show / hide the filters (remembered on this device; on mobile they always start closed — they open as a sheet)
+    var filtros = q('.f360-t-filtros'), tog = q('.f360-t-toggle');
+    var velo = q('.f360-t-velo'), yHoja = 0, hoja = false;
+    // mobile: lock the page behind the sheet (iOS ignores overflow:hidden on body, so pin it in place)
+    var hojaMovil = function (abrir) {
+      if (!movil || abrir === hoja) return;
+      hoja = abrir; velo.hidden = !abrir; box.classList.toggle('f360-hoja-abierta', abrir);
+      var b = document.body.style;
+      if (abrir) { yHoja = window.scrollY; b.position = 'fixed'; b.top = -yHoja + 'px'; b.left = '0'; b.right = '0'; b.width = '100%'; b.overflow = 'hidden'; }
+      else { b.position = b.top = b.left = b.right = b.width = b.overflow = ''; window.scrollTo(0, yHoja); }
+    };
+    var cerrar = function (c) { hojaMovil(!c); filtros.classList.toggle('cerrado', c); filtros.classList.toggle('compacto', c && compacto); tog.textContent = c ? 'Filtros' : 'Ocultar filtros'; tog.setAttribute('aria-expanded', String(!c)); };
+    var prefCerrado = function () { var v = null; try { v = localStorage.getItem('f360-filtros'); } catch (e) {} return movil || (v ? v === 'cerrado' : false); };
     cerrar(prefCerrado());
     tog.onclick = function () { var c = !filtros.classList.contains('cerrado'); cerrar(c); abiertoAMano = !c; if (!compacto) { try { localStorage.setItem('f360-filtros', c ? 'cerrado' : 'abierto'); } catch (e) {} } };
     // while scrolling the catalogue the bar shrinks to the search box + "Filtros" (opens on demand); full again at the top
     var compacto = false, abiertoAMano = false, inicio = box.getBoundingClientRect().top + window.scrollY;
+    velo.onclick = q('.f360-t-x').onclick = q('.f360-t-ver').onclick = function () { cerrar(true); if (movil && grid) window.scrollTo(0, Math.max(0, inicio - 10)); };
+    q('.f360-t-limpiar').onclick = function () { limpiar(); };
     window.addEventListener('scroll', function () {
+      if (hoja) return;   // the sheet pins the page; ignore its scroll jumps
       var c = window.scrollY > inicio + 40;
       if (c === compacto) return;
       compacto = c; abiertoAMano = false;
@@ -297,6 +322,7 @@ li.product.f360-fuera { display: none !important; }
       });
       var cols = activos(sel.colores), tal = activos(sel.tallas);
       var activo = sel.texto || sel.inm || cols.length || tal.length || activos(sel.cats).length;
+      q('.f360-t-ver').textContent = activo ? (n ? 'Ver ' + n + (n === 1 ? ' modelo' : ' modelos') : 'Sin resultados') : 'Ver todos los modelos';
       var res = q('.f360-t-res'); res.textContent = activo ? (n ? n + (n === 1 ? ' modelo' : ' modelos') : 'No encontramos ese color y talla.') : '';
       if (activo) {
         var b = document.createElement('button'); b.type = 'button'; b.textContent = 'Limpiar filtros'; b.onclick = limpiar; res.appendChild(b);
