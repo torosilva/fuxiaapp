@@ -148,6 +148,8 @@ form.cart a.added_to_cart, form.cart + a.added_to_cart, .single_variation_wrap a
   }
 
   // ---------- popup: WhatsApp field visible directly (still optional) ----------
+  // the popup is printed later in the footer than this snippet: wait for the DOM
+  function popup() {
   var waToggle = document.getElementById('fx-pop-wa-toggle'), waBox = document.getElementById('fx-pop-tel');
   if (waToggle && waBox) {
     waBox.hidden = false; waToggle.setAttribute('aria-expanded', 'true'); waToggle.classList.add('f360-wa-label'); waToggle.tabIndex = -1;
@@ -168,6 +170,8 @@ form.cart a.added_to_cart, form.cart + a.added_to_cart, .single_variation_wrap a
       if (cod && !store('f360_bv_cupon')) { store('f360_bv_cupon', cod.trim()); store('f360_bv_estado', 'pendiente'); aplicarCupon(); }
     }).observe(paso2, { attributes: true, attributeFilter: ['style'] });
   }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', popup); else popup();
   var aplicando = false;
   function aplicarCupon() {
     var cod = store('f360_bv_cupon'), est = store('f360_bv_estado');
