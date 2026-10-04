@@ -159,12 +159,22 @@
     cta.querySelector('.f360-med-abrir').addEventListener('click', function () { w.hidden = false; if (!log.childNodes.length) siguiente(0); else input.focus(); });
     w.querySelector('.f360-hilo-x').addEventListener('click', function () { w.hidden = true; });
   }
+  // Reseñas: while a model has 0 reviews the block ("0,0 · Basado en 0 reseñas") is hidden — it hurts more than it helps.
+  function ocultarResenasVacias() {
+    var revisar = function () {
+      var r = document.getElementById('reviews');
+      if (r && /Basado en 0 reseñas|0 de 0 reseñas/i.test(r.textContent)) r.style.setProperty('display', 'none', 'important');
+    };
+    revisar(); window.addEventListener('load', revisar);
+    if (window.MutationObserver) { var mo = new MutationObserver(revisar); mo.observe(document.body, { childList: true, subtree: true }); setTimeout(function () { mo.disconnect(); }, 8000); }
+  }
   function init() {
     // "5 a 7 días hábiles" va en todos los países; entrega inmediata y tallas mexicanas solo en México (raíz o /mx/).
     var mexico = !(/^\/[a-z]{2}\//.test(location.pathname) && !/^\/mx\//.test(location.pathname));
     var pais = (location.pathname.match(/^\/[a-z]{2}\//) || ['/'])[0];         // keep the country: /mx/… or /co/…
     document.querySelectorAll('.f360-cambios-link').forEach(function (a) { a.href = pais + 'cambios/'; });
     if (mexico) tallasMexico();
+    ocultarResenasVacias();
     aLaMedida(mexico);
     var form = document.querySelector('form.variations_form');
     var box = document.querySelector('.f360-inmediata');
