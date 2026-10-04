@@ -31,7 +31,9 @@
 .f360-tienda { margin: 8px 0 28px; background: #fff; font-family: inherit; color: #242424; }
 .f360-tienda [hidden] { display: none !important; }
 .f360-t-rail { margin: 0 0 28px; }
+.f360-t-rails, .f360-t-mas-res { width: 100%; max-width: 100%; min-width: 0; overflow: hidden; box-sizing: border-box; }
 .f360-t-rails { margin-top: 36px; }
+.f360-tienda { max-width: 100%; min-width: 0; box-sizing: border-box; }
 .f360-t-rail h3 { margin: 0 0 12px; font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #83734C; }
 .f360-t-rail { position: relative; max-width: 100%; overflow: hidden; }
 .f360-t-cards { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 4 * 16px) / 5); gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; }
@@ -55,6 +57,7 @@
 .f360-t-sug li:hover, .f360-t-sug li[aria-selected="true"] { background: #f7f2ea; }
 .f360-t-sug .f360-t-sug-h { cursor: default; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #83734C; background: none !important; }
 .brxe-woocommerce-products-filter.f360-oculto { display: none !important; }
+li.product.f360-fuera { display: none !important; }
 .f360-t-toggle { flex: 0 0 auto; height: 44px; padding: 0 16px; border: 1px solid #d9d2c5; border-radius: 22px; background: #fff; cursor: pointer; font: inherit; font-size: 13px; color: #4a433a; }
 .f360-t-filtros.cerrado .f360-t-cuerpo { display: none; }
 .f360-t-filtros.compacto { padding: 10px 14px; }
@@ -74,7 +77,16 @@
 .f360-t-res { margin: 12px 0 0; font-size: 13px; color: #6B6B68; }
 .f360-t-res button { margin-left: 8px; border: 0; background: none; color: #8c6414; text-decoration: underline; cursor: pointer; font: inherit; }
 .f360-t-vacio { padding: 28px; text-align: center; color: #6B6B68; }
-@media (max-width: 640px) { .f360-t-fila { flex-direction: column; gap: 6px; } .f360-t-et { padding-top: 0; } }
+@media (max-width: 640px) {
+  .f360-t-filtros { padding: 10px 12px; }
+  .f360-t-fila { flex-direction: column; gap: 6px; margin-top: 12px; }
+  .f360-t-et { flex: none; padding-top: 0; }
+  .f360-t-colores, .f360-t-tallas, .f360-t-cats { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 0 12px 2px; }
+  .f360-t-colores::-webkit-scrollbar, .f360-t-tallas::-webkit-scrollbar, .f360-t-cats::-webkit-scrollbar { display: none; }
+  .f360-t-chip { flex: 0 0 auto; }
+  .f360-t-toggle { padding: 0 12px; }
+  .f360-t-buscar { font-size: 16px; }   /* 16px: iPhone doesn't zoom in on focus */
+}
 </style>
 <script>
 /* Fuxia 360 · filtros de la Tienda. STAGING. Fuente: tools/storefront/f360-tienda.html */
@@ -161,7 +173,9 @@
     // show / hide the filters (remembered on this device)
     var filtros = q('.f360-t-filtros'), tog = q('.f360-t-toggle');
     var cerrar = function (c) { filtros.classList.toggle('cerrado', c); filtros.classList.toggle('compacto', c && compacto); tog.textContent = c ? 'Filtros' : 'Ocultar filtros'; tog.setAttribute('aria-expanded', String(!c)); };
-    try { cerrar(localStorage.getItem('f360-filtros') === 'cerrado'); } catch (e) {}
+    var movil = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+    var prefCerrado = function () { var v = null; try { v = localStorage.getItem('f360-filtros'); } catch (e) {} return v ? v === 'cerrado' : movil; };
+    cerrar(prefCerrado());
     tog.onclick = function () { var c = !filtros.classList.contains('cerrado'); cerrar(c); abiertoAMano = !c; if (!compacto) { try { localStorage.setItem('f360-filtros', c ? 'cerrado' : 'abierto'); } catch (e) {} } };
     // while scrolling the catalogue the bar shrinks to the search box + "Filtros" (opens on demand); full again at the top
     var compacto = false, abiertoAMano = false, inicio = box.getBoundingClientRect().top + window.scrollY;
@@ -169,7 +183,7 @@
       var c = window.scrollY > inicio + 40;
       if (c === compacto) return;
       compacto = c; abiertoAMano = false;
-      if (c) cerrar(true); else { var pref = false; try { pref = localStorage.getItem('f360-filtros') === 'cerrado'; } catch (e) {} cerrar(pref); }
+      if (c) cerrar(true); else cerrar(prefCerrado());
     }, { passive: true });
 
     // colours: one chip per colour name, with its circle (most common first)
@@ -180,10 +194,10 @@
       var b = document.createElement('button'); b.type = 'button'; b.className = 'f360-t-chip'; b.setAttribute('aria-pressed', 'false'); b.dataset.k = k;
       b.innerHTML = '<i></i><span></span>'; b.querySelector('i').style.background = colores[k].hex || '#ddd'; b.querySelector('span').textContent = colores[k].name;
       b.onclick = function () { sel.colores[k] = !sel.colores[k]; b.setAttribute('aria-pressed', String(!!sel.colores[k])); aplicar(); };
-      if (i >= 12) { b.hidden = true; b.classList.add('f360-t-extra'); }
+      if (i >= 12 && !movil) { b.hidden = true; b.classList.add('f360-t-extra'); }
       q('.f360-t-colores').appendChild(b);
     });
-    if (orden.length > 12) {
+    if (orden.length > 12 && !movil) {
       var mas = document.createElement('button'); mas.type = 'button'; mas.className = 'f360-t-chip f360-t-mas'; mas.textContent = 'Más colores (' + (orden.length - 12) + ')';
       mas.onclick = function () { box.querySelectorAll('.f360-t-extra').forEach(function (b) { b.hidden = false; }); mas.hidden = true; };
       q('.f360-t-colores').appendChild(mas);
@@ -227,6 +241,11 @@
       var add = function (txt, sub, fn, h) { var li = document.createElement('li'); if (h) li.className = 'f360-t-sug-h'; else { li.setAttribute('role', 'option'); li.onmousedown = function (e) { e.preventDefault(); fn(); }; }
         li.appendChild(document.createTextNode(txt)); if (sub) { var sm = document.createElement('small'); sm.textContent = sub; li.appendChild(sm); } sug.appendChild(li); };
       var elegir = function (m) { return function () { input.value = m; sel.texto = norm(m); cerrarSug(); aplicar(); registrar(m); }; };
+      var cs0 = Object.keys(cats).sort().filter(function (c) { return !t || norm(etiqueta(c)).indexOf(t) >= 0; });
+      if (cs0.length > 1 || (t && cs0.length)) { add('Categorías', '', null, true); cs0.forEach(function (c) { add(etiqueta(c), cats[c] + ' modelos', function () {
+        input.value = ''; sel.texto = ''; sel.cats = {}; sel.cats[c] = true;
+        box.querySelectorAll('.f360-t-cats .f360-t-chip').forEach(function (b) { b.setAttribute('aria-pressed', String(b.textContent === etiqueta(c))); });
+        cerrarSug(); aplicar(); }); }); }
       if (!t && buscados.length) { add('Más buscados', '', null, true); buscados.forEach(function (m) { add(m, '', elegir(m)); }); }
       else if (!t && populares.length) { add('Populares', '', null, true); populares.forEach(function (m) { add(m, '', elegir(m)); }); }
       if (ms.length) { add(t ? 'Modelos' : 'Todos los modelos (' + ms.length + ')', '', null, true); ms.forEach(function (m) { add(m, '', elegir(m)); }); }
@@ -272,7 +291,9 @@
         var m = li.className.match(/\bpost-(\d+)\b/); var nombre = (li.querySelector('h2, h3, h4, h5') || {}).textContent || '';
         var cs = activos(sel.cats);
         var ver = (!cs.length || catDe(li).some(function (c) { return cs.indexOf(c) >= 0; })) && (!m || pasa(Number(m[1]), nombre));
-        li.style.display = ver ? '' : 'none'; if (ver) { n++; if (m) visibles[m[1]] = 1; }
+        // inline + !important: the theme forces "display" on the cards (it beat a plain style on mobile)
+        if (ver) li.style.removeProperty('display'); else li.style.setProperty('display', 'none', 'important');
+        li.classList.toggle('f360-fuera', !ver); if (ver) { n++; if (m) visibles[m[1]] = 1; }
       });
       var cols = activos(sel.colores), tal = activos(sel.tallas);
       var activo = sel.texto || sel.inm || cols.length || tal.length || activos(sel.cats).length;
