@@ -69,6 +69,7 @@
 .fh-card, .fh-card * { text-decoration: none !important; }
 .fh-card { flex: 0 0 132px; border: 1px solid #ece4d6; border-radius: 12px; background: #fff; overflow: hidden; text-decoration: none; color: #242424; display: flex; flex-direction: column; }
 .fh-card img { width: 100%; height: 120px; object-fit: cover; background: #f5f2ec; display: block; }
+.fh-card img.fh-sinfoto { background: #f5f2ec url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21c-4-3-6-7-6-11 2 1 4 3 6 6 2-3 4-5 6-6 0 4-2 8-6 11z' fill='none' stroke='%23B8966E' stroke-width='1.2'/%3E%3C/svg%3E") center / 40px no-repeat; }
 .fh-card b { font-size: 12.5px; font-weight: 600; padding: 7px 8px 0; line-height: 1.25; }
 .fh-card span { font-size: 12px; color: #6B6B68; padding: 2px 8px 0; }
 .fh-card i { font-style: normal; margin: 6px 8px 8px; padding: 6px 0; border-radius: 8px; background: #B8966E; color: #fff; text-align: center; font-size: 12px; font-weight: 600; }
@@ -138,13 +139,74 @@
         .then(function (pr) {
           var a = document.createElement('a'); a.className = 'fh-card';
           if (pr) {
-            a.href = pr.permalink; var img = document.createElement('img'); img.loading = 'lazy'; img.alt = pr.name; img.src = (pr.images && pr.images[0] && (pr.images[0].thumbnail || pr.images[0].src)) || ''; a.appendChild(img);
+            a.href = pr.permalink; var img = document.createElement('img'); img.alt = pr.name; var im0 = (pr.images && pr.images[0]) || {};
+            // no lazy-loading (inside a sideways row some phones never load it); thumbnail → full image → leaf placeholder
+            img.onerror = function () { if (im0.src && img.src !== im0.src) img.src = im0.src; else { img.onerror = null; img.removeAttribute('src'); img.className = 'fh-sinfoto'; } };
+            if (im0.thumbnail || im0.src) img.src = im0.thumbnail || im0.src; else img.className = 'fh-sinfoto'; a.appendChild(img);
             var b = document.createElement('b'); b.textContent = pr.name.replace(/&amp;/g, '&'); a.appendChild(b);
             var pz = pr.prices || {}, dec = pz.currency_minor_unit || 0, sp = document.createElement('span');
             sp.textContent = (pz.currency_prefix || '$') + Number(pz.price / Math.pow(10, dec)).toLocaleString('es-MX') + (pz.currency_suffix || ''); a.appendChild(sp);
           } else { a.href = base + 'producto/' + sl + '/'; var b2 = document.createElement('b'); b2.textContent = sl.replace(/-/g, ' '); a.appendChild(b2); }
           var go = document.createElement('i'); go.textContent = 'Ver'; a.appendChild(go); row.appendChild(a); log.scrollTop = log.scrollHeight;
         });
+    });
+  }
+  // Recommendations come from the real catalogue (Fuxia 360: sales in every channel, category, new), not from the
+  // model: instant, always real products of this site. Hilo keeps the free conversation.
+  var catalogo = null;
+  function cat() { return catalogo || (catalogo = api({ action: 'catalog' }).then(function (j) { return j.items || []; }).catch(function () { catalogo = null; return []; })); }
+  var nrm = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
+  function mostrarModelos(texto, items, siguientes) {
+    var vistos = {}, ids = [];
+    items.forEach(function (it) { if (it.woo_product_id && !vistos[it.woo_product_id] && ids.length < 6) { vistos[it.woo_product_id] = 1; ids.push(it.woo_product_id); } });
+    if (!ids.length) return false;
+    var base = location.origin + '/' + (/^\/[a-z]{2}\//.test(path) ? pais + '/' : '');
+    return fetch(base + 'wp-json/wc/store/v1/products?per_page=' + ids.length + '&include=' + ids.join(','))
+      .then(function (r) { return r.json(); })
+      .then(function (prods) {
+        var por = {}; (prods || []).forEach(function (pr) { por[pr.id] = pr; });
+        var slugs = ids.map(function (id) { return por[id]; }).filter(Boolean).map(function (pr) { cache[pr.slug] = Promise.resolve(pr); return pr.slug; });
+        if (!slugs.length) return false;
+        decir(texto, 'h', slugs); opciones(siguientes || sugerencias()); return true;
+      }).catch(function () { return false; });
+  }
+  // one card per model: the legacy one-product-per-colour models ("Paula leopardo", "Paula vino"…) would fill the row
+  var GENERICO = /^(sandalias?|tacon|tac[oó]n|botas?|ballerinas?|mule|wedge|slingback|plataforma|peep|loafer|suecos?|flats?|mafalda)$/;
+  function variados(xs) {
+    var vistos = {};
+    return xs.filter(function (it) { var w = nrm(it.name).split(/\s+/); var k = GENERICO.test(w[0]) ? w.slice(0, 2).join(' ') : w[0]; if (vistos[k]) return false; vistos[k] = 1; return true; });
+  }
+  var CATS = [{ t: 'Ballerinas', c: 'ballerinas' }, { t: 'Sandalias planas', c: 'sandalia-plana' }, { t: 'Sandalias altas', c: 'sandalia-alta' }, { t: 'Botas', c: 'botas' }, { t: 'Lo nuevo', c: '*nuevo' }];
+  function recomendar() {
+    decir('¿Qué estás buscando? 💛'); opciones(CATS.map(function (k) { return { t: k.t, f: function () { decir(k.t, 'c'); porCategoria(k); } }; }));
+  }
+  function porCategoria(k) {
+    opciones([]); var esc = pintar('Buscando…', 't');
+    cat().then(function (items) {
+      var xs = variados(items.filter(function (it) { return k.c === '*nuevo' ? it.is_new : it.category === k.c; }).sort(function (a, b) { return (b.sold || 0) - (a.sold || 0); }));
+      return mostrarModelos(k.c === '*nuevo' ? 'Lo nuevo de Fuxia ✨ Toca uno para ver colores y tallas:' : 'Estas ' + k.t.toLowerCase() + ' son de las favoritas de nuestras clientas. Toca una para ver colores y tallas:', xs,
+        ['¿Qué talla pido?', 'Ver otra categoría', 'Lo más vendido', '¿Cuándo me llega?']);
+    }).then(function (ok) { esc.remove(); if (!ok) preguntarHilo('Recomiéndame ' + k.t.toLowerCase()); });
+  }
+  function masVendido() {
+    opciones([]); var esc = pintar('Buscando…', 't');
+    cat().then(function (items) {
+      return mostrarModelos('Lo más vendido en Fuxia ahora mismo 🔥 (tiendas y en línea):', variados(items.slice().sort(function (a, b) { return (b.sold || 0) - (a.sold || 0); })),
+        ['¿Qué talla pido?', 'Recomiéndame un modelo', '¿Cuándo me llega?']);
+    }).then(function (ok) { esc.remove(); if (!ok) preguntarHilo('¿Qué es lo más vendido?'); });
+  }
+  // a model name typed alone ("paula", "mafalda", "botas largas") shows those models instead of being taken as her name
+  function buscarModelo(t) {
+    var q = nrm(t).replace(/[^a-z0-9ñ ]/g, ' ').trim();
+    if (!q || /\?/.test(t) || q.split(/\s+/).length > 4) return Promise.resolve(false);
+    var pal = q.split(/\s+/).filter(function (w) { return w.length >= 3; });
+    if (!pal.length) return Promise.resolve(false);
+    return cat().then(function (items) {
+      var xs = items.filter(function (it) { var n = nrm(it.name); return pal.every(function (w) { return n.indexOf(w) >= 0; }); })
+        .sort(function (a, b) { return (b.sold || 0) - (a.sold || 0); });
+      if (!xs.length) return false;
+      return mostrarModelos(xs.length === 1 ? '¡Este es! Toca para ver colores y tallas:' : 'Estos son los modelos «' + t.charAt(0).toUpperCase() + t.slice(1) + '». Toca uno para ver colores y tallas:', xs,
+        ['¿Qué talla pido?', '¿Cuándo me llega?', 'Recomiéndame un modelo']);
     });
   }
   function opciones(xs) {
@@ -217,7 +279,12 @@
     if (modo === 'chat') {
       if (!t) return; decir(t, 'c'); input.value = '';
       if (/a la medida/i.test(t)) { proposito = 'medida'; formulario(0); return; }
-      preguntarHilo(t); return;
+      if (/^recomi[eé]ndame un modelo$|^ver otra categor[ií]a$/i.test(t)) { recomendar(); return; }
+      if (/^lo m[aá]s vendido$/i.test(t)) { masVendido(); return; }
+      if (ocupado) return;
+      ocupado = true;
+      buscarModelo(t).then(function (ok) { ocupado = false; if (!ok) preguntarHilo(t); }, function () { ocupado = false; preguntarHilo(t); });
+      return;
     }
     if (!t && paso !== 5) return; decir(t || '—', 'c');
     if (paso === 0) { d.color = t; siguiente(1); }
