@@ -129,7 +129,7 @@
     var log = w.querySelector('.f360-hilo-log'), chips = w.querySelector('.f360-hilo-chips'), input = w.querySelector('.f360-hilo-in input');
     var titulo = (document.querySelector('h1') || {}).textContent || document.title.split('–')[0];
     var producto = String(titulo).trim();
-    var d = {}, paso = 0, modo = 'chat', primero = true, ocupado = false;
+    var d = {}, paso = 0, modo = 'chat', primero = true, ocupado = false, convId = null, proposito = 'medida';
     var tallas = mexico ? ['22', '23', '24', '25', '26', '27'] : ['35', '36', '37', '38', '39', '40'];
     var uid = (function () { var k = 'f360_hilo_uid', v = null; try { v = localStorage.getItem(k); } catch (e) {}
       if (!v) { v = 'web-' + Math.random().toString(36).slice(2) + Date.now().toString(36); try { localStorage.setItem(k, v); } catch (e) {} } return v; })();
@@ -170,7 +170,9 @@
         .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(function (j) {
           primero = false; escribiendo.remove(); decir(j.response || '…');
-          if (j.escalate) { decir('Para que una persona del equipo te escriba, déjame tu nombre y WhatsApp.'); iniciarFormulario(3); }
+          if (j.conversation_id) convId = j.conversation_id;
+          // Hilo escalated: the case is already in Fuxia 360 (Bandeja de clientas); ask how the team can reach her
+          if (j.escalate) { decir('Para que una persona del equipo te escriba, déjame tu nombre y WhatsApp.'); proposito = convId ? 'contacto' : 'medida'; iniciarFormulario(3); }
           else opciones(OPC_CHAT.filter(function (o) { return o !== texto; }));
         })
         .catch(function () { escribiendo.remove(); decir('Ahorita no puedo responder. ¿Te ayudo a pedirlas a la medida? Te escribimos por WhatsApp.'); iniciarFormulario(0); })
@@ -193,6 +195,14 @@
     }
     function enviar() {
       opciones([]); decir('Un momento…');
+      if (proposito === 'contacto') {
+        var c0 = contexto();
+        api({ action: 'contacto', conversation_id: convId, name: d.name, phone: d.phone, product_name: c0.producto, color: c0.color || '',
+              size: c0.talla_mx ? c0.talla_mx + ' MX' : (c0.talla_tienda || ''), country: c0.pais, page_url: c0.url, website: w.querySelector('.f360-hp').value })
+          .then(function () { decir('¡Gracias, ' + d.name + '! Alguien del equipo te escribe por WhatsApp muy pronto. 💛'); modo = 'chat'; proposito = 'medida'; opciones(['¿Qué talla me queda?', '¿Cuándo me llega?']); input.placeholder = 'Escribe tu pregunta'; })
+          .catch(function (e) { decir(e.message); siguiente(4); });
+        return;
+      }
       var tallaTienda = d.size && mexico ? String(Number(d.size) + 13) : d.size;
       api({ action: 'a_la_medida', phone: d.phone, name: d.name, color: d.color, size: d.size ? d.size + (mexico ? ' MX' : '') : '',
             store_size: tallaTienda && /^(3[5-9]|40)$/.test(tallaTienda) ? tallaTienda : '', foot_cm: d.foot || '', note: d.note || '',
@@ -206,7 +216,7 @@
       if (modo === 'chat') {
         if (!t) return;
         decir(t, 'c'); input.value = '';
-        if (/a la medida/i.test(t)) { iniciarFormulario(0); return; }
+        if (/a la medida/i.test(t)) { proposito = 'medida'; iniciarFormulario(0); return; }
         if (/^escribir por whatsapp$/i.test(t)) { abrirWhatsApp(); return; }
         preguntarHilo(t); return;
       }
@@ -216,13 +226,13 @@
       else if (paso === 1) { if (/mid/i.test(t)) siguiente(2); else { d.size = t.replace(/[^0-9.]/g, ''); siguiente(3); } }
       else if (paso === 2) { d.foot = t.replace(',', '.').replace(/[^0-9.]/g, ''); siguiente(3); }
       else if (paso === 3) { d.name = t; siguiente(4); }
-      else if (paso === 4) { if (t.replace(/\D/g, '').length < 10) { decir('¿Me lo pasas a 10 dígitos?'); return; } d.phone = t; siguiente(5); }
+      else if (paso === 4) { if (t.replace(/\D/g, '').length < 10) { decir('¿Me lo pasas a 10 dígitos?'); return; } d.phone = t; if (proposito === 'contacto') enviar(); else siguiente(5); }
       else if (paso === 5) { d.note = /^no, así está bien$/i.test(t) ? '' : t; enviar(); }
     }
     w.querySelector('.f360-hilo-in').addEventListener('submit', function (e) { e.preventDefault(); responder(input.value); });
     cta.querySelector('.f360-med-abrir').addEventListener('click', function () {
       w.hidden = false;
-      if (!log.childNodes.length) { decir('Pregúntame lo que quieras de tus ' + producto + ': tallas, entrega o si las quieres a la medida. 💛');   // Hilo introduces itself in its first answer opciones(OPC_CHAT); input.placeholder = 'Escribe tu pregunta'; }
+      if (!log.childNodes.length) { decir('Pregúntame lo que quieras de tus ' + producto + ': tallas, entrega o si las quieres a la medida. 💛'); opciones(OPC_CHAT);   /* Hilo introduces itself in its first answer */ input.placeholder = 'Escribe tu pregunta'; }
       input.focus();
     });
     w.querySelector('.f360-hilo-x').addEventListener('click', function () { w.hidden = true; });
