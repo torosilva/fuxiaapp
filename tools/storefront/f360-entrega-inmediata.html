@@ -185,6 +185,14 @@
     var sobre = document.querySelector('.f360-sobrepedido');
     if (sobre) anchor.parentNode.insertBefore(sobre, box);
     var q = function (s) { return box.querySelector(s); };
+    // Woo adds "(puede reservarse)" to the stock line when 5–7 días is on (it renders AFTER our handler): clean it whenever it appears
+    var limpiarStock = function () {
+      form.querySelectorAll('.woocommerce-variation-availability .stock').forEach(function (el) {
+        var t = el.textContent.replace(/\s*\(puede reservarse\)/i, '').replace(/^\s*1 disponibles/i, '¡Último par!');
+        if (t !== el.textContent) el.textContent = t;
+      });
+    };
+    if (window.MutationObserver) new MutationObserver(limpiarStock).observe(form, { childList: true, subtree: true, characterData: true });
     var variation = null, stores = [], phone = '';
     function msg(t, ok) { var m = q('.f360-inm-msg'); m.textContent = t || ''; m.className = 'f360-inm-msg ' + (ok ? 'ok' : 'err'); }
     function reset() { if (sobre) sobre.hidden = true; box.hidden = true; q('.f360-inm-envio').hidden = true; q('.f360-inm-probar').hidden = true; q('.f360-inm-flujo').hidden = true; q('.f360-inm-boton').hidden = false; q('.f360-inm-tel').hidden = false; q('.f360-inm-cod').hidden = true; msg(''); }
@@ -192,11 +200,7 @@
       variation = v && v.variation_id; reset(); if (!variation) return;
       // 5–7 días hábiles (Mario 2026-10-03; never called "sobre pedido" to the customer): no stock but orderable → Woo marks it "available-on-backorder"
       var bajoPedido = !!(v.backorders_allowed && /available-on-backorder/.test(v.availability_html || ''));
-      setTimeout(function () {    // Woo adds "(puede reservarse)" to the stock line when 5–7 días is on: our lines say it better
-        document.querySelectorAll('.woocommerce-variation-availability .stock').forEach(function (el) {
-          el.textContent = el.textContent.replace(/\s*\(puede reservarse\)/i, '');
-        });
-      }, 0);
+
       if (sobre) sobre.hidden = !bajoPedido;
       if (!mexico) return;
       // Entrega (Mario 2026-10-03): stores are warehouses too, so "in stock" = Bodega CDMX or any store. 8 a. m.–7 p. m.
