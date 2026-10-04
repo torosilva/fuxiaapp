@@ -23,6 +23,15 @@ BEGIN
   r := public.f360_custom_request_create(req);
   PERFORM pg_temp.ok(r->>'product' = 'Botas Largas' AND EXISTS (SELECT 1 FROM f360.custom_requests WHERE id = (r->>'id')::uuid AND product_id IS NOT NULL AND status = 'nueva'),
     'service records the request, model resolved from the store product', r::text);
+  PERFORM pg_temp.ok((SELECT count(*) FROM f360.email_outbox o JOIN f360.custom_requests c ON c.id = o.ref_id WHERE c.phone = '+15550100077' AND o.to_email = 'info@fuxiaballerinas.com'
+      AND o.subject LIKE '[STAGING] Nueva solicitud a la medida: Botas Largas · Verde olivo · Ana' AND o.body_text LIKE '%wa.me/15550100077%' AND o.sent_at IS NULL) = 1,
+    'the request queues ONE e-mail to info@ with model, colour, size and WhatsApp', '');
+  r := public.f360_email_claim(200);
+  PERFORM pg_temp.ok(EXISTS (SELECT 1 FROM jsonb_array_elements(r) x WHERE x->>'to' = 'info@fuxiaballerinas.com'), 'service claims the e-mail', left(r::text, 80));
+  PERFORM public.f360_email_result(jsonb_build_array(jsonb_build_object('id', r->0->>'id', 'done', false, 'retry_free', true, 'result', 'sin proveedor')));
+  PERFORM pg_temp.ok((SELECT sent_at IS NULL AND attempts = 0 FROM f360.email_outbox WHERE id = (r->0->>'id')::uuid), 'no provider yet → stays pending without burning attempts', '');
+  r := pg_temp.as(NULL, $q$SELECT public.f360_email_claim(5)$q$, 'anon');
+  PERFORM pg_temp.ok(r ? 'error', 'anonymous cannot claim e-mails', r::text);
   r := pg_temp.as(NULL, format($q$SELECT public.f360_custom_request_create(%L::jsonb)$q$, req), 'anon');
   PERFORM pg_temp.ok(r ? 'error', 'anonymous visitors cannot write directly', r::text);
   PERFORM public.f360_custom_request_create(req); PERFORM public.f360_custom_request_create(req);
