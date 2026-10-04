@@ -25,7 +25,8 @@
 - Probar en teléfonos reales (IAB-0).
 - Caso "No disponible" con una variante real sin stock y sin backorder: en staging casi todo tiene backorder.
 
-**Eventos futuros (no implementados, GTM bloqueado):**
-- `sticky_atc_view`
-- `sticky_atc_click {estado: elegir_color|elegir_talla|no_disponible|anadir}`
-- `sticky_atc_scroll_to_selector`
+**Eventos (no implementados, GTM bloqueado):** definidos en `growth/G2_MEASUREMENT_CONTRACT.md` §4.2:
+- `f360_sticky_atc_view` (una vez por página);
+- `f360_sticky_atc_click` con `sticky_state` = `elegir_color` / `elegir_talla` / `no_disponible` / `anadir`.
+
+El anterior `sticky_atc_scroll_to_selector` queda cubierto por los estados `elegir_*`.

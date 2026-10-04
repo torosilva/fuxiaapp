@@ -20,28 +20,15 @@
 8. Consentimiento.
 9. Cómo crear staging: Environment de GTM o contenedor aparte.
 
-## Contrato de `dataLayer` (SOLO DISEÑO)
+## Contrato de eventos → `growth/G2_MEASUREMENT_CONTRACT.md` (Measurement Contract V1)
 
-**Principios:**
-- Nombres **GA4 estándar** cuando existan. Eventos propios con prefijo `f360_` solo si GA4 no tiene uno equivalente.
-- **Sin datos personales:** nada de teléfono, correo, nombre ni dirección.
-- Un solo `push` por acción.
+**La tabla que vivía aquí quedó reemplazada** (2026-10-04, G2-A) por el **Measurement Contract V1**, que es la **única fuente de verdad** de la instrumentación.
+- **CRO implementa** los eventos en los fragmentos del storefront **según el contrato**. Growth los consume. No hay dos instrumentaciones.
+- El mapeo de los nombres anteriores a V1 está en el contrato, §9. Por ejemplo, `f360_fit_guide_open` → `f360_view_fit_guide`; `f360_made_to_order_selected` se elimina porque se deriva de `f360_select_size`.
+- Contexto y salud de las fuentes: `growth/G2A_MEASUREMENT_FOUNDATION.md` (clasificación de canales, UTMs, accesos GTM y GA4, consentimiento).
 
-| Evento | Cuándo | Parámetros |
-|---|---|---|
-| `view_item` *(GA4)* | PDP cargada | `items[{item_id: woo_product_id, item_name, item_category, price, currency}]` |
-| `f360_select_color` | Clic en un color | `item_id`, `color` |
-| `f360_select_size` | Clic en una talla | `item_id`, `color`, `size_store`, `size_mx`, `state` (`inmediata` / `5_7_dias` / `agotado`) |
-| `f360_fit_guide_open` | Abre la guía de tallas | `item_id` |
-| `f360_gold_reserve_click` | "Fuxia Gold: te las apartamos" | `item_id`, `size_store` |
-| `f360_hilo_open` | "¡Pregúntale a Hilo!" | `item_id` |
-| `f360_made_to_order_selected` | Elige una talla en estado 5–7 días | `item_id`, `size_store` |
-| `add_to_cart` *(GA4)* | Añadir al carrito | `items[...]` (Woo/GTM puede ya enviarlo: **verificar antes**) |
-| `begin_checkout` / `purchase` *(GA4)* | Checkout / gracias | Probablemente ya existen: **verificar** |
-| `f360_review_open` / `f360_review_submit` | Reseñas | `item_id` |
-| `f360_back_in_stock_request` | Avísame (futuro) | `item_id`, `size_store` |
-| `search` *(GA4)* | Búsqueda en Tienda | `search_term` (ya se guarda también en `storefront_searches`) |
-| `f360_filter_use` | Filtro en Tienda | `filter` (`categoria` / `color` / `talla` / `inmediata`), `value` |
-| `f360_sticky_atc_click` | Barra fija de compra (futuro) | `item_id` |
+**Siguen vigentes en este documento:**
+- el bloqueo `NEED_GTM_ACCESS` y el orden de auditoría de arriba;
+- la regla de **no** agregar GTM a staging4 ni enviar eventos a ningún destino hasta resolver el acceso y LEGAL_REVIEW_REQUIRED.
 
-**Customer 360:** el embudo VIEW → INTENT → ATC → CHECKOUT → PURCHASE se reconstruye en GA4. Del lado de F360 se guardan solo señales agregadas sin identidad (búsquedas, solicitudes a la medida e intenciones con consentimiento, ver `07_INTENT_CRM.md`).
+**Regla clave del contrato:** `purchase` del navegador **no** es la verdad de revenue. Commerce Facts (G1) manda.
