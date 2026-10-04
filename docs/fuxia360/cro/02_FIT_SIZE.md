@@ -26,7 +26,12 @@ En el admin iría una sección **Producto → "Ajuste y talla"**, con botones pa
 
 ## 3. Inconsistencias encontradas (D-CRO-07)
 
-**Hilo** (`fuxia-native/supabase/functions/hilo-chat/index.ts`, base de conocimiento por palabras clave; la usa la app de clientas):
+> **Corrección (2026-10-04):** la app de clientas **no** usa `hilo-chat`. Usa el agente de **HiloLabs** ("Hilo Backbone",
+> `https://web-production-8cc5a.up.railway.app/api/v1/chat/web`). `hilo-chat` es una función vieja que nadie llama. Lo que dice Hilo
+> sobre tallas en la app depende del conocimiento del agente HiloLabs, que **no** está en este repo y **no** se ha revisado.
+> La tabla de abajo describe solo la función vieja.
+
+**Función vieja `hilo-chat`** (`fuxia-native/supabase/functions/hilo-chat/index.ts`, base por palabras clave, **sin uso**):
 
 | Línea | Dice hoy | Estado |
 |---|---|---|
@@ -36,7 +41,7 @@ En el admin iría una sección **Producto → "Ajuste y talla"**, con botones pa
 | 55 (`medias`, `calcetines`) | "Si planeas usarlas con medias gruesas… **sube media talla**" | Mismo problema |
 | 39 (`equivalencia`) | MX 22 = US 5 … MX 27 = US 10 | Coherente con la regla −13 (sin validar US) |
 
-**Corrección preparada:**
+**Corrección preparada** (solo aplica si se reactiva `hilo-chat`; para la app real hay que revisar el agente HiloLabs):
 - La línea 27 ya está corregida y desplegada en staging.
 - Las líneas 31, 43 y 55 se reescriben **cuando Carolina responda** las preguntas 2–4: sin "media talla" y con su recomendación real.
 - Prueba: `curl` a `hilo-chat` de staging con "qué talla", "pie ancho" y "medias".
