@@ -32,7 +32,29 @@
   </div>
   </div>
 </div>
+<div class="f360-sticky" hidden>
+  <div class="f360-sticky-info"><b class="f360-sticky-nombre"></b><span class="f360-sticky-det"></span></div>
+  <button type="button" class="f360-sticky-btn">Añadir al carrito</button>
+</div>
 <style>
+/* CRO-4 · sticky "Añadir al carrito" (móvil/tableta). Solo refleja y acciona el formulario de Woo; no tiene lógica propia. */
+.f360-sticky { display: none; }
+@media (max-width: 900px) {
+  .f360-sticky { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9990; display: flex; gap: 12px; align-items: center; padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    background: #fff; border-top: 1px solid #ece6db; box-shadow: 0 -6px 18px rgba(0,0,0,.08); transform: translateY(110%); transition: transform .22s ease; box-sizing: border-box; }
+  .f360-sticky[hidden] { display: none !important; }
+  .f360-sticky.f360-sticky-on { transform: none; }
+  .f360-sticky-info { flex: 1; min-width: 0; line-height: 1.25; }
+  .f360-sticky-nombre { display: block; font-size: 14px; font-weight: 600; color: #242424; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .f360-sticky-det { display: block; font-size: 13px; color: #6B6B68; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .f360-sticky-btn { flex: 0 0 auto; height: 46px; padding: 0 18px !important; border: 0 !important; border-radius: 23px !important; background: #1d1d1b !important; color: #fff !important;
+    font: inherit; font-size: 14px; font-weight: 600; letter-spacing: .02em; cursor: pointer; display: flex; align-items: center; }
+  .f360-sticky-btn.f360-sticky-no { background: #cfc8bc !important; cursor: default; }
+  html.f360-sticky-visible #fx-app-btn { display: none !important; }       /* "Descarga la app" vuelve cuando el sticky se va */
+  html.f360-sticky-visible #fh-root { --fh-lift: calc(var(--f360-sticky-h, 66px) - 10px) !important; }   /* Hilo sube encima */
+  .f360-pulso { animation: f360pulso 1.2s ease 1; border-radius: 8px; }
+  @keyframes f360pulso { 0%, 100% { box-shadow: 0 0 0 0 rgba(184,150,110,0); } 30% { box-shadow: 0 0 0 6px rgba(184,150,110,.45); } }
+}
 .f360-inmediata [hidden], .f360-inmediata[hidden], .f360-sobrepedido[hidden] { display: none !important; }
 .f360-sobrepedido { margin: 12px 0 0; padding: 10px 14px; border-left: 3px solid #B8966E; background: #fbf7f0; font-size: 14px; color: #4a433a; }
 .woocommerce-variation-availability .available-on-backorder { display: none; }   /* Woo's own "bajo pedido" text: replaced by ours */
@@ -247,6 +269,64 @@
     revisar(); window.addEventListener('load', revisar);
     if (window.MutationObserver) { var mo = new MutationObserver(revisar); mo.observe(document.body, { childList: true, subtree: true }); setTimeout(function () { mo.disconnect(); }, 8000); }
   }
+  // CRO-4 · sticky "Añadir al carrito" (advisor 2026-10-04). It has NO purchase logic: it mirrors the state of Woo's own
+  // button (needs a selection / unavailable / buyable, incl. 5–7 días backorders) and clicking it clicks that button, so
+  // price, stock, MTO, Gold and validation stay Woo's. Shown on phones/tablets only while the real button is off-screen.
+  function stickyCompra(mexico) {
+    var bar = document.querySelector('.f360-sticky');
+    var form = document.querySelector('form.variations_form') || document.querySelector('form.cart');
+    var real = form && form.querySelector('.single_add_to_cart_button');
+    if (!bar || !real || !('IntersectionObserver' in window)) return;
+    document.body.appendChild(bar); bar.hidden = false;
+    var btn = bar.querySelector('.f360-sticky-btn'), html = document.documentElement;
+    var h1 = document.querySelector('h1.product_title, h1');
+    bar.querySelector('.f360-sticky-nombre').textContent = h1 ? h1.textContent.trim() : '';
+    var precioBase = (document.querySelector('.brxe-product-price .price, .summary .price, p.price, .price') || {}).textContent || '';
+    var precio = precioBase.trim().replace(/\s+/g, ' ');
+    var sel = function (n) { var s = form.querySelector('select[name="attribute_pa_' + n + '"]'); return s || null; };
+    var elegido = function (n) { var s = sel(n); return s && s.value ? (s.options[s.selectedIndex] || {}).text || s.value : ''; };
+    var detalle = function () {
+      var partes = [], c = elegido('color'), m = sel('medida');
+      if (c) partes.push(c);
+      if (m && m.value) partes.push(mexico && /^(3[5-9]|40)$/.test(m.value) ? 'MX ' + (Number(m.value) - 13) : 'Talla ' + m.value);
+      if (precio) partes.push(precio);
+      bar.querySelector('.f360-sticky-det').textContent = partes.join(' · ');
+    };
+    var falta = function () { var c = sel('color'), m = sel('medida'); return c && !c.value ? 'color' : (m && !m.value ? 'talla' : (real.classList.contains('wc-variation-selection-needed') ? 'opcion' : '')); };
+    var estado = function () {
+      var f = falta(), noDisp = real.classList.contains('wc-variation-is-unavailable');
+      btn.classList.toggle('f360-sticky-no', noDisp);
+      btn.textContent = f === 'color' ? 'Elige tu color' : f === 'talla' ? 'Elige tu talla' : f ? 'Elige una opción' : noDisp ? 'No disponible' : (real.textContent.trim() || 'Añadir al carrito');
+      detalle();
+    };
+    var ir = function (cual) {
+      var dest = cual === 'color' ? document.querySelector('.f360-colores') : document.querySelector('.fuxia-tallas');
+      if (!dest || !dest.offsetParent) dest = form;
+      dest.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      dest.classList.remove('f360-pulso'); void dest.offsetWidth; dest.classList.add('f360-pulso');
+    };
+    btn.addEventListener('click', function () {
+      var f = falta();
+      if (f) { ir(f); return; }
+      if (real.classList.contains('wc-variation-is-unavailable') || real.disabled) { ir('talla'); return; }
+      real.click();                                   // Woo's own submit: same form, same server rules
+    });
+    if (window.jQuery) {
+      window.jQuery(form).on('found_variation', function (e, v) { var t = v && v.price_html ? (function () { var d = document.createElement('div'); d.innerHTML = v.price_html; return d.textContent.trim().replace(/\s+/g, ' '); })() : ''; precio = t || precioBase.trim(); setTimeout(estado, 0); });
+      window.jQuery(form).on('reset_data hide_variation woocommerce_variation_has_changed', function () { precio = precioBase.trim().replace(/\s+/g, ' '); setTimeout(estado, 0); });
+    }
+    if (window.MutationObserver) new MutationObserver(estado).observe(real, { attributes: true, attributeFilter: ['class', 'disabled'], childList: true, subtree: true });
+    form.addEventListener('change', function () { setTimeout(estado, 0); });
+    estado();
+    var visible = false;
+    new IntersectionObserver(function (es) {
+      var ver = !es[0].isIntersecting;
+      if (ver === visible) return; visible = ver;
+      bar.classList.toggle('f360-sticky-on', ver); bar.setAttribute('aria-hidden', String(!ver));
+      html.classList.toggle('f360-sticky-visible', ver && window.matchMedia('(max-width: 900px)').matches);
+      html.style.setProperty('--f360-sticky-h', bar.offsetHeight + 'px');
+    }, { threshold: 0 }).observe(real);
+  }
   function init() {
     // "5 a 7 días hábiles" va en todos los países; entrega inmediata y tallas mexicanas solo en México (raíz o /mx/).
     var mexico = !(/^\/[a-z]{2}\//.test(location.pathname) && !/^\/mx\//.test(location.pathname));
@@ -254,6 +334,7 @@
     document.querySelectorAll('.f360-cambios-link').forEach(function (a) { a.href = pais + 'cambios/'; });
     if (mexico) tallasMexico();
     ocultarResenasVacias();
+    stickyCompra(mexico);
     aLaMedida(mexico);
     var form = document.querySelector('form.variations_form');
     var box = document.querySelector('.f360-inmediata');
