@@ -18,6 +18,29 @@
   <a class="f360-ag-pagar" href="#">Pagar ahora</a>
   <button type="button" class="f360-ag-seguir">Seguir comprando</button>
 </div>
+<div class="f360-rescate-velo" hidden></div>
+<div class="f360-rescate" hidden role="dialog" aria-label="Link de pago">
+  <button type="button" class="f360-r-x" aria-label="Cerrar">✕</button>
+  <div class="f360-r-paso1">
+    <h3>¿No pudiste pagar?</h3>
+    <p>Te generamos un <b>link de pago seguro de Mercado Pago</b> con tu pedido. Lo abres aquí, en Chrome o Safari, o desde WhatsApp.</p>
+    <label>Tu nombre<input type="text" class="f360-r-nombre" autocomplete="name" enterkeyhint="next"></label>
+    <label>Tu WhatsApp<input type="tel" class="f360-r-tel" autocomplete="tel-national" inputmode="tel" placeholder="55 1234 5678" enterkeyhint="next"></label>
+    <label>Tu correo (ahí te llega la confirmación)<input type="email" class="f360-r-email" autocomplete="email" inputmode="email" enterkeyhint="done"></label>
+    <input type="text" class="f360-r-hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;height:1px;width:1px;opacity:0">
+    <button type="button" class="f360-r-btn f360-r-generar">Generar mi link de pago</button>
+    <p class="f360-r-err" role="alert"></p>
+  </div>
+  <div class="f360-r-paso2" hidden>
+    <h3>✓ Tu link está listo</h3>
+    <p class="f360-r-resumen"></p>
+    <a class="f360-r-btn f360-r-pagar">Pagar ahora</a>
+    <button type="button" class="f360-r-btn f360-r-sec f360-r-copiar">Copiar link (para abrir en Chrome o Safari)</button>
+    <a class="f360-r-btn f360-r-sec f360-r-wa" target="_blank" rel="noopener">Mandármelo a mi WhatsApp</a>
+    <p class="f360-r-hint f360-r-iab" hidden>En Instagram: toca <b>⋯</b> arriba a la derecha → <b>Abrir en el navegador</b>, y pega el link.</p>
+    <p class="f360-r-hint">El equipo de Fuxia también lo recibió y te puede ayudar por WhatsApp.</p>
+  </div>
+</div>
 <style>
 /* a) panel "Agregado" */
 .f360-ag { position: fixed; z-index: 2147483001; right: 20px; top: 90px; width: 360px; max-width: calc(100vw - 32px); box-sizing: border-box; padding: 16px; background: #fff;
@@ -87,6 +110,21 @@ form.cart a.added_to_cart, form.cart + a.added_to_cart, .single_variation_wrap a
 }
 /* e) trust next to the pay button */
 .f360-confianza { box-sizing: border-box; max-width: calc(100% - 32px); margin-left: auto !important; margin-right: auto !important; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin: 18px 0 8px; padding: 16px; border: 1px solid #ece6db; border-radius: 14px; background: #fffdf9; font-size: 13px; color: #4a433a; }
+.f360-rescate-link { display: block; margin: 10px auto 0; padding: 6px; border: 0 !important; background: none !important; color: #8c6414 !important; font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; }
+.f360-rescate { position: fixed; z-index: 2147483002; left: 0; right: 0; bottom: 0; max-height: 92vh; overflow-y: auto; overscroll-behavior: contain; box-sizing: border-box; padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+  background: #fff; border-radius: 18px 18px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,.2); font-family: inherit; color: #242424; }
+@media (min-width: 768px) { .f360-rescate { left: 50%; right: auto; bottom: auto; top: 50%; width: 440px; transform: translate(-50%, -50%); border-radius: 18px; } }
+.f360-rescate[hidden], .f360-rescate-velo[hidden] { display: none !important; }
+.f360-rescate-velo { position: fixed; inset: 0; z-index: 2147483001; background: rgba(0,0,0,.35); }
+.f360-rescate h3 { margin: 0 0 6px !important; padding: 0 !important; border: 0 !important; font-size: 20px !important; font-weight: 600; text-transform: none !important; letter-spacing: 0 !important; }
+.f360-rescate p { margin: 0 0 12px; font-size: 14px; color: #6B6B68; line-height: 1.45; }
+.f360-rescate label { display: block; margin: 0 0 10px; font-size: 13px; color: #6B6B68; }
+.f360-rescate input { display: block; width: 100%; box-sizing: border-box; height: 50px; margin-top: 4px; padding: 0 14px; border: 1px solid #d9d2c5; border-radius: 10px; font: inherit; font-size: 16px; color: #242424; }
+.f360-rescate .f360-r-btn { display: flex; align-items: center; justify-content: center; width: 100%; height: 52px; margin-top: 8px; border: 0 !important; border-radius: 26px !important; background: #1d1d1b !important; color: #fff !important; font: inherit; font-size: 15px; font-weight: 600; text-decoration: none !important; cursor: pointer; }
+.f360-rescate .f360-r-sec { background: #fff !important; color: #4a433a !important; border: 1px solid #d9d2c5 !important; font-weight: 500; }
+.f360-rescate .f360-r-x { position: absolute; right: 10px; top: 8px; border: 0 !important; background: none !important; font-size: 20px; color: #6B6B68 !important; padding: 8px !important; cursor: pointer; }
+.f360-rescate .f360-r-err { color: #b3261e; font-size: 13px; min-height: 18px; margin: 4px 0 0; }
+.f360-rescate .f360-r-hint { font-size: 12px; color: #8a8378; margin-top: 8px; }
 .f360-elige-pago { margin: 0 0 10px !important; padding: 10px 14px; border-radius: 10px; background: #fff4e5; color: #8c4a00; font-size: 14px; font-weight: 600; }
 .f360-elige-pago[hidden] { display: none !important; }
 .f360-confianza[hidden] { display: none !important; }
@@ -135,6 +173,7 @@ html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 
 (function () {
   if (window.F360Compra || /[?&]bricks=run/.test(location.search)) return;
   window.F360Compra = true;
+  var F360 = 'https://faltxpkaicwpnlqaxrdu.supabase.co/functions/v1/f360-store-reserve';   // STAGING
   var path = location.pathname, pais = (path.match(/^\/([a-z]{2})\//) || [0, ''])[1];
   var base = location.origin + '/' + (pais ? pais + '/' : '');
   var mexico = !pais || pais === 'mx';
@@ -287,6 +326,13 @@ html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', listo); else listo();
   }
 
+  // ---------- contact from the welcome popup → pre-fills the checkout (less typing on the phone) ----------
+  document.addEventListener('submit', function (e) {
+    if (!e.target || e.target.id !== 'fx-pop-form') return;
+    var em = (document.getElementById('fx-pop-email') || {}).value || '', tl = ((document.getElementById('fx-pop-telefono') || {}).value || '').replace(/\D/g, '');
+    try { localStorage.setItem('f360_contacto', JSON.stringify({ email: em.trim(), tel: tl })); } catch (x) {}
+  }, true);
+
   // ---------- checkout page ----------
   var root = document.querySelector('.wp-block-woocommerce-checkout');
   if (!root) return;
@@ -316,8 +362,99 @@ html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 
     var nuevo = partes.join('');
     if (conf.innerHTML !== nuevo) conf.innerHTML = nuevo;
     conf.hidden = false;
+    if (rv && mexico && linkRescate.parentNode !== conf.parentNode) conf.parentNode.insertBefore(linkRescate, conf.nextSibling);
+    if (typeof teclados === 'function') { teclados(); prellenar(); }
+    if (typeof vigilarErrores === 'function') vigilarErrores();
   };
   sinc();
+
+  // Less typing on the phone: numeric keyboards, and e-mail / WhatsApp the customer already gave us (welcome popup, a
+  // previous link request) go into Woo's own checkout store — only into empty fields; she can change them.
+  var teclados = function () {
+    [['#shipping-postcode, #billing-postcode', 'numeric'], ['#shipping-phone, #billing-phone', 'tel'], ['#email', 'email']].forEach(function (x) {
+      [].forEach.call(root.querySelectorAll(x[0]), function (i) { if (i.getAttribute('inputmode') !== x[1]) i.setAttribute('inputmode', x[1]); });
+    });
+  };
+  var cartStore = function () { return window.wp && wp.data && wp.data.select('wc/store/cart'); };
+  // the checkout store loads the customer from the server after the page: retry a few times until our values stay
+  var intentosPre = 0, prePend = false;
+  var prellenar = function () {
+    var cs = cartStore(); if (prePend || intentosPre >= 5 || !cs || !cs.getCustomerData) return;
+    var c = null; try { c = JSON.parse(localStorage.getItem('f360_contacto') || 'null'); } catch (x) {}
+    if (!c || (!c.email && !c.tel)) { intentosPre = 5; return; }
+    var d = cs.getCustomerData() || {}, bill = d.billingAddress || {}, ship = d.shippingAddress || {}, dis = wp.data.dispatch('wc/store/cart');
+    var falta = (c.email && !bill.email) || (c.tel && !ship.phone);
+    if (!falta) { intentosPre = 5; return; }
+    intentosPre++; prePend = true;
+    setTimeout(function () {
+      prePend = false;
+      var d2 = cs.getCustomerData() || {};
+      if (c.email && !(d2.billingAddress || {}).email && dis.setBillingAddress) dis.setBillingAddress({ email: c.email });
+      if (c.tel && !(d2.shippingAddress || {}).phone && dis.setShippingAddress) dis.setShippingAddress({ phone: c.tel });
+      setTimeout(prellenar, 1500);
+    }, 900);
+  };
+
+  // "¿No pudiste pagar?" → payment link (Woo prices the order on the server; nothing about money comes from here)
+  var rv = document.querySelector('.f360-rescate'), velo = document.querySelector('.f360-rescate-velo');
+  var iab = /Instagram|FBAN|FBAV|FB_IAB/i.test(navigator.userAgent || '');
+  var linkRescate = document.createElement('button'); linkRescate.type = 'button'; linkRescate.className = 'f360-rescate-link'; linkRescate.textContent = '¿Problemas para pagar? Te mandamos un link de pago';
+  if (rv) {
+    document.body.appendChild(velo); document.body.appendChild(rv);
+    var rq = function (x) { return rv.querySelector(x); };
+    var cerrarR = function () { rv.hidden = true; velo.hidden = true; };
+    rq('.f360-r-x').onclick = cerrarR; velo.onclick = cerrarR;
+    var motivo = '';
+    var abrirR = function (porque) {
+      motivo = porque || 'la clienta lo pidió';
+      var cs = cartStore(), d = cs && cs.getCustomerData ? cs.getCustomerData() : {}, sh = d.shippingAddress || {}, bi = d.billingAddress || {};
+      var c = null; try { c = JSON.parse(localStorage.getItem('f360_contacto') || 'null'); } catch (x) {}
+      if (!rq('.f360-r-nombre').value) rq('.f360-r-nombre').value = [sh.first_name || bi.first_name, sh.last_name || bi.last_name].filter(Boolean).join(' ');
+      if (!rq('.f360-r-tel').value) rq('.f360-r-tel').value = (sh.phone || bi.phone || (c && c.tel) || '').replace(/^\+?52/, '');
+      if (!rq('.f360-r-email').value) rq('.f360-r-email').value = bi.email || (c && c.email) || '';
+      rq('.f360-r-paso1').hidden = false; rq('.f360-r-paso2').hidden = true; rq('.f360-r-err').textContent = '';
+      rv.hidden = false; velo.hidden = false;
+    };
+    linkRescate.onclick = function () { abrirR('la clienta lo pidió'); };
+    rq('.f360-r-generar').onclick = function () {
+      var bt = this, err = rq('.f360-r-err'); err.textContent = '';
+      if (!rq('.f360-r-nombre').value.trim()) { err.textContent = 'Dinos tu nombre.'; return; }
+      if (rq('.f360-r-tel').value.replace(/\D/g, '').length < 10) { err.textContent = 'Escribe tu WhatsApp a 10 dígitos.'; return; }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(rq('.f360-r-email').value.trim())) { err.textContent = 'Escribe tu correo.'; return; }
+      bt.disabled = true; bt.textContent = 'Generando…';
+      cart().then(function (c) {
+        var items = (c.items || []).map(function (it) { return { id: it.id, quantity: it.quantity }; });
+        var prods = (c.items || []).map(function (it) { return String(it.name || '').replace(/&amp;/g, '&') + (it.variation || []).map(function (a) { return ' · ' + a.value; }).join(''); }).join(' + ');
+        var cs = cartStore(), d = cs && cs.getCustomerData ? cs.getCustomerData() : {}, sh = d.shippingAddress || {};
+        return fetch(F360, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'pay_link', country: pais || 'mx',
+          name: rq('.f360-r-nombre').value.trim(), phone: rq('.f360-r-tel').value, email: rq('.f360-r-email').value.trim(), items: items,
+          coupons: (c.coupons || []).map(function (k) { return k.code; }), products: prods.slice(0, 200), reason: motivo, page_url: location.href.split('?')[0],
+          address: { address_1: sh.address_1, address_2: sh.address_2, city: sh.city, state: sh.state, postcode: sh.postcode }, website: rq('.f360-r-hp').value }) })
+          .then(function (r) { return r.json().then(function (j) { if (!r.ok || !j.url) throw new Error(j.error || 'No pudimos crear tu link.'); return j; }); });
+      }).then(function (j) {
+        try { localStorage.setItem('f360_contacto', JSON.stringify({ email: rq('.f360-r-email').value.trim(), tel: rq('.f360-r-tel').value.replace(/\D/g, '') })); } catch (x) {}
+        rq('.f360-r-resumen').textContent = 'Pedido #' + j.order + ' por ' + j.total + '. Paga con tarjeta, tu cuenta de Mercado Pago o sin tarjeta.';
+        rq('.f360-r-pagar').href = j.url;
+        var tel = rq('.f360-r-tel').value.replace(/\D/g, ''); if (tel.length === 10) tel = '52' + tel;
+        rq('.f360-r-wa').href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent('Mi link de pago Fuxia (pedido #' + j.order + '): ' + j.url);
+        rq('.f360-r-copiar').onclick = function () {
+          var b2 = this, ok = function () { b2.textContent = '✓ Link copiado'; };
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(j.url).then(ok, function () { window.prompt('Copia tu link:', j.url); });
+          else window.prompt('Copia tu link:', j.url);
+        };
+        rq('.f360-r-iab').hidden = !iab;
+        rq('.f360-r-paso1').hidden = true; rq('.f360-r-paso2').hidden = false;
+      }).catch(function (e) { err.textContent = e.message || 'No pudimos crear tu link. Escríbenos por WhatsApp.'; })
+        .then(function () { bt.disabled = false; bt.textContent = 'Generar mi link de pago'; });
+    };
+    // a payment error in the checkout (rejected card, gateway error) → offer the link right away, once per visit
+    var ofrecido = false;
+    var vigilarErrores = function () {
+      if (ofrecido) return;
+      var n = root.querySelector('.wc-block-components-notice-banner.is-error');
+      if (n && /pago|rechaz|tarjeta|payment|error/i.test(n.textContent) && !/introduce|v[aá]lid/i.test(n.textContent)) { ofrecido = true; abrirR('error en el pago: ' + n.textContent.trim().slice(0, 80)); }
+    };
+  }
   // No payment method preselected (Mario 2026-10-04): the customer chooses. Woo Blocks picks the first one by default; we clear
   // that choice until she taps one herself. Paying without a choice → a clear message instead of an error.
   var eligio = false;
