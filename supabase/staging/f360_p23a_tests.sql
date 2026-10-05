@@ -1,5 +1,7 @@
 -- Fuxia 360 P2.3A (stock authority + Woo orders + reconciliation) — database tests (STAGING). One transaction, ROLLED BACK.
 BEGIN;
+-- these tests exercise the REAL sale path: the test-store switch (20261009000300) is turned off inside this rolled-back transaction
+UPDATE f360.sales_targets SET is_test = false;
 CREATE TEMP TABLE t_results (n serial, status text, name text, detail text) ON COMMIT DROP;
 GRANT ALL ON t_results TO authenticated, anon, service_role;
 GRANT USAGE, SELECT ON SEQUENCE t_results_n_seq TO authenticated, anon, service_role;

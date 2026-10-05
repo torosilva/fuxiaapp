@@ -1,6 +1,8 @@
 -- "Sobre pedido" (Mario 2026-10-03) — database tests (STAGING). One transaction, ROLLED BACK.
 -- Uses the staging4 target and an own model (fake Woo variation 308) with 0 pairs anywhere.
 BEGIN;
+-- these tests exercise the REAL sale path: the test-store switch (20261009000300) is turned off inside this rolled-back transaction
+UPDATE f360.sales_targets SET is_test = false;
 CREATE TEMP TABLE t_results (n serial, status text, name text, detail text) ON COMMIT DROP;
 CREATE FUNCTION pg_temp.ok(p_cond boolean, p_name text, p_detail text) RETURNS void LANGUAGE sql AS
 $$ INSERT INTO t_results(status,name,detail) VALUES (CASE WHEN coalesce(p_cond, false) THEN 'PASS' ELSE 'FAIL' END, p_name, p_detail) $$;
