@@ -1,0 +1,69 @@
+// f360-storefront — public endpoint for the store's product page: ONE delivery promise rule (CRO-6) and
+// "Avísame cuando llegue" (CRO-5). Mario 2026-10-05, staging only.
+// Actions (POST JSON):
+//   promise   {woo_product_id, market}                     → { market, product_key, variations: {<woo_variation_id>: promise}, trust }
+//   notify_me {woo_product_id, woo_variation_id, market, phone, name?, consent: true, page_url?, website? (honeypot)}
+// The rule, the texts and every check live in the database (f360.delivery_promise_rules, f360_storefront_promise,
+// f360_stock_intent_create): this file only validates the shape, hashes the IP for rate limiting and forwards.
+// The sales channel comes from configuration (F360_STOREFRONT_TARGET), never from the browser.
+export type StorefrontEnv = { SUPABASE_URL: string; SUPABASE_SERVICE_ROLE_KEY: string; ALLOWED_ORIGINS: string; TARGET_KEY: string };
+
+const MARKETS = new Set(['MX', 'CO', 'US']);
+const promiseCache = new Map<string, { at: number; data: unknown }>();
+const PROMISE_TTL_MS = 30_000;
+
+async function sha256(text: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function handleStorefront(req: Request, env: StorefrontEnv, fetchImpl: typeof fetch = fetch): Promise<Response> {
+  const origin = req.headers.get('Origin') ?? '';
+  const allowed = env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean);
+  const cors: Record<string, string> = allowed.includes(origin)
+    ? { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', Vary: 'Origin' } : {};
+  const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...cors } });
+  if (req.method === 'OPTIONS') return new Response(null, { status: allowed.includes(origin) ? 204 : 403, headers: cors });
+  if (req.method !== 'POST') return json({ error: 'Método no permitido.' }, 405);
+  if (!allowed.includes(origin)) return json({ error: 'Origen no permitido.' }, 403);
+  if (!env.TARGET_KEY) return json({ error: 'Canal no configurado.' }, 500);
+
+  let body: Record<string, unknown>;
+  try { body = await req.json(); } catch { return json({ error: 'Solicitud no válida.' }, 400); }
+  const rpc = async <T>(fn: string, args: Record<string, unknown>): Promise<{ ok: true; data: T } | { ok: false; error: string }> => {
+    const r = await fetchImpl(`${env.SUPABASE_URL}/rest/v1/rpc/${fn}`, { method: 'POST',
+      headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
+    const data = await r.json().catch(() => null);
+    return r.ok ? { ok: true, data: data as T } : { ok: false, error: (data as { message?: string } | null)?.message ?? 'No se pudo completar.' };
+  };
+  const product = Number(body.woo_product_id);
+  const market = MARKETS.has(String(body.market ?? '').toUpperCase()) ? String(body.market).toUpperCase() : 'MX';
+  if (!Number.isInteger(product) || product <= 0) return json({ error: 'Producto no válido.' }, 400);
+
+  if (body.action === 'promise') {
+    const key = `${product}:${market}`;
+    const hit = promiseCache.get(key);
+    if (hit && Date.now() - hit.at < PROMISE_TTL_MS) return json(hit.data);
+    const r = await rpc('f360_storefront_promise', { p_target_key: env.TARGET_KEY, p_woo_product_id: product, p_market: market });
+    if (!r.ok) return json({ variations: {}, trust: [] });                      // fail closed: the page keeps its own state
+    promiseCache.set(key, { at: Date.now(), data: r.data });
+    return json(r.data);
+  }
+
+  if (body.action === 'notify_me') {
+    if (body.website) return json({ ok: true });                                 // honeypot
+    const variation = Number(body.woo_variation_id);
+    if (!Number.isInteger(variation) || variation <= 0) return json({ error: 'Talla no válida.' }, 400);
+    const text = (v: unknown, max: number) => String(v ?? '').replace(/[<>]/g, '').trim().slice(0, max);
+    const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim();
+    const ipHash = ip ? (await sha256(`${env.SUPABASE_SERVICE_ROLE_KEY.slice(-16)}:${ip}`)).slice(0, 32) : null;
+    const r = await rpc<{ ok: boolean; already?: boolean; code?: string; error?: string }>('f360_stock_intent_create', {
+      p_target_key: env.TARGET_KEY, p_woo_product_id: product, p_woo_variation_id: variation, p_market: market,
+      p_phone: text(body.phone, 30), p_name: text(body.name, 80) || null, p_consent: body.consent === true, p_source: 'pdp',
+      p_ip_hash: ipHash, p_page_url: text(body.page_url, 300) || null });
+    if (!r.ok) return json({ error: 'No pudimos registrar tu aviso. Intenta de nuevo.' }, 400);
+    return json(r.data, r.data.ok ? 200 : 400);
+  }
+
+  return json({ error: 'Acción no válida.' }, 400);
+}

@@ -332,3 +332,56 @@ Se mantiene la lista del prompt, con estos cambios:
 - **CRO-6 · Promesa:** en vivo staging4 todavía dice "5 a 7" en la PDP. Hilo (KB de HiloLabs) dice "10 días hábiles" para **todos** los envíos. La matriz G (asesora) sigue sin cerrar formalmente. El texto de Woo producción "Disponible para reserva" es otra variante más.
 - **Siguiente de la sesión 67 (pendiente de Mario):** snippets que distingan staging4 de producción y un plan de pase a producción del grupo A (regla de métodos de pago, banner, checkout y gracias sin liga de pago, sticky ATC, Cambios).
 - **Primer paso concreto de CHECKOUT:** crear `cro/SNIPPETS_INSTALLED.md` con esta tabla y verificar en staging4 cada versión pegada contra el repo.
+
+## N. CRO-5 + CRO-6 — construido en STAGING (2026-10-05, autorizado por Mario)
+
+**Fuentes de verdad, reutilizadas:**
+- identidad: `f360.channel_variant_identity`;
+- existencia en línea: `f360.online_ats` (Bodega + tiendas − Gold; los bazares no cuentan);
+- sobre pedido: `products.make_to_order`, hoy en los 62 modelos;
+- escasez certificada: `f360.online_scarcity_reliable`;
+- clientas y consentimiento: CRM C1.
+
+**Nuevo:**
+- **`f360.delivery_promise_rules`**: la promesa es un **dato**, una fila por mercado × caso, con estado `known` o `blocked` (= BLOCKED_BY_BUSINESS_RULE).
+- **`f360.delivery_promise()`**: la **única regla** (variante → existencia → sobre pedido → mercado → promesa). La consumen la PDP (vía `f360_storefront_promise`), el checkout, Hilo y Pedido recibido. Ver "Pendiente" para su integración.
+- **`f360.trust_claims()`**: solo claims comprobables: cambios en 30 días (o "Precio con descuento: sin cambio" si el modelo tiene `sale_price`) y pago seguro. MSI y envío gratis **no** se emiten, porque no hay fuente en F360.
+- **"Último par"** solo con inventario certificado; hoy nunca se muestra.
+- **`f360.stock_intents`** ("Avísame cuando llegue"):
+  - guarda modelo y SKU canónicos, color, talla, mercado, canal, fecha y origen;
+  - `customer_id` si la clienta ya existe (no se duplica Customer 360); si no, solo el teléfono normalizado;
+  - consentimiento **operacional** (`stock_notification`, nuevo tipo `operational`, versión `2026-10-05-v1`), separado de marketing;
+  - un aviso activo por persona y talla;
+  - límites: 10 por teléfono al día y 30 por IP por hora (la IP se guarda como hash);
+  - se rechaza si la talla sí se puede pedir.
+- **`f360_stock_demand()`** y la pantalla **/demanda**, "Demanda sin inventario": por modelo, color y talla, *esperando* (avisos) + *vendidos sobre pedido*. Sin datos personales. Está en el menú y en el Centro de control.
+- **Edge Function `f360-storefront`** (pública, staging): acciones `promise` y `notify_me`. El canal sale de la configuración (`F360_STOREFRONT_TARGET`), nunca del navegador. Si falla, devuelve vacío y la página conserva su propio estado.
+- **Snippet `tools/storefront/f360-promesa-avisame.html`**: la caja de promesa con confianza junto a "Añadir al carrito" y el formulario "Avísame". **No está instalado** en staging4; se probó inyectado en el navegador.
+
+**Reglas cargadas:**
+
+| Mercado | Con existencia | Sin existencia + sobre pedido | Agotada (sin sobre pedido) |
+|---|---|---|---|
+| MX | ✅ "Entrega Inmediata en Zona Metropolitana" (+ fuera de ZM: "te confirmamos el tiempo") | ✅ "Producción: 10 días hábiles" | ✅ "Agotada" + Avísame |
+| CO | ⛔ BLOCKED: "Te confirmamos el tiempo de entrega al hacer tu pedido" | ⛔ BLOCKED: "Lo hacemos a la medida para ti" (sin tiempo) | ✅ "Agotada" + Avísame |
+| Otros | ⛔ BLOCKED | ⛔ BLOCKED | ✅ |
+
+**Pruebas:**
+- SQL `f360_cro5_cro6_tests.sql`: 25/25. Suite: 948/948.
+- Edge Function: 7/7 (node --test).
+- E2E contra staging real:
+  - Botas Largas MX: 8 con existencia / 4 sobre pedido;
+  - CO: blocked;
+  - Paula (legacy homologado): OK;
+  - origen ajeno: 403.
+
+**Evidencia:** `docs/fuxia360/cro/screens/cro5-cro6/`. La captura `03` es una **simulación** en el navegador, porque hoy ningún modelo está "agotado".
+
+**Pendiente / BLOCKED:**
+- Instalar el snippet en staging4 y **quitar las líneas de promesa** del snippet de la PDP de la sesión 67 ("Entrega inmediata…", "10 días hábiles…"). También retirar la caja del tema "Envío GRATIS y 6 MSI · Entrega INMEDIATA en la mayoría de nuestros modelos" y la barra superior (Adrián).
+- Checkout, Pedido recibido y Hilo deben leer `promise` en vez de su texto propio (sesión 67 / HiloLabs).
+- Regla de Colombia y de envíos con existencia fuera de la ZM: decisión de Mario.
+- "Avísame" en tallas sobre pedido (¿también ofrecerlo?): decisión de Mario.
+- Texto legal del consentimiento operacional: revisión legal (C3).
+- Envío de avisos cuando llegue la talla: **no construido**, sin campañas por decisión.
+- Certificación en teléfono real (IG/Chrome Android, IG/Safari iPhone): NOT TESTED, porque el snippet no está instalado.

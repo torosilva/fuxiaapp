@@ -294,3 +294,9 @@ export type AdminCustomerDetail = AdminCustomer & { purchases: AdminCustomer['re
 export const getCrmAccess = () => rpc<CrmAccess>('f360_crm_access');
 export const listAdminCustomers = (search?: string) => rpc<AdminCustomer[]>('f360_admin_customers', { p_search: search || null, p_limit: 100, p_offset: 0 });
 export const getAdminCustomer = (id: string) => rpc<{ ok: boolean; customer?: AdminCustomerDetail; error?: string }>('f360_admin_customer', { p_customer: id });
+
+// CRO-5 · Demanda sin inventario (people waiting via "Avísame" + pairs sold without stock). No personal data.
+export type DemandSize = { color: string; size: string; sku: string | null; waiting: number; mto_pairs: number; oldest: string };
+export type StockDemand = { market: string | null; models: { product: string; product_key: string; waiting: number; mto_pairs: number; sizes: DemandSize[] }[];
+  rules: { market: string; promise_case: string; status: 'known' | 'blocked'; headline: string; detail: string | null; business_days: number | null; decided_by: string; decided_at: string }[] };
+export const getStockDemand = (market?: string) => rpc<StockDemand>('f360_stock_demand', { p_market: market || null });

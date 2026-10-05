@@ -349,6 +349,7 @@ export function ControlCenter({ data }: { data: ExecDashboard }) {
         <section className="cc-panel flex flex-col gap-5 p-7">
           <div className="flex flex-wrap items-baseline justify-between gap-3">
             <Title>Pipeline · lo que viene en camino</Title>
+            <Link href="/demanda" className="text-sm text-[#E8C98A] hover:underline">Demanda sin inventario →</Link>
             <span className="font-display cc-glow tabular text-4xl text-[#F7E7C4]">{mxn(pipe.reservations.value * e)}</span>
           </div>
           {pipeRows.map((s, i) => (

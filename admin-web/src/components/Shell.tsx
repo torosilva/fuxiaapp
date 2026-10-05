@@ -17,6 +17,7 @@ const NAV = [
   { href: '/conteo', label: 'Conteo de apertura', icon: IconCheck, live: true, admin: true },
   { href: '/tiendas', label: 'Tiendas', icon: IconBoxes, live: true, admin: true },
   { href: '/apartados', label: 'Apartados Gold', icon: IconClock, live: true, admin: true },
+  { href: '/demanda', label: 'Demanda sin inventario', icon: IconGrowth, live: true, admin: true },
   { href: '/avisos', label: 'Avisos', icon: IconBell, live: true },
   { href: '/produccion', label: 'Producción', icon: IconScissors, live: false },
 ];

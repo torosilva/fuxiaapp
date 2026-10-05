@@ -1,0 +1,111 @@
+<!-- Fuxia 360 · CRO-5 + CRO-6 (Mario 2026-10-05) — STAGING4.
+     ONE delivery promise (from Fuxia 360, never hardcoded here) + verifiable trust claims next to "Añadir al carrito",
+     and "Avísame cuando llegue" when a size is really unavailable (operational consent, not marketing).
+     Install: WPCode → HTML snippet → Site-wide footer (it only acts on product pages with a variations form).
+     It REPLACES the promise lines of f360-entrega-inmediata.html ("Entrega inmediata…", "10 días hábiles…"): remove those
+     from that snippet when installing this one, so the page never shows two promises.
+     Endpoint: Edge Function f360-storefront (staging). Every rule and text lives in f360.delivery_promise_rules. -->
+<style>
+  .f360-promesa{margin:14px 0 6px;padding:14px 16px;border:1px solid #e6dccd;border-radius:14px;background:#fbf8f3;font:15px/1.4 Montserrat,system-ui,sans-serif;color:#2b2724}
+  .f360-promesa[hidden]{display:none}
+  .f360-promesa .f360-p-head{display:flex;align-items:center;gap:8px;font-weight:600}
+  .f360-promesa .f360-p-head svg{flex:0 0 auto}
+  .f360-promesa .f360-p-detail{margin-top:2px;font-size:13px;color:#6b6157}
+  .f360-promesa .f360-p-last{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:#fbe3d6;color:#8a3b12;font-size:12px;font-weight:600}
+  .f360-promesa .f360-p-trust{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;padding-top:10px;border-top:1px solid #ece3d6;font-size:13px;color:#4a433c}
+  .f360-promesa .f360-p-trust span::before{content:"✓ ";color:#2f7d4f;font-weight:700}
+  .f360-avisame{margin-top:12px}
+  .f360-avisame button.f360-a-open,.f360-avisame button.f360-a-send{display:block;min-height:46px;width:100%;border:0;border-radius:999px;background:#1c1916;color:#fff;font:600 15px Montserrat,system-ui,sans-serif;cursor:pointer;text-align:center!important;justify-content:center;padding:0 16px}
+  .f360-avisame button[hidden]{display:none!important}
+  .f360-avisame form{display:none;margin-top:10px;gap:10px;flex-direction:column}
+  .f360-avisame form.open{display:flex}
+  .f360-avisame label{font-size:13px;color:#4a433c}
+  .f360-avisame input[type=tel],.f360-avisame input[type=text]{width:100%;box-sizing:border-box;margin-top:4px;padding:12px 14px;border:1px solid #d8cdbd;border-radius:12px;font-size:16px}
+  .f360-avisame .f360-a-consent{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.35}
+  .f360-avisame .f360-a-consent input{width:20px;height:20px;margin:0;flex:0 0 auto}
+  .f360-avisame .f360-a-msg{font-size:14px}
+  .f360-avisame .f360-a-msg.ok{color:#2f7d4f;font-weight:600}
+  .f360-avisame .f360-a-msg.err{color:#a1281b}
+  .f360-avisame .f360-hp{position:absolute;left:-9999px}
+</style>
+<script>
+(function () {
+  var ENDPOINT = 'https://faltxpkaicwpnlqaxrdu.supabase.co/functions/v1/f360-storefront';
+  // Exact operational consent sentence = f360.consent_notice_versions ('stock_notification', '2026-10-05-v1').
+  var CONSENT = 'Usaremos tu WhatsApp solo para avisarte cuando esta talla vuelva a estar disponible. No es una suscripción a promociones.';
+  var ICON = {
+    in_stock: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2f7d4f" stroke-width="2" aria-hidden="true"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>',
+    made_to_order: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8a6a2f" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+    unavailable: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a1281b" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>'
+  };
+  function ready(fn) { if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function market() { var p = location.pathname; return /^\/co(\/|$)/.test(p) ? 'CO' : /^\/mx(\/|$)/.test(p) ? 'MX' : 'MX'; }
+  function post(body) {
+    return fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d.__status = r.status; return d; }); });
+  }
+  function push(ev) { try { (window.dataLayer = window.dataLayer || []).push(ev); } catch (e) {} }
+
+  ready(function () {
+    var form = document.querySelector('form.variations_form');
+    if (!form || !window.jQuery) return;
+    var productId = Number(form.getAttribute('data-product_id'));
+    if (!productId) return;
+    var mk = market();
+    var box = document.createElement('div');
+    box.className = 'f360-promesa'; box.hidden = true; box.setAttribute('aria-live', 'polite');
+    var anchor = form.querySelector('.single_variation_wrap') || form;
+    anchor.parentNode.insertBefore(box, anchor.nextSibling);
+
+    var data = null, current = null;
+    var load = post({ action: 'promise', woo_product_id: productId, market: mk }).then(function (d) { data = d; return d; }).catch(function () { data = { variations: {}, trust: [] }; return data; });
+
+    function render(variation) {
+      var p = data && data.variations ? data.variations[String(variation.variation_id)] : null;
+      if (!p || !p.headline) { box.hidden = true; return; }                     // unknown → the page keeps its own state
+      current = { variation: variation, promise: p };
+      var trust = (data.trust || []).filter(function (t) { return t.status === 'known'; }).map(function (t) { return '<span>' + esc(t.text) + '</span>'; }).join('');
+      var size = Object.keys(variation.attributes || {}).map(function (k) { return variation.attributes[k]; }).filter(Boolean).pop() || '';
+      var html = '<div class="f360-p-head">' + (ICON[p.case] || '') + '<span>' + esc(p.headline) + '</span>' + (p.last_pair ? '<span class="f360-p-last">Último par</span>' : '') + '</div>';
+      if (p.detail) html += '<div class="f360-p-detail">' + esc(p.detail) + '</div>';
+      if (p.can_notify) {
+        html += '<div class="f360-avisame"><button type="button" class="f360-a-open">Avísame cuando llegue</button>' +
+          '<form novalidate><label>Tu WhatsApp<input type="tel" inputmode="numeric" autocomplete="tel" name="phone" placeholder="' + (mk === 'CO' ? '300 123 4567' : '55 1234 5678') + '" required></label>' +
+          '<label>Tu nombre (opcional)<input type="text" name="name" autocomplete="given-name" maxlength="80"></label>' +
+          '<input class="f360-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">' +
+          '<label class="f360-a-consent"><input type="checkbox" name="consent" required><span>' + esc(CONSENT) + '</span></label>' +
+          '<button type="submit" class="f360-a-send">Avisarme</button><div class="f360-a-msg" role="status"></div></form></div>';
+      }
+      if (trust) html += '<div class="f360-p-trust">' + trust + '</div>';
+      box.innerHTML = html; box.hidden = false;
+      push({ event: 'f360_delivery_promise_view', mc_version: '1.1', promise_case: p.case, promise_status: p.status, market: mk });
+
+      var open = box.querySelector('.f360-a-open'), f = box.querySelector('.f360-avisame form');
+      if (open && f) {
+        open.addEventListener('click', function () { f.classList.add('open'); open.hidden = true; var i = f.querySelector('input[name=phone]'); if (i) i.focus(); });
+        f.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var msg = f.querySelector('.f360-a-msg'), btn = f.querySelector('.f360-a-send');
+          msg.className = 'f360-a-msg'; msg.textContent = '';
+          if (!f.consent.checked) { msg.className = 'f360-a-msg err'; msg.textContent = 'Marca la casilla para que te podamos avisar.'; return; }
+          btn.disabled = true; btn.textContent = 'Enviando…';
+          post({ action: 'notify_me', woo_product_id: productId, woo_variation_id: variation.variation_id, market: mk, phone: f.phone.value, name: f.name.value,
+                 consent: f.consent.checked === true, website: f.website.value, page_url: location.href.split('?')[0] })
+            .then(function (d) {
+              if (d.__status === 200 && d.ok) {
+                f.innerHTML = '<div class="f360-a-msg ok">Listo. Te avisamos por WhatsApp cuando llegue' + (size ? ' la talla ' + esc(size) : '') + '.</div>';
+                push({ event: 'f360_back_in_stock_intent', mc_version: '1.1', market: mk, already: !!d.already });   // no personal data
+              } else { msg.className = 'f360-a-msg err'; msg.textContent = d.error || 'No pudimos registrar tu aviso. Intenta de nuevo.'; btn.disabled = false; btn.textContent = 'Avisarme'; }
+            })
+            .catch(function () { msg.className = 'f360-a-msg err'; msg.textContent = 'No pudimos registrar tu aviso. Intenta de nuevo.'; btn.disabled = false; btn.textContent = 'Avisarme'; });
+        });
+      }
+    }
+
+    var $ = window.jQuery;
+    $(form).on('found_variation', function (e, variation) { load.then(function () { render(variation); }); });
+    $(form).on('reset_data hide_variation', function () { box.hidden = true; current = null; });
+  });
+})();
+</script>
