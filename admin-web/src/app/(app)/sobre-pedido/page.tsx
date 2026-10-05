@@ -6,7 +6,7 @@ import { StatusButtons } from './StatusButtons';
 const ESTADO: Record<string, string> = { pendiente: 'Pendiente', en_proceso: 'En proceso', enviado: 'Enviado', cancelado: 'Cancelado' };
 
 // Online orders of a size that had no stock (sobre pedido). Nothing was discounted from inventory; the pair has to be
-// made or found and shipped within 5–7 business days.
+// made or found and shipped within 10 business days.
 export default async function SobrePedido() {
   const [rows, ships] = await Promise.all([listMadeToOrder(), listStoreShipments()]);
   const open = rows.filter((r) => r.status === 'pendiente' || r.status === 'en_proceso');
@@ -22,8 +22,8 @@ export default async function SobrePedido() {
             {s.status === 'por_enviar' ? <ShipButton id={s.id} /> : <span className="text-sm text-ink-2">Enviado · {s.shipped_by}</span>}
           </li>))}</ul>
       )}
-      <h2 className="mt-10 font-display text-3xl text-ink">De 5 a 7 días</h2>
-      <p className="mt-2 text-ink-2">Compras en línea de una talla que no había en Bodega. A la clienta se le dijo <b>5 a 7 días hábiles</b>. No se descontó inventario: cuando el par llegue a Bodega, se recibe como siempre y se envía.</p>
+      <h2 className="mt-10 font-display text-3xl text-ink">En 10 días hábiles</h2>
+      <p className="mt-2 text-ink-2">Compras en línea de una talla que no había en Bodega. A la clienta se le dijo <b>10 días hábiles</b>. No se descontó inventario: cuando el par llegue a Bodega, se recibe como siempre y se envía.</p>
       <p className="mt-4 text-sm text-muted">{open.length} por surtir · {rows.length} en los últimos 90 días</p>
       {rows.length === 0 ? (
         <p className="mt-8 rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-ink-2">Todavía no hay pedidos de tallas sin existencia.</p>

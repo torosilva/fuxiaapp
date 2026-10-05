@@ -1,4 +1,4 @@
-<p class="f360-sobrepedido" hidden>Esta talla y color se entrega en <b>5 a 7 días hábiles</b>.<span class="f360-cambio">Si no te quedan, <a class="f360-cambios-link" href="/cambios/">cámbialas</a>.</span></p>
+<p class="f360-sobrepedido" hidden>Esta talla y color se entrega en <b>10 días hábiles</b>.<span class="f360-cambio">Si no te quedan, <a class="f360-cambios-link" href="/cambios/">cámbialas</a>.</span></p>
 <div class="f360-medida">
   <p class="f360-med-t">¿Dudas con tu talla o no encontraste tu color? <b>Lo hacemos a la medida.</b></p>
   <button type="button" class="f360-med-abrir">¡Pregúntale a Hilo!</button>
@@ -270,7 +270,7 @@
     if (window.MutationObserver) { var mo = new MutationObserver(revisar); mo.observe(document.body, { childList: true, subtree: true }); setTimeout(function () { mo.disconnect(); }, 8000); }
   }
   // CRO-4 · sticky "Añadir al carrito" (advisor 2026-10-04). It has NO purchase logic: it mirrors the state of Woo's own
-  // button (needs a selection / unavailable / buyable, incl. 5–7 días backorders) and clicking it clicks that button, so
+  // button (needs a selection / unavailable / buyable, incl. 10-días-hábiles backorders) and clicking it clicks that button, so
   // price, stock, MTO, Gold and validation stay Woo's. Shown on phones/tablets only while the real button is off-screen.
   function stickyCompra(mexico) {
     var bar = document.querySelector('.f360-sticky');
@@ -328,7 +328,7 @@
     }, { threshold: 0 }).observe(real);
   }
   function init() {
-    // "5 a 7 días hábiles" va en todos los países; entrega inmediata y tallas mexicanas solo en México (raíz o /mx/).
+    // "10 días hábiles" va en todos los países; entrega inmediata y tallas mexicanas solo en México (raíz o /mx/).
     var mexico = !(/^\/[a-z]{2}\//.test(location.pathname) && !/^\/mx\//.test(location.pathname));
     var pais = (location.pathname.match(/^\/[a-z]{2}\//) || ['/'])[0];         // keep the country: /mx/… or /co/…
     document.querySelectorAll('.f360-cambios-link').forEach(function (a) { a.href = pais + 'cambios/'; });
@@ -348,7 +348,7 @@
     // Stock line (CRO-5a, Mario 2026-10-04): NO quantitative scarcity ("3 disponibles", "último par", "quedan X") unless
     // Fuxia 360 says every location behind the online ATS is certified (opening count / cutover). Fail closed: any
     // stock text with a number stays hidden until the answer is {reliable:true}. Texts without numbers (e.g. "Agotado")
-    // are untouched. Woo's "(puede reservarse)" is always removed (the 5–7 días line says it).
+    // are untouched. Woo's "(puede reservarse)" is always removed (the 10 días hábiles line says it).
     var contarOk = false;
     var limpiarStock = function () {
       form.querySelectorAll('.woocommerce-variation-availability .stock').forEach(function (el) {
@@ -364,7 +364,7 @@
     function reset() { if (sobre) sobre.hidden = true; box.hidden = true; q('.f360-inm-envio').hidden = true; q('.f360-inm-probar').hidden = true; q('.f360-inm-flujo').hidden = true; q('.f360-inm-boton').hidden = false; q('.f360-inm-tel').hidden = false; q('.f360-inm-cod').hidden = true; msg(''); }
     $(form).on('found_variation', function (e, v) {
       variation = v && v.variation_id; reset(); if (!variation) return;
-      // 5–7 días hábiles (Mario 2026-10-03; never called "sobre pedido" to the customer): no stock but orderable → Woo marks it "available-on-backorder"
+      // 10 días hábiles (Mario 2026-10-04, antes 5 a 7; never called "sobre pedido" to the customer): no stock but orderable → Woo marks it "available-on-backorder"
       var bajoPedido = !!(v.backorders_allowed && /available-on-backorder/.test(v.availability_html || ''));
       contarOk = false; limpiarStock();
       var preguntado = variation;

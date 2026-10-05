@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { setMakeToOrderAction, setProductNewAction } from '../../actions';
 
-// Sobre pedido: when a size has no stock, the store still sells it, shipped in 5–7 business days (Mario 2026-10-03).
+// Sobre pedido: when a size has no stock, the store still sells it, shipped in 10 business days (Mario 2026-10-03).
 export function MakeToOrderPanel({ productId, on }: { productId: string; on: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -16,9 +16,9 @@ export function MakeToOrderPanel({ productId, on }: { productId: string; on: boo
   return (
     <section className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-line bg-surface p-5" data-testid="make-to-order">
       <div>
-        <h2 className="font-display text-2xl text-ink">Vender tallas sin existencia (5 a 7 días)</h2>
+        <h2 className="font-display text-2xl text-ink">Vender tallas sin existencia (10 días hábiles)</h2>
         <p className="mt-1 text-sm text-ink-2">{on
-          ? 'Si una talla no tiene existencia, en la tienda se puede comprar igual y dice “Esta talla y color se entrega en 5 a 7 días hábiles”.'
+          ? 'Si una talla no tiene existencia, en la tienda se puede comprar igual y dice “Esta talla y color se entrega en 10 días hábiles”.'
           : 'Si una talla no tiene existencia, en la tienda sale agotada y no se puede comprar.'}</p>
         {error && <p className="mt-2 text-sm text-danger">{error}</p>}
       </div>

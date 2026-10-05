@@ -328,7 +328,7 @@ li.product.f360-fuera { display: none !important; }
         var b = document.createElement('button'); b.type = 'button'; b.textContent = 'Limpiar filtros'; b.onclick = limpiar; res.appendChild(b);
         if (!n) res.appendChild(document.createTextNode(' ¿Te lo hacemos a la medida? Abre cualquier modelo y pregúntale a Hilo.'));
       }
-      // few results → "También te pueden gustar": same colour in 5–7 días / other sizes, or your size in other colours
+      // few results → "También te pueden gustar": same colour in 10 días hábiles / other sizes, or your size in other colours
       if (activo && n < 4 && (cols.length || tal.length || sel.inm)) {
         var cand = uno(items.filter(function (it) {
           if (visibles[it.woo_product_id]) return false;

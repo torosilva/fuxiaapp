@@ -50,7 +50,9 @@ BEGIN
 
   -- team list + status
   r := pg_temp.as(car, $q$SELECT public.f360_made_to_order_list()$q$);
-  PERFORM pg_temp.ok(r->0->>'order' = ord::text AND r->0->>'size' IS NOT NULL AND r->0 ? 'ship_by', 'team sees it with its "ship by" date (7th business day)', left(r::text, 160));
+  PERFORM pg_temp.ok(r->0->>'order' = ord::text AND r->0->>'size' IS NOT NULL
+    AND (r->0->>'ship_by')::date = (SELECT d::date FROM generate_series(current_date + 1, current_date + 21, interval '1 day') d WHERE extract(isodow FROM d) < 6 OFFSET 9 LIMIT 1),
+    'team sees it with its "ship by" date (10th business day, Mario 2026-10-04)', left(r::text, 160));
   r := pg_temp.as(car, format($q$SELECT public.f360_made_to_order_set(%L, 'en_proceso', 'Taller')$q$, (SELECT id FROM f360.made_to_order WHERE woo_order_id = ord)));
   PERFORM pg_temp.ok(r->>'status' = 'en_proceso', 'operator moves it to "en proceso"', r::text);
   r := pg_temp.as(NULL, $q$SELECT public.f360_made_to_order_list()$q$, 'anon');
