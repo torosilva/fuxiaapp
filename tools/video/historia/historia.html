@@ -1,0 +1,160 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Fuxia · Historia</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--crema:#fffdf9;--crema2:#f5efe3;--oro:#B8966E;--oliva:#83734C;--tinta:#1d1d1b;--verde:#2f6b3a;--piel:#e8c39e;--cuero:#8a5a3b}
+*{box-sizing:border-box}
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:var(--crema);font-family:Montserrat,sans-serif;color:var(--tinta)}
+.e{position:absolute;opacity:0;will-change:transform,opacity}
+.cap{left:50%;bottom:44px;transform:translateX(-50%);max-width:1300px;padding:18px 34px;border-radius:16px;background:rgba(29,29,27,.9);color:#fff;font-size:30px;font-weight:500;text-align:center;line-height:1.35}
+#chap{position:absolute;left:70px;top:46px;display:flex;align-items:center;gap:18px;font-size:24px;font-weight:600;color:var(--tinta);z-index:5}
+#chap b{width:6px;height:30px;background:var(--oro);border-radius:3px}
+#chap span{color:var(--oliva);letter-spacing:.18em}
+#tag{position:absolute;right:70px;top:50px;font-size:18px;font-weight:700;letter-spacing:.3em;color:var(--oliva);z-index:5}
+.big{font-weight:300;font-size:88px;line-height:1.1;text-align:center;left:0;right:0}
+.kick{font-weight:700;font-size:24px;letter-spacing:.34em;text-transform:uppercase;color:var(--oliva);text-align:center;left:0;right:0}
+.step{left:1010px;width:780px;font-size:56px;font-weight:300;line-height:1.2}
+.step small{display:block;margin-top:18px;font-size:28px;font-weight:400;color:#6B6B68;line-height:1.4}
+.card3{width:500px;padding:46px 40px;border-radius:30px;background:#fff;box-shadow:0 24px 60px rgba(0,0,0,.08);text-align:center}
+.card3 i{display:block;font-style:normal;font-size:96px;margin-bottom:18px}
+.card3 b{display:block;font-size:34px;font-weight:600;margin-bottom:12px}
+.card3 span{font-size:24px;color:#6B6B68;line-height:1.4}
+</style></head><body>
+<div id="chap" style="opacity:0"><b></b><span></span><em style="font-style:normal"></em></div>
+<div id="tag" style="opacity:0">FUXIA BALLERINAS</div>
+<div id="esc"></div>
+<script>
+const LOGO = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="25.61 25.97 189.36 32.93" width="757" height="132"> <path fill-rule="nonzero" fill="#857652" fill-opacity="1" d="M 64.25 47.59375 L 65.519531 47.59375 L 65.519531 42.832031 L 70.714844 42.832031 L 70.714844 41.609375 L 65.519531 41.609375 L 65.519531 37.703125 L 71.316406 37.703125 L 71.316406 36.480469 L 64.25 36.480469 Z M 64.25 47.59375 "/> <path fill-rule="nonzero" fill="#857652" fill-opacity="1" d="M 81.003906 43.019531 C 81.003906 45.179688 79.734375 46.4375 77.621094 46.4375 C 75.511719 46.4375 74.207031 45.179688 74.207031 43.019531 L 74.207031 36.480469 L 72.9375 36.480469 L 72.9375 43.019531 C 72.9375 45.910156 74.699219 47.65625 77.621094 47.65625 C 80.527344 47.65625 82.273438 45.910156 82.273438 43.019531 L 82.273438 36.480469 L 81.003906 36.480469 Z M 81.003906 43.019531 "/> <path fill-rule="nonzero" fill="#857652" fill-opacity="1" d="M 93.488281 36.480469 L 91.996094 36.480469 L 88.898438 40.765625 L 85.832031 36.480469 L 84.339844 36.480469 L 88.136719 41.878906 L 84.054688 47.59375 L 85.546875 47.59375 L 88.898438 42.941406 L 92.28125 47.59375 L 93.804688 47.59375 L 89.707031 41.816406 Z M 93.488281 36.480469 "/> <path fill-rule="nonzero" fill="#857652" fill-opacity="1" d="M 95.949219 47.59375 L 97.21875 47.59375 L 97.21875 36.480469 L 95.949219 36.480469 Z M 95.949219 47.59375 "/> <path fill-rule="nonzero" fill="#857652" fill-opacity="1" d="M 102.09375 43.5625 L 104.570312 37.921875 L 107.082031 43.5625 Z M 103.953125 36.480469 L 98.96875 47.59375 L 100.316406 47.59375 L 101.554688 44.785156 L 107.621094 44.785156 L 108.859375 47.59375 L 110.242188 47.59375 L 105.269531 36.480469 Z M 103.953125 36.480469 "/> <path fill-rule="nonzero" fill="#857652" fill-opacity="1" d="M 120.960938 46.386719 L 117.609375 46.386719 L 117.609375 42.480469 L 120.960938 42.480469 C 122.773438 42.480469 123.820312 43.195312 123.820312 44.402344 C 123.820312 45.671875 122.773438 46.386719 120.960938 46.386719 M 117.609375 37.703125 L 120.960938 37.703125 C 122.453125 37.703125 123.328125 38.335938 123.328125 39.464844 C 123.328125 40.625 122.453125 41.273438 120.960938 41.273438 L 117.609375 41.273438 Z M 122.566406 41.765625 C 123.867188 41.496094 124.613281 40.558594 124.613281 39.257812 C 124.613281 37.511719 123.261719 36.480469 121.023438 36.480469 L 116.339844 36.480469 L 116.339844 47.59375 L 121.105469 47.59375 C 123.613281 47.59375 125.105469 46.464844 125.105469 44.578125 C 125.105469 43.054688 124.167969 42.003906 122.566406 41.765625 "/> <path fill-rule="nonzero" fill="#857652" fill-opacity="1" d="M 129.21875 43.5625 L 131.695312 37.921875 L 134.207031 43.5625 Z M 131.078125 36.480469 L 126.09375 47.59375 L 127.441406 47.59375 L 128.679688 44.785156 L 134.746094 44.785156 L 135.984375 47.59375 L 137.367188 47.59375 L 132.394531 36.480469 Z M 131.078125 36.480469 "/> <path fill-rule="nonzero" fill="#857652" fill-opacity="1" d="M 140.382812 36.480469 L 139.113281 36.480469 L 139.113281 47.59375 L 145.257812 47.59375 L 145.257812 46.386719 L 140.382812 46.386719 Z M 140.382812 36.480469 "/> <path fill-rule="nonzero" fill="#857652" fill-opacity="1" d="M 148.59375 36.480469 L 147.324219 36.480469 L 147.324219 47.59375 L 153.46875 47.59375 L 153.46875 46.386719 L 148.59375 46.386719 Z M 148.59375 36.480469 "/> <path fill-rule="nonzero" fill="#857652" fill-opacity="1" d="M 156.804688 42.578125 L 162.410156 42.578125 L 162.410156 41.355469 L 156.804688 41.355469 L 156.804688 37.703125 L 163.078125 37.703125 L 163.078125 36.480469 L 155.535156 36.480469 L 155.535156 47.59375 L 163.285156 47.59375 L 163.285156 46.386719 L 156.804688 46.386719 Z M 156.804688 42.578125 "/> <path fill-rule="nonzero" fill="#857652" fill-opacity="1" d="M 170.097656 42.863281 L 167.144531 42.863281 L 167.144531 37.703125 L 170.097656 37.703125 C 172.113281 37.703125 173.257812 38.558594 173.257812 40.242188 C 173.257812 41.972656 172.113281 42.863281 170.097656 42.863281 M 174.480469 40.210938 C 174.480469 37.84375 172.875 36.480469 170.097656 36.480469 L 165.875 36.480469 L 165.875 47.59375 L 167.144531 47.59375 L 167.144531 44.085938 L 170.097656 44.085938 C 170.351562 44.085938 170.605469 44.070312 170.84375 44.054688 L 173.148438 47.59375 L 174.59375 47.59375 L 171.988281 43.816406 C 173.589844 43.292969 174.480469 42.050781 174.480469 40.210938 "/> <path fill-rule="nonzero" fill="#857652" fill-opacity="1" d="M 177.355469 47.59375 L 178.625 47.59375 L 178.625 36.480469 L 177.355469 36.480469 Z M 177.355469 47.59375 "/> <path fill-rule="nonzero" fill="#857652" fill-opacity="1" d="M 189.980469 45.417969 L 183.3125 36.480469 L 181.992188 36.480469 L 181.992188 47.59375 L 183.261719 47.59375 L 183.261719 38.671875 L 189.933594 47.59375 L 191.234375 47.59375 L 191.234375 36.480469 L 189.980469 36.480469 Z M 189.980469 45.417969 "/> <path fill-rule="nonzero" fill="#857652" fill-opacity="1" d="M 196.128906 43.5625 L 198.605469 37.921875 L 201.113281 43.5625 Z M 197.984375 36.480469 L 193 47.59375 L 194.347656 47.59375 L 195.589844 44.785156 L 201.652344 44.785156 L 202.894531 47.59375 L 204.273438 47.59375 L 199.304688 36.480469 Z M 197.984375 36.480469 "/> <path fill-rule="nonzero" fill="#857652" fill-opacity="1" d="M 206.753906 39.195312 C 206.753906 38.257812 207.6875 37.71875 209.117188 37.71875 C 210.007812 37.71875 211.183594 37.988281 212.183594 38.65625 L 212.722656 37.464844 C 211.800781 36.84375 210.484375 36.429688 209.199219 36.429688 C 206.894531 36.429688 205.355469 37.558594 205.355469 39.304688 C 205.355469 43.292969 211.613281 41.734375 211.597656 44.65625 C 211.597656 45.71875 210.59375 46.371094 208.992188 46.371094 C 207.738281 46.371094 206.324219 45.800781 205.292969 44.800781 L 204.71875 45.941406 C 205.769531 46.945312 207.355469 47.640625 208.976562 47.640625 C 211.359375 47.640625 212.992188 46.453125 212.992188 44.59375 C 213.007812 40.558594 206.753906 42.054688 206.753906 39.195312 "/> <path fill-rule="nonzero" fill="#857652" fill-opacity="1" d="M 35.417969 28.21875 C 34.332031 29.796875 32.085938 33.59375 32.6875 37.207031 C 32.960938 38.851562 33.808594 40.289062 35.207031 41.484375 C 35.460938 41.027344 35.875 40.519531 36.410156 39.875 C 37.683594 38.332031 39.429688 36.226562 39.300781 33.703125 C 39.144531 30.660156 36.433594 28.808594 35.417969 28.21875 M 47.410156 28.21875 C 46.394531 28.808594 43.683594 30.664062 43.527344 33.703125 C 43.398438 36.226562 45.144531 38.335938 46.421875 39.875 C 46.953125 40.519531 47.367188 41.027344 47.621094 41.484375 C 49.019531 40.289062 49.867188 38.851562 50.140625 37.207031 C 50.742188 33.59375 48.496094 29.796875 47.410156 28.21875 M 42.050781 47.210938 C 42.925781 48.4375 43.453125 49.710938 43.621094 51 C 43.863281 52.871094 43.320312 54.421875 42.722656 55.492188 C 50.101562 52.097656 53.972656 46.738281 53.925781 39.964844 L 53.925781 39.800781 C 53.925781 36.191406 51.910156 32.90625 49.941406 30.558594 C 50.808594 32.449219 51.539062 34.910156 51.132812 37.371094 C 50.738281 39.738281 49.347656 41.703125 46.992188 43.203125 C 44.851562 44.480469 43.191406 45.828125 42.050781 47.210938 M 32.886719 30.558594 C 30.917969 32.90625 28.902344 36.191406 28.902344 39.800781 L 28.902344 39.964844 C 28.855469 46.738281 32.726562 52.097656 40.105469 55.492188 C 39.511719 54.421875 38.964844 52.871094 39.207031 51 C 39.375 49.710938 39.90625 48.4375 40.78125 47.210938 C 39.636719 45.824219 37.976562 44.480469 35.839844 43.207031 C 33.484375 41.703125 32.089844 39.738281 31.695312 37.371094 C 31.289062 34.910156 32.019531 32.449219 32.886719 30.558594 M 41.414062 48.0625 C 40.746094 49.066406 40.339844 50.09375 40.207031 51.121094 C 39.9375 53.171875 40.792969 54.800781 41.414062 55.675781 C 42.035156 54.800781 42.890625 53.175781 42.621094 51.121094 C 42.488281 50.09375 42.082031 49.066406 41.414062 48.0625 M 41.386719 57.167969 L 41.378906 57.171875 L 41.296875 57.097656 L 41.148438 57.046875 C 32.550781 53.585938 27.84375 47.519531 27.898438 39.960938 L 27.898438 39.800781 C 27.898438 32.71875 34.699219 27.183594 34.992188 26.953125 L 35.070312 26.886719 L 35.488281 27.109375 C 35.546875 27.140625 35.667969 27.199219 35.828125 27.292969 C 37.136719 28.03125 40.121094 30.085938 40.304688 33.652344 C 40.453125 36.566406 38.5625 38.847656 37.183594 40.515625 C 36.726562 41.066406 36.214844 41.683594 36.019531 42.109375 L 36.03125 42.117188 C 36.140625 42.195312 36.25 42.277344 36.367188 42.351562 C 38.507812 43.625 40.207031 44.988281 41.414062 46.398438 C 42.621094 44.988281 44.320312 43.625 46.464844 42.347656 C 46.578125 42.277344 46.683594 42.199219 46.792969 42.125 L 46.808594 42.109375 C 46.632812 41.71875 46.191406 41.175781 45.648438 40.515625 C 44.265625 38.847656 42.375 36.566406 42.523438 33.652344 C 42.707031 30.085938 45.691406 28.027344 46.964844 27.308594 C 47.164062 27.199219 47.28125 27.140625 47.34375 27.109375 L 47.757812 26.886719 L 47.839844 26.953125 C 48.128906 27.183594 54.929688 32.726562 54.929688 39.800781 L 54.929688 39.960938 C 54.984375 47.519531 50.277344 53.585938 41.679688 57.046875 L 41.488281 57.125 L 41.414062 57.203125 Z M 41.386719 57.167969 "/> </svg>', IMGS = ["https://staging4.fuxiaballerinas.com/wp-content/uploads/2026/06/Paula-dorado-con-ocre_1-300x300.jpg", "https://staging4.fuxiaballerinas.com/wp-content/uploads/2026/06/Sueco-cucarron-dorado_1T6A9433-scaled-1-300x300.jpg", "https://staging4.fuxiaballerinas.com/wp-content/uploads/2026/06/Cucarron-laser-caramelo_1T6A2613-scaled-1-300x300.jpg", "https://staging4.fuxiaballerinas.com/wp-content/uploads/2026/06/Paula-Bambi_20260506_122729-300x300.jpg"];
+const logo = (w, color) => '<div style="width:' + w + 'px">' + LOGO.replace(/width="757" height="132"/, 'width="' + w + '" height="' + Math.round(w * 132 / 757) + '"').replace(/#857652/g, color) + '</div>';
+const leafSvg = (size, color) => `<svg width="${size}" height="${size * 34 / 31}" viewBox="26 25 31 34" style="color:${color}"><path fill="currentColor" d="M 35.417969 28.21875 C 34.332031 29.796875 32.085938 33.59375 32.6875 37.207031 C 32.960938 38.851562 33.808594 40.289062 35.207031 41.484375 C 35.460938 41.027344 35.875 40.519531 36.410156 39.875 C 37.683594 38.332031 39.429688 36.226562 39.300781 33.703125 C 39.144531 30.660156 36.433594 28.808594 35.417969 28.21875 M 47.410156 28.21875 C 46.394531 28.808594 43.683594 30.664062 43.527344 33.703125 C 43.398438 36.226562 45.144531 38.335938 46.421875 39.875 C 46.953125 40.519531 47.367188 41.027344 47.621094 41.484375 C 49.019531 40.289062 49.867188 38.851562 50.140625 37.207031 C 50.742188 33.59375 48.496094 29.796875 47.410156 28.21875 M 42.050781 47.210938 C 42.925781 48.4375 43.453125 49.710938 43.621094 51 C 43.863281 52.871094 43.320312 54.421875 42.722656 55.492188 C 50.101562 52.097656 53.972656 46.738281 53.925781 39.964844 L 53.925781 39.800781 C 53.925781 36.191406 51.910156 32.90625 49.941406 30.558594 C 50.808594 32.449219 51.539062 34.910156 51.132812 37.371094 C 50.738281 39.738281 49.347656 41.703125 46.992188 43.203125 C 44.851562 44.480469 43.191406 45.828125 42.050781 47.210938 M 32.886719 30.558594 C 30.917969 32.90625 28.902344 36.191406 28.902344 39.800781 L 28.902344 39.964844 C 28.855469 46.738281 32.726562 52.097656 40.105469 55.492188 C 39.511719 54.421875 38.964844 52.871094 39.207031 51 C 39.375 49.710938 39.90625 48.4375 40.78125 47.210938 C 39.636719 45.824219 37.976562 44.480469 35.839844 43.207031 C 33.484375 41.703125 32.089844 39.738281 31.695312 37.371094 C 31.289062 34.910156 32.019531 32.449219 32.886719 30.558594 M 41.414062 48.0625 C 40.746094 49.066406 40.339844 50.09375 40.207031 51.121094 C 39.9375 53.171875 40.792969 54.800781 41.414062 55.675781 C 42.035156 54.800781 42.890625 53.175781 42.621094 51.121094 C 42.488281 50.09375 42.082031 49.066406 41.414062 48.0625 M 41.386719 57.167969 L 41.378906 57.171875 L 41.296875 57.097656 L 41.148438 57.046875 C 32.550781 53.585938 27.84375 47.519531 27.898438 39.960938 L 27.898438 39.800781 C 27.898438 32.71875 34.699219 27.183594 34.992188 26.953125 L 35.070312 26.886719 L 35.488281 27.109375 C 35.546875 27.140625 35.667969 27.199219 35.828125 27.292969 C 37.136719 28.03125 40.121094 30.085938 40.304688 33.652344 C 40.453125 36.566406 38.5625 38.847656 37.183594 40.515625 C 36.726562 41.066406 36.214844 41.683594 36.019531 42.109375 L 36.03125 42.117188 C 36.140625 42.195312 36.25 42.277344 36.367188 42.351562 C 38.507812 43.625 40.207031 44.988281 41.414062 46.398438 C 42.621094 44.988281 44.320312 43.625 46.464844 42.347656 C 46.578125 42.277344 46.683594 42.199219 46.792969 42.125 L 46.808594 42.109375 C 46.632812 41.71875 46.191406 41.175781 45.648438 40.515625 C 44.265625 38.847656 42.375 36.566406 42.523438 33.652344 C 42.707031 30.085938 45.691406 28.027344 46.964844 27.308594 C 47.164062 27.199219 47.28125 27.140625 47.34375 27.109375 L 47.757812 26.886719 L 47.839844 26.953125 C 48.128906 27.183594 54.929688 32.726562 54.929688 39.800781 L 54.929688 39.960938 C 54.984375 47.519531 50.277344 53.585938 41.679688 57.046875 L 41.488281 57.125 L 41.414062 57.203125 Z M 41.386719 57.167969"/></svg>`;
+const E = []; const esc = document.getElementById('esc');
+function el(html, css, tin, tout, fx = 'up', extra) { const d = document.createElement('div'); d.className = 'e ' + (css.cls || ''); d.innerHTML = html;
+  Object.assign(d.style, css.s || {}); esc.appendChild(d); E.push({ d, tin, tout, fx, extra }); return d; }
+const ease = (x) => x < 0 ? 0 : x > 1 ? 1 : 1 - Math.pow(1 - x, 3);
+const back = (x) => { x = Math.max(0, Math.min(1, x)); const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const at = (top, left, w) => ({ s: { top: top + 'px', left: left + 'px', width: w ? w + 'px' : undefined } });
+const CAPS = []; const cap = (tin, tout, text) => CAPS.push([tin, tout, el(text, { cls: 'cap' }, tin, tout, 'none')]);
+const CHAPS = [[6, 20, '01', 'El taller'], [20, 32, '02', 'Nuestras tiendas'], [32, 64, '03', 'Comprar en línea'], [64, 95, '04', 'Fuxia 360 por dentro'], [95, 110, '05', 'Más ventas']];
+// image sequences (recordings): window.SEQ = { tienda: [[t, url]…], admin: [[t, url]…] }
+const SEQS = [];
+function seq(name, css, tin, tout, srcFrom, rate = 1, fx = 'pop') { const d = el('<img style="width:100%;display:block">', css, tin, tout, fx); SEQS.push({ name, d, tin, tout, srcFrom, rate }); return d; }
+function frameAt(list, t) { let lo = 0, hi = list.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (list[m][0] <= t) lo = m; else hi = m - 1; } return list[lo][1]; }
+async function render(t) {
+  for (const o of E) {
+    const k = ease((t - o.tin) / .6), out = o.tout ? ease((t - o.tout) / .45) : 0, a = Math.max(0, k - out);
+    let tr = '';
+    if (o.fx === 'up') tr = `translateY(${(1 - k) * 50 - out * 30}px)`;
+    if (o.fx === 'pop') tr = `scale(${0.6 + 0.4 * back((t - o.tin) / .55)})`;
+    if (o.fx === 'left') tr = `translateX(${(1 - k) * -200}px)`;
+    if (o.fx === 'right') tr = `translateX(${(1 - k) * 200}px)`;
+    if (o.d.classList.contains('cap')) tr = 'translateX(-50%) ' + `translateY(${(1 - k) * 20}px)`;
+    if (o.extra) tr += ' ' + o.extra(t);
+    o.d.style.opacity = a; o.d.style.transform = tr;
+  }
+  const ch = CHAPS.find((c) => t >= c[0] && t < c[1]); const chap = document.getElementById('chap');
+  chap.style.opacity = ch ? Math.min(1, (t - ch[0]) / .5, (ch[1] - t) / .4) : 0; if (ch) { chap.children[1].textContent = ch[2]; chap.children[2].textContent = ch[3]; }
+  document.getElementById('tag').style.opacity = chap.style.opacity;
+  const waits = [];
+  for (const s of SEQS) { if (t < s.tin - .1 || t > s.tout + .6) continue; const list = (window.SEQ || {})[s.name]; if (!list) continue;
+    const img = s.d.firstChild, url = frameAt(list, s.srcFrom + Math.max(0, t - s.tin) * s.rate); if (img.getAttribute('src') !== url) { img.src = url; waits.push(img.decode().catch(() => {})); } }
+  await Promise.all(waits);
+}
+
+// ===== 00 · cover with chapter index (0–6)
+el(logo(900, '#857652'), at(250, 160), .2, 5.6, 'up');
+el('Comodidad artesanal con carácter propio', { s: { top: '470px', left: '160px', fontSize: '40px', fontWeight: 300, color: '#4a433a' } }, .8, 5.6);
+el('DEMO · 2 MINUTOS', { s: { top: '820px', left: '160px', fontSize: '20px', fontWeight: 700, letterSpacing: '.3em', color: '#83734C' } }, 1.2, 5.6);
+CHAPS.forEach((c, i) => el(`<div style="width:520px;padding:18px 24px;border:2px solid #e3d6bd;border-radius:14px;background:#fff"><b style="color:#83734C;font-size:18px;letter-spacing:.2em">${c[2]}</b><div style="font-size:26px;font-weight:500;margin-top:4px">${c[3]}</div></div>`,
+  at(250 + i * 118, 1220), 1 + i * .25, 5.6, 'right'));
+
+// ===== 01 · the workshop (6–20): artisans by hand
+const W0 = 6.2, W1 = 19.4;
+el(`<svg width="1920" height="1080" viewBox="0 0 1920 1080">
+  <rect width="1920" height="1080" fill="#f6efe4"/>
+  <rect x="0" y="760" width="1920" height="320" fill="#ead9c2"/>
+  <rect x="1320" y="150" width="420" height="360" rx="18" fill="#fff6e8" stroke="#d8c3a2" stroke-width="10"/>
+  <line x1="1530" y1="150" x2="1530" y2="510" stroke="#d8c3a2" stroke-width="8"/><line x1="1320" y1="330" x2="1740" y2="330" stroke="#d8c3a2" stroke-width="8"/>
+  <rect x="160" y="190" width="760" height="18" rx="9" fill="#b98e64"/><rect x="160" y="350" width="760" height="18" rx="9" fill="#b98e64"/>
+  ${[0,1,2,3,4,5].map(i => `<ellipse cx="${215 + i * 125}" cy="${165}" rx="44" ry="26" fill="#c9a27a"/><ellipse cx="${215 + i * 125}" cy="${325}" rx="44" ry="26" fill="${['#e8b4a6','#2f2f2f','#c9a27a','#b5895c','#e0cdb0','#8a5a3b'][i]}"/>`).join('')}
+  <rect x="200" y="640" width="1520" height="40" rx="10" fill="#9b6b45"/><rect x="250" y="680" width="34" height="200" fill="#7c5236"/><rect x="1640" y="680" width="34" height="200" fill="#7c5236"/>
+</svg>`, at(0, 0), W0, W1, 'none');
+// artisan A (cutting leather)
+el(`<svg width="420" height="560" viewBox="0 0 420 560"><circle cx="210" cy="120" r="70" fill="#e9c4a2"/><path d="M140 110 Q150 30 215 40 Q290 45 285 120 Q270 70 210 75 Q160 80 140 110Z" fill="#3b2a20"/>
+  <rect x="120" y="190" width="180" height="230" rx="70" fill="#83734C"/><rect x="155" y="230" width="110" height="170" rx="24" fill="#B8966E"/></svg>`, at(220, 330), W0 + .3, W1, 'up');
+el(`<svg width="420" height="120" viewBox="0 0 420 120"><path d="M30 70 Q120 10 230 40 Q330 70 390 40 L380 100 Q260 110 160 100 Q70 95 30 70Z" fill="#a8693f"/><path d="M60 72 Q150 30 240 52" stroke="#fff" stroke-width="4" stroke-dasharray="10 10" fill="none"/></svg>`, at(560, 280), W0 + .6, W1, 'pop');
+el(`<div style="width:190px;height:30px;border-radius:14px;background:#e9c4a2;transform-origin:0 50%"></div>`, at(480, 470), W0 + .6, W1, 'none', (t) => `rotate(${20 + Math.sin(t * 5) * 14}deg)`);
+el(`<svg width="80" height="40" viewBox="0 0 80 40"><path d="M0 18 L60 8 L80 20 L60 32 L0 22Z" fill="#cfd4d9"/><rect x="0" y="12" width="26" height="16" rx="6" fill="#2f2f2f"/></svg>`, at(560, 560), W0 + .6, W1, 'none', (t) => `translateX(${Math.sin(t * 5) * 70}px)`);
+// artisan B (sewing)
+el(`<svg width="420" height="560" viewBox="0 0 420 560"><circle cx="210" cy="120" r="70" fill="#d9a77f"/><path d="M135 120 Q140 30 210 35 Q290 40 285 125 Q300 200 270 220 Q280 120 210 80 Q150 90 150 220 Q120 190 135 120Z" fill="#6b3f2a"/>
+  <rect x="120" y="190" width="180" height="230" rx="70" fill="#1d1d1b"/><rect x="155" y="230" width="110" height="170" rx="24" fill="#B8966E"/></svg>`, at(220, 1180), W0 + .5, W1, 'up');
+el(`<svg width="300" height="230" viewBox="0 0 300 230"><path d="M20 210 L20 150 Q20 120 50 120 L120 120 L120 40 Q120 20 140 20 L270 20 Q290 20 290 40 L290 90 L250 90 L250 210Z" fill="#3a3a3a"/><rect x="10" y="200" width="290" height="22" rx="8" fill="#2a2a2a"/><circle cx="235" cy="55" r="14" fill="#B8966E"/></svg>`, at(420, 1020), W0 + .8, W1, 'pop');
+el(`<div style="width:6px;height:60px;background:#cfd4d9;border-radius:3px"></div>`, at(530, 1278), W0 + .8, W1, 'none', (t) => `translateY(${Math.abs(Math.sin(t * 9)) * 26}px)`);
+// the shoe being made (drawn line by line) + floating leaf
+const shoe = el(`<svg width="520" height="220" viewBox="0 0 520 220"><path id="zap" d="M20 160 Q30 90 130 90 Q210 92 260 120 Q330 150 420 130 Q500 118 505 165 Q500 200 420 200 L60 200 Q15 195 20 160Z" fill="none" stroke="#1d1d1b" stroke-width="7" stroke-linejoin="round" stroke-dasharray="1400" stroke-dashoffset="1400"/>
+  <path id="mono" d="M240 118 Q262 92 285 118 Q262 132 240 118Z M290 118 Q312 92 335 118 Q312 132 290 118Z" fill="#B8966E" opacity="0"/></svg>`, at(470, 700), W0 + 4, W1, 'none');
+E[E.length - 1].extra = (t) => { const k = ease((t - W0 - 4) / 5); shoe.querySelector('#zap').style.strokeDashoffset = 1400 * (1 - k);
+  shoe.querySelector('#zap').style.fill = k >= 1 ? '#f1d9c0' : 'none'; shoe.querySelector('#mono').style.opacity = ease((t - W0 - 9) / .6); return ''; };
+el(leafSvg(70, '#B8966E'), at(400, 1700), W0 + 1, W1, 'none', (t) => `translateY(${Math.sin(t * 2) * 14}px) rotate(${Math.sin(t * 1.4) * 10}deg)`);
+cap(W0 + 1, W0 + 6.2, 'Cada par empieza en el taller, en manos de artesanos.');
+cap(W0 + 6.6, W1, 'Cortar, coser y dar forma: comodidad artesanal con carácter propio.');
+
+// ===== 02 · our stores (20–32): a Polanco-style boutique
+const B0 = 20.2, B1 = 31.4;
+el(`<svg width="1920" height="1080" viewBox="0 0 1920 1080">
+  <rect width="1920" height="1080" fill="#eef1f2"/>
+  <rect x="0" y="880" width="1920" height="200" fill="#d6d1c8"/><rect x="0" y="870" width="1920" height="14" fill="#c5bfb3"/>
+  <rect x="330" y="150" width="1260" height="730" fill="#f7f3ec"/>
+  <rect x="330" y="150" width="1260" height="120" fill="#1d1d1b"/>
+  ${Array.from({ length: 14 }, (_, i) => `<path d="M${330 + i * 90} 270 L${420 + i * 90} 270 L${410 + i * 90} 330 Q${375 + i * 90} 350 ${340 + i * 90} 330Z" fill="${i % 2 ? '#B8966E' : '#fffdf9'}"/>`).join('')}
+  <rect x="400" y="380" width="520" height="440" rx="10" fill="#fdf8ef" stroke="#B8966E" stroke-width="10"/>
+  <rect x="1000" y="380" width="520" height="440" rx="10" fill="#fdf8ef" stroke="#B8966E" stroke-width="10"/>
+  <rect x="930" y="430" width="60" height="450" fill="#2a2a2a"/>
+  <rect x="420" y="700" width="480" height="18" rx="9" fill="#e3d6bd"/><rect x="1020" y="700" width="480" height="18" rx="9" fill="#e3d6bd"/>
+  <circle cx="300" cy="820" r="70" fill="#3e6b47"/><rect x="280" y="830" width="40" height="60" fill="#7c5236"/>
+  <circle cx="1620" cy="820" r="70" fill="#3e6b47"/><rect x="1600" y="830" width="40" height="60" fill="#7c5236"/>
+</svg>`, at(0, 0), B0, B1, 'none');
+el(logo(620, '#B8966E'), at(180, 650), B0 + .3, B1, 'pop');
+[[460, 450], [690, 450], [1060, 450], [1290, 450]].forEach((p, i) => el(`<div style="width:190px;height:190px;border-radius:50%;overflow:hidden;border:6px solid #fff;box-shadow:0 10px 24px rgba(0,0,0,.15)"><img src="${IMGS[i]}" style="width:100%;height:100%;object-fit:cover"></div>`,
+  at(p[1], p[0]), B0 + .8 + i * .25, B1, 'pop'));
+cap(B0 + 1, B0 + 5.6, 'Nuestras tiendas: Polanco, San Jerónimo y Amsterdam, en la Ciudad de México.');
+cap(B0 + 6, B1, 'Cada tienda también es bodega: lo que hay en tienda se vende en línea.');
+// customer walking in
+el(`<svg width="140" height="300" viewBox="0 0 140 300"><circle cx="70" cy="45" r="34" fill="#e9c4a2"/><path d="M36 40 Q40 0 72 4 Q110 8 104 46 Q98 22 70 22 Q45 24 36 40Z" fill="#1d1d1b"/><path d="M30 100 Q70 80 110 100 L120 210 L20 210Z" fill="#e8b4a6"/><rect x="40" y="210" width="20" height="80" fill="#e9c4a2"/><rect x="80" y="210" width="20" height="80" fill="#e9c4a2"/><rect x="104" y="140" width="40" height="46" rx="6" fill="#B8966E"/></svg>`,
+  at(600, -160), B0 + 2, B1, 'none', (t) => `translateX(${ease((t - B0 - 2) / 6) * 1080}px) translateY(${Math.abs(Math.sin(t * 7)) * -6}px)`);
+// sparkle
+for (let i = 0; i < 6; i++) el('<div style="font-size:40px">✨</div>', at(380 + (i % 3) * 120, 420 + Math.floor(i / 3) * 620 + (i % 2) * 40), B0 + 1.5 + i * .4, B1, 'pop', (t) => `scale(${0.7 + Math.abs(Math.sin(t * 2 + i)) * .5})`);
+
+// ===== 03 · shopping online (32–64): the real store on a phone + the step on the right
+const T0 = 32.2;
+el('<div style="width:470px;height:960px;border-radius:70px;background:#1d1d1b;box-shadow:0 40px 80px rgba(0,0,0,.25)"></div>', at(60, 380), T0, 63.6, 'pop');
+const phone = seq('tienda', { s: { top: '96px', left: '420px', width: '390px', borderRadius: '44px', overflow: 'hidden' } }, T0, 63.6, 0, 1, 'pop');
+// segments of the store recording: [video start, source second, title, sub]
+const TS = [[T0, 27, 'Encuentra su modelo', 'Buscador, filtros por color y talla mexicana.'], [T0 + 5.3, 50, 'Entrega Inmediata', 'En Zona Metropolitana, desde cualquier tienda.'], [T0 + 10.6, 60.5, 'Hilo responde', 'Su talla y modelos recomendados, a cualquier hora.'],
+  [T0 + 16.4, 70, 'Agregar y pagar', 'Confirmación clara y checkout de Fuxia.'], [T0 + 21.7, 88, 'Pagar como quiera', 'Tarjeta, cuenta de Mercado Pago o sin tarjeta.'], [T0 + 27, 109, '¡Pedido confirmado!', 'Próximos pasos, WhatsApp y puntos Club Fuxia.']];
+TS.forEach((s, i) => { const end = i + 1 < TS.length ? TS[i + 1][0] : 63.6;
+  el(`${s[2]}<small>${s[3]}</small>`, { cls: 'step', s: { top: '380px' } }, s[0] + .1, end - .2, 'right');
+  el(`<div style="font-size:22px;font-weight:700;letter-spacing:.3em;color:#83734C">PASO ${i + 1} DE ${TS.length}</div>`, { s: { top: '320px', left: '1010px' } }, s[0] + .1, end - .2, 'right'); });
+// the phone plays each segment from its own source second
+SEQS.pop(); TS.forEach((s, i) => { const end = i + 1 < TS.length ? TS[i + 1][0] : 63.6; SEQS.push({ name: 'tienda', d: phone, tin: s[0], tout: end, srcFrom: s[1], rate: 1 }); });
+
+// ===== 04 · Fuxia 360 inside (64–95): the real admin, framed
+const A0 = 64.2;
+const frame = el('<div style="width:1540px;height:722px;border-radius:22px;background:#fff;box-shadow:0 40px 90px rgba(0,0,0,.18)"></div>', at(150, 190), A0, 94.6, 'pop');
+const adm = seq('admin', { s: { top: '150px', left: '190px', width: '1540px', borderRadius: '22px', overflow: 'hidden' } }, A0, 94.6, 0, 1, 'pop');
+const AS = [[A0, 16, 'Productos: fotos, colores, tallas y precios por país.'], [A0 + 5, 28.5, 'Ficha del modelo: se carga una vez y se publica en la tienda en línea.'], [A0 + 10, 41.5, 'Cuántos pares hay de cada talla, y en qué tienda.'],
+  [A0 + 15, 61, 'Inventario de todas las tiendas y la bodega, en tiempo real.'], [A0 + 20, 90.5, 'Centro de control: lo que requiere atención hoy.'], [A0 + 25, 105.5, 'Bandeja de clientas: lo que piden a Hilo, “a la medida” y links de pago.']];
+SEQS.pop(); AS.forEach((s, i) => { const end = i + 1 < AS.length ? AS[i + 1][0] : 94.6; SEQS.push({ name: 'admin', d: adm, tin: s[0], tout: end, srcFrom: s[1], rate: 1 }); cap(s[0] + .2, end - .1, s[2]); });
+
+// ===== 05 · more sales (95–110)
+const M0 = 95.2;
+el('Más ventas, sin perder ninguna', { cls: 'big', s: { top: '170px', fontSize: '74px' } }, M0, 109.4);
+[['🛵', 'Las tiendas son bodega', 'Entrega Inmediata en Zona Metropolitana'], ['🧵', 'Ninguna venta se pierde', 'Sin existencia: a la medida en 10 días hábiles'], ['💳', 'Pagar es fácil', 'Tarjeta, Mercado Pago, sin tarjeta o link por WhatsApp']]
+  .forEach((c, i) => el(`<div class="card3"><i>${c[0]}</i><b>${c[1]}</b><span>${c[2]}</span></div>`, at(400, 150 + i * 560), M0 + .8 + i * .7, 109.4, 'pop'));
+cap(M0 + 3, 109.4, 'Fuxia 360 conecta tiendas, bodega, tienda en línea, Hilo y clientas.');
+
+// ===== 06 · closing slogan (110–118)
+const C0 = 110.2;
+['DISEÑAR.', 'HACER.', 'ENTREGAR.'].forEach((w, i) => el(w, { s: { top: (240 + i * 130) + 'px', left: '170px', fontSize: '110px', fontWeight: 300, letterSpacing: '.04em', color: i === 2 ? '#B8966E' : '#1d1d1b' } }, C0 + i * .45, 0, 'left'));
+el('Comodidad artesanal con carácter propio · México · Colombia', { s: { top: '680px', left: '172px', fontSize: '30px', color: '#6B6B68' } }, C0 + 1.8, 0);
+el(logo(560, '#857652'), at(860, 172), C0 + 2.4, 0, 'up');
+window.DUR = 118;
+</script></body></html>
