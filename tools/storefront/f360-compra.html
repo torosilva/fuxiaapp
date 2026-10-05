@@ -44,7 +44,9 @@ form.cart a.added_to_cart, form.cart + a.added_to_cart, .single_variation_wrap a
 .single_add_to_cart_button.added, .single_add_to_cart_button.bricks-cart-added { background-color: #1d1d1b !important; border-color: #1d1d1b !important; color: #fff !important; }
 
 /* popup: WhatsApp visible directly (optional) */
-#fx-pop-wa-toggle.f360-wa-label { cursor: default; }
+.f360-wa-pts { margin: 12px 0 8px !important; font-size: 13px; line-height: 1.4; color: #6B6B68; text-align: center; }
+.f360-wa-pts b { color: #8c6414; }
+.f360-wa-pts em { color: #9A9A96; font-style: normal; }
 
 /* b) checkout with the Fuxia identity (presentation only) */
 .wc-block-checkout { font-family: inherit; color: #242424; }
@@ -152,9 +154,14 @@ form.cart a.added_to_cart, form.cart + a.added_to_cart, .single_variation_wrap a
   function popup() {
   var waToggle = document.getElementById('fx-pop-wa-toggle'), waBox = document.getElementById('fx-pop-tel');
   if (waToggle && waBox) {
-    waBox.hidden = false; waToggle.setAttribute('aria-expanded', 'true'); waToggle.classList.add('f360-wa-label'); waToggle.tabIndex = -1;
+    // the popup hides its own "+50" button once the field is open, so the points line is our own label above the field
+    waBox.hidden = false; waToggle.setAttribute('aria-expanded', 'true'); waToggle.style.display = 'none';
     var tel = document.getElementById('fx-pop-telefono');
-    waToggle.innerHTML = '<span class="fx-pop-wa-plus">+50</span> <span>puntos en Club Fuxia si dejas tu WhatsApp <em>(opcional)</em></span>';
+    if (!document.querySelector('.f360-wa-pts')) {
+      var pts = document.createElement('p'); pts.className = 'f360-wa-pts';
+      pts.innerHTML = '<b>+50 puntos</b> en Club Fuxia si dejas tu WhatsApp <em>(opcional)</em>';
+      waBox.parentNode.insertBefore(pts, waBox);
+    }
     if (tel) tel.placeholder = 'WhatsApp (opcional)';
   }
 
