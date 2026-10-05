@@ -6,7 +6,7 @@
 |---|---|---|
 | `CRO_PRODUCT_EXPERIENCE_V1_AUDIT.md` (= 01_CURRENT_AUDIT) | CRO-0: matriz de 26 capacidades | Aprobado (2026-10-04) |
 | `02_FIT_SIZE.md` | Ajuste y talla: propuesta + preguntas a Carolina; Hilo y guía de tallas | Esperando a Carolina |
-| `03_REVIEWS.md` *(por crear)* | Reseñas sobre ivole + fit feedback | Pendiente (no autorizado todavía) |
+| `03_REVIEWS_QNA.md` | Reseñas (CusRev) + ajuste + Q&A: auditoría y diseño | Esperando aprobación de Mario |
 | `05_MOBILE_IAB.md` | CRO-IAB-0: protocolo de diagnóstico Instagram/Facebook | Listo para ejecutar en teléfonos |
 | `06_INVENTORY_CONVERSION.md` | CRO-5a (guard de inventario certificado), copy de entrega inmediata, transición de Más vendidas, deuda de redirecciones | CRO-5a implementado en staging |
 | `CRO_OPS_E2E.md` | Entrega inmediata de punta a punta: qué falta en la app de vendedoras | Preparado; no listo |
