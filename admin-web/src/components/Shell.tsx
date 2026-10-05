@@ -5,6 +5,7 @@ import { IconBag, IconBell, IconBoxes, IconCheck, IconClock, IconGrowth, IconHom
 
 const NAV = [
   { href: '/', label: 'Inicio', icon: IconHome, live: true },
+  { href: '/tablero', label: 'Centro de control', icon: IconGrowth, live: true, admin: true },
   { href: '/productos', label: 'Productos', icon: IconShoe, live: true },
   { href: '/inventario', label: 'Inventario', icon: IconBoxes, live: true },
   { href: '/transferencias', label: 'Transferencias', icon: IconMove, live: true },
