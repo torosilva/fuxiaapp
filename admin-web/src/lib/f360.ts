@@ -184,10 +184,10 @@ export const getArchiveState = (productId: string) => rpc<ArchiveState>('f360_pr
 
 // Track D · D3 — opening physical count
 export type OpeningStatus = 'preliminar' | 'congelado' | 'aprobado' | 'cargado' | 'cancelado';
-export type OpeningLineStatus = 'pendiente' | 'contado_1' | 'doble_ok' | 'diferencia' | 'recontado' | 'recontar';
-export type OpeningSummary = { lines: number; pendiente: number; contado_1: number; doble_ok: number; diferencia: number; recontado: number; recontar: number;
+export type OpeningLineStatus = 'pendiente' | 'contado_1' | 'doble_ok' | 'diferencia' | 'recontado' | 'recontar' | 'contado';
+export type OpeningSummary = { mode?: 'doble' | 'simple'; contado?: number; lines: number; pendiente: number; contado_1: number; doble_ok: number; diferencia: number; recontado: number; recontar: number;
   final_lines: number; final_pairs: number; out_of_scope: number; unlisted_open: number; unlisted_pairs: number };
-export type OpeningState = { count: null | { id: string; status: OpeningStatus; location: string; target: { key: string; name: string };
+export type OpeningState = { count: null | { id: string; status: OpeningStatus; mode?: 'doble' | 'simple'; location: string; target: { key: string; name: string };
   started_by: string; started_at: string; frozen_by: string | null; frozen_at: string | null; reconciled_at: string | null;
   approved_by: string | null; approved_at: string | null; approval_note: string | null; cancelled_at: string | null; cancel_reason: string | null };
   summary?: OpeningSummary; blockers?: string[] };
@@ -199,6 +199,12 @@ export type OpeningSheet = { view: OpeningView; me: string; models: { product_id
   unlisted: { id: string; description: string; size: string | null; quantity: number; found_by: string; found_at: string; status: 'abierto' | 'resuelto'; resolution: string | null; resolved_by: string | null }[] };
 export const getOpeningState = () => rpc<OpeningState>('f360_opening_state', { p_count_id: null });
 export const getOpeningSheet = (id: string, view: OpeningView) => rpc<OpeningSheet>('f360_opening_sheet', { p_count_id: id, p_view: view });
+// Conteo fácil (Mario 2026-10-05, one count): every model with photo, colors and sizes, searchable on the phone.
+export type EasySize = { variant_id: string; size: string; status: OpeningLineStatus; qty: number | null; by: string | null };
+export type EasyModel = { product_id: string; model: string; image: string | null; sizes_total: number; sizes_done: number;
+  colors: { color: string; hex: string | null; sizes: EasySize[] }[] };
+export type EasySheet = { count_id: string; status: OpeningStatus; mode: 'doble' | 'simple'; me: string; location: string; models: EasyModel[]; summary: OpeningSummary };
+export const getOpeningEasySheet = (id: string) => rpc<EasySheet>('f360_opening_easy_sheet', { p_count_id: id });
 export const getColorRemoveState = (colorId: string) => rpc<{ blockers: string[] }>('f360_color_remove_state', { p_color_id: colorId });
 export type ChannelState = { target: string; links: number; queue: number; last_push: string | null; opening_loaded: boolean;
   visibility: { woo_product_id: number; pending: 'ocultar' | 'mostrar' | null; last: { kind: 'ocultar' | 'mostrar'; status: 'pendiente' | 'hecho' | 'error'; by: string; at: string; error: string | null } | null }[] };

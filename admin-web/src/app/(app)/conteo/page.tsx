@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SetSimpleButton } from './SimpleMode';
 import { redirect } from 'next/navigation';
 import { canWrite, getMe, getOpeningSheet, getOpeningState, type OpeningView } from '@/lib/f360';
 import { fecha } from '@/lib/format';
@@ -32,7 +33,7 @@ export default async function Conteo({ searchParams }: { searchParams: Promise<{
   const vista = (VIEWS.some((v) => v.key === sp.vista) ? sp.vista : c.status === 'preliminar' ? 'conteo1' : 'reporte') as OpeningView | 'sinficha';
   const sheet = await getOpeningSheet(c.id, vista === 'sinficha' ? 'reporte' : vista);
   const s = state.summary!;
-  const done = s.doble_ok + s.recontado;
+  const done = s.doble_ok + s.recontado + (s.contado ?? 0);
   const pct = s.lines ? Math.round((100 * done) / s.lines) : 0;
   const open = c.status === 'preliminar' || c.status === 'congelado';
 
@@ -60,6 +61,18 @@ export default async function Conteo({ searchParams }: { searchParams: Promise<{
           <span className="rounded-full bg-gold-soft px-2.5 py-1">Pares sin ficha {s.unlisted_open}</span>
         </div>
       </div>
+
+      {open && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-ink p-5 text-surface">
+          <div>
+            <p className="font-display text-3xl">Contar desde el celular</p>
+            <p className="mt-1 text-sm text-surface/70">Busca el modelo, toca el color y escribe cuántos pares hay de cada talla. Se guarda solo.
+              {c.mode === 'simple' ? ' Un solo conteo; Carolina aprueba al final.' : ''}</p>
+          </div>
+          <Link href="/conteo/contar" className="rounded-full bg-gold px-6 py-3 text-[16px] font-medium text-ink">Empezar a contar</Link>
+        </div>
+      )}
+      {owner && c.mode === 'doble' && c.status === 'preliminar' && <SetSimpleButton id={c.id} />}
 
       <CountControls id={c.id} status={c.status} owner={owner} blockers={state.blockers ?? []} />
 

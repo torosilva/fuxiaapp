@@ -462,7 +462,13 @@ export async function adjustInventoryAction(input: { idempotencyKey: string; pro
 // Track D · D3 — opening physical count (every rule is enforced again in the database; nothing here writes inventory)
 function revalidateCount() { revalidatePath('/conteo', 'layout'); }
 export async function openingStartAction(target: string, note: string): Promise<Result<unknown>> {
-  const r = await call('f360_opening_start', { p_target_key: target, p_note: note.trim() || null }); if (r.ok) revalidateCount(); return r;
+  // Mario 2026-10-05 (b): every new count is ONE count, approved by an owner.
+  const r = await call<{ count: { id: string } }>('f360_opening_start', { p_target_key: target, p_note: note.trim() || null });
+  if (r.ok) { const s = await call('f360_opening_set_simple', { p_count_id: r.data.count.id }); revalidateCount(); if (!s.ok) return s; }
+  return r;
+}
+export async function openingSetSimpleAction(id: string): Promise<Result<unknown>> {
+  const r = await call('f360_opening_set_simple', { p_count_id: id }); if (r.ok) revalidateCount(); return r;
 }
 export async function openingRefreshAction(id: string): Promise<Result<unknown>> {
   const r = await call('f360_opening_refresh_scope', { p_count_id: id }); if (r.ok) revalidateCount(); return r;

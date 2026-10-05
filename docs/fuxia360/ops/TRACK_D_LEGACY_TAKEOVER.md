@@ -20,6 +20,18 @@
 - Sin usar Woo como opening balance.
 - Sin push a git sin autorización aparte.
 
+### 1.1 · Cambio de Mario (2026-10-05): un solo conteo
+
+- **Decisión (b):** un solo conteo, que aprueba una dueña (Carolina), "para que Carolina lo haga ya". Reemplaza el doble conteo a ciegas para los conteos nuevos.
+- **Se mantienen:**
+  - el congelado corto y la reconciliación (una talla vendida o movida después de contarse se recuenta);
+  - los pares sin ficha;
+  - la carga del saldo como paso aparte (D4).
+- **Pantalla:** "Contar desde el celular" (`/conteo/contar`): buscador, foto, color y tallas con + / −, y guardado automático.
+- **Detalle técnico:**
+  - migración `20261010000400_f360_opening_single_count.sql`;
+  - pruebas `f360_opening_single_tests.sql` (13/13; suite 907/907).
+
 ## 2 · Fases
 
 | Fase | Entregable | Estado |

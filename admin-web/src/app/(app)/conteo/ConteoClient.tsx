@@ -9,6 +9,7 @@ const LINE: Record<OpeningLineStatus, { label: string; tone: string }> = {
   pendiente: { label: 'Sin contar', tone: 'bg-surface-2 text-muted' }, contado_1: { label: 'Falta 2º conteo', tone: 'bg-surface-2 text-ink-2' },
   doble_ok: { label: 'Coincide', tone: 'bg-success-soft text-success' }, diferencia: { label: 'Diferencia', tone: 'bg-danger-soft text-danger' },
   recontado: { label: 'Recontado', tone: 'bg-success-soft text-success' }, recontar: { label: 'Recontar', tone: 'bg-danger-soft text-danger' },
+  contado: { label: 'Contado', tone: 'bg-success-soft text-success' },
 };
 const Msg = ({ m }: { m: { ok: boolean; text: string } | null }) =>
   m ? <p role={m.ok ? 'status' : 'alert'} className={`mt-3 rounded-xl px-4 py-3 text-sm ${m.ok ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger'}`}>{m.text}</p> : null;
