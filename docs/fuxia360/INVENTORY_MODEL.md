@@ -23,6 +23,35 @@ PRODUCT → VARIANT → INVENTORY BY LOCATION → SALES CHANNEL
 13. En V1, todas las variantes de un modelo comparten precio dentro de cada mercado.
 14. Debe poder extenderse a `variant → lot → physical_pair` sin cambiar SKU, variante, balances ni mapeos de Woo. Esa extensión **no** está implementada.
 
+## 1.1 · Identidad canónica de producto y variante (regla permanente, Mario 2026-10-04)
+
+**Fuente de verdad conceptual:** `PRODUCT → COMMERCIAL VARIANT → INVENTORY BY LOCATION → SALES CHANNEL`.
+
+| Nivel | Identidad maestra en Fuxia 360 | Formato | Ejemplo | Dónde vive |
+|---|---|---|---|---|
+| Producto (modelo) | `canonical_product_id` = `f360.products.id` + código `products.code` | Código inmutable tras publicar (`codes_locked_at`) | `MACARENA` | `f360.products` |
+| Variante comercial (modelo + color + talla) | `canonical_variant_id` = `f360.product_variants.id` + **`canonical_sku`** | **`F360-{MODELO}-{COLOR}-{TALLA}`** (`f360.variant_sku`), único y bloqueado tras publicar | `F360-MACARENA-NUDE-37` | `f360.product_variants.sku` |
+| Inventario | variante × ubicación | — | — | `f360.inventory_balances` |
+| Canal | `sales_channel_id` = `f360.sales_targets.id` | — | `woo_staging4` | `f360.sales_targets` |
+
+**Reglas:**
+1. **La identidad de una variante comercial NO depende de ningún ID de WooCommerce.**
+   - `woo_product_id`, `woo_variation_id` y el SKU de Woo son **identificadores externos del canal**, nunca la identidad maestra.
+2. **El SKU canónico identifica la misma variante en todo Fuxia 360:** inventario, transferencias, ventas físicas, WooCommerce (cuando F360 publica), Commerce Facts, Customer 360, Growth, Analytics y campañas cuando corresponda.
+3. **Productos F360 nuevos o unidos:** F360 publica en Woo el padre con SKU `F360-{MODELO}` y cada variación con su SKU canónico (`mapping.ts`: `parentSku`, `v.sku`). El SKU en Woo **es** el canónico. La ingesta lo verifica (`sku_mismatch`).
+4. **Legacy (los 129 productos Woo anteriores):** **no** se modifican masivamente sus SKUs ni sus IDs.
+   - Durante la transición **coexisten** la identidad legacy de Woo y la canónica de F360.
+   - La correspondencia la establece **solo** la homologación confirmada por Carolina (`f360.legacy_woo_map.status = 'confirmado'` → `confirmed_variant_id`).
+5. **Mapping canal ↔ canónico (uno a muchos en el tiempo):** una variante canónica puede tener, por canal, una variación Woo vigente y otras históricas (productos por color retirados al unir).
+   - Vigente: `f360.woo_variant_links` / `woo_product_links`.
+   - Histórico: `f360.retired_woo_links`.
+   - Decisión humana: `f360.legacy_woo_map`.
+   - **Ningún hecho** (venta, movimiento, pedido) se re-identifica por un ID de Woo sin pasar por ese mapping.
+6. **Columnas dormidas que duplican identidad:** `f360.products.wc_product_id` y `f360.product_variants.wc_variation_id`. **No se usan**; están marcadas para retiro (N3). Nada nuevo debe escribirlas ni leerlas.
+7. **Woo no es la fuente de verdad** de identidad ni de inventario. **Commerce Facts** es la de ventas y dinero. **GA4** no es fuente financiera.
+
+Diseño de detalle, gaps y migración mínima: `growth/G2B2_CANONICAL_IDENTITY.md`.
+
 ## 2 · Auditoría del modelo actual (2026-09-30, staging)
 
 | Concepto | Fuente de verdad actual | ¿Cumple? | Problema | Cambio necesario |
