@@ -1,0 +1,131 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>Fuxia · Inversionistas</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--crema:#fffdf9;--crema2:#f5efe3;--oro:#B8966E;--oliva:#83734C;--tinta:#1d1d1b;--verde:#2f6b3a;--rosa:#e9b7a8}
+*{box-sizing:border-box}
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:var(--crema);font-family:Montserrat,sans-serif;color:var(--tinta)}
+.e{position:absolute;opacity:0;will-change:transform,opacity}
+.titulo{font-family:"Cormorant Garamond",serif;font-weight:600;font-size:96px;line-height:1.05;text-align:center;left:60px;right:60px}
+.kicker{font-weight:700;font-size:30px;letter-spacing:.32em;text-transform:uppercase;color:var(--oliva);text-align:center;left:0;right:0}
+.texto{font-size:40px;line-height:1.35;text-align:center;left:90px;right:90px;color:#4a433a}
+.burbuja{background:#fff;border:3px solid #ece6db;border-radius:40px;padding:26px 36px;font-size:40px;font-weight:600;box-shadow:0 14px 30px rgba(0,0,0,.08)}
+.burbuja.h{background:var(--crema2);border-color:#e3d6bd}
+.chip{display:inline-flex;align-items:center;gap:16px;background:#fff;border:3px solid #ece6db;border-radius:60px;padding:22px 34px;font-size:36px;font-weight:600;box-shadow:0 10px 24px rgba(0,0,0,.06)}
+.nodo{width:230px;height:230px;border-radius:50%;background:#fff;border:5px solid var(--oro);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:27px;text-align:center;box-shadow:0 16px 36px rgba(184,150,110,.25)}
+.nodo span{font-size:76px;line-height:1}
+.card{width:270px;background:#fff;border-radius:28px;overflow:hidden;box-shadow:0 18px 40px rgba(0,0,0,.12)}
+.card img{width:270px;height:270px;object-fit:cover;display:block}
+.card b{display:block;padding:16px 18px 20px;font-size:26px}
+.punto{left:120px;right:90px;font-size:44px;font-weight:600;display:flex;gap:26px;align-items:flex-start;line-height:1.3}
+.punto i{font-style:normal;flex:0 0 74px;height:74px;border-radius:50%;background:var(--oro);color:#fff;display:flex;align-items:center;justify-content:center;font-size:40px}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute"><defs><symbol id="hoja" viewBox="26 25 31 34"><path fill="currentColor" d="M 35.417969 28.21875 C 34.332031 29.796875 32.085938 33.59375 32.6875 37.207031 C 32.960938 38.851562 33.808594 40.289062 35.207031 41.484375 C 35.460938 41.027344 35.875 40.519531 36.410156 39.875 C 37.683594 38.332031 39.429688 36.226562 39.300781 33.703125 C 39.144531 30.660156 36.433594 28.808594 35.417969 28.21875 M 47.410156 28.21875 C 46.394531 28.808594 43.683594 30.664062 43.527344 33.703125 C 43.398438 36.226562 45.144531 38.335938 46.421875 39.875 C 46.953125 40.519531 47.367188 41.027344 47.621094 41.484375 C 49.019531 40.289062 49.867188 38.851562 50.140625 37.207031 C 50.742188 33.59375 48.496094 29.796875 47.410156 28.21875 M 42.050781 47.210938 C 42.925781 48.4375 43.453125 49.710938 43.621094 51 C 43.863281 52.871094 43.320312 54.421875 42.722656 55.492188 C 50.101562 52.097656 53.972656 46.738281 53.925781 39.964844 L 53.925781 39.800781 C 53.925781 36.191406 51.910156 32.90625 49.941406 30.558594 C 50.808594 32.449219 51.539062 34.910156 51.132812 37.371094 C 50.738281 39.738281 49.347656 41.703125 46.992188 43.203125 C 44.851562 44.480469 43.191406 45.828125 42.050781 47.210938 M 32.886719 30.558594 C 30.917969 32.90625 28.902344 36.191406 28.902344 39.800781 L 28.902344 39.964844 C 28.855469 46.738281 32.726562 52.097656 40.105469 55.492188 C 39.511719 54.421875 38.964844 52.871094 39.207031 51 C 39.375 49.710938 39.90625 48.4375 40.78125 47.210938 C 39.636719 45.824219 37.976562 44.480469 35.839844 43.207031 C 33.484375 41.703125 32.089844 39.738281 31.695312 37.371094 C 31.289062 34.910156 32.019531 32.449219 32.886719 30.558594 M 41.414062 48.0625 C 40.746094 49.066406 40.339844 50.09375 40.207031 51.121094 C 39.9375 53.171875 40.792969 54.800781 41.414062 55.675781 C 42.035156 54.800781 42.890625 53.175781 42.621094 51.121094 C 42.488281 50.09375 42.082031 49.066406 41.414062 48.0625 M 41.386719 57.167969 L 41.378906 57.171875 L 41.296875 57.097656 L 41.148438 57.046875 C 32.550781 53.585938 27.84375 47.519531 27.898438 39.960938 L 27.898438 39.800781 C 27.898438 32.71875 34.699219 27.183594 34.992188 26.953125 L 35.070312 26.886719 L 35.488281 27.109375 C 35.546875 27.140625 35.667969 27.199219 35.828125 27.292969 C 37.136719 28.03125 40.121094 30.085938 40.304688 33.652344 C 40.453125 36.566406 38.5625 38.847656 37.183594 40.515625 C 36.726562 41.066406 36.214844 41.683594 36.019531 42.109375 L 36.03125 42.117188 C 36.140625 42.195312 36.25 42.277344 36.367188 42.351562 C 38.507812 43.625 40.207031 44.988281 41.414062 46.398438 C 42.621094 44.988281 44.320312 43.625 46.464844 42.347656 C 46.578125 42.277344 46.683594 42.199219 46.792969 42.125 L 46.808594 42.109375 C 46.632812 41.71875 46.191406 41.175781 45.648438 40.515625 C 44.265625 38.847656 42.375 36.566406 42.523438 33.652344 C 42.707031 30.085938 45.691406 28.027344 46.964844 27.308594 C 47.164062 27.199219 47.28125 27.140625 47.34375 27.109375 L 47.757812 26.886719 L 47.839844 26.953125 C 48.128906 27.183594 54.929688 32.726562 54.929688 39.800781 L 54.929688 39.960938 C 54.984375 47.519531 50.277344 53.585938 41.679688 57.046875 L 41.488281 57.125 L 41.414062 57.203125 Z M 41.386719 57.167969"/></symbol></defs></svg>
+<div id="esc"></div>
+<script>
+const IMGS = ["https://staging4.fuxiaballerinas.com/wp-content/uploads/2026/06/Paula-dorado-con-ocre_1-300x300.jpg", "https://staging4.fuxiaballerinas.com/wp-content/uploads/2026/06/Sueco-cucarron-dorado_1T6A9433-scaled-1-300x300.jpg", "https://staging4.fuxiaballerinas.com/wp-content/uploads/2026/06/Cucarron-laser-caramelo_1T6A2613-scaled-1-300x300.jpg"];
+// ---- tiny timeline engine: every element has [t_in, t_out] and an entrance; render(t) is deterministic ----
+const E = []; const esc = document.getElementById('esc');
+function el(html, css, tin, tout, fx = 'up', extra) { const d = document.createElement('div'); d.className = 'e ' + (css.cls || ''); d.innerHTML = html;
+  Object.assign(d.style, css.s || {}); esc.appendChild(d); E.push({ d, tin, tout, fx, extra }); return d; }
+const ease = (x) => x < 0 ? 0 : x > 1 ? 1 : 1 - Math.pow(1 - x, 3);
+const back = (x) => { x = Math.max(0, Math.min(1, x)); const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+function render(t) {
+  for (const o of E) {
+    const k = ease((t - o.tin) / .6), out = o.tout ? ease((t - o.tout) / .45) : 0, a = Math.max(0, k - out);
+    let tr = '';
+    if (o.fx === 'up') tr = `translateY(${(1 - k) * 60 - out * 40}px)`;
+    if (o.fx === 'pop') tr = `scale(${0.3 + 0.7 * back((t - o.tin) / .55) - out * .2})`;
+    if (o.fx === 'left') tr = `translateX(${(1 - k) * -260}px)`;
+    if (o.fx === 'right') tr = `translateX(${(1 - k) * 260}px)`;
+    if (o.extra) tr += ' ' + o.extra(t);
+    o.d.style.opacity = a; o.d.style.transform = tr;
+  }
+  BG(t);
+}
+const leaf = (size, color) => `<svg width="${size}" height="${size * 34 / 31}" style="color:${color}"><use href="#hoja"/></svg>`;
+const at = (top, left, w) => ({ s: { top: top + 'px', left: left + 'px', width: w ? w + 'px' : undefined } });
+
+// background colour per act
+function BG(t) { const acts = [[0,'#fffdf9'],[7,'#fbf3ec'],[20,'#fffdf9'],[31,'#f6f1e6'],[43,'#fffdf9'],[53,'#fbf3ec'],[64,'#fffdf9'],[75,'#1d1d1b']];
+  let c = acts[0][1]; for (const a of acts) if (t >= a[0]) c = a[1]; document.body.style.background = c; }
+
+// ===== 0 · logo (0–7)
+el(leaf(220, '#B8966E'), at(560, 430), 0, 6.4, 'pop', (t) => `rotate(${Math.sin(t * 2) * 4}deg)`);
+el('Fuxia Ballerinas', { cls: 'titulo', s: { top: '860px' } }, .8, 6.4);
+el('Comodidad artesanal con carácter propio', { cls: 'texto', s: { top: '1010px' } }, 1.6, 6.4);
+el('México · Colombia', { cls: 'kicker', s: { top: '1150px' } }, 2.4, 6.4);
+
+// ===== 1 · problem (7–20): a customer on her phone from Instagram, questions, the sale is lost
+const tel = (inner, h = 760) => `<div style="width:420px;height:${h}px;border-radius:64px;background:#1d1d1b;padding:22px;box-shadow:0 30px 60px rgba(0,0,0,.25)"><div style="width:100%;height:100%;border-radius:46px;background:#fff;overflow:hidden;position:relative">${inner}</div></div>`;
+el('El problema', { cls: 'kicker', s: { top: '170px' } }, 7.2, 19.4);
+el('Una clienta llega desde Instagram…', { cls: 'titulo', s: { top: '240px', fontSize: '76px' } }, 7.5, 19.4);
+el(tel(`<div style="height:120px;background:linear-gradient(90deg,#f9ce34,#ee2a7b,#6228d7)"></div><img src="${IMGS[0]}" style="width:100%;height:360px;object-fit:cover"><div style="padding:22px;font:600 30px Montserrat">Paula · $2,800</div><div style="margin:10px 22px;height:66px;border-radius:33px;background:#1d1d1b"></div>`), at(560, 330), 8.2, 19.4, 'up', (t) => `rotate(${-4 + Math.sin(t * 1.5) * 2}deg)`);
+el('¿Me queda mi talla?', { cls: 'burbuja', s: { top: '560px', left: '60px' } }, 9.6, 19.4, 'pop');
+el('¿Cuándo me llega?', { cls: 'burbuja', s: { top: '820px', left: '640px' } }, 10.6, 19.4, 'pop');
+el('¿Cómo pago desde Instagram?', { cls: 'burbuja', s: { top: '1100px', left: '50px' } }, 11.6, 19.4, 'pop');
+el('Sin respuesta rápida…<br><b style="color:#b3261e">la venta se pierde</b>', { cls: 'texto', s: { top: '1420px', fontSize: '50px' } }, 13.4, 19.4);
+el('<div style="font-size:150px">🛒</div>', at(450, 820), 14.6, 19.4, 'up', (t) => `translateY(${Math.max(0, t - 15) * Math.max(0, t - 15) * 260}px) rotate(${Math.max(0, t - 15) * 50}deg)`);
+
+// ===== 2 · solution (20–31): Fuxia 360 at the centre, everything connected
+el('La solución', { cls: 'kicker', s: { top: '170px' } }, 20.2, 30.4);
+el('Fuxia 360', { cls: 'titulo', s: { top: '240px', fontSize: '120px' } }, 20.5, 30.4);
+el('Un solo sistema que conecta todo el negocio', { cls: 'texto', s: { top: '400px' } }, 21, 30.4);
+const cx = 540, cy = 1130, R = 380;
+el(`<div style="width:300px;height:300px;border-radius:50%;background:#1d1d1b;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;box-shadow:0 20px 60px rgba(29,29,27,.35)">${leaf(110, '#B8966E')}<b style="font-size:36px">Fuxia 360</b></div>`, at(cy - 150, cx - 150), 21.4, 30.4, 'pop', (t) => `scale(${1 + Math.sin(t * 3) * .02})`);
+[['🏬', 'Tiendas'], ['📦', 'Bodega'], ['🛍️', 'Tienda en línea'], ['📱', 'App Club Fuxia'], ['✨', 'Hilo · IA'], ['💬', 'WhatsApp']].forEach((n, i) => {
+  const ang = -Math.PI / 2 + i * Math.PI / 3, x = cx + R * Math.cos(ang), y = cy + R * Math.sin(ang);
+  const len = R - 265, deg = ang * 180 / Math.PI;
+  el(`<div style="width:${len}px;height:8px;border-radius:4px;background:repeating-linear-gradient(90deg,#B8966E 0 22px,transparent 22px 34px)"></div>`, { s: { top: (cy - 4) + 'px', left: cx + 'px', transformOrigin: '0 50%' } }, 22.2 + i * .35, 30.4, 'none',
+    (t) => `rotate(${deg}deg) translateX(150px) scaleX(${ease((t - 22.2 - i * .35) / .5)})`);
+  el(`<div class="nodo"><span>${n[0]}</span>${n[1]}</div>`, at(y - 115, x - 115), 22.4 + i * .35, 30.4, 'pop');
+});
+
+// ===== 3 · stores are warehouses (31–43)
+el('Más ventas · 1', { cls: 'kicker', s: { top: '170px' } }, 31.2, 42.4);
+el('Las tiendas también son bodega', { cls: 'titulo', s: { top: '240px', fontSize: '84px' } }, 31.5, 42.4);
+el('Entrega inmediata en Zona Metropolitana', { cls: 'texto', s: { top: '470px', fontWeight: 700, color: '#2f6b3a' } }, 32.2, 42.4);
+el('<div style="font-size:170px">🏬</div><b style="display:block;text-align:center;font-size:30px">Tienda</b>', at(780, 120), 32.6, 42.4, 'pop');
+el('<div style="font-size:170px">🏡</div><b style="display:block;text-align:center;font-size:30px">Clienta</b>', at(780, 760), 33, 42.4, 'pop');
+el('<div style="width:600px;height:10px;border-radius:5px;background:repeating-linear-gradient(90deg,#B8966E 0 30px,transparent 30px 50px)"></div>', at(900, 240), 33.4, 42.4, 'left');
+el('<div style="font-size:150px;transform:scaleX(-1)">🛵</div>', at(840, 0), 33.8, 42.4, 'none', (t) => `translateX(${180 + ease((t - 34) / 3.2) * 520}px) translateY(${Math.sin(t * 14) * 4}px)`);
+el('<div class="chip" style="background:#2f6b3a;color:#fff;border-color:#2f6b3a">✓ Recibido hoy</div>', at(1150, 640), 37.6, 42.4, 'pop');
+el('El inventario de cada tienda vende en línea, sin cajas olvidadas', { cls: 'texto', s: { top: '1420px' } }, 38.4, 42.4);
+
+// ===== 4 · no size is lost (43–53)
+el('Más ventas · 2', { cls: 'kicker', s: { top: '170px' } }, 43.2, 52.4);
+el('Ninguna talla se pierde', { cls: 'titulo', s: { top: '240px', fontSize: '88px' } }, 43.5, 52.4);
+['22', '23', '24', '25', '26', '27'].forEach((s, i) => el(`<div style="width:140px;height:140px;border-radius:28px;border:4px solid ${i === 3 ? '#B8966E' : '#d9d2c5'};background:#fff;display:flex;align-items:center;justify-content:center;font:700 52px Montserrat;color:${i === 3 ? '#8c6414' : '#242424'}">${s}</div>`,
+  at(620, 65 + i * 162), 44.2 + i * .15, 52.4, 'pop'));
+el('Si no hay existencia, se vende igual:', { cls: 'texto', s: { top: '880px' } }, 45.8, 52.4);
+el('<div class="chip" style="font-size:44px">📦 Se entrega en 10 días hábiles</div>', at(1000, 150), 46.6, 52.4, 'pop');
+el('¿Otro color? <b>Lo hacemos a la medida</b>', { cls: 'texto', s: { top: '1240px' } }, 48, 52.4);
+el(leaf(120, '#B8966E'), at(1420, 480), 48.6, 52.4, 'pop', (t) => `rotate(${Math.sin(t * 3) * 8}deg)`);
+
+// ===== 5 · Hilo (53–64)
+el('Atención 24/7', { cls: 'kicker', s: { top: '170px' } }, 53.2, 63.4);
+el('Hilo, asesora con inteligencia artificial', { cls: 'titulo', s: { top: '240px', fontSize: '78px' } }, 53.5, 63.4);
+el(`<div style="width:190px;height:190px;border-radius:50%;background:#B8966E;display:flex;align-items:center;justify-content:center;box-shadow:0 18px 40px rgba(184,150,110,.4)">${leaf(110, '#fff')}</div>`, at(540, 70), 54, 63.4, 'pop', (t) => `translateY(${Math.sin(t * 2.6) * 10}px)`);
+el('¿Qué talla me queda si mido 24 cm?', { cls: 'burbuja', s: { top: '590px', left: '300px', width: '700px' } }, 54.8, 63.4, 'right');
+el('Tu talla es la <b>23 MX</b> 💛 Te recomiendo estos:', { cls: 'burbuja h', s: { top: '820px', left: '60px', width: '760px' } }, 56.4, 63.4, 'left');
+IMGS.forEach((src, i) => el(`<div class="card"><img src="${src}"><b>${['Paula', 'Sueco cucarrón', 'Cucarrón láser'][i]}</b></div>`, at(1010, 75 + i * 320), 57.6 + i * .3, 63.4, 'pop'));
+el('Responde, recomienda y pasa al equipo lo que necesita una persona', { cls: 'texto', s: { top: '1500px' } }, 59.6, 63.4);
+
+// ===== 6 · easy payment (64–75)
+el('Más ventas · 3', { cls: 'kicker', s: { top: '170px' } }, 64.2, 74.4);
+el('Pagar es fácil', { cls: 'titulo', s: { top: '240px', fontSize: '100px' } }, 64.5, 74.4);
+['💳 Tarjeta', '🤝 Cuenta de Mercado Pago', '🗓️ Pagos sin tarjeta', '🔗 Link de pago por WhatsApp'].forEach((c, i) => el(`<div class="chip" style="font-size:42px">${c}</div>`, at(520 + i * 170, 150), 65.2 + i * .5, 74.4, 'left'));
+el(`<div style="width:300px;height:300px;border-radius:50%;background:#2f6b3a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:170px;box-shadow:0 20px 50px rgba(47,107,58,.35)">✓</div>`, at(1270, 390), 68, 74.4, 'pop');
+el('¡Pedido confirmado!', { cls: 'titulo', s: { top: '1620px', fontSize: '76px', color: '#2f6b3a' } }, 68.6, 74.4);
+for (let i = 0; i < 26; i++) { const x0 = 540 + (Math.random() - .5) * 160, vx = (Math.random() - .5) * 900, vy = -700 - Math.random() * 600, col = ['#B8966E', '#e9b7a8', '#2f6b3a', '#1d1d1b'][i % 4];
+  el(`<div style="width:22px;height:34px;border-radius:6px;background:${col}"></div>`, at(1400, x0), 68.2, 72.8, 'none', (t) => { const s = Math.max(0, t - 68.2); return `translate(${vx * s}px,${vy * s + 900 * s * s}px) rotate(${s * 400 * (i % 2 ? 1 : -1)}deg)`; }); }
+
+// ===== 7 · why invest (75–92), dark
+const blanco = { color: '#fffdf9' };
+el('¿Por qué invertir en Fuxia?', { cls: 'titulo', s: { top: '230px', fontSize: '92px', ...blanco } }, 75.3, 0);
+[['🌎', 'Marca con presencia en México y Colombia'], ['🏬', 'Omnicanal: tiendas, tienda en línea, app y WhatsApp'], ['✨', 'Tecnología propia: Fuxia 360 + Hilo con IA'], ['💛', 'Clientas leales con Club Fuxia y Fuxia Gold'], ['🚀', 'Lista para crecer: más tiendas, más países, sin rehacer nada']]
+  .forEach((p, i) => el(`<i>${p[0]}</i><span style="color:#fffdf9">${p[1]}</span>`, { cls: 'punto', s: { top: (560 + i * 190) + 'px' } }, 76.4 + i * 1.3, 0, 'left'));
+el(leaf(130, '#B8966E') + '<div style="font:600 46px Cormorant Garamond,serif;color:#fffdf9;margin-top:10px">Fuxia Ballerinas</div>', { s: { top: '1560px', left: '0', right: '0', textAlign: 'center' } }, 84, 0, 'pop');
+window.DUR = 92;
+render(0);
+</script></body></html>
