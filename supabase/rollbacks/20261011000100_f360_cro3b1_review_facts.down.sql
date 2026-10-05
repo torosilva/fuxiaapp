@@ -1,0 +1,21 @@
+-- Rollback of 20261011000100_f360_cro3b1_review_facts.sql (STAGING). Removes ONLY the CRO-3B1 layer; CusRev/Woo reviews are untouched.
+BEGIN;
+DROP FUNCTION IF EXISTS public.f360_review_summary(uuid);
+DROP FUNCTION IF EXISTS public.f360_review_work_queue();
+DROP FUNCTION IF EXISTS f360.review_summary(uuid);
+DROP VIEW IF EXISTS f360.review_model_metrics;
+DROP FUNCTION IF EXISTS public.f360_review_revoke_verification(text, bigint, text);
+DROP FUNCTION IF EXISTS public.f360_review_reject_candidate(uuid, text);
+DROP FUNCTION IF EXISTS public.f360_review_confirm_candidate(uuid, uuid, text);
+DROP FUNCTION IF EXISTS public.f360_review_set_fit(text, bigint, jsonb);
+DROP FUNCTION IF EXISTS public.f360_review_sync(text, jsonb);
+DROP FUNCTION IF EXISTS f360.review_verify(uuid, bigint, jsonb, text);
+DROP TABLE IF EXISTS f360.review_facts_log;
+DROP TABLE IF EXISTS f360.review_purchase_candidates;
+DROP TABLE IF EXISTS f360.review_facts;
+DROP FUNCTION IF EXISTS f360.wilson_lower(integer, integer, numeric);
+DROP FUNCTION IF EXISTS f360.review_params();
+DROP FUNCTION IF EXISTS f360.size_from_mx(text);
+DROP FUNCTION IF EXISTS f360.size_mx(text);
+DELETE FROM supabase_migrations.schema_migrations WHERE version = '20261011000100';
+COMMIT;

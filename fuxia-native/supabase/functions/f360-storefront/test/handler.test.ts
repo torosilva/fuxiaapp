@@ -74,3 +74,30 @@ test('server key: Hilo can read promises without a browser Origin, but cannot re
   const notify = await handleStorefront(post({ action: 'notify_me', woo_product_id: 5, woo_variation_id: 6, phone: '5512345678', consent: true }, '', { 'x-f360-key': key }), e2, fakeFetch({}));
   assert.equal(notify.status, 403);
 });
+test('review_sync (CRO-3B1): server key only; browsers are refused', async () => {
+  const r = await handleStorefront(post({ action: 'review_sync', review: { woo_review_id: 1, woo_product_id: 2, rating: 5 } }), env, fakeFetch({}));
+  assert.equal(r.status, 403);
+});
+test('review_sync forwards only the allowed shape: no text/author, hash normalized, junk claims dropped', async () => {
+  const calls: { fn: string; args: Record<string, unknown> }[] = [];
+  const senv = { ...env, SERVER_KEY: 'k'.repeat(32) };
+  const hash = 'AB'.repeat(32);
+  const r = await handleStorefront(new Request('https://f/x', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-f360-key': 'k'.repeat(32) },
+    body: JSON.stringify({ action: 'review_sync', review: { woo_review_id: 163, woo_product_id: 937, rating: 5, status: 'approved', media_count: 1,
+      reviewed_at: '2026-07-31T10:00:00Z', content: 'texto', author: 'Ana', email: 'ana@example.com',
+      claims: { woo_order_ids: [123, 'x', -1], email_sha256: hash, woo_user_id: 'abc', email: 'ana@example.com' } } }) }),
+    senv, fakeFetch({ f360_review_sync: { ok: true, verification: 'UNVERIFIED' } }, calls));
+  assert.equal(r.status, 200);
+  const p = calls[0].args.p_review as Record<string, unknown>;
+  assert.equal(calls[0].args.p_target_key, 'woo_staging4');
+  assert.deepEqual(Object.keys(p).sort(), ['claims', 'media_count', 'rating', 'reviewed_at', 'status', 'woo_product_id', 'woo_review_id', 'woo_verified']);
+  assert.deepEqual(p.claims, { woo_order_ids: [123], email_sha256: hash.toLowerCase(), woo_user_id: null });
+  assert.ok(!JSON.stringify(calls[0].args).includes('@'));
+});
+test('review_sync: invalid rating → 400 without calling the database', async () => {
+  const calls: { fn: string; args: Record<string, unknown> }[] = [];
+  const senv = { ...env, SERVER_KEY: 'k'.repeat(32) };
+  const r = await handleStorefront(new Request('https://f/x', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-f360-key': 'k'.repeat(32) },
+    body: JSON.stringify({ action: 'review_sync', review: { woo_review_id: 1, woo_product_id: 2, rating: 9 } }) }), senv, fakeFetch({}, calls));
+  assert.equal(r.status, 400); assert.equal(calls.length, 0);
+});

@@ -4,7 +4,9 @@
 //   promise   {woo_product_id, market}                     → { market, product_key, variations: {<woo_variation_id>: promise}, trust }
 //   notify_me {woo_product_id, woo_variation_id, market, phone, name?, consent: true, page_url?, website? (honeypot)}
 //   promise_lines {woo_variation_ids: number[], market} → { market, lines: {<woo_variation_id>: promise} }   (checkout, Pedido recibido)
-// Server-to-server callers (Hilo) send header x-f360-key = SERVER_KEY instead of a browser Origin; they may only read promises.
+//   review_sync {review: {woo_review_id, woo_product_id, rating, status, media_count, woo_verified, reviewed_at, claims}}  (server key only, CRO-3B1)
+// Server-to-server callers (Hilo, the WordPress server) send header x-f360-key = SERVER_KEY instead of a browser Origin: they may read
+// promises and report reviews (review_sync), never register intents (notify_me is browser-only).
 // The rule, the texts and every check live in the database (f360.delivery_promise_rules, f360_storefront_promise,
 // f360_stock_intent_create): this file only validates the shape, hashes the IP for rate limiting and forwards.
 // The sales channel comes from configuration (F360_STOREFRONT_TARGET), never from the browser.
@@ -52,6 +54,26 @@ export async function handleStorefront(req: Request, env: StorefrontEnv, fetchIm
     if (!ids.length || ids.length > 50 || ids.some((n) => !Number.isInteger(n) || n <= 0)) return json({ error: 'Líneas no válidas.' }, 400);
     const r = await rpc('f360_storefront_promise_lines', { p_target_key: env.TARGET_KEY, p_woo_variation_ids: ids, p_market: market });
     return json(r.ok ? r.data : { market, lines: {} });                       // fail closed: no promise rather than a wrong one
+  }
+
+  if (body.action === 'review_sync') {
+    // CRO-3B1: the WordPress server reports one CusRev review (no text, no author). Claims carry only a SHA-256 of the
+    // reviewer's e-mail, her Woo account id and the paid orders WordPress found; Fuxia 360 verifies against its own facts.
+    if (!server) return json({ error: 'Acción no permitida.' }, 403);
+    const rv = (body.review ?? {}) as Record<string, unknown>;
+    const id = Number(rv.woo_review_id), prod = Number(rv.woo_product_id), rating = Number(rv.rating);
+    if (!Number.isInteger(id) || id <= 0 || !Number.isInteger(prod) || prod <= 0 || !Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return json({ error: 'Reseña no válida.' }, 400);
+    }
+    const c = (rv.claims ?? {}) as Record<string, unknown>;
+    const orders = Array.isArray(c.woo_order_ids) ? c.woo_order_ids.map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 50) : [];
+    const hash = typeof c.email_sha256 === 'string' && /^[0-9a-f]{64}$/i.test(c.email_sha256) ? c.email_sha256.toLowerCase() : null;
+    const user = Number.isInteger(Number(c.woo_user_id)) && Number(c.woo_user_id) > 0 ? Number(c.woo_user_id) : null;
+    const r = await rpc('f360_review_sync', { p_target_key: env.TARGET_KEY, p_review: {
+      woo_review_id: id, woo_product_id: prod, rating, status: String(rv.status ?? ''), media_count: Number(rv.media_count) || 0,
+      woo_verified: rv.woo_verified === true, reviewed_at: String(rv.reviewed_at ?? ''),
+      claims: { woo_order_ids: orders, email_sha256: hash, woo_user_id: user } } });
+    return r.ok ? json(r.data) : json({ error: r.error }, 400);
   }
 
   const product = Number(body.woo_product_id);
