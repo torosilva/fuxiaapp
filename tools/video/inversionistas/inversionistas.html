@@ -95,7 +95,7 @@ el('El inventario de cada tienda vende en línea, sin cajas olvidadas', { cls: '
 
 // ===== 4 · no size is lost (43–53)
 el('Más ventas · 2', { cls: 'kicker', s: { top: '170px' } }, 43.2, 52.4);
-el('Ninguna talla se pierde', { cls: 'titulo', s: { top: '240px', fontSize: '88px' } }, 43.5, 52.4);
+el('Ninguna venta se pierde', { cls: 'titulo', s: { top: '240px', fontSize: '88px' } }, 43.5, 52.4);
 ['22', '23', '24', '25', '26', '27'].forEach((s, i) => el(`<div style="width:140px;height:140px;border-radius:28px;border:4px solid ${i === 3 ? '#B8966E' : '#d9d2c5'};background:#fff;display:flex;align-items:center;justify-content:center;font:700 52px Montserrat;color:${i === 3 ? '#8c6414' : '#242424'}">${s}</div>`,
   at(620, 65 + i * 162), 44.2 + i * .15, 52.4, 'pop'));
 el('Si no hay existencia, se vende igual:', { cls: 'texto', s: { top: '880px' } }, 45.8, 52.4);
