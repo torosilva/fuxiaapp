@@ -1,0 +1,334 @@
+# Fuxia Storefront V1 · Closeout audit
+
+**Fecha:** 2026-10-05.
+
+**Tipo: solo lectura.** No se cambió código, staging4, WordPress, plugins, Supabase, GTM, Meta ni producción.
+
+**Evidencia usada:**
+- documentos y código del repo (`tools/storefront/*`, `docs/fuxia360/cro/*`, `growth/*`, `ops/*`, funciones Edge);
+- consultas SELECT de solo lectura a staging Supabase;
+- GET anónimos a staging4 y a producción (HTML y Store API pública).
+
+**Incorporada (§M):** la respuesta de la sesión `fuxiaapp-67`, dueña de los snippets de checkout, ligas de pago y video, sobre qué está *instalado realmente* en staging4.
+
+> **Regla de lectura.**
+> - "DONE" = construido y con evidencia en staging4.
+> - **Nada de lo F360 del storefront está en producción.** Producción no tiene Hilo, sticky ATC ni panel post-ATC; tiene Joinchat y el top bar.
+> - "PASS en teléfono real" solo existe para Instagram Android (#4111, #4114).
+
+## 0. Decisiones de Mario (2026-10-05) — cierran los CONFLICT de promesa, cambios y piloto
+
+1. **Promesa de entrega** (una sola, en todos lados: PDP, checkout, gracias, Hilo, admin, top bar, docs):
+   - **Talla y color en existencia** → **"Entrega Inmediata en Zona Metropolitana"**.
+   - **Sin existencia** de la talla o el color → **se hace a la medida** de lo que la clienta requiera y **se entrega en 10 días hábiles**.
+   - "5 a 7", "3 a 5" y "1 a 3" quedan eliminados.
+   - Abierto: el tiempo para envíos *con existencia fuera de la Zona Metropolitana* y para CO. Mientras tanto: "te confirmamos el tiempo al hacer tu pedido".
+2. **Política de cambios:**
+   - **30 días;**
+   - **no hay reembolsos ni devoluciones;**
+   - **descuento directo en el zapato → sin cambio;**
+   - **descuento por cupón → sí tiene cambio.**
+   - Lo que dice Hilo hoy está mal y se quita.
+3. **Macarena** fue un producto de pruebas, no es de Fuxia. **Los pilotos salen solo de productos que ya están en Fuxia 360.** Ese catálogo es el que Carolina está actualizando para producción.
+
+### 0.1 Hilo (HiloLabs, repo `~/Documents/GitHub/fuxia-chatbot`, tabla `kb_articles`) — respuestas a corregir
+
+**Estado:**
+- El parche (a) del 2026-10-04 ya corrigió tallas, "apretadas", defectuoso, "¿puedo devolver?" y a la medida.
+- **Siguen mal en vivo:** las respuestas de abajo. Además el parche (a) dejó "los pares con descuento no tienen cambio" sin el matiz del cupón.
+
+**Bloqueo:** el permiso para escribir en ese repo fue denegado en esta sesión. Mario decide si lo autoriza, o si lo aplica él con el mismo patrón de `scripts/kb_patch_2026_10.py`: `--dry-run`, luego `--apply --backup`.
+
+| Pregunta en el KB | Respuesta nueva |
+|---|---|
+| ¿Qué pasa si pido una talla y no me quedó? | Tienes 30 días desde que recibes tu pedido para cambiarlas por otra talla, color o modelo disponible, sin uso y con su caja. No hacemos devoluciones ni reembolsos de dinero. Tú nos llevas o envías el par a tu tienda Fuxia más cercana y nosotros te enviamos el nuevo sin costo. Los pares con descuento directo en el precio no tienen cambio; si usaste un cupón (por ejemplo BIENVENIDA10), tu par sí tiene cambio dentro de los 30 días. |
+| ¿Puedo devolver si no me quedan? | No hacemos devoluciones de dinero, pero sí cambios: tienes 30 días… (igual que arriba, con el matiz de descuento y cupón). |
+| ¿Cuánto tiempo tengo para devolver? | No hacemos devoluciones ni reembolsos. Para cambios tienes 30 días desde que recibes tu pedido, sin uso y con su caja. (Matiz de descuento y cupón.) |
+| ¿Quién paga el envío de la devolución? | No hacemos devoluciones, solo cambios. El envío del cambio es mitad y mitad: tú nos llevas o envías el par a tu tienda Fuxia más cercana y nosotros te enviamos el nuevo sin costo. |
+| ¿Cómo recibo el reembolso? | No hacemos reembolsos ni devoluciones de dinero. Lo que sí hacemos son cambios por otra talla, color o modelo disponible dentro de los 30 días, sin uso y con su caja. Si recibiste un par con defecto, lo resolvemos con un cambio sin costo. |
+| ¿Puedo cambiar por otro modelo? | Sí, dentro de los 30 días, sin uso y con su caja, por otro modelo disponible; si tiene otro precio, ajustamos la diferencia. (Matiz de descuento y cupón.) |
+| ¿Puedo cambiar un par que compré con descuento? | Los pares con descuento directo en el precio no tienen cambio. Si usaste un cupón (por ejemplo BIENVENIDA10), tu par sí tiene cambio dentro de los 30 días. |
+| ¿Cuánto tarda el envío en México? | Si tu talla y color están en existencia: Entrega Inmediata en Zona Metropolitana. Si no están en existencia, te los hacemos a la medida y se entregan en 10 días hábiles. Para envíos fuera de la Zona Metropolitana te confirmamos el tiempo al hacer tu pedido. |
+
+**Pendientes de validar** (no se tocan sin Carolina o Mario):
+- "memory foam", "cómodas 8–10 horas" y "piel de subproducto / en proceso de certificación";
+- lealtad: "1 punto por peso, 100 pts = 10 MXN", que no coincide con la regla F360 de 100 pts por par;
+- "¿Puedo cancelar mi pedido?": dice "reembolso completo", que choca con "no hay reembolsos".
+
+**Además:** `kb/seed.json` todavía trae los textos viejos. Si alguien re-ingesta el KB, se reintroducen. Hay que actualizarlo junto con el parche.
+
+### 0.2 Storefront (snippets de la sesión 67) — textos a alinear
+- `pagina-cambios.html:58`: "Pares con descuento no tienen cambio" → descuento directo sin cambio; cupón sí.
+- La barra de confianza `f360-compra.html:361` ("cámbialas") queda bien para cupón; revisar que no lo prometa en descuento directo.
+- **Re-pegar** `f360-entrega-inmediata.html` en staging4: la versión instalada todavía dice "5 a 7".
+- **Top bar** (Adrián, también en producción): "ENTREGA INMEDIATA EN LA MAYORÍA DE NUESTROS MODELOS" → "Entrega Inmediata en Zona Metropolitana".
+- Línea de 10 días en `/co/`: pendiente la regla de CO.
+
+---
+
+## 1. Matriz única
+
+Leyenda de estado: DONE · PARTIAL · MISSING · CONFLICT · BLOCKED · N/A.
+Dueños: Car = Carolina · Adr = Adrián · 67 = sesión fuxiaapp-67 · c4 = esta sesión.
+
+| Unidad | Capacidad | Estado | Fuente de verdad | Implementación existente | Gap | Dependencia | Negocio | Tec | Riesgo | Esfuerzo | Acción propuesta | Prod |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| DISC | Home | MISSING | — | Solo el teaser de Hilo (`f360-hilo-global.html:309`) y el top bar de Adrián | No hay home F360; el top bar promete "ENTREGA INMEDIATA" (ver CRO-6) | CRO-6 | Mario | Adr | M | M | Fuera del closeout técnico: solo alinear el copy del top bar con la matriz de promesa | Sí (copy del top bar) |
+| DISC | Shop / Tienda + búsqueda + filtros | DONE | `f360_storefront_catalog` | `tools/storefront/f360-tienda.html`; `f360-store-reserve` `catalog` | `woo_staging4` hardcoded (`handler.ts:58-66`); las búsquedas sin resultado no se guardan como demanda | — | Car | 67 | M (hardcode al pasar a prod) | S | Parametrizar el canal antes de producción; guardar las búsquedas con 0 resultados | No |
+| DISC | Nuevas | DONE (vacío) | regla 45 d / `new_override` | catálogo | 0 productos nuevos (todo es legacy) | catálogo | Car | — | B | — | Ninguna; se llena con productos F360 | No |
+| DISC | Más vendidas | PARTIAL / CONFLICT | `legacy_woo_map.sold_90d` + F360 60 d | `06_INVENTORY_CONVERSION.md:103-111` | El retiro automático del histórico (`bestseller_history_ready`) no está construido; ventanas 60/90 d mezcladas | Commerce Facts prod | Mario | c4 | M | S | Una sola regla documentada (Bitácora dec. 9) | No |
+| DISC | Cambios | DONE / CONFLICT | `pagina-cambios.html` (pág. 4080) | staging4 | El footer dice "Cambios y devoluciones" (Adr); el WhatsApp es solo el de MX, también en /co/; **Hilo (hilo-chat) dice 15 días con reembolso y la página dice 30 días, solo cambio** | Adr | Car | Adr/67 | **A** (promesa legal contradictoria) | S | Una sola política; quitar los textos viejos de Hilo | Sí (footer) |
+| PDP | Modelo unificado color × talla | PARTIAL | `f360.products` + `mapping.ts` | 7 modelos unidos | 4 reintentos; 5 bloqueados por Carolina; **sin redirecciones = 404 en las ligas viejas** | Car, Adr | Car | c4/67 | A (SEO / 404) | S | Reintentar; importar las redirecciones | Sí al publicar |
+| PDP | Fotos por color, stock por variante, selector | DONE | Woo variations (publicadas por F360) | `f360-selector-color.html` | La guía de tallas es un JPG fijo; un twin file conserva el toggle "Colombia/CM" | CRO-3A | Car | 67 | B | S | Reemplazar la guía por el bloque Fit (CRO-3A) | No |
+| PDP | MX / CO | DONE (emulado) | talla MX = talla − 13 | `05_MOBILE_IAB_RESULTS.md` | Falta en teléfono real CO | CRO-7 | — | 67 | M | S | Incluirlo en la matriz CRO-7 | No |
+| PDP | Macarena (producto de aceptación) | **CONFLICT** | — | Woo 3621 en staging4 | **No existe en `f360.products`**; su línea de venta `F360-MACARENA-NUDE-37` no se resuelve; no existe en producción | decisión | Mario | c4 | A (el piloto no es F360) | S | Decidir: crear Macarena en F360 (publicarla de verdad) o elegir otro piloto F360 (ver §F) | No |
+| CRO-3A | Fit / talla / horma / ancho | MISSING | — (texto libre) | `02_FIT_SIZE.md` (propuesta; 6 preguntas a Carolina sin respuesta) | No hay campos; `short_description` vacío en 62/62 | Car | Car | c4 | M | M | Tabla `product_knowledge` por MODELO en F360 + bloque PDP | No |
+| CRO-3A | Materiales, comodidad, tacón, punta, cuidados | MISSING / CONFLICT | `description` libre (33/62 mencionan material) | — | Errores de copiar y pegar (Marcela "estas botas"); Hilo afirma "memory foam", "8-10 horas", "piel de subproducto" **sin validar** | Car | Car | c4 | **A** (afirmaciones sin validar) | M | Campos estructurados validados por Carolina; quitar afirmaciones no validadas | No |
+| CRO-3B | Reviews (CusRev / ivole 5.122) | PARTIAL | CusRev (WP) | Plugin activo en staging y en prod; bloque oculto si hay 0 reseñas (`f360-entrega-inmediata.html:263-270`); fotos y video habilitados | Reseñas: 10 en staging, 26 en prod (18 productos, todas 5.0); reminders apagados en staging; el texto de consentimiento CusRev está oculto en la página de gracias; `03_REVIEWS.md` no existe; reviews "No autorizadas" (`00_CRO:9`) | Car (selección); consentimiento | Car | c4 | M | M | Extender CusRev (meta propia + agregados en F360) | Sí (después) |
+| CRO-3B | Fit feedback por reseña + agregados | MISSING | — | D-CRO-03 = ivole + fit feedback F360 | Sin modelo ni umbral | 3B | Car | c4 | M | M | `review_fit_feedback` en F360 ligado a la reseña CusRev y al pedido; mostrar el % solo con n ≥ umbral | No |
+| CRO-3C | Q&A | MISSING | — | "Preguntas frecuentes" solo en el footer; CusRev Q&A **no activo** (sin `cr-qna`) | — | Car (preguntas reales) | Car | c4 | B | M | Evaluar el Q&A nativo de CusRev antes de construir; FAQ estructurado por modelo en F360 que también consuma Hilo | No |
+| CRO-3D | UGC | MISSING | — | Diseño solamente | Sin fotos de clientas | 3B | Car | c4 | B | S | Fotos de reseñas CusRev verificadas → "Así las usan"; estado vacío explícito | No |
+| CRO-4 | Sticky ATC móvil | DONE (emulado) | Woo variation form | `stickyCompra()` `f360-entrega-inmediata.html:275-327` | Sin prueba en teléfono real; `04_STICKY_ATC.md` dice "5–7 días" (viejo) | CRO-7 | — | 67 | M | S | Certificar en CRO-7 y corregir el doc | No |
+| CRO-4 | Panel post-ATC "✓ Agregado / Pagar ahora / Seguir" | DONE en código / estado instalado **sin confirmar** | WPCode footer | `f360-compra.html:15-19,192-224` | `09_CHECKOUT.md:64` dice "Instalar… pendiente"; el video demo lo inyecta | 67 | — | 67 | M | S | Registro de snippets instalados (§L) | No |
+| CRO-5 | Back-in-stock "Avísame" | MISSING | — | Solo el evento reservado `f360_back_in_stock_intent` (`G2_MEASUREMENT_CONTRACT.md:114`) | Sin tabla, UI ni consentimiento operativo; `07_INTENT_CRM.md` no existe | CRM C1 (consent architecture) | Mario | c4 | M | M | `stock_intents` en F360 + propósito de consentimiento `operational_notification` (C1 ya separa privacidad/marketing) | No |
+| CRO-6 | Promesa de entrega | **CONFLICT** | — (repartida) | PDP "Entrega inmediata ZM 8–19 h" (`:377-382`); 10 días hábiles sin stock (`:1,331`, checkout, admin, migración `20261009000100`); top bar prod "ENTREGA INMEDIATA" | "5 a 7" sigue en `04_STICKY_ATC`, `admin-web/src/lib/f360.ts:221`, migraciones 001500/002200/test_targets, Bitácora; la línea de 10 días se muestra en /co/ aunque el doc dice "nunca en /co/"; Hilo dice "3 a 5 días; CDMX 1 a 3" y "$150 envío"; `CRO_OPS_E2E` dice que la entrega inmediata **no está lista** (sin pantalla de vendedora ni acuse) | Mario (regla); C2 (vendedora) | Mario | c4 | **A** (promesa incumplible) | M | Matriz de promesa (§1.1) + copy conservador hasta que la vendedora pueda acusar | Sí (top bar) |
+| CRO-6 | "Último par" / escasez | DONE (guardado) | `scarcity` (migración 002400) | Oculto salvo inventario certificado | Ninguna ubicación certificada → nunca se muestra (correcto) | conteo | Car | c4 | B | — | Nada; se activa con el conteo | No |
+| CRO-6 | MSI, envío gratis, pago seguro, cambios | PARTIAL / CONFLICT | copy | "Envío GRATIS y 6 MSI tiempo limitado" | La barra de confianza promete "cámbialas" en pedidos con cupón, pero la regla dice "pares con descuento no tienen cambio" (`pagina-cambios.html:58` vs `f360-compra.html:361`) | Car | Car | 67 | **A** | S | Alinear con la política de cambios | No |
+| CHK | Checkout visual Fuxia + barra móvil | DONE en código | WPCode | `f360-compra.html` | Instalación sin confirmar | 67 | — | 67 | M | S | §L | No |
+| CHK | Cupón 10% BIENVENIDA10 | PARTIAL | Cupón Woo (admin) | Auto-aplicado `f360-compra.html:245-276`; popup `fuxia_lead` (**PHP fuera del repo**) | El popup no está versionado | Adr/67 | Mario | 67 | M | S | Versionar el snippet `fuxia_lead` | Sí (ya existe en prod) |
+| CHK | Métodos de pago (3 de Mercado Pago) | CONFLICT | Plugin MP 8.9.4 | Demo con 3 métodos; pedidos reales IG-Android | `09_CHECKOUT:16` dice "No hay métodos de pago disponibles"; **la regla del theme en prod que deja solo tarjeta no está documentada**; MP de staging4 ahora ligado a un TESTUSER (revisar antes de cada prueba) | Adr | Mario | 67/Adr | M | S | Documentar la regla de prod (sin cambiarla) | **No cambiar** |
+| CHK | Pedido recibido | DONE / PARTIAL | `f360-compra.html:278-327` | — | Siempre dice "✓ Recibimos tu pago" sin leer el estado (pendiente, fallido) | — | — | 67 | M | S | Mensaje según el estado del pedido | No |
+| CHK | Payment-link fallback | PARTIAL / CONFLICT | `f360-store-reserve` `pay_link` + migración 20261009000200 | Servidor y límites listos; "not deployed" en el commit `d2f7db1` | Solo MX en el servidor, pero `vigilarErrores()` abre el panel en /co/ y la petición falla | 67 | Mario | 67 | M | S | Ocultar en CO o soportar CO; prueba e2e | No |
+| CHK | WhatsApp / crear cuenta / campos | PARTIAL | Woo checkout | Correo y WhatsApp prellenados desde el popup | Sin auditar en teléfono real | CRO-7 | Mario | 67 | B | S | Revisar en CRO-7 | No |
+| POST | Pedido → F360 | DONE | Commerce Facts | `f360-woo-orders` + G1 | Pedidos de prueba marcados `is_test` | — | — | 67/c4 | B | — | — | No |
+| POST | Hilo | DONE (staging) / CONFLICT | HiloLabs (railway) | `f360-hilo-global.html`; escalación → Bandeja | **La KB de HiloLabs no está en el repo**; `hilo-chat` interno (sin uso) con afirmaciones y política viejas | HiloLabs | Mario | HiloLabs | **A** | M | Hilo debe consumir el conocimiento F360 (CRO-3A/3C) y retirar el KB viejo | No |
+| POST | Review flow (reminder) | MISSING | CusRev | Reminders apagados en staging | — | consentimiento | Car | c4 | M | S | Diseñar con el consentimiento de reseñas separado | No |
+| POST | Loyalty | PARTIAL | `loyalty_cards` / `loyalty_apply` | Popup +50 pts; la página de gracias sugiere la app | Nombres "puntos Hilo" vs "Club Fuxia"; sin puntos en la PDP | CRM C1 | Mario | c4 | B | S | Unificar el nombre | No |
+| CRO-7 | Certificación móvil (4 navegadores) | PARTIAL | `05_MOBILE_IAB*.md` | 10 perfiles emulados PASS; IG Android real (#4111, #4114) **sin registrar** en los docs | iPhone IG / Safari reales: NOT TESTED; Chrome Android real: NOT TESTED | teléfonos | Mario/Car | c4 | A (49% de pedidos pagados en prod vienen por IAB, `G1:191`) | M | Matriz formal (§1.2) | No |
+| CRO-8 | Medición | PARTIAL / FROZEN | `G2_MEASUREMENT_CONTRACT.md`, V1.1 | Snippet V1.1 en staging4 (mu-plugin); B2.2 parcial | `tools/measurement/…php:3` dice "Not installed" (stale; está instalado); eventos fit/reviews/Q&A/UGC no definidos; GTM sin cambios | Mario reabre Growth | Mario | c4 | M | M | Extender el contrato con f360_* de decisión; certificar sin publicar tags | **No** sin aprobación |
+
+### 1.1 Matriz de promesa de entrega (propuesta para CRO-6; copy conservador hasta validarla)
+
+| Estado de inventario | Ubicación | Mercado | Promesa propuesta | Hoy dice |
+|---|---|---|---|---|
+| En existencia en Bodega CDMX | Bodega | MX | "Sale en 1–2 días hábiles" (pendiente de la regla de paquetería) | "Entrega inmediata" (top bar) |
+| En existencia en tienda + ZM + 8–19 h | Tienda | MX | "Puede llegar hoy en ZM" **solo** cuando la vendedora tenga acuse (C2) | "Entrega inmediata ZM" (sin acuse operativo) |
+| Sin existencia (sobre pedido) | Taller | MX / CO | "10 días hábiles" | 10 días ✓ / "5 a 7" en docs, admin y Hilo ✗ |
+| Cualquiera | Bodega CDMX → CO | CO | regla CO por definir (aduana / paquetería) | se muestra la línea MX de 10 días |
+
+### 1.2 Matriz CRO-7 (estado hoy)
+
+| Paso | IG Android | Chrome Android | IG iPhone | Safari iPhone |
+|---|---|---|---|---|
+| Home → Shop → PDP → color → talla → ATC → checkout → MP → pagado → F360 | **PASS real** (#4111 / #4114, antes de los cambios nuevos) | NOT TESTED (emulado PASS) | NOT TESTED | NOT TESTED |
+| Fit, reviews, Q&A, sticky ATC, post-ATC, pedido recibido, Hilo | NOT TESTED (real) | NOT TESTED | NOT TESTED | NOT TESTED |
+
+---
+
+## A. Ya construido (no reconstruir)
+- Tienda con búsqueda y filtros.
+- Selector color → talla con foto por color.
+- Stock por variante y guard de escasez.
+- MX / CO.
+- Publicación F360 → Woo.
+- Pedido Woo → F360 con idempotencia y reconciliación.
+- Sticky ATC.
+- Panel post-ATC, checkout Fuxia y barra móvil (en código).
+- Auto-cupón.
+- Pedido recibido.
+- Servidor de ligas de pago.
+- Hilo en el storefront con escalación a Bandeja.
+- Página de Cambios.
+- CusRev instalado, con fotos y video.
+- Commerce Facts e identidad canónica.
+- CRM C1: consentimiento separado por propósito.
+
+## B. Parcial
+- Unión de modelos (4 reintentos, 5 bloqueados).
+- Más vendidas.
+- Reseñas (pocas y sin reminders).
+- Ligas de pago (CO, sin desplegar).
+- Pedido recibido (sin estado).
+- Cupón (popup fuera del repo).
+- Loyalty en el storefront.
+- Certificación móvil (solo IG Android real).
+- Medición V1.1 (B2.2 parcial).
+
+## C. Falta de verdad
+- Conocimiento de producto estructurado (CRO-3A).
+- Fit feedback y agregados de reseñas.
+- Q&A.
+- UGC.
+- Back-in-stock y su consentimiento operativo.
+- Matriz de promesa.
+- Certificación en iPhone y Chrome Android reales.
+- Eventos de decisión (fit, reviews, Q&A, UGC).
+- Home.
+- Registro de snippets instalados.
+
+## D. Contradice decisiones anteriores
+1. **Promesa de entrega:** "inmediata" / 5–7 / 10 días hábiles / "3–5 días" de Hilo.
+2. **Política de cambios:** Hilo dice 15 días con reembolso; la página dice 30 días sin reembolso; la barra promete cambio en pares con descuento.
+3. **Entrega inmediata pública vs `08_OMNICHANNEL.md:14`** ("no publicar disponibilidad por ubicación hasta que el inventario sea confiable") vs `CRO_OPS_E2E` ("no listo").
+4. **Afirmaciones de material y comodidad de Hilo** sin validar por Carolina.
+5. **Macarena** como piloto sin ser producto F360.
+6. **Docs viejos:** `WOO_PUBLISHING_V1_PLAN.md:95,102`; `INVENTORY_MODEL.md:69,124`; `09_CHECKOUT.md:16` (métodos de pago); `05_MOBILE_IAB.md` (teléfono real pendiente); `tools/measurement` ("Not installed").
+
+## E. NO construir (ya existe)
+- **Otro motor de reseñas:** se extiende CusRev.
+- **Otro asistente:** es Hilo/HiloLabs.
+- **Otro carrito:** el sticky ATC usa el formulario de variaciones de Woo.
+- **Otro descuento:** BIENVENIDA10.
+- **Otra tabla de clientas o de consentimiento:** CRM C1.
+- **Otra identidad de producto:** canonical F360.
+- **Otro catálogo de búsqueda:** `f360_storefront_catalog`.
+- **Otra capa de medición:** G2 / V1.1.
+
+## F. PDP piloto recomendadas (8)
+
+**Aviso sobre la evidencia:**
+- Las ventas son de **staging**: 56 pedidos y 78 pares, de jun a oct 2026, Woo, MXN+COP mezclado. No es la venta real de producción.
+- Las búsquedas (14 filas) no sirven como señal.
+- Las reseñas de producción son 26.
+- **No hay ranking confiable;** se eligió por cobertura de categoría y fit más la evidencia disponible.
+
+| # | PDP | Por qué | Evidencia | Falta |
+|---|---|---|---|---|
+| — | ~~Macarena~~ | **Descartada (Mario 2026-10-05: producto de pruebas)** | — | — |
+| 2 | Paula | Ballerina clásica; #1 en ventas | 19 pares; descripción rica (piel, suela acolchada) | 0 reseñas |
+| 3 | Cucarron (incl. láser) | Volumen y reseñas | 18 + 12 pares; reseñas en prod (verde 3, láser caramelo 2) | Descripción de plantilla genérica |
+| 4 | Sueco cucarrón | Zueco: horma distinta | 11 pares; 1 reseña en staging y 1 en prod | — |
+| 5 | Ballerinas BYL puntudo | Punta afilada: fit distinto | 6 pares; 2 reseñas en prod | Fotos de colores (Carolina) |
+| 6 | Mafalda láser | Flat más reseñado | 4 reseñas (staging y prod) | `category_key` nulo |
+| 7 | Botas largas | Botas: altura y caña | 4 pares; ya unido en F360; inventario cargado en 3 ubicaciones | 0 reseñas |
+| 8 | Sandalia (Sandalia flor o Sandalia 8) | Sandalia: ajuste por tiras | Sandalia flor unida en F360; Sandalia 8 con 6 pares | 0 reseñas |
+
+Opcional: Tacón RMX hebilla, por variedad de tacón (2 reseñas, 0 ventas).
+
+## G. Roadmap por unidades (cada una: auditar → construir en staging → test → reporte → aprobación)
+
+| # | Unidad | Contenido | Bloquea |
+|---|---|---|---|
+| 0 | **Decisiones** | Política de cambios única, matriz de promesa, Macarena en F360 sí/no, piloto final, umbral de % de fit | Todo CRO-3 / 6 |
+| 1 | CRO-3A | `product_knowledge` por modelo en F360 (fit, recomendación, horma, ancho, materiales ×3, tacón, punta, comodidad, cuidados, `validated_by`); editor en admin para Carolina; bloque "Ajuste y talla" en la PDP; mismo dato expuesto para Hilo, app y admin | 3B, 3C, Hilo |
+| 2 | CRO-3B | Extender CusRev (meta/hook) + `review_fit_feedback` en F360 ligado a pedido, variante y reseña; agregados con umbral; reminder con consentimiento de reseñas | 3D |
+| 3 | CRO-3C | Probar el Q&A nativo de CusRev; FAQ estructurado por modelo en F360, consumible por Hilo | — |
+| 4 | CRO-3D | "Así las usan" desde fotos de reseñas verificadas, con estado vacío | — |
+| 5 | CRO-4 | Certificar sticky ATC + panel existente y conectar el estado de variación | — |
+| 6 | CRO-5 | `stock_intents` + consentimiento `operational_notification` + vista "N clientas esperan X" en el admin | — |
+| 7 | CRO-6 | Fuente única de promesa, copy conservador, "último par" solo certificado, alinear la barra de confianza | Decisiones |
+| 8 | CHECKOUT | Registro de snippets; pedido recibido por estado; ligas de pago CO; versionar `fuxia_lead`; documentar la regla de pago de prod | 67 |
+| 9 | CRO-7 | Matriz con teléfonos reales | Teléfonos (Mario/Carolina) |
+| 10 | CRO-8 | Contrato + eventos f360_* de decisión + certificación en staging4 (sin tags en prod) | Mario reabre medición |
+
+## H. Carolina en paralelo (sin esperar código)
+1. Elegir y confirmar los 5–10 pilotos.
+2. Por piloto:
+   - fit (exacta / chica / grande);
+   - recomendación ("entre dos tallas, elige…");
+   - horma;
+   - ancho;
+   - materiales (exterior / forro / suela);
+   - tacón o plataforma en cm;
+   - punta;
+   - comodidad;
+   - cuidados.
+3. Responder las 6 preguntas de `02_FIT_SIZE.md`.
+4. Lista de preguntas reales de clientas (WhatsApp / Hilo) por modelo.
+5. **Validar o corregir** las afirmaciones que hoy hace Hilo: memory foam, 8–10 h, piel de subproducto.
+6. Política de cambios final (días, descuento, reembolso).
+7. Fotos y categorías pendientes de la unión de modelos.
+
+## I. Bloqueos externos
+- **HiloLabs:** su base de conocimiento no está en el repo; tiene que leer F360.
+- **Adrián:** footer "Cambios", redirecciones, top bar, regla de tema de pago en producción y popup `fuxia_lead`.
+- **Teléfonos reales:** iPhone (IG y Safari) y Chrome Android.
+- **Mercado Pago:** la cuenta de staging4 se puede religar; revisar antes de cada prueba.
+- **Paquetería:** la regla de días por zona y para CO.
+- **Legal:** textos de consentimiento (C3).
+- **Conteo:** sin inventario certificado no hay "último par" ni entrega inmediata confiable.
+
+## J. Definition of Done (actualizado)
+
+Se mantiene la lista del prompt, con estos cambios:
+- **Fit:** solo para pilotos validados por Carolina, con `validated_by`.
+- **Reseñas:** % de fit visible solo con n ≥ umbral (propuesta: 5 respuestas de fit; abajo de eso, "Aún no hay suficientes opiniones de ajuste").
+- **UGC:** "estado vacío explícito" cuenta como hecho.
+- **Promesa:** una sola fuente y ningún texto contradictorio en PDP, checkout, gracias, Hilo, admin ni docs.
+- **Cambios:** una sola política en página, Hilo, barra de confianza y footer.
+- **Móvil:** PASS solo en teléfono real, con fecha, dispositivo y número de pedido.
+- **Medición:** eventos definidos y probados en staging4. No publicar en GTM de prod sin aprobación.
+- **Registro de snippets instalados:** staging4 vs prod, actualizado.
+
+## K. Fuentes de verdad
+
+**Decisiones:**
+- `ops/BITACORA_2026-10-02_04.md` (con la enmienda de 10 días pendiente);
+- `cro/00_CRO_PRODUCT_EXPERIENCE_V1.md`;
+- `cro/CRO_PRODUCT_EXPERIENCE_V1_AUDIT.md`.
+
+**Por unidad:**
+- `cro/02_FIT_SIZE.md`;
+- `cro/04_STICKY_ATC.md`;
+- `cro/05_MOBILE_IAB*.md`;
+- `cro/06_INVENTORY_CONVERSION.md`;
+- `cro/09_CHECKOUT.md`;
+- `cro/CRO_OPS_E2E.md`.
+
+**Datos y medición:**
+- `growth/G2_MEASUREMENT_CONTRACT.md`;
+- `growth/G2B2_CANONICAL_IDENTITY.md`;
+- `growth/G1_*`;
+- `INVENTORY_MODEL.md` (corregir las líneas 69 y 124).
+
+**Código:** `tools/storefront/*.html` y `fuxia-native/supabase/functions/{f360-store-reserve,f360-hilo-intake,_shared/f360-woo}`.
+
+**Documentos que faltan crear:**
+- `cro/03_REVIEWS.md`;
+- `cro/07_INTENT_CRM.md`;
+- `cro/SNIPPETS_INSTALLED.md`;
+- la regla de pago de producción.
+
+## L. Git status clasificado (2026-10-05 ~10:30)
+
+**Rama:** `fuxia-360`, igual a `origin` (0 adelante; el último commit es de la sesión 67).
+
+| Archivo | Sesión / unidad | Acción |
+|---|---|---|
+| `admin-web/src/app/layout.tsx`, `login/page.tsx`, `components/Shell.tsx` (líneas "by HiloLabs.ai") | Marca HiloLabs (otra petición de Mario) | Decisión de Mario: publicar o descartar |
+| `docs/fuxia360/INVENTORY_MODEL.md` (regla 9) | G2-B2.1 (c4), fuera del commit por decisión | Pendiente de Mario |
+| `fuxia-native/lib/notifications.ts`, `package.json`, `package-lock.json` | Otra sesión (app nativa / Expo) | No tocar |
+| `fuxia-native/app/vendedora/{apartados,tienda,venta}.tsx`, `lib/f360Store.ts` | 67 → cedidos a c4 para C2 (borrador) | C2 |
+| `fuxia-native/supabase/supabase/` | Desconocido (probablemente CLI temp) | Revisar con Mario |
+| `docs/fuxia360/growth/G2B1_SAFE_CORRECTIONS.md`, `G2B_MEASUREMENT_CORRECTION_PLAN.md` | G2 (c4), medición congelada | Commit cuando se reabra G2 |
+| `tools/measurement/` | G2-B2.2 (c4), snippet staging4 | Igual |
+| `AndroidApp/`, `fuxia360-audit.zip`, `supabase/.temp/` | Otros / temporales | Nunca comitear |
+
+**Respuesta de la sesión 67:** ver §M. No tiene nada en curso ni sin comitear; las líneas de `db_tests.mjs` ya entraron en el commit `f6e8fcb`.
+
+## M. Instalado realmente (respuesta de la sesión 67, 2026-10-05)
+
+| Dónde (staging4) | Snippet | Versión instalada vs repo |
+|---|---|---|
+| Bricks Code · plantilla de producto | `f360-entrega-inmediata.html` | **Instalada la versión vieja con "5 a 7"** y sticky ATC; el repo ya dice "10 días hábiles" (falta re-pegar) → **CONFLICT en vivo** |
+| Bricks Code · página Tienda y plantilla Categoría | `f360-tienda.html` | Instalada (incluye la hoja de filtros móvil) |
+| WPCode 4099 "Hilo – chat global" | `f360-hilo-global.html` | Instalada (con recomendaciones de catálogo) |
+| WPCode 4105 "Fuxia 360 · Compra" | `f360-compra.html` | Instalados: panel Agregado, estilo, barra de resumen, barra de confianza, cupón y popup WA. **Sin confirmar si se pegaron:** página de gracias, "sin método preseleccionado", rescate con liga de pago y prellenado |
+| Theme `bricks-child/functions.php` (~l. 840, caso MX) | regla de métodos de pago | Mario la cambió en staging4 para permitir `woo-mercado-pago-custom` + `basic` + `credits` |
+| Página 4080 + link en el footer | Cambios | Instalada |
+| Mercado Pago | — | Ligado a un vendedor de PRUEBA |
+
+**Producción:**
+- No tiene ninguno de estos snippets.
+- `functions.php` de producción deja **solo tarjeta en MX y solo ePayco en CO** (verificado en Store API, `cart.payment_methods`). Ya queda documentada la regla; **no se cambia** sin autorización.
+
+**Correcciones a la matriz con esta información:**
+- **CHK · Métodos de pago:** el CONFLICT queda explicado. Staging4 tiene 3 métodos de Mercado Pago porque se editó `functions.php`; producción tiene solo tarjeta en MX y ePayco en CO. Llevarlo a producción es parte del "grupo A" que plantea la sesión 67.
+- **CHK · Liga de pago:** **desplegada y probada de punta a punta** (#4115 / #4116), solo MX. Riesgos nuevos:
+  - el pedido se crea con `free_shipping` fijo (solo válido mientras el envío en MX sea gratis);
+  - **no vacía el carrito** después de crear la liga (riesgo de compra doble);
+  - los correos quedan en cola (sin Resend).
+- **CHK · Resumen del pedido:** muestra "Medida: 36" (talla de tienda) en vez de la talla MX; se arregla con PHP o renombrando el atributo.
+- **CRO-6 · Promesa:** en vivo staging4 todavía dice "5 a 7" en la PDP. Hilo (KB de HiloLabs) dice "10 días hábiles" para **todos** los envíos. La matriz G (asesora) sigue sin cerrar formalmente. El texto de Woo producción "Disponible para reserva" es otra variante más.
+- **Siguiente de la sesión 67 (pendiente de Mario):** snippets que distingan staging4 de producción y un plan de pase a producción del grupo A (regla de métodos de pago, banner, checkout y gracias sin liga de pago, sticky ATC, Cambios).
+- **Primer paso concreto de CHECKOUT:** crear `cro/SNIPPETS_INSTALLED.md` con esta tabla y verificar en staging4 cada versión pegada contra el repo.

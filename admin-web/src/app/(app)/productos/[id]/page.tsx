@@ -2,12 +2,13 @@ import Link from 'next/link';
 import { EventCard } from '@/components/EventCard';
 import { ColorDot, ProductImage } from '@/components/ProductImage';
 import { IconBack, IconCheck, IconDown } from '@/components/icons';
-import { canWrite, getArchiveState, getColorRemoveState, getLegacySources, getMe, getProduct, getProductPrices, getPublication, listCategories, listEvents, listLocations } from '@/lib/f360';
+import { canWrite, getArchiveState, getColorRemoveState, getLegacySources, getMe, getProduct, getProductKnowledge, getProductPrices, getPublication, listCategories, listEvents, listLocations } from '@/lib/f360';
 import { MISSING_LABEL, pares, precio } from '@/lib/format';
 import { ColorPhotos } from './ColorPhotos';
 import { ProductInfoForm } from './ProductInfoForm';
 import { PublishPanel } from './PublishPanel';
 import { PricesPanel } from './PricesPanel';
+import { KnowledgePanel } from './KnowledgePanel';
 import { StoreOrigin } from './StoreImport';
 import { ArchivePanel } from './ArchivePanel';
 import { MakeToOrderPanel, NewPanel } from './MakeToOrderPanel';
@@ -18,7 +19,7 @@ const MISSING_ANCHOR: Record<string, string> = { precio: '#info', categoria: '#i
 
 export default async function ProductoDetalle({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ color?: string; creado?: string }> }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  const [me, product, locations, events, categories, pub, prices] = await Promise.all([getMe(), getProduct(id), listLocations(), listEvents({ productId: id, limit: 20 }), listCategories(), getPublication(id), getProductPrices(id)]);
+  const [me, product, locations, events, categories, pub, prices, knowledge] = await Promise.all([getMe(), getProduct(id), listLocations(), listEvents({ productId: id, limit: 20 }), listCategories(), getPublication(id), getProductPrices(id), getProductKnowledge(id)]);
   const edit = canWrite(me.role);
   const sources = edit ? await getLegacySources(id) : [];   // adopted from the current store (Track D)
   const legacy = sources.length > 0;
@@ -90,6 +91,7 @@ export default async function ProductoDetalle({ params, searchParams }: { params
       {color && <ColorPhotos product={product} color={color} canEdit={edit} removeBlockers={removeBlockers} />}
       <ProductInfoForm key={`${product.regular_price}-${product.category_key}-${product.description?.length ?? 0}`} product={product} categories={categories} canEdit={edit} />
       <PricesPanel key={prices.map((p) => `${p.code}:${p.amount}`).join('|')} productId={product.id} prices={prices} canEdit={edit} />
+      <KnowledgePanel key={`${knowledge.knowledge?.version ?? 0}`} productId={product.id} data={knowledge} canEdit={edit} />
 
       {color && (
         <section className="mt-12">

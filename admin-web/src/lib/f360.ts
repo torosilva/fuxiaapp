@@ -218,7 +218,7 @@ export type Reservation = { id: string; location_id: string; store: string; vari
   created_at: string; expires_at: string; closed_at: string | null; closed_by: string | null; closed_reason: string | null };
 export const listReservations = (locationId?: string) => rpc<Reservation[]>('f360_reservations', { p_location_id: locationId ?? null, p_days: 7 });
 
-// Sobre pedido (Mario 2026-10-03): online orders of a size without stock, to be made and shipped in 5–7 business days.
+// Sobre pedido (Mario 2026-10-03; 10 business days since 2026-10-04): online orders of a size without stock, made and shipped in 10 business days.
 export type MadeToOrder = { id: string; order: number; store: string; product: string; color: string; size: string; sku: string; quantity: number;
   status: 'pendiente' | 'en_proceso' | 'enviado' | 'cancelado'; created_at: string; updated_at: string; updated_by: string | null; note: string | null; ship_by: string | null };
 export const listMadeToOrder = () => rpc<MadeToOrder[]>('f360_made_to_order_list', { p_days: 90 });
@@ -269,3 +269,16 @@ export type ExecDashboard = {
 };
 export const getExecDashboard = (period: DashPeriod, presentation: boolean) =>
   rpc<ExecDashboard>('f360_exec_dashboard', { p_period: period, p_presentation: presentation });
+
+// CRO-3A · Ajuste y talla (one structured source per model; only 'validado' reaches the store / Hilo).
+export type KnowledgeFields = { fit_category: 'true_to_size' | 'runs_small' | 'runs_large' | null; between_sizes: 'mayor' | 'menor' | null;
+  recommended_size_note: string | null; last_fit: 'comoda' | 'normal' | 'ajustada' | null; width_fit: 'angosto' | 'normal' | 'amplio' | null;
+  material_upper: string | null; material_lining: string | null; material_sole: string | null; heel_height_cm: number | null;
+  toe_type: 'redonda' | 'almendrada' | 'puntuda' | 'cuadrada' | 'abierta' | null; comfort_notes: string | null; care_instructions: string | null };
+export type KnowledgePublic = { product_key: string; version: number; fit: { category: string; label: string; advice: string; between_sizes?: string; note?: string };
+  last?: string; width?: string; toe?: string; heel_height_cm?: number; materials?: { upper?: string; lining?: string; sole?: string }; comfort?: string; care?: string };
+export type ProductKnowledge = { knowledge: (KnowledgeFields & { status: 'borrador' | 'validado'; validated_by_name: string | null; validated_at: string | null;
+    updated_by_name: string; updated_at: string; version: number }) | null;
+  public: KnowledgePublic | null; labels: Record<string, Record<string, string>>; can_validate: boolean;
+  history: { version: number; action: 'saved' | 'validated' | 'unvalidated'; by: string; at: string }[] };
+export const getProductKnowledge = (productId: string) => rpc<ProductKnowledge>('f360_product_knowledge_get', { p_product_id: productId });

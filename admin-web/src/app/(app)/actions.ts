@@ -553,3 +553,10 @@ export async function voidHistSaleAction(id: string, reason: string): Promise<Re
   revalidatePath('/ventas/pasadas');
   return r;
 }
+
+// CRO-3A · Ajuste y talla. Every rule (fields, values, who validates) is enforced again in the database.
+export async function saveKnowledgeAction(productId: string, fields: Record<string, string>, validate: boolean): Promise<Result<unknown>> {
+  const r = await call('f360_product_knowledge_save', { p_product_id: productId, p_fields: fields, p_validate: validate });
+  if (r.ok) revalidatePath(`/productos/${productId}`);
+  return r;
+}
