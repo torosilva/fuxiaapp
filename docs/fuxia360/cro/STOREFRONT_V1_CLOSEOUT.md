@@ -622,3 +622,42 @@ Es un cambio de producción (KB en vivo), así que se aplica junto con el deploy
    - si se despliega antes de la F360 de producción, consultaría staging. Hay que desplegarlo junto con el pase, o mapear los ids de Woo de producción.
 4. Los ids de Woo de staging4 (3720/3721) son de staging. El mapeo `channel_variant_identity` de producción se arma en el pase.
 5. **Encabezado del thank-you** ("✓ Recibimos tu pago / confirmado") aparece también en pedidos pendientes. Es de `f360-compra.html` (sesión 67), no se tocó y se reporta.
+
+### P.9 Decisión de Mario (2026-10-05, posterior a §P.1–P.8)
+
+**Resolución:** CRO-5 = DONE en staging (aprobado). **CRO-6 = PARTIAL**, a propósito.
+
+- **No se despliega Hilo ni se aplica el parche KB (d) todavía.** Hilo de producción no debe depender de F360 staging.
+- Los dos pasos forman parte del pase de F360 a producción: `docs/fuxia360/ops/PASE_A_PRODUCCION_OPCION_B.md` §F5 "Storefront / promesa de entrega".
+
+**Corrección de tallas en Hilo** (rama `f360-delivery-promise`, commit `eaf12eb`, sin push):
+- **Problema:** la tabla correcta (MX = Fuxia − 13) ya estaba en el KB, en el artículo "¿Cuál es la equivalencia entre talla mexicana y americana?", pero la búsqueda no lo traía en preguntas de entrega o stock.
+- **Ahora** (`app/core/rag.py` `with_size_table`), cuando la clienta menciona una talla:
+  - ese mismo artículo se agrega al contexto, leído de `kb_articles`;
+  - no hay tabla nueva ni números en el código o el prompt;
+  - el prompt dice que "Medida" es talla Fuxia y que se convierte solo con ese artículo.
+- **La tool** pide repetir `headline`/`detail` tal cual, sin agregar "después de producción…" ni rutas o razones.
+- **Prueba local:** Claude real + regla F360 staging; solo el catálogo de Woo sustituido.
+
+| Pregunta | Talla | Promesa |
+|---|---|---|
+| Paula 24 MX, CDMX | 37 ✅ (antes 36) | Entrega Inmediata en Zona Metropolitana ✅ |
+| Paula 26 MX, CDMX | 39 ✅ (antes 38) | Producción: 10 días hábiles, sin agregados ✅ |
+| Botas Largas 23 MX | 36 ✅ | (el stub de catálogo no encontró el modelo; es de la prueba, no de Hilo) |
+| Paula 37, Bogotá | 37 | "Te confirmamos el tiempo de entrega al hacer tu pedido" ✅ |
+
+**Parche KB (d):** preparado (`scripts/kb_patch_2026_10d.py`, dry-run verificado) y **no aplicado**.
+
+**Pendientes de negocio** (sin respuesta inventada; Hilo y la tienda usan el copy conservador o no dicen nada):
+1. **Colombia:** tiempo de entrega.
+2. **México fuera de la Zona Metropolitana:** tiempo de entrega.
+3. **EE. UU. / Canadá:** hoy solo existe "DHL 10–12 días hábiles" en el KB de Hilo, fuera de la regla F360. Hay que decidir si se lleva a la regla o se quita.
+4. **Pedido mixto:** ¿se envía junto (fecha de la línea más tardía) o separado? Hoy cada línea muestra su promesa.
+5. **Avísame:** revisión legal del consentimiento `stock_notification` v1 (LEGAL_REVIEW_REQUIRED).
+6. **6 MSI:** el sitio de producción lo anuncia, el KB de Hilo dice "no manejamos meses sin intereses" y en staging4 se quitó.
+
+**Bug P0 separado (antes del pase a producción):**
+- Pedido recibido muestra "✓ Recibimos tu pago" y "está confirmado" aunque el pedido esté **pendiente de pago** (visto en el pedido de prueba #4264, `24_`/`25_`).
+- Está en `tools/storefront/f360-compra.html` (WPCode #4105), unidad de la sesión 67. No se corrigió dentro de CRO-6.
+
+**Estado final: CRO-5 = DONE (staging). CRO-6 = PARTIAL**: PDP, checkout y Pedido recibido ✅; Hilo listo en rama y se despliega en el pase.

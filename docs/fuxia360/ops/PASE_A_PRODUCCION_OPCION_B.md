@@ -73,6 +73,16 @@
 - **Homologación:** los IDs legacy de Woo de staging4 son una copia de producción → se verifica 1:1 antes de usarlos. Los modelos publicados por F360 en staging4 **no existen** en la tienda real y se publican de nuevo, con revisión de Carolina.
 - **Inventario:** arranca del **conteo real** en producción (modo de un conteo), no de staging.
 - La sincronización de stock se enciende al final, con aprobación aparte (decisión D-1).
+- **Storefront / promesa de entrega (CRO-6, Mario 2026-10-05).** Todo esto va en el pase, no antes:
+  1. Edge Function `f360-storefront` en producción, con sus secretos `F360_STOREFRONT_SERVER_KEY`, `F360_STOREFRONT_TARGET` y `F360_RESERVE_ORIGINS`.
+  2. **P0 antes del pase:** Pedido recibido dice "✓ Recibimos tu pago / confirmado" aunque el pedido esté pendiente (`f360-compra.html`, unidad de la sesión 67). Se corrige antes de instalar en la tienda real.
+  3. Snippets de PDP, checkout y Pedido recibido (`f360-promesa-avisame.html`, `f360-promesa-checkout.html`), adaptados de mu-plugin de staging4 a producción.
+  4. WPCode #2551 de producción: quitar "6 MSI tiempo limitado" y "Entrega INMEDIATA en la mayoría de nuestros modelos" (líneas 41/44/45/46, ver `STOREFRONT_V1_CLOSEOUT.md` §P.4), según la decisión comercial sobre MSI.
+  5. **Hilo (HiloLabs):**
+     - merge y deploy de la rama `f360-delivery-promise` (tool `get_delivery_promise` + tabla de tallas del KB);
+     - variables de Railway `F360_STOREFRONT_URL` y `F360_STOREFRONT_SERVER_KEY`, apuntando a la F360 de **producción** (nunca a staging);
+     - en la misma ventana, aplicar el parche KB (d): `scripts/kb_patch_2026_10d.py --apply --backup …`.
+     - **Hilo producción no debe depender de F360 staging.**
 
 ### F6 · Nuevo ambiente de pruebas
 - Proyecto nuevo, copia del esquema de producción con datos maestros y **sin datos personales reales**, conectado a staging4.
