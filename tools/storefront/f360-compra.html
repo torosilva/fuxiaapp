@@ -87,6 +87,8 @@ form.cart a.added_to_cart, form.cart + a.added_to_cart, .single_variation_wrap a
 }
 /* e) trust next to the pay button */
 .f360-confianza { box-sizing: border-box; max-width: calc(100% - 32px); margin-left: auto !important; margin-right: auto !important; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin: 18px 0 8px; padding: 16px; border: 1px solid #ece6db; border-radius: 14px; background: #fffdf9; font-size: 13px; color: #4a433a; }
+.f360-elige-pago { margin: 0 0 10px !important; padding: 10px 14px; border-radius: 10px; background: #fff4e5; color: #8c4a00; font-size: 14px; font-weight: 600; }
+.f360-elige-pago[hidden] { display: none !important; }
 .f360-confianza[hidden] { display: none !important; }
 .f360-confianza span { display: flex; gap: 8px; align-items: flex-start; line-height: 1.35; }
 .f360-confianza a { color: #8c6414; }
@@ -109,7 +111,24 @@ html.f360-gracias-on .f360-g-oculto { display: none !important; }
 html.f360-gracias-on .woocommerce-order h2, html.f360-gracias-on .wc-block-order-confirmation-totals-wrapper h2, html.f360-gracias-on [class*="order-confirmation"] h2,
 html.f360-gracias-on .woocommerce-order h3 { font-size: 13px !important; letter-spacing: .16em; text-transform: uppercase; color: #83734C !important; font-weight: 700 !important; margin: 26px 0 10px !important; line-height: 1.3 !important; }
 html.f360-gracias-on .woocommerce-order table, html.f360-gracias-on [class*="order-confirmation"] table { border-radius: 12px; overflow: hidden; }
-@media (max-width: 480px) { .f360-g-pasos { grid-template-columns: 1fr; } .f360-gracias h2 { font-size: 22px !important; } }
+.f360-gracias { margin-top: calc(var(--fx-hdr-h, 70px) + 20px) !important; }
+@media (max-width: 767px) { html.f360-gracias-on ul.woocommerce-order-overview { margin: 0 16px 8px !important; } }
+@media (max-width: 480px) { .f360-g-pasos li { padding: 10px 4px; font-size: 12px; } .f360-gracias h2 { font-size: 22px !important; } .f360-gracias { margin: 24px 16px 22px; padding: 22px 16px; } }
+html.f360-gracias-on .woocommerce-thankyou-order-received, html.f360-gracias-on .woocommerce-notice--success { display: none !important; }
+html.f360-gracias-on ul.woocommerce-order-overview { display: grid !important; grid-template-columns: 1fr 1fr; gap: 0; max-width: 720px; margin: 0 auto 8px !important; padding: 0 !important; list-style: none;
+  border: 1px solid #ece6db; border-radius: 14px; overflow: hidden; background: #fff; }
+html.f360-gracias-on ul.woocommerce-order-overview li { margin: 0 !important; padding: 12px 16px !important; border: 0 !important; border-bottom: 1px solid #f0ebe2 !important; font-size: 12px !important; color: #8a8378; text-transform: none; float: none !important; width: auto !important; }
+html.f360-gracias-on ul.woocommerce-order-overview li strong { display: block; margin-top: 2px; font-size: 15px; color: #242424; font-weight: 600; }
+html.f360-gracias-on .woocommerce-order-details, html.f360-gracias-on .woocommerce-customer-details { max-width: 720px; margin-left: auto !important; margin-right: auto !important; padding: 0 16px; box-sizing: border-box; }
+html.f360-gracias-on table.woocommerce-table--order-details { width: 100%; border: 1px solid #ece6db !important; border-radius: 14px; border-collapse: separate !important; border-spacing: 0; background: #fff; }
+html.f360-gracias-on table.woocommerce-table--order-details th, html.f360-gracias-on table.woocommerce-table--order-details td { padding: 12px 16px !important; border: 0 !important; border-bottom: 1px solid #f0ebe2 !important; background: transparent !important; font-size: 14px; }
+html.f360-gracias-on table.woocommerce-table--order-details thead { display: none; }
+html.f360-gracias-on table.woocommerce-table--order-details tfoot th { font-weight: 500 !important; color: #6B6B68; }
+html.f360-gracias-on table.woocommerce-table--order-details tfoot tr:last-child th, html.f360-gracias-on table.woocommerce-table--order-details tfoot tr:last-child td { border-bottom: 0 !important; }
+html.f360-gracias-on table.woocommerce-table--order-details .wc-item-meta { margin: 6px 0 0 !important; padding: 0 !important; list-style: none; font-size: 13px; color: #8c6414; }
+html.f360-gracias-on table.woocommerce-table--order-details .wc-item-meta p { display: inline; margin: 0; }
+html.f360-gracias-on .woocommerce-customer-details address { padding: 14px 16px; border: 1px solid #ece6db !important; border-radius: 14px; background: #fff; font-style: normal; line-height: 1.5; font-size: 14px; }
+html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 100% !important; float: none !important; padding: 0 !important; }
 </style>
 <script>
 /* Fuxia 360 · CRO-CHECKOUT. STAGING. Fuente: tools/storefront/f360-compra.html */
@@ -242,6 +261,9 @@ html.f360-gracias-on .woocommerce-order table, html.f360-gracias-on [class*="ord
           el.textContent = 'Se entrega en 10 días hábiles';
         }
       });
+      [].forEach.call(document.querySelectorAll('table.woocommerce-table--order-details tfoot tr'), function (tr) {
+        if (/m[eé]todo de pago|payment method/i.test(tr.textContent)) tr.classList.add('f360-g-oculto');
+      });
       // name: first line of the shipping (or billing) address, as Woo printed it
       var dir = document.querySelector('.woocommerce-customer-details address, [class*="shipping-address"] address, [class*="order-confirmation-shipping"] address, address');
       var nombre = dir ? String(dir.innerText || '').split('\n')[0].trim().split(/\s+/)[0] : '';
@@ -296,6 +318,28 @@ html.f360-gracias-on .woocommerce-order table, html.f360-gracias-on [class*="ord
     conf.hidden = false;
   };
   sinc();
+  // No payment method preselected (Mario 2026-10-04): the customer chooses. Woo Blocks picks the first one by default; we clear
+  // that choice until she taps one herself. Paying without a choice → a clear message instead of an error.
+  var eligio = false;
+  var pay = function () { return window.wp && wp.data && wp.data.select('wc/store/payment'); };
+  var limpiarMetodo = function () {
+    var sel = pay(); if (eligio || !sel) return;
+    var act = sel.getActivePaymentMethod();
+    var d = wp.data.dispatch('wc/store/payment');
+    if (act && d.__internalSetActivePaymentMethod) d.__internalSetActivePaymentMethod('');
+  };
+  root.addEventListener('change', function (e) { if (e.target && e.target.name && /payment-method|radio-control-wc-payment/.test(e.target.name)) eligio = true; }, true);
+  root.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('.wc-block-checkout__payment-method .wc-block-components-radio-control__option, .wc-block-checkout__payment-method .wc-block-components-radio-control-accordion-option label')) eligio = true; }, true);
+  if (window.wp && wp.data && wp.data.subscribe) { var limpiando = false; wp.data.subscribe(function () { if (limpiando || eligio) return; limpiando = true; try { limpiarMetodo(); } finally { limpiando = false; } }); }
+  var avisoMetodo = document.createElement('p'); avisoMetodo.className = 'f360-elige-pago'; avisoMetodo.textContent = 'Elige cómo quieres pagar 👇'; avisoMetodo.hidden = true;
+  document.addEventListener('click', function (e) {
+    var bt = e.target.closest && e.target.closest('.wc-block-components-checkout-place-order-button'); if (!bt) return;
+    var sel = pay(); if (!sel || sel.getActivePaymentMethod()) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    var box = root.querySelector('.wc-block-checkout__payment-method');
+    if (box) { if (!avisoMetodo.parentNode) box.insertBefore(avisoMetodo, box.firstChild); avisoMetodo.hidden = false; box.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  }, true);
+  root.addEventListener('change', function () { if (pay() && pay().getActivePaymentMethod()) avisoMetodo.hidden = true; }, true);
   if (window.MutationObserver) { var pend = false; new MutationObserver(function () { if (!pend) { pend = true; requestAnimationFrame(function () { pend = false; sinc(); }); } }).observe(root, { childList: true, subtree: true, characterData: true }); }
 })();
 </script>
