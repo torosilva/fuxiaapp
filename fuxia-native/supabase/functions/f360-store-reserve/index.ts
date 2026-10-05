@@ -7,6 +7,9 @@ const env = {
   ALLOWED_ORIGINS: Deno.env.get('F360_RESERVE_ORIGINS') ?? '',
   TEST_PHONES: Deno.env.get('F360_RESERVE_TEST_PHONES') ?? '',
   TEST_CODE: Deno.env.get('F360_RESERVE_TEST_CODE') ?? '',
+  WOO_BASE_URL: Deno.env.get('WOO_BASE_URL') ?? '',
+  WOO_USER: Deno.env.get('WOO_USER') ?? '',
+  WOO_SECRET: Deno.env.get('WOO_SECRET') ?? '',
 };
 
 Deno.serve((req) => handleReserve(req, env));

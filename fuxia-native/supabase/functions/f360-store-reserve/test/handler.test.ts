@@ -86,3 +86,54 @@ test('contacto: completes the Hilo case of the conversation with name + phone', 
   assert.equal(calls[0].args.p.conversation_id, 'conv1'); assert.equal(calls[0].args.p.phone, '+525512345678');
   assert.equal((await handleReserve(post({ action: 'contacto', name: 'Ana', phone: '55 1234 5678' }), env, fakeFetch({}))).status, 400);
 });
+
+// "Link de pago" (checkout rescue): Woo prices the order; the browser sends only ids/quantities.
+const wooEnv = { ...env, WOO_BASE_URL: 'https://staging4.fuxiaballerinas.com', WOO_USER: 'u', WOO_SECRET: 's' };
+function payFetch(wooAnswers: { status: number; body: unknown }[], calls: { url: string; body: any }[] = []) {
+  return (async (url: string, init: RequestInit) => {
+    const body = init.body ? JSON.parse(String(init.body)) : null; calls.push({ url: String(url), body });
+    if (String(url).includes('/rpc/f360_pay_link_open')) return new Response(JSON.stringify({ id: 'case-1' }), { status: 200 });
+    if (String(url).includes('/rpc/')) return new Response('null', { status: 200 });
+    const a = wooAnswers.shift()!; return new Response(JSON.stringify(a.body), { status: a.status });
+  }) as unknown as typeof fetch;
+}
+const payBody = { action: 'pay_link', country: 'mx', name: 'Ana López', phone: '5512345678', email: 'ana@x.mx',
+  items: [{ id: 3729, quantity: 1, price: 1 }], coupons: ['BIENVENIDA10'], address: { address_1: 'Calle 1', city: 'CDMX', postcode: '01000' } };
+test('pay_link: creates a pending Woo order from ids/quantities only and returns the /mx/ payment page', async () => {
+  const calls: { url: string; body: any }[] = [];
+  const r = await handleReserve(post(payBody), wooEnv, payFetch([{ status: 201, body: { id: 4200, total: '3780', currency_symbol: '$',
+    payment_url: 'https://staging4.fuxiaballerinas.com/finalizar-compra/order-pay/4200/?pay_for_order=true&key=wc_order_x' } }], calls));
+  const j = await r.json();
+  assert.equal(r.status, 200);
+  assert.equal(j.url, 'https://staging4.fuxiaballerinas.com/mx/finalizar-compra/order-pay/4200/?pay_for_order=true&key=wc_order_x');
+  assert.equal(j.order, 4200);
+  const woo = calls.find((c) => c.url.endsWith('/wp-json/wc/v3/orders'))!;
+  assert.equal(woo.body.status, 'pending'); assert.equal(woo.body.set_paid, false);
+  assert.deepEqual(woo.body.line_items, [{ product_id: 3729, quantity: 1 }]);           // no price from the browser
+  assert.deepEqual(woo.body.coupon_lines, [{ code: 'BIENVENIDA10' }]);
+  assert.equal(woo.body.billing.phone, '+525512345678'); assert.equal(woo.body.billing.first_name, 'Ana'); assert.equal(woo.body.billing.last_name, 'López');
+  assert.ok(calls.some((c) => c.url.includes('/rpc/f360_pay_link_done') && c.body.p_order === 4200));
+});
+test('pay_link: a coupon Woo rejects is dropped instead of blocking the link', async () => {
+  const calls: { url: string; body: any }[] = [];
+  const r = await handleReserve(post(payBody), wooEnv, payFetch([{ status: 400, body: { message: 'Cupón no válido' } },
+    { status: 201, body: { id: 4201, total: '4200', payment_url: 'https://staging4.fuxiaballerinas.com/finalizar-compra/order-pay/4201/?key=k' } }], calls));
+  assert.equal(r.status, 200);
+  const woo = calls.filter((c) => c.url.endsWith('/wp-json/wc/v3/orders'));
+  assert.equal(woo.length, 2); assert.deepEqual(woo[1].body.coupon_lines, []);
+});
+test('pay_link: refused outside Mexico, without e-mail, with empty cart, or when the DB limit is hit', async () => {
+  assert.equal((await handleReserve(post({ ...payBody, country: 'co' }), wooEnv, payFetch([]))).status, 400);
+  assert.equal((await handleReserve(post({ ...payBody, email: 'x' }), wooEnv, payFetch([]))).status, 400);
+  assert.equal((await handleReserve(post({ ...payBody, items: [{ id: -1, quantity: 99 }] }), wooEnv, payFetch([]))).status, 400);
+  const lim = (async (url: string) => String(url).includes('/rpc/f360_pay_link_open')
+    ? new Response(JSON.stringify({ message: 'Ya te generamos links hoy.' }), { status: 400 }) : new Response('{}', { status: 500 })) as unknown as typeof fetch;
+  const r = await handleReserve(post(payBody), wooEnv, lim);
+  assert.equal(r.status, 429); assert.match((await r.json()).error, /links hoy/);
+});
+test('pay_link: Woo down → friendly error and the case records the failure', async () => {
+  const calls: { url: string; body: any }[] = [];
+  const r = await handleReserve(post({ ...payBody, coupons: [] }), wooEnv, payFetch([{ status: 500, body: { message: 'boom' } }], calls));
+  assert.equal(r.status, 502);
+  assert.ok(calls.some((c) => c.url.includes('/rpc/f360_pay_link_done') && c.body.p_error === 'boom'));
+});
