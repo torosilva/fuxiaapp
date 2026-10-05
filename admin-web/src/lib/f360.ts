@@ -282,3 +282,15 @@ export type ProductKnowledge = { knowledge: (KnowledgeFields & { status: 'borrad
   public: KnowledgePublic | null; labels: Record<string, Record<string, string>>; can_validate: boolean;
   history: { version: number; action: 'saved' | 'validated' | 'unvalidated'; by: string; at: string }[] };
 export const getProductKnowledge = (productId: string) => rpc<ProductKnowledge>('f360_product_knowledge_get', { p_product_id: productId });
+
+// Clientas (CRM C4 · Mario 2026-10-05): full data only for customer_pii_viewers (Carolina, Mario); everyone else sees counts.
+export type CrmAccess = { pii_viewer: boolean; customers: number };
+export type AdminCustomer = { customer_ref: string; first_name: string; phone_last4: string; shoe_size: string | null; sizes_bought: string[];
+  points: number; tier: 'bronze' | 'silver' | 'gold'; points_pending: number; has_card: boolean; identity_verified: boolean; privacy_consent: string;
+  recent_purchases: { at: string; channel: string; product: string | null; color: string | null; size: string | null; quantity: number }[];
+  name: string; phone: string; email: string | null; postal_code: string | null; country: string | null; birthday_day: number | null; birthday_month: number | null;
+  source: string; created_at: string; registered_location: string | null; consents: Record<string, string> };
+export type AdminCustomerDetail = AdminCustomer & { purchases: AdminCustomer['recent_purchases']; consent_history: { purpose: string; status: string; source: string; version: string | null; at: string }[] };
+export const getCrmAccess = () => rpc<CrmAccess>('f360_crm_access');
+export const listAdminCustomers = (search?: string) => rpc<AdminCustomer[]>('f360_admin_customers', { p_search: search || null, p_limit: 100, p_offset: 0 });
+export const getAdminCustomer = (id: string) => rpc<{ ok: boolean; customer?: AdminCustomerDetail; error?: string }>('f360_admin_customer', { p_customer: id });

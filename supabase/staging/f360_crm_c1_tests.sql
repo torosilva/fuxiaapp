@@ -96,7 +96,7 @@ BEGIN
 
   -- ══ card token ══
   SELECT * INTO anacard FROM public.loyalty_cards WHERE customer_id = ana;
-  PERFORM pg_temp.ok(anacard.qr_code ~ '^FX1-[0-9A-F]{24}$' AND position('90000001' IN anacard.qr_code) = 0 AND position(ana::text IN anacard.qr_code) = 0,
+  PERFORM pg_temp.ok(anacard.qr_code ~ '^FX-[0-9A-F]{24}$' AND position('90000001' IN anacard.qr_code) = 0 AND position(ana::text IN anacard.qr_code) = 0,
     'card: opaque random token (no phone, no id)', regexp_replace(anacard.qr_code, '.{16}$', '…'));
   PERFORM pg_temp.ok(anacard.total_points = 0 AND anacard.tier = 'bronze', 'card: new card starts at 0 / bronze', anacard.total_points::text);
   r := pg_temp.as(s1, format($q$SELECT public.f360_shift_customer_by_card(%L, %L)$q$, tok, anacard.qr_code));
@@ -106,7 +106,7 @@ BEGIN
   PERFORM pg_temp.ok(r->>'code' = 'invalid_card', 'card: unknown token refused', r->>'code');
   SELECT id INTO c1cust FROM public.customers WHERE auth_user_id = c1;
   r := pg_temp.as(c1, format($q$INSERT INTO public.loyalty_cards (customer_id, qr_code, total_points, pairs_count, tier) VALUES (%L, 'FX-50100011-k1-00', 99999, 50, 'gold') RETURNING to_jsonb(loyalty_cards.*)$q$, c1cust));
-  PERFORM pg_temp.ok(r->>'qr_code' ~ '^FX1-' AND (r->>'total_points')::int = 0 AND r->>'tier' = 'bronze',
+  PERFORM pg_temp.ok(r->>'qr_code' ~ '^FX-[0-9A-F]{24}$' AND (r->>'total_points')::int = 0 AND r->>'tier' = 'bronze',
     'card: the app can no longer choose its QR, points or tier (server token, 0, bronze)', left(r::text, 120));
   DELETE FROM public.loyalty_cards WHERE id = (r->>'id')::uuid;
   r := pg_temp.as(car, format($q$SELECT public.f360_admin_rotate_card_token(%L, 'tarjeta compartida en redes')$q$, ana));

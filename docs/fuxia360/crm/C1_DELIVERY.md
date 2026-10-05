@@ -121,10 +121,11 @@
 
 ## 7. Tarjeta Gold / QR
 
-- Formato nuevo: `FX1-` + 24 caracteres hexadecimales aleatorios (96 bits). **No contiene teléfono, id ni datos personales.**
+- Formato: `FX-` + 24 caracteres hexadecimales aleatorios (96 bits). **No contiene teléfono, id ni datos personales.**
+  - **Corrección 2026-10-05** (migración `20261010000600`): C1 usaba `FX1-`, pero el escáner de la app publicada solo acepta códigos que empiezan con `FX-` (`fuxia-native/components/QRScanner.tsx:25`). Lo encontró la auditoría F1.
 - **Lo pone el servidor:** un trigger reemplaza el QR (y fuerza 0 puntos, `bronze`) en todo insert que venga de la app.
   - Cierra la deuda "cards self insert", que permitía elegir puntos o nivel al crear la tarjeta.
-  - La app no necesita cambios: lee el QR de la base al cargar.
+  - La app no necesita cambios: lee el QR de la base al cargar, y con el prefijo `FX-` su escáner lo acepta.
 - **Revocable:** `f360_admin_rotate_card_token` genera un token nuevo y el anterior deja de funcionar al instante. Se audita solo el hash del token anterior.
 - **Tarjetas con formato viejo** (`FX-<últimos 8 dígitos>-…`): `f360.cards_with_legacy_token`. En staging son 5 de prueba (`STG-…`).
   - **No se rotaron**, porque las pruebas existentes dependen de ellas.

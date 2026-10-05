@@ -1,44 +1,70 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { AvailabilityPill, DataStatusTable } from '@/components/DataStatus';
-import { canWrite, getMe } from '@/lib/f360';
-import { CUSTOMER_FIELDS, IDENTITY_DECISIONS, SEGMENTS } from '@/lib/data-audit';
+import { canWrite, getCrmAccess, getMe, listAdminCustomers } from '@/lib/f360';
 
-// Customer 360 (B1/B2) — honest state. The customer model is designed (docs/fuxia360/growth/CUSTOMER_360_MODEL.md)
-// but NOT built: it waits for identity decisions that could otherwise merge or duplicate people. No invented data.
-export default async function Clientes() {
-  if (!canWrite((await getMe()).role)) redirect('/');   // D-G1-05: customer and financial intelligence is owner/operator only
+// Clientas (CRM C4 · Mario 2026-10-05). Full personal data only for customer_pii_viewers (Carolina, Mario), enforced by the
+// database (f360_admin_customers refuses everyone else and logs every access). Others see counts only. No export button.
+const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const TIER: Record<string, string> = { gold: 'bg-gold-soft text-ink', silver: 'bg-surface-2 text-ink-2', bronze: 'bg-surface-2 text-muted' };
+const SOURCE: Record<string, string> = { app: 'App', store: 'Tienda', import: 'Carga', woo: 'En línea', admin: 'Admin' };
+
+export default async function Clientes({ searchParams }: { searchParams: Promise<{ q?: string; cumple?: string }> }) {
+  if (!canWrite((await getMe()).role)) redirect('/');
+  const sp = await searchParams;
+  const access = await getCrmAccess();
+  if (!access.pii_viewer) {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <h1 className="font-display text-5xl text-ink">Clientas</h1>
+        <p className="mt-6 rounded-3xl border border-line bg-surface p-6 text-ink-2">
+          Hay <b className="tabular text-ink">{access.customers.toLocaleString('es-MX')}</b> clientas registradas. Sus datos personales solo los ven Carolina y Mario.
+        </p>
+      </div>
+    );
+  }
+  const all = await listAdminCustomers(sp.q);
+  const month = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City', month: 'numeric' });
+  const rows = sp.cumple ? all.filter((c) => String(c.birthday_month) === month) : all;
+  const pill = (on: boolean) => `rounded-full px-4 py-2 text-sm ${on ? 'bg-ink text-surface' : 'border border-line bg-surface text-ink-2'}`;
   return (
     <div>
-      <h1 className="font-display text-5xl text-ink">Clientes</h1>
-      <p className="mt-2 max-w-3xl text-ink-2">Aquí vivirá la ficha 360 de cada clienta: sus compras en línea y en tienda, lo que ha comprado, su nivel de loyalty y cuándo volvió a comprar.</p>
-
-      <div className="mt-6 rounded-3xl border border-gold/40 bg-gold-soft/60 p-5" data-testid="clientes-status">
-        <p className="text-lg text-ink">Todavía no hay datos suficientes para mostrar clientas.</p>
-        <p className="mt-1 text-ink-2">Antes de unir la información de distintos canales hace falta que Mario decida cómo identificar a cada clienta, para no mezclar a dos personas ni duplicar a una. Nada de esta sección usa números inventados.</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h1 className="font-display text-5xl text-ink">Clientas</h1>
+        <span className="text-sm text-muted">{access.customers.toLocaleString('es-MX')} registradas · solo Carolina y Mario ven estos datos · cada consulta queda registrada</span>
+      </div>
+      <form action="/clientes" className="mt-6 flex flex-wrap gap-2">
+        <label className="min-w-64 flex-1"><span className="sr-only">Buscar</span>
+          <input name="q" defaultValue={sp.q ?? ''} placeholder="Buscar por nombre, correo, WhatsApp o últimos 4 dígitos"
+            className="w-full rounded-2xl border border-line bg-surface px-4 py-3 text-[16px] outline-none focus:border-gold" /></label>
+        <button className="rounded-full bg-ink px-5 py-3 text-surface">Buscar</button>
+      </form>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Link href="/clientes" className={pill(!sp.cumple)}>Todas</Link>
+        <Link href="/clientes?cumple=1" className={pill(!!sp.cumple)}>Cumpleaños de este mes</Link>
       </div>
 
-      <h2 className="font-display mt-10 text-3xl text-ink">Decisiones pendientes</h2>
-      <ol className="mt-3 space-y-2">
-        {IDENTITY_DECISIONS.map((d) => (
-          <li key={d.id} className="rounded-2xl border border-line bg-surface px-5 py-4"><span className="mr-2 font-mono text-sm text-gold-strong">{d.id}</span><span className="text-ink">{d.question}</span></li>
-        ))}
-      </ol>
-
-      <h2 className="font-display mt-10 text-3xl text-ink">Qué información existe de cada clienta</h2>
-      <p className="mt-1 text-sm text-muted">Confiable = completa y correcta · Parcial = solo una parte (no representa el total) · No disponible = no hay fuente accesible.</p>
-      <div className="mt-4"><DataStatusTable rows={CUSTOMER_FIELDS} questionLabel="Dato" /></div>
-
-      <h2 className="font-display mt-10 text-3xl text-ink">Segmentos</h2>
-      <p className="mt-1 text-sm text-muted">Definiciones listas. Se activarán cuando exista historial confiable por clienta.</p>
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        {SEGMENTS.map((s) => (
-          <div key={s.name} className="rounded-2xl border border-line bg-surface p-4" data-segment={s.name}>
-            <div className="flex items-center justify-between gap-2"><p className="font-medium text-ink">{s.name}</p><AvailabilityPill status={s.status} /></div>
-            <p className="mt-1 text-sm text-ink-2">{s.rule}</p>
-            <p className="mt-1 text-xs text-muted">Falta: {s.needs}</p>
-          </div>
-        ))}
-      </div>
+      {rows.length === 0 ? (
+        <p className="mt-8 rounded-2xl border border-dashed border-line p-8 text-center text-muted">
+          {sp.q || sp.cumple ? 'No hay clientas con ese filtro.' : 'Todavía no hay clientas en este ambiente. Las clientas reales llegarán con el pase a producción (opción B).'}
+        </p>
+      ) : (
+        <ul className="mt-6 divide-y divide-line overflow-hidden rounded-3xl border border-line bg-surface">
+          {rows.map((c) => (
+            <li key={c.customer_ref}>
+              <Link href={`/clientes/${c.customer_ref}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-4 transition hover:bg-surface-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-ink">{c.name}</p>
+                  <p className="text-sm text-muted">{c.phone}{c.email ? ` · ${c.email}` : ''}</p>
+                </div>
+                <span className="text-sm text-ink-2">{c.shoe_size ? `Talla ${c.shoe_size}` : c.sizes_bought.length ? `Compra ${c.sizes_bought.join(', ')}` : 'Talla —'}</span>
+                {c.birthday_day && c.birthday_month && <span className="tabular text-sm text-ink-2">Cumple {c.birthday_day} {MONTHS[c.birthday_month - 1]}</span>}
+                <span className="rounded-full bg-surface-2 px-2.5 py-1 text-xs text-ink-2">{SOURCE[c.source] ?? c.source}</span>
+                <span className={`rounded-full px-2.5 py-1 text-xs ${TIER[c.tier] ?? ''}`}>{c.tier} · {c.points.toLocaleString('es-MX')} pts</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
