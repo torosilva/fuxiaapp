@@ -1,3 +1,17 @@
+<?php
+/**
+ * Fuxia 360 · CRO-5 + CRO-6 (Mario 2026-10-05) — STAGING4 ONLY.
+ * Prints tools/storefront/f360-promesa-avisame.html in the footer of product pages: the ONE delivery promise from Fuxia 360
+ * (Edge Function f360-storefront → f360.delivery_promise) + verifiable trust claims + "Avísame cuando llegue".
+ * Install: copy to wp-content/mu-plugins/ on staging4. Rollback: delete the file and purge the cache.
+ * Generated from tools/storefront/f360-promesa-avisame.html (edit that file, then regenerate this one).
+ */
+if ( ! defined( 'ABSPATH' ) ) { exit; }
+if ( false === strpos( (string) wp_parse_url( home_url(), PHP_URL_HOST ), 'staging4.' ) ) { return; }   // never on production
+
+add_action( 'wp_footer', function () {
+	if ( ! function_exists( 'is_product' ) || ! is_product() ) { return; }
+	?>
 <!-- Fuxia 360 · CRO-5 + CRO-6 (Mario 2026-10-05) — STAGING4.
      ONE delivery promise (from Fuxia 360, never hardcoded here) + verifiable trust claims next to "Añadir al carrito",
      and "Avísame cuando llegue" when a size is really unavailable (operational consent, not marketing).
@@ -110,3 +124,6 @@
   });
 })();
 </script>
+
+	<?php
+}, 120 );

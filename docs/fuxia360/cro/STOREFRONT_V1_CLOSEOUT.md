@@ -385,3 +385,94 @@ Se mantiene la lista del prompt, con estos cambios:
 - Texto legal del consentimiento operacional: revisión legal (C3).
 - Envío de avisos cuando llegue la talla: **no construido**, sin campañas por decisión.
 - Certificación en teléfono real (IG/Chrome Android, IG/Safari iPhone): NOT TESTED, porque el snippet no está instalado.
+
+## O. CRO-5/6 · Integration closeout en staging4 (2026-10-05)
+
+**Decisiones de Mario (2026-10-05):**
+1. "Avísame" **solo** en variantes realmente no comprables, **nunca** en tallas sobre pedido. Ya era así: `can_notify` solo aplica a `unavailable`, y la intención se rechaza con `available`.
+2. Colombia: copy conservador, sin días.
+3. Fuera de la Zona Metropolitana: copy conservador, sin días.
+4. El consentimiento de stock es operacional y está marcado como **LEGAL_REVIEW_REQUIRED** (no bloquea staging).
+5. F360 es la única fuente de la promesa dinámica. Lo estático no compite.
+
+**Regla de horario incorporada** (no se cambió a escondidas): el snippet de la PDP ya tenía 8–19 h CDMX → "Entrega Inmediata en Zona Metropolitana", y fuera de horario → "Entrega mañana a partir de las 8 a. m. en Zona Metropolitana". Ahora es dato de `delivery_promise_rules` (migración `20261010000800`, pruebas 27/27, suite 950/950).
+
+### Arquitectura (fuente única)
+
+```
+PRODUCT / VARIANT (f360.channel_variant_identity)
+        ↓
+INVENTORY (f360.online_ats) + MARKET + FULFILLMENT (sales_targets.fulfillment_location_id) + MTO (products.make_to_order)
+        ↓
+DELIVERY PROMISE RULE  (f360.delivery_promise_rules + f360.delivery_promise)  ← único lugar donde vive el texto
+        ↓  Edge Function f360-storefront · action 'promise'
+ ┌──────┼──────────┬────────────┐
+PDP ✅   CHECKOUT ◐  HILO ◐      PEDIDO RECIBIDO ◐
+```
+✅ = lee la regla · ◐ = todavía tiene su propio texto (ver pendientes).
+
+### Promesas duplicadas encontradas en staging4
+
+| Texto | Fuente | Ubicación | Condición | Tipo | Dueño | Acción tomada |
+|---|---|---|---|---|---|---|
+| "Esta talla y color se entrega en **5 a 7** días hábiles" | Bricks · plantilla "Producto Fuxia" (1955) · elemento Code `oyoypn` (versión instalada vieja de `f360-entrega-inmediata.html`) | PDP, bajo el selector | Talla sin existencia | Estática | F360 (sesión 67) | **REPLACE**: versión del repo sin líneas de promesa, firmada por **msilva (Mario)**, firma de Bricks válida. Respaldo `~/f360-backups/bricks_1955_page_content_2_20261005-213202.json` |
+| "🛵 Entrega Inmediata en Zona Metropolitana" / "Entrega mañana a partir de las 8 a. m." | El mismo elemento `oyoypn` | PDP | En existencia, MX | Semidinámica (horario en JS) | F360 (67) | **REPLACE** por la regla F360 (el horario ahora es dato) |
+| "Envío GRATIS y 6 MSI tiempo limitado **· Entrega INMEDIATA en la mayoría de nuestros modelos**" (y variantes CO/US/promo) | WPCode **#2551 "Fuxia envio pagos promo"** v22 (`fuxia_texto_envio()`) | Barra superior `#fx-topbar` y caja `.fx-trust` bajo el botón | Siempre | Estática | Sitio (Adrián/Mario), **también en producción** | **REMOVE** solo la frase de entrega en staging4 (4 reemplazos). Envío gratis, MSI y logos se quedan. Respaldo `~/f360-backups/wpcode_2551_20261005-212944.txt`. **Producción sin tocar** |
+| "6 MSI tiempo limitado" | WPCode #2551, rama "normal" (la promo terminó el 31-jul) | Barra y caja bajo el botón | MX | Estática | Sitio | **KEEP**, pero CONFLICT reportado: la promo venció y el texto dice "tiempo limitado". Decisión comercial de Mario |
+| "Disponible para reserva" | WooCommerce (backorder) | Checkout, línea del par sobre pedido | Talla sin existencia | Woo por defecto | Woo | **PARTIAL**: el snippet que lo reemplaza (`f360-compra.html`, WPCode 4105) no tiene instalada esa versión. Debe leer `promise` |
+| "A la medida · se entrega en 10 días hábiles" | `f360-compra.html` (repo) | Checkout y Pedido recibido | Sobre pedido | Estática | F360 (67) | **PARTIAL**: coincide con la regla, pero es texto propio |
+| "Cambios fáciles · Hasta 30 días" / "Envío a todo el mundo…" | Footer del tema | Pie de página | Siempre | Estática | Sitio | **KEEP**: consistente (cambios 30 días; costo de envío, no tiempo) |
+| Respuestas de Hilo sobre entrega | KB de HiloLabs (parche c) | Chat | — | Estática (mismo texto que la regla) | HiloLabs | **PARTIAL**: no lee la regla. Integración mínima propuesta abajo |
+
+### Pruebas reales en staging4 (navegador, sin inyectar)
+
+| Caso | Resultado | Evidencia |
+|---|---|---|
+| A · F360 con existencia, MX (Botas Largas Café 36) | ✅ Una caja: "Entrega Inmediata en Zona Metropolitana" + fuera de ZM + "Cambios en 30 días". ATC → "✓ Agregado a tu carrito" → Pagar ahora → checkout sin texto contradictorio | `10_`, `11_`, `12_` |
+| B · F360 sobre pedido, MX (Café 35) | ✅ PDP "Producción: 10 días hábiles · Lo hacemos a la medida". Checkout: "Disponible para reserva" (Woo) → ◐ | `13_` |
+| C · F360 agotado / no comprable | **PENDIENTE**: no existe hoy (los 62 modelos permiten sobre pedido). Requiere el OK de Mario para apagar temporalmente el sobre pedido de un modelo. La deduplicación del aviso está probada en base de datos (25/25 → 27/27), no en vivo | `03_…SIMULADO` (simulación) |
+| D · legacy homologado (Paula azul marino) | ✅ "Entrega Inmediata en Zona Metropolitana"; apartado Gold en tienda sigue funcionando | `14_` |
+| E · México | ✅ (A, B, D) | — |
+| F · Colombia (Botas Largas /co/) | ✅ "Te confirmamos el tiempo de entrega al hacer tu pedido", sin días; tallas 35–40; ePayco | `15_` |
+
+### Regresión
+
+| Qué | Resultado |
+|---|---|
+| Producto F360 | ✅ |
+| Legacy | ✅ |
+| MX | ✅ |
+| CO | ✅ |
+| Selector color / talla | ✅ |
+| Fotos | ✅ |
+| Sticky ATC (presente y actualizado con la talla) | ✅ |
+| Añadir al carrito | ✅ |
+| ✓ Agregado | ✅ |
+| Carrito / checkout | ✅ (con el ◐ anterior) |
+| Cupón ("Añadir cupones" visible) | ✅ |
+| Hilo (widget presente) | ✅ |
+| Una sola caja de promesa en todas las PDP probadas | ✅ |
+| Instagram Android real | **Pendiente de Mario** |
+| iPhone / Chrome Android | CRO-7 |
+
+### Demanda (Growth)
+
+`VARIANT → UNAVAILABLE → STOCK INTENT → DEMAND COUNT` queda listo.
+- **Cada intención guarda:** `variant_id`, `canonical_sku`, `product_key`, `market` y fecha.
+- **Se cruza por SKU canónico con:**
+  - inventario: `online_ats`;
+  - ventas: `commerce_order_lines.canonical_sku`;
+  - sobre pedido: `made_to_order`.
+- **Campañas:** por `source` / `page_url` y, a futuro, `utm` sin PII.
+- No se implementó Campaign 360.
+
+### Pendientes
+
+1. **Caso C en vivo:** OK de Mario para apagar el sobre pedido de un modelo durante la prueba.
+2. **Checkout y Pedido recibido** deben leer `promise`: instalar la versión de `f360-compra.html` que reemplaza "Disponible para reserva" y cambiar su texto por la regla.
+3. **Hilo, integración mínima:** una herramienta en HiloLabs (`app/core/tools.py`, `get_delivery_promise(woo_product_id, market)`) que llame a `f360-storefront` `promise`. Sin tabla ni regla nueva.
+4. **Instagram Android real.**
+5. **"6 MSI tiempo limitado"** con la promo vencida: decisión comercial.
+6. **Producción:** nada de esto está ahí. El snippet #2551 de producción sigue diciendo "Entrega INMEDIATA en la mayoría de nuestros modelos".
+
+**Estado: CRO-5 = PARTIAL** (falta el caso C en vivo). **CRO-6 = PARTIAL** (PDP ✅; checkout, Pedido recibido y Hilo todavía con texto propio; IG Android real pendiente).

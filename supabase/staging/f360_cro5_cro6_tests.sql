@@ -39,7 +39,7 @@ BEGIN
 
   -- ══ CRO-6 · one rule ══
   r := public.f360_storefront_promise('zz_promesa', 9600, 'MX');
-  PERFORM pg_temp.ok(r->'variations'->'960036'->>'case' = 'in_stock' AND r->'variations'->'960036'->>'headline' = 'Entrega Inmediata en Zona Metropolitana'
+  PERFORM pg_temp.ok(r->'variations'->'960036'->>'case' = 'in_stock' AND r->'variations'->'960036'->>'headline' LIKE 'Entrega%en Zona Metropolitana'
       AND r->'variations'->'960036'->>'status' = 'known', 'MX in stock → "Entrega Inmediata en Zona Metropolitana" (known rule)', (r->'variations'->'960036')::text);
   PERFORM pg_temp.ok(r->'variations'->'960038'->>'case' = 'made_to_order' AND r->'variations'->'960038'->>'headline' = 'Producción: 10 días hábiles'
       AND (r->'variations'->'960038'->>'business_days')::int = 10, 'MX no stock + MTO → "Producción: 10 días hábiles"', (r->'variations'->'960038')::text);
@@ -56,6 +56,14 @@ BEGIN
   r := public.f360_storefront_promise('zz_promesa', 9600, 'MX');
   PERFORM pg_temp.ok(r->'trust' @> '[{"key":"cambios","text":"Precio con descuento: sin cambio"}]', 'direct discount on the shoe → "sin cambio" (Mario''s rule)', (r->'trust')::text);
   PERFORM pg_temp.ok(public.f360_storefront_promise('zz_promesa', 123456789, 'MX')->'variations' = '{}'::jsonb, 'unknown Woo product → no promise (channel keeps its own state)', '');
+
+  -- time window (rule data): 10:00 CDMX → immediate; 21:00 CDMX → tomorrow 8 a. m.
+  PERFORM pg_temp.ok(f360.delivery_promise(v36, loc, 'MX', '2026-10-05 10:00 America/Mexico_City')->>'headline' = 'Entrega Inmediata en Zona Metropolitana'
+      AND f360.delivery_promise(v36, loc, 'MX', '2026-10-05 21:00 America/Mexico_City')->>'headline' = 'Entrega mañana a partir de las 8 a. m. en Zona Metropolitana'
+      AND f360.delivery_promise(v36, loc, 'MX', '2026-10-05 07:59 America/Mexico_City')->>'headline' LIKE 'Entrega mañana%',
+    'MX in stock: 8–19 h CDMX immediate, otherwise "mañana a partir de las 8 a. m." (the PDP rule, now F360 data)', 'ok');
+  PERFORM pg_temp.ok(f360.delivery_promise(v38, loc, 'MX', '2026-10-05 21:00 America/Mexico_City')->>'headline' = 'Producción: 10 días hábiles',
+    'the window applies only to in-stock', 'ok');
 
   -- ══ CRO-5 · Avísame ══
   r := public.f360_stock_intent_create('zz_promesa', 9600, 960038, 'MX', '55 9100 0001', 'Lu', true);

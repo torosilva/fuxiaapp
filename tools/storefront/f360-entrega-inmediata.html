@@ -1,4 +1,5 @@
-<p class="f360-sobrepedido" hidden>Esta talla y color te la hacemos <b>a la medida</b> y se entrega en <b>10 días hábiles</b>.<span class="f360-cambio">Si no te quedan, <a class="f360-cambios-link" href="/cambios/">cámbialas</a>.</span></p>
+<!-- CRO-6 (Mario 2026-10-05): the delivery promise ("10 días hábiles", "Entrega Inmediata…") is no longer here — it comes from
+     Fuxia 360 (f360-promesa-avisame.html → Edge Function f360-storefront → f360.delivery_promise). One promise per page. -->
 <div class="f360-medida">
   <p class="f360-med-t">¿Dudas con tu talla o no encontraste tu color? <b>Lo hacemos a la medida.</b></p>
   <button type="button" class="f360-med-abrir">¡Pregúntale a Hilo!</button>
@@ -10,11 +11,6 @@
   <form class="f360-hilo-in"><input type="text" autocomplete="off" aria-label="Tu respuesta"><input type="text" name="website" tabindex="-1" autocomplete="off" class="f360-hp" aria-hidden="true"><button type="submit">Enviar</button></form>
 </div>
 <div class="f360-inmediata" hidden>
-  <div class="f360-inm-envio" hidden>
-    <p class="f360-inm-envio-t"></p>
-    <p class="f360-inm-envio-fuera">Fuera de la Zona Metropolitana te confirmamos el tiempo al hacer tu pedido.</p>
-    <p class="f360-inm-envio-n">Si no te quedan, <a class="f360-cambios-link" href="/cambios/">cámbialas</a>.</p>
-  </div>
   <div class="f360-inm-probar" hidden>
   <p class="f360-inm-titulo">¿Prefieres probártelas? Están hoy en <b class="f360-inm-tiendas"></b></p>
   <button type="button" class="f360-inm-boton">Fuxia Gold: te las apartamos 2 horas</button>
@@ -367,7 +363,7 @@
     if (window.MutationObserver) new MutationObserver(limpiarStock).observe(form, { childList: true, subtree: true, characterData: true });
     var variation = null, stores = [], phone = '';
     function msg(t, ok) { var m = q('.f360-inm-msg'); m.textContent = t || ''; m.className = 'f360-inm-msg ' + (ok ? 'ok' : 'err'); }
-    function reset() { if (sobre) sobre.hidden = true; box.hidden = true; q('.f360-inm-envio').hidden = true; q('.f360-inm-probar').hidden = true; q('.f360-inm-flujo').hidden = true; q('.f360-inm-boton').hidden = false; q('.f360-inm-tel').hidden = false; q('.f360-inm-cod').hidden = true; msg(''); }
+    function reset() { if (sobre) sobre.hidden = true; box.hidden = true; q('.f360-inm-probar').hidden = true; q('.f360-inm-flujo').hidden = true; q('.f360-inm-boton').hidden = false; q('.f360-inm-tel').hidden = false; q('.f360-inm-cod').hidden = true; msg(''); }
     $(form).on('found_variation', function (e, v) {
       variation = v && v.variation_id; reset(); if (!variation) return;
       // 10 días hábiles (Mario 2026-10-04, antes 5 a 7; never called "sobre pedido" to the customer): no stock but orderable → Woo marks it "available-on-backorder"
@@ -381,13 +377,8 @@
 
       if (sobre) sobre.hidden = !bajoPedido;
       if (!mexico) return;
-      // Entrega (Mario 2026-10-03): stores are warehouses too, so "in stock" = Bodega CDMX or any store. 8 a. m.–7 p. m.
-      // (CDMX time) → "Entrega inmediata en Zona Metropolitana"; later → tomorrow from 8 a. m. Try-on in a store is offered too.
-      if (v.is_in_stock && !bajoPedido) {
-        var h = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;
-        q('.f360-inm-envio-t').textContent = h >= 8 && h < 19 ? '🛵 Entrega Inmediata en Zona Metropolitana' : '🛵 Entrega mañana a partir de las 8 a. m. en Zona Metropolitana';
-        q('.f360-inm-envio').hidden = false; box.hidden = false;
-      }
+      // Entrega: CRO-6 (Mario 2026-10-05) — the promise (incl. the 8–19 h CDMX window) is Fuxia 360's rule now
+      // (f360.delivery_promise_rules), rendered by f360-promesa-avisame.html. Here only the in-store try-on remains.
       var asked = variation;
       api({ action: 'availability', woo_variation_id: variation }).then(function (j) {
         if (asked !== variation) return;                       // the customer changed size meanwhile
