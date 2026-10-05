@@ -3,14 +3,21 @@
 // Actions (POST JSON):
 //   promise   {woo_product_id, market}                     → { market, product_key, variations: {<woo_variation_id>: promise}, trust }
 //   notify_me {woo_product_id, woo_variation_id, market, phone, name?, consent: true, page_url?, website? (honeypot)}
+//   promise_lines {woo_variation_ids: number[], market} → { market, lines: {<woo_variation_id>: promise} }   (checkout, Pedido recibido)
+// Server-to-server callers (Hilo) send header x-f360-key = SERVER_KEY instead of a browser Origin; they may only read promises.
 // The rule, the texts and every check live in the database (f360.delivery_promise_rules, f360_storefront_promise,
 // f360_stock_intent_create): this file only validates the shape, hashes the IP for rate limiting and forwards.
 // The sales channel comes from configuration (F360_STOREFRONT_TARGET), never from the browser.
-export type StorefrontEnv = { SUPABASE_URL: string; SUPABASE_SERVICE_ROLE_KEY: string; ALLOWED_ORIGINS: string; TARGET_KEY: string };
+export type StorefrontEnv = { SUPABASE_URL: string; SUPABASE_SERVICE_ROLE_KEY: string; ALLOWED_ORIGINS: string; TARGET_KEY: string; SERVER_KEY?: string };
 
 const MARKETS = new Set(['MX', 'CO', 'US']);
 const promiseCache = new Map<string, { at: number; data: unknown }>();
 const PROMISE_TTL_MS = 30_000;
+
+function timingSafeEqual(a: string, b: string) {
+  let x = 0; for (let i = 0; i < a.length; i++) x |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return x === 0;
+}
 
 async function sha256(text: string): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
@@ -25,7 +32,9 @@ export async function handleStorefront(req: Request, env: StorefrontEnv, fetchIm
   const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...cors } });
   if (req.method === 'OPTIONS') return new Response(null, { status: allowed.includes(origin) ? 204 : 403, headers: cors });
   if (req.method !== 'POST') return json({ error: 'Método no permitido.' }, 405);
-  if (!allowed.includes(origin)) return json({ error: 'Origen no permitido.' }, 403);
+  const serverKey = req.headers.get('x-f360-key') ?? '';
+  const server = !!env.SERVER_KEY && env.SERVER_KEY.length >= 24 && serverKey.length === env.SERVER_KEY.length && timingSafeEqual(serverKey, env.SERVER_KEY);
+  if (!allowed.includes(origin) && !server) return json({ error: 'Origen no permitido.' }, 403);
   if (!env.TARGET_KEY) return json({ error: 'Canal no configurado.' }, 500);
 
   let body: Record<string, unknown>;
@@ -36,8 +45,16 @@ export async function handleStorefront(req: Request, env: StorefrontEnv, fetchIm
     const data = await r.json().catch(() => null);
     return r.ok ? { ok: true, data: data as T } : { ok: false, error: (data as { message?: string } | null)?.message ?? 'No se pudo completar.' };
   };
-  const product = Number(body.woo_product_id);
   const market = MARKETS.has(String(body.market ?? '').toUpperCase()) ? String(body.market).toUpperCase() : 'MX';
+
+  if (body.action === 'promise_lines') {
+    const ids = Array.isArray(body.woo_variation_ids) ? body.woo_variation_ids.map(Number) : [];
+    if (!ids.length || ids.length > 50 || ids.some((n) => !Number.isInteger(n) || n <= 0)) return json({ error: 'Líneas no válidas.' }, 400);
+    const r = await rpc('f360_storefront_promise_lines', { p_target_key: env.TARGET_KEY, p_woo_variation_ids: ids, p_market: market });
+    return json(r.ok ? r.data : { market, lines: {} });                       // fail closed: no promise rather than a wrong one
+  }
+
+  const product = Number(body.woo_product_id);
   if (!Number.isInteger(product) || product <= 0) return json({ error: 'Producto no válido.' }, 400);
 
   if (body.action === 'promise') {
@@ -51,6 +68,7 @@ export async function handleStorefront(req: Request, env: StorefrontEnv, fetchIm
   }
 
   if (body.action === 'notify_me') {
+    if (server) return json({ error: 'Acción no permitida.' }, 403);          // server callers only read promises
     if (body.website) return json({ ok: true });                                 // honeypot
     const variation = Number(body.woo_variation_id);
     if (!Number.isInteger(variation) || variation <= 0) return json({ error: 'Talla no válida.' }, 400);

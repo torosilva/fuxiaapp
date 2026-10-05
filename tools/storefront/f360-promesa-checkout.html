@@ -1,0 +1,89 @@
+<!-- Fuxia 360 · CRO-6 (Mario 2026-10-05) — checkout + "Pedido recibido" read the SAME delivery promise as the PDP.
+     Lines come from the server (window.F360_LINES = [{v: woo_variation_id}] in the order WooCommerce paints them, printed by the
+     staging4 mu-plugin; no personal data). Promise per line from Edge Function f360-storefront (action promise_lines →
+     f360.delivery_promise). Replaces Woo's "Disponible para reserva" with the computed promise and shows "Talla MX" instead of
+     "Medida" (presentation only; the variation keeps its value). Mixed carts: each line shows ITS promise (no combined claim). -->
+<style>
+  .f360-linea-promesa{margin-top:4px;font:600 12.5px/1.35 Montserrat,system-ui,sans-serif;color:#2f5a3f}
+  .f360-linea-promesa.mto{color:#8a6a2f}
+  .f360-linea-promesa.blocked{color:#6b6157;font-weight:500}
+</style>
+<script>
+(function () {
+  var ENDPOINT = 'https://faltxpkaicwpnlqaxrdu.supabase.co/functions/v1/f360-storefront';
+  var LINES = window.F360_LINES || [];
+  if (!LINES.length) return;
+  var mk = /^\/co(\/|$)/.test(location.pathname) ? 'CO' : 'MX';
+  var promises = null;
+  fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'promise_lines', woo_variation_ids: LINES.map(function (l) { return l.v; }), market: mk }) })
+    .then(function (r) { return r.json(); }).then(function (d) { promises = d.lines || {}; apply(); }).catch(function () { promises = {}; });
+
+  function sizeLabel(label, value) {      // presentation only: "Medida: 36" → "Talla MX: 23" in México, "Talla: 36" elsewhere
+    if (!/medida/i.test(label || '')) return null;             // only Woo's original label: idempotent on repaints
+    var v = String(value || '').trim();
+    if (mk === 'MX' && /^(3[5-9]|40)(\.5)?$/.test(v)) return { label: 'Talla MX', value: String(Number(v) - 13) };
+    return { label: 'Talla', value: v };
+  }
+  function promiseEl(p) {
+    var d = document.createElement('div');
+    d.className = 'f360-linea-promesa' + (p.case === 'made_to_order' ? ' mto' : '') + (p.status === 'blocked' ? ' blocked' : '');
+    d.textContent = p.headline; return d;
+  }
+  function sizes(container) {
+    // size presentation (blocks: details name/value · classic: wc-item-meta strong + p)
+    [].forEach.call(container.querySelectorAll('.wc-block-components-product-details > span, .wc-block-components-product-details__item, .wc-item-meta li'), function (li) {
+      var n = li.querySelector('.wc-block-components-product-details__name, .wc-item-meta-label');
+      var v = li.querySelector('.wc-block-components-product-details__value, p');
+      if (!n || !v) return;
+      var s = sizeLabel(n.textContent.replace(/:\s*$/, ''), v.textContent);
+      if (s) { n.textContent = s.label + ': '; v.textContent = s.value; }
+    });
+    // classic thank-you: the size is part of the item name ("Botas Largas - Café, 36") → "…, Talla MX 23"
+    [].forEach.call(container.querySelectorAll('td.product-name > a, td.woocommerce-table__product-name > a'), function (a) {
+      a.textContent = a.textContent.replace(/,\s*(3[5-9]|40)(\.5)?\s*$/, function (m, n, h) {
+        var v = n + (h || ''); return mk === 'MX' ? ', Talla MX ' + String(Number(v) - 13) : ', Talla ' + v;
+      });
+    });
+    // single-line metadata ("Color: Café / Medida: 36"): rewrite only the size part of the text nodes
+    var walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT), node, nodes = [];
+    while ((node = walker.nextNode())) nodes.push(node);
+    nodes.forEach(function (tn) {
+      tn.nodeValue = tn.nodeValue.replace(/(Medida)\s*:\s*(\d{2}(?:\.5)?)/gi, function (m, l, v) { var s = sizeLabel(l, v); return s ? s.label + ': ' + s.value : m; });
+    });
+  }
+  function decorate(container, i) {
+    if (!container) return;
+    sizes(container);                                       // every pass: React may repaint the metadata
+    if (container.getAttribute('data-f360') === '1' && container.querySelector('.f360-linea-promesa')) return;
+    var p = promises[String((LINES[i] || {}).v)];
+    // Woo's generic backorder texts never show: the promise replaces them
+    [].forEach.call(container.querySelectorAll('.wc-item-meta li'), function (li) {   // classic thank-you: whole "Reservado: 1" row
+      var lb = li.querySelector('.wc-item-meta-label, strong');
+      if (lb && /^(reservado|backordered|disponible para reserva)\s*:?$/i.test(lb.textContent.trim())) li.style.display = 'none';
+    });
+    [].forEach.call(container.querySelectorAll('.wc-block-components-product-backorder-badge, .wc-block-components-product-badge, dt, dd, p, span, strong'), function (el) {
+      if (el.children.length > 1) return;
+      if (/^(disponible para reserva|reservado:?|backordered:?|available on backorder)$/i.test((el.textContent || '').trim())) {
+        var nx = el.nextElementSibling; if (nx && /^\s*\d+\s*$/.test(nx.textContent)) nx.style.display = 'none';
+        el.style.display = 'none';
+      }
+    });
+    if (p && p.headline && p.case !== 'unknown') {
+      var host = container.querySelector('.wc-block-components-order-summary-item__description, .wc-block-components-product-metadata, td.product-name') || container;
+      host.appendChild(promiseEl(p));
+    }
+    container.setAttribute('data-f360', '1');
+  }
+  function apply() {
+    if (!promises) return;
+    var items = document.querySelectorAll('.wc-block-components-order-summary-item');                      // checkout (blocks)
+    if (!items.length) items = document.querySelectorAll('table.woocommerce-table--order-details tbody tr.order_item, table.woocommerce-table--order-details tbody tr.woocommerce-table__line-item'); // Pedido recibido (classic)
+    if (!items.length) items = document.querySelectorAll('.wc-block-order-confirmation-totals__product, .wc-block-components-order-confirmation-product'); // Pedido recibido (blocks)
+    [].forEach.call(items, function (it, i) { decorate(it, i); });
+  }
+  var t = null;
+  if (window.MutationObserver) new MutationObserver(function () { clearTimeout(t); t = setTimeout(apply, 150); })
+    .observe(document.body, { childList: true, subtree: true });
+})();
+</script>

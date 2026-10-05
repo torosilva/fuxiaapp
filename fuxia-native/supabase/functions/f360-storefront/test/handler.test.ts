@@ -55,3 +55,22 @@ test('unconfigured channel → 500 (fail closed)', async () => {
   const r = await handleStorefront(post({ action: 'promise', woo_product_id: 1 }), { ...env, TARGET_KEY: '' }, fakeFetch({}));
   assert.equal(r.status, 500);
 });
+
+test('promise_lines: validated ids → same rule per line; channel from config', async () => {
+  const calls: { fn: string; args: Record<string, unknown> }[] = [];
+  const data = { market: 'MX', lines: { '10': { case: 'made_to_order', headline: 'Producción: 10 días hábiles' } } };
+  const r = await handleStorefront(post({ action: 'promise_lines', woo_variation_ids: [10, 11], market: 'MX' }), env, fakeFetch({ f360_storefront_promise_lines: data }, calls));
+  assert.deepEqual(await r.json(), data);
+  assert.deepEqual(calls[0].args.p_woo_variation_ids, [10, 11]); assert.equal(calls[0].args.p_target_key, 'woo_staging4');
+  const bad = await handleStorefront(post({ action: 'promise_lines', woo_variation_ids: ['x'] }), env, fakeFetch({}));
+  assert.equal(bad.status, 400);
+});
+test('server key: Hilo can read promises without a browser Origin, but cannot register intents', async () => {
+  const key = 'k'.repeat(32), e2 = { ...env, SERVER_KEY: key };
+  const ok = await handleStorefront(post({ action: 'promise', woo_product_id: 5 }, '', { 'x-f360-key': key }), e2, fakeFetch({ f360_storefront_promise: { variations: {} } }));
+  assert.equal(ok.status, 200);
+  const wrong = await handleStorefront(post({ action: 'promise', woo_product_id: 5 }, '', { 'x-f360-key': 'k'.repeat(31) + 'x' }), e2, fakeFetch({}));
+  assert.equal(wrong.status, 403);
+  const notify = await handleStorefront(post({ action: 'notify_me', woo_product_id: 5, woo_variation_id: 6, phone: '5512345678', consent: true }, '', { 'x-f360-key': key }), e2, fakeFetch({}));
+  assert.equal(notify.status, 403);
+});

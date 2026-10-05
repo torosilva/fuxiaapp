@@ -65,6 +65,12 @@ BEGIN
   PERFORM pg_temp.ok(f360.delivery_promise(v38, loc, 'MX', '2026-10-05 21:00 America/Mexico_City')->>'headline' = 'Producción: 10 días hábiles',
     'the window applies only to in-stock', 'ok');
 
+  -- lines (checkout / thank-you): same rule per Woo variation; unknown variation → unknown
+  r := public.f360_storefront_promise_lines('zz_promesa', ARRAY[960036, 960038, 999999999]::bigint[], 'MX');
+  PERFORM pg_temp.ok(r->'lines'->'960036'->>'case' = 'in_stock' AND r->'lines'->'960038'->>'case' = 'made_to_order'
+      AND r->'lines'->'999999999'->>'case' = 'unknown' AND r->'lines'->'960038' = f360.delivery_promise(v38, loc, 'MX'),
+    'lines: each line gets EXACTLY the PDP rule (same function); unknown line → unknown', left((r->'lines')::text, 160));
+
   -- ══ CRO-5 · Avísame ══
   r := public.f360_stock_intent_create('zz_promesa', 9600, 960038, 'MX', '55 9100 0001', 'Lu', true);
   PERFORM pg_temp.ok(r->>'code' = 'available' AND r->'promise'->>'case' = 'made_to_order', 'an orderable size (MTO) is not "agotada": intent refused, promise returned', r::text);

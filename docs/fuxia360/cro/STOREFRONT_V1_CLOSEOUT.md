@@ -476,3 +476,149 @@ PDP ✅   CHECKOUT ◐  HILO ◐      PEDIDO RECIBIDO ◐
 6. **Producción:** nada de esto está ahí. El snippet #2551 de producción sigue diciendo "Entrega INMEDIATA en la mayoría de nuestros modelos".
 
 **Estado: CRO-5 = PARTIAL** (falta el caso C en vivo). **CRO-6 = PARTIAL** (PDP ✅; checkout, Pedido recibido y Hilo todavía con texto propio; IG Android real pendiente).
+
+## P. CRO-5/6 · Cierre en staging (2026-10-05, autorizado por Mario) — reemplaza el estado de §O
+
+**Fuente única.** Las 4 superficies leen `f360.delivery_promise` (regla en `f360.delivery_promise_rules`) a través de la Edge Function `f360-storefront`. Ninguna guarda el texto de la regla. Cambiar una fila de `delivery_promise_rules` cambia PDP, checkout, Pedido recibido y Hilo sin tocar código.
+
+```
+f360.delivery_promise_rules ─→ f360.delivery_promise(variant, fulfillment, market, now)
+   ├─ action 'promise'        (por producto) ─→ PDP (f360-promesa-avisame.html)   · Hilo (tool get_delivery_promise, llave servidor)
+   └─ action 'promise_lines'  (por variación, migración 20261010001000) ─→ Checkout · Pedido recibido (f360-promesa-checkout.html; mu-plugin imprime solo ids de variación)
+```
+
+### P.1 Matriz por superficie (staging4)
+
+| SUPERFICIE | EXISTENCIA (MX) | SOBRE PEDIDO (MX) | AGOTADO | COLOMBIA | SOURCE |
+|---|---|---|---|---|---|
+| **PDP** | "Entrega Inmediata en Zona Metropolitana" (8–19 h CDMX; fuera de horario "Entrega mañana a partir de las 8 a. m. en Zona Metropolitana") | "Producción: 10 días hábiles" | "Agotada" + Avísame (consentimiento operacional) | "Te confirmamos el tiempo de entrega al hacer tu pedido" | `promise` → `f360.delivery_promise` |
+| **CHECKOUT** | Por línea: "Talla MX 23 · Entrega Inmediata en Zona Metropolitana" | Por línea: "Talla MX 22 · Producción: 10 días hábiles". Sin "Disponible para reserva" | No llega (no se puede comprar) | Mismo texto conservador por línea | `promise_lines` → `f360.delivery_promise` |
+| **PEDIDO RECIBIDO** | Por línea, mismo texto | Por línea, mismo texto. Sin "Reservado" | No aplica | Mismo texto conservador | `promise_lines` (ítems del pedido, `order_key` verificado con `hash_equals`) |
+| **HILO** | Consulta la tool → "Entrega Inmediata en Zona Metropolitana" | Consulta la tool → "Producción: 10 días hábiles" | Consulta la tool (caso `unavailable`) | Consulta la tool → "se confirma al hacer el pedido" | tool `get_delivery_promise` → `promise` (rama local `f360-delivery-promise`, **sin deploy**) |
+
+- **Talla en checkout y Pedido recibido:** solo presentación. "Medida: 36" se muestra como "Talla MX: 23" (talla Fuxia − 13, igual que la PDP). El valor de la variación en Woo no cambia.
+- **Pedido con promesas mixtas** (una línea en existencia y otra sobre pedido): cada línea muestra su propia promesa, sin un mensaje combinado. **BUSINESS_RULE_PENDING (Mario):** ¿se envía todo junto (fecha = la más tardía) o en dos envíos? No se simplificó.
+
+### P.2 CRO-5 · Caso C en vivo (agotado)
+
+- **Piloto:** Botas cortas (F360 `fb29e937-…`, Woo 3720), staging F360 `faltx…` + staging4.
+- **Estado original:** `make_to_order = true`, Woo `backorders = notify`.
+- **Durante la prueba:**
+  - 21:39 UTC: `make_to_order = false` (como Carolina, `catalog_changes` 169). Woo pasó a `backorders = no`.
+  - PDP Café talla Fuxia 35 (variación 3734) → "Agotada" + "Avísame cuando llegue" (`20_`, `21_`).
+  - Se mandó el teléfono de prueba 55 0000 0001, nombre "Prueba CRO5", con consentimiento → intención `F360-BOTAS-CORTAS-CAFE-35`, MX, `pdp`, `waiting`, consentimiento `stock_notification` v`2026-10-05-v1`. **No se creó una clienta** (`22_`).
+  - Demanda (`/demanda`, `f360_stock_demand()`): Botas cortas Café 35 = **1** en espera.
+- **Dedupe:** la misma persona escrita "+52 1 55 0000 0001", misma variante → `already: true`, sin intención nueva; la demanda siguió en 1 (`23_`).
+- **Restauración:** 21:48 UTC `make_to_order = true` (`catalog_changes` 170), Woo `backorders = notify`, intención de prueba → `cancelled`. Verificado después: `promise` 3720 MX = 8 sobre pedido / 4 en existencia, 0 agotadas.
+- **Nota:** las capturas 20–23 son anteriores al retiro de "6 MSI tiempo limitado" (por eso aún se ve en la caja).
+
+### P.3 Pruebas Hilo (local, rama `f360-delivery-promise`)
+
+- **Montaje:** Claude real y regla F360 real (staging). Solo la búsqueda de catálogo de WooCommerce se sustituyó por los datos públicos de staging4, porque el `.env` local no tiene llaves de Woo y no se usaron las de producción.
+
+| Pregunta | Tools llamadas | Respuesta |
+|---|---|---|
+| Paula azul marino talla 24 MX, CDMX | search → check_inventory → **get_delivery_promise(655, MX)** | "Entrega Inmediata en Zona Metropolitana" ✅ |
+| Botas Largas café talla 35, CDMX (sobre pedido) | … → **get_delivery_promise(3721, MX)** | "Producción: 10 días hábiles — las hacemos a la medida" ✅ |
+| Botas Largas café talla 36, CDMX | … → **get_delivery_promise(3721, MX)** | "Entrega Inmediata en Zona Metropolitana" ✅ |
+| Paula azul marino talla 37, Bogotá | … → **get_delivery_promise(655, CO)** | "Para Colombia el tiempo de entrega se confirma al hacer el pedido" ✅ |
+| "¿Cuánto tarda el envío en general?" | ninguna (pregunta sin modelo) | Responde con el **KB** (texto copiado de la regla + EE. UU./Canadá DHL 10–12 días) ◐ |
+
+**Hallazgos (Hilo, no se corrigieron aquí):**
+- **Tallas:** convirtió 24 MX → 36 y 26 MX → 38 (correcto: 37 y 39). La tabla correcta (MX = Fuxia − 13) ya está en el KB, pero no se recupera en preguntas de entrega. Es un problema de recuperación en Hilo, separado de la regla de promesa; queda como unidad aparte.
+- **Liga de compra:** inventó la liga `…/?variation_id=657` cuando `check_inventory` no trajo `buy_url` (en la prueba porque estaba sustituido). Hay que revisarlo en el deploy.
+
+**Parche de KB (d)** (`fuxia-chatbot/scripts/kb_patch_2026_10d.py`, **dry-run, NO aplicado**):
+- quita el texto copiado de la regla en "¿Cuánto tarda el envío?" y en "¿Qué métodos de pago aceptan?";
+- con eso la pregunta general pide modelo, talla y lugar, y Hilo consulta la tool.
+
+Es un cambio de producción (KB en vivo), así que se aplica junto con el deploy de Hilo y con autorización de Mario.
+
+### P.4 "6 MSI tiempo limitado" y otra copia comercial
+
+- **staging4:**
+  - WPCode #2551 ahora dice "Envío GRATIS" (respaldo `~/f360-backups/wpcode_2551_20261005-215116.txt`); `fuxia_promo_vigente()` = false.
+  - Verificado por HTML (Botas Largas, Paula MX, Paula /co/): 0 "MSI", 0 "tiempo limitado", 0 "Entrega INMEDIATA".
+  - "Disponible para reserva" solo vive en el JSON de variaciones de Woo y está oculto con CSS (`.available-on-backorder{display:none}`).
+- **Afirmaciones que quedan (verificables):**
+  - "Envío GRATIS" (configuración de envío actual);
+  - "Cambios en 30 días" (política de Mario);
+  - "Pago 100% seguro" + logos (pasarelas configuradas).
+- **El KB de Hilo** dice "Por el momento no manejamos meses sin intereses", y el **sitio de producción** sigue anunciando 6 MSI. Es una contradicción comercial para Mario.
+- **Producción (sin tocar). Para el pase**, WPCode #2551 "Fuxia envio pagos promo" (`fuxia_texto_envio()`):
+  - línea 46, texto normal: "Envío GRATIS y 6 MSI tiempo limitado · Entrega INMEDIATA en la mayoría de nuestros modelos";
+  - líneas 41, 44 y 45: variantes CO / US / promo con "Entrega INMEDIATA en la mayoría de nuestros modelos";
+  - `FUXIA_PROMO_MSJ_MX` y el bloque `fx-trust-msi`: condicionados a la promo; revisar al pase.
+  - Se ve en la barra `#fx-topbar` y en la caja `.fx-trust` bajo "Añadir al carrito".
+
+### P.5 Reglas de negocio pendientes
+
+| Regla | Estado |
+|---|---|
+| Colombia: tiempo de entrega | **BUSINESS_RULE_PENDING**: copy "Te confirmamos el tiempo de entrega al hacer tu pedido" (`status = blocked`) |
+| México fuera de la Zona Metropolitana | **BUSINESS_RULE_PENDING**: mismo copy conservador. Hoy la regla no distingue CP. La promesa MX en existencia dice "en Zona Metropolitana" |
+| EE. UU. / Canadá (DHL 10–12 días hábiles) | **BUSINESS_RULE_PENDING**: solo existe en el KB de Hilo, no en la regla F360. Es una segunda fuente que hay que decidir: llevarla a la regla o quitarla |
+| Pedido con promesas mixtas | **BUSINESS_RULE_PENDING**: se muestra por línea |
+| Consentimiento `stock_notification` v1 | **LEGAL_REVIEW_REQUIRED** (no bloquea) |
+| 6 MSI | Decisión comercial (§P.4) |
+
+### P.6 Definition of Done
+
+**CRO-5:**
+
+| Criterio | Estado |
+|---|---|
+| Agotado probado en vivo | ✅ |
+| Intención registrada | ✅ |
+| Dedupe probado | ✅ |
+| Demanda actualizada | ✅ |
+| Piloto restaurado | ✅ |
+| Sin regresión | ✅ (suite DB 951/951; PDP A/B/D/F) |
+
+**→ CRO-5 = DONE (técnico, staging).**
+
+**CRO-6:**
+
+| Criterio | Estado |
+|---|---|
+| PDP usa la regla F360 | ✅ |
+| Checkout usa la regla F360 | ✅ |
+| Pedido recibido usa la regla F360 | ✅ |
+| Sin "Disponible para reserva" | ✅ |
+| Talla MX correcta (solo presentación) | ✅ |
+| Fallback CO | ✅ |
+| Legacy | ✅ |
+| Hilo consulta la regla | ◐ Implementado y probado en local; falta deploy (= producción de Hilo) y parche KB (d) |
+
+**→ CRO-6 = PARTIAL** hasta que Hilo con la tool esté desplegado y el KB ya no tenga el texto copiado.
+
+**REAL_DEVICE_ACCEPTANCE_PENDING_MARIO:** Instagram Android real. Es aparte del DONE técnico.
+
+### P.7 Cambios exactos en staging
+
+| Dónde | Cambio | Rollback |
+|---|---|---|
+| Supabase staging `faltx…` | Migración `20261010000800` (horario en la regla) | `supabase/rollbacks/20261010000800_*.down.sql` |
+| Supabase staging `faltx…` | Migración `20261010001000` (`f360_storefront_promise_lines`) | `supabase/rollbacks/20261010001000_*.down.sql` |
+| Edge Function `f360-storefront` | `promise_lines` + llave servidor-a-servidor; `notify_me` cerrado a llamadas de servidor | Redeploy de la versión anterior |
+| Secret `F360_STOREFRONT_SERVER_KEY` | Nuevo (no está en el repo) | Borrar el secret |
+| staging4 · mu-plugin `f360-promesa-avisame-staging4.php` | PDP + checkout + Pedido recibido; host guard `staging4.` | Borrar el archivo |
+| staging4 · Bricks 1955 `oyoypn` | `f360-entrega-inmediata.html` sin líneas de promesa, firmado msilva | `~/f360-backups/bricks_1955_page_content_2_20261005-213202.json` |
+| staging4 · WPCode #4105 | `f360-compra.html` sin "A la medida · 10 días" | `~/f360-backups/wpcode_4105_20261005-215524.txt` |
+| staging4 · WPCode #2551 | Sin "Entrega INMEDIATA…", sin "6 MSI tiempo limitado" | `~/f360-backups/wpcode_2551_20261005-212944.txt`, `…-215116.txt` |
+| Datos de prueba | Botas cortas MTO apagado y restaurado (`catalog_changes` 169/170); intención de prueba `cancelled`; pedido Woo #4264 `cancelled` | — |
+
+**Hilo:**
+- rama local `f360-delivery-promise`, commit `0bf4779`, **sin push** (push a `main` = producción);
+- variables nuevas para Railway: `F360_STOREFRONT_URL` y `F360_STOREFRONT_SERVER_KEY`. Hoy apuntan a staging F360; en producción deben apuntar a la F360 de producción.
+
+### P.8 Diferencias conocidas contra producción
+
+1. Producción no tiene esquema F360, regla, Edge Function, mu-plugin ni snippets F360 (opción B pendiente).
+2. #2551 de producción sigue con "6 MSI tiempo limitado" y "Entrega INMEDIATA en la mayoría de nuestros modelos" (§P.4).
+3. **Hilo de producción:**
+   - el KB sigue con el texto de la regla (parche c);
+   - no tiene la tool;
+   - si se despliega antes de la F360 de producción, consultaría staging. Hay que desplegarlo junto con el pase, o mapear los ids de Woo de producción.
+4. Los ids de Woo de staging4 (3720/3721) son de staging. El mapeo `channel_variant_identity` de producción se arma en el pase.
+5. **Encabezado del thank-you** ("✓ Recibimos tu pago / confirmado") aparece también en pedidos pendientes. Es de `f360-compra.html` (sesión 67), no se tocó y se reporta.

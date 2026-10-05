@@ -17,8 +17,8 @@
   .f360-avisame{margin-top:12px}
   .f360-avisame button.f360-a-open,.f360-avisame button.f360-a-send{display:block;min-height:46px;width:100%;border:0;border-radius:999px;background:#1c1916;color:#fff;font:600 15px Montserrat,system-ui,sans-serif;cursor:pointer;text-align:center!important;justify-content:center;padding:0 16px}
   .f360-avisame button[hidden]{display:none!important}
-  .f360-avisame form{display:none;margin-top:10px;gap:10px;flex-direction:column}
-  .f360-avisame form.open{display:flex}
+  .f360-avisame form{display:none!important;margin-top:10px;gap:10px;flex-direction:column}
+  .f360-avisame form.open{display:flex!important}
   .f360-avisame label{font-size:13px;color:#4a433c}
   .f360-avisame input[type=tel],.f360-avisame input[type=text]{width:100%;box-sizing:border-box;margin-top:4px;padding:12px 14px;border:1px solid #d8cdbd;border-radius:12px;font-size:16px}
   .f360-avisame .f360-a-consent{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.35}
@@ -55,8 +55,9 @@
     var mk = market();
     var box = document.createElement('div');
     box.className = 'f360-promesa'; box.hidden = true; box.setAttribute('aria-live', 'polite');
-    var anchor = form.querySelector('.single_variation_wrap') || form;
-    anchor.parentNode.insertBefore(box, anchor.nextSibling);
+    // Outside Woo's <form class="variations_form">: a <form> nested inside another form is dropped by the HTML parser
+    // (the "Avísame" fields would be orphaned and Enter would submit the add-to-cart form).
+    form.parentNode.insertBefore(box, form.nextSibling);
 
     var data = null, current = null;
     var load = post({ action: 'promise', woo_product_id: productId, market: mk }).then(function (d) { data = d; return d; }).catch(function () { data = { variations: {}, trust: [] }; return data; });
@@ -64,10 +65,12 @@
     function render(variation) {
       var p = data && data.variations ? data.variations[String(variation.variation_id)] : null;
       if (!p || !p.headline) { box.hidden = true; return; }                     // unknown → the page keeps its own state
+      if (current && current.variation.variation_id === variation.variation_id && !box.hidden) return;   // Woo re-fires found_variation: don't wipe what she is typing
       current = { variation: variation, promise: p };
       var themePays = !!document.querySelector('#fx-trust .fx-trust-pagos, .fx-trust-pagos');   // the site's trust box already shows secure payment + card logos
       var trust = (data.trust || []).filter(function (t) { return t.status === 'known' && !(themePays && t.key === 'pago_seguro'); }).map(function (t) { return '<span>' + esc(t.text) + '</span>'; }).join('');
       var size = Object.keys(variation.attributes || {}).map(function (k) { return variation.attributes[k]; }).filter(Boolean).pop() || '';
+      if (mk === 'MX' && /^\d+(\.5)?$/.test(size)) size = String(Number(size) - 13);   // talla mexicana (como en la PDP)
       var html = '<div class="f360-p-head">' + (ICON[p.case] || '') + '<span>' + esc(p.headline) + '</span>' + (p.last_pair ? '<span class="f360-p-last">Último par</span>' : '') + '</div>';
       if (p.detail) html += '<div class="f360-p-detail">' + esc(p.detail) + '</div>';
       if (p.can_notify) {
@@ -79,6 +82,7 @@
           '<button type="submit" class="f360-a-send">Avisarme</button><div class="f360-a-msg" role="status"></div></form></div>';
       }
       if (trust) html += '<div class="f360-p-trust">' + trust + '</div>';
+      if (form.nextSibling !== box) form.parentNode.insertBefore(box, form.nextSibling);   // right under the buy button, before blocks inserted later
       box.innerHTML = html; box.hidden = false;
       push({ event: 'f360_delivery_promise_view', mc_version: '1.1', promise_case: p.case, promise_status: p.status, market: mk });
 

@@ -291,15 +291,8 @@ html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 
       porTitulo(/direcci[oó]n de facturaci[oó]n|billing address/i).forEach(function (el) { el.classList.add('f360-g-oculto'); });
       porTitulo(/informaci[oó]n adicional|additional information/i).forEach(function (el) { el.classList.add('f360-g-oculto'); });
       [].forEach.call(document.querySelectorAll('h2, h3'), function (h) { if (/direcci[oó]n de env[ií]o|shipping address/i.test(h.textContent)) h.textContent = 'Enviamos a'; });
-      // sizes without stock: Woo's "Reservado: 1" / "Disponible para reserva" → the promise the customer saw
-      [].forEach.call(document.querySelectorAll('li, dt, dd, p, span, strong'), function (el) {
-        if (el.children.length > 1) return;
-        var t = (el.textContent || '').trim();
-        if (/^(reservado|backordered|disponible para reserva)\s*:?$/i.test(t)) {
-          var dd = el.nextElementSibling; if (dd && /^\s*\d+\s*$/.test(dd.textContent)) dd.style.display = 'none';
-          el.textContent = 'A la medida · se entrega en 10 días hábiles';
-        }
-      });
+      // Delivery promise per line: CRO-6 (Mario 2026-10-05) — Fuxia 360's rule via f360-promesa-checkout.html (staging4
+      // mu-plugin), which also hides Woo's "Reservado / Disponible para reserva". No promise text is written here.
       [].forEach.call(document.querySelectorAll('table.woocommerce-table--order-details tfoot tr'), function (tr) {
         if (/m[eé]todo de pago|payment method/i.test(tr.textContent)) tr.classList.add('f360-g-oculto');
       });
@@ -348,10 +341,7 @@ html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 
   var conDescuento = false;
   cart().then(function (c) { conDescuento = (c.items || []).some(function (it) { var p = it.prices || {}; return Number(p.regular_price) > Number(p.price); }); if (typeof sinc === 'function') sinc(); }).catch(function () {});
   var sinc = function () {
-    // sizes without stock: Woo's badge "Disponible para reserva" → the promise the customer saw on the product page
-    [].forEach.call(root.querySelectorAll('.wc-block-components-product-backorder-badge, .wc-block-components-product-badge'), function (bd) {
-      if (/reserva|backorder/i.test(bd.textContent)) bd.textContent = 'A la medida · se entrega en 10 días hábiles';
-    });
+    // Delivery promise per line: CRO-6 — Fuxia 360's rule via f360-promesa-checkout.html (no promise text here).
     var tot = root.querySelector('.wc-block-components-totals-footer-item .wc-block-components-totals-item__value');
     var t = tot ? tot.textContent.trim() : ''; barra.querySelector('.f360-resumen-total').textContent = t; barra.hidden = !t;
     var ship = root.querySelector('.wc-block-components-totals-shipping .wc-block-components-totals-item__value, .wc-block-components-shipping-rates-control');
