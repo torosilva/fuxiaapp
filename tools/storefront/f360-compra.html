@@ -91,6 +91,25 @@ form.cart a.added_to_cart, form.cart + a.added_to_cart, .single_variation_wrap a
 .f360-confianza span { display: flex; gap: 8px; align-items: flex-start; line-height: 1.35; }
 .f360-confianza a { color: #8c6414; }
 @media (max-width: 420px) { .f360-confianza { grid-template-columns: 1fr; } }
+/* "Pedido recibido": a Fuxia thank-you page (presentation only; the order data is Woo's) */
+.f360-gracias { box-sizing: border-box; max-width: 720px; margin: 18px auto 26px; padding: 26px 22px; border: 1px solid #ece6db; border-radius: 18px; background: #fffdf9; text-align: center; font-family: inherit; color: #242424; }
+.f360-gracias .f360-g-ok { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; background: #2f6b3a; color: #fff; font-size: 30px; line-height: 56px; }
+.f360-gracias h2 { margin: 0 0 6px !important; font-size: 26px !important; line-height: 1.2; font-weight: 500; }
+.f360-gracias .f360-g-sub { margin: 0 0 18px; color: #6B6B68; font-size: 15px; }
+.f360-g-pasos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 0 20px; padding: 0; list-style: none; }
+.f360-g-pasos li { padding: 12px 8px; border-radius: 12px; background: #fff; border: 1px solid #ece6db; font-size: 13px; line-height: 1.3; color: #4a433a; }
+.f360-g-pasos li b { display: block; margin-bottom: 4px; font-size: 18px; }
+.f360-g-pasos li.hecho { border-color: #2f6b3a; color: #2f6b3a; }
+.f360-g-btns { display: flex; flex-direction: column; gap: 10px; }
+.f360-g-btns a { display: flex; align-items: center; justify-content: center; gap: 8px; height: 50px; border-radius: 25px; font-size: 14px; font-weight: 600; text-decoration: none !important; }
+.f360-g-wa { background: #1d1d1b; color: #fff !important; }
+.f360-g-app { border: 1px solid #d9d2c5; color: #4a433a !important; background: #fff; }
+.f360-g-tienda { color: #8c6414 !important; font-weight: 500 !important; height: auto !important; text-decoration: underline !important; }
+html.f360-gracias-on .f360-g-oculto { display: none !important; }
+html.f360-gracias-on .woocommerce-order h2, html.f360-gracias-on .wc-block-order-confirmation-totals-wrapper h2, html.f360-gracias-on [class*="order-confirmation"] h2,
+html.f360-gracias-on .woocommerce-order h3 { font-size: 13px !important; letter-spacing: .16em; text-transform: uppercase; color: #83734C !important; font-weight: 700 !important; margin: 26px 0 10px !important; line-height: 1.3 !important; }
+html.f360-gracias-on .woocommerce-order table, html.f360-gracias-on [class*="order-confirmation"] table { border-radius: 12px; overflow: hidden; }
+@media (max-width: 480px) { .f360-g-pasos { grid-template-columns: 1fr; } .f360-gracias h2 { font-size: 22px !important; } }
 </style>
 <script>
 /* Fuxia 360 · CRO-CHECKOUT. STAGING. Fuente: tools/storefront/f360-compra.html */
@@ -198,6 +217,54 @@ form.cart a.added_to_cart, form.cart + a.added_to_cart, .single_variation_wrap a
   }
   aplicarCupon();
 
+  // ---------- "Pedido recibido": thank-you page ----------
+  // Presentation only: number, name and items stay exactly as Woo printed them. No delivery date here until matrix G is closed.
+  var recibido = /\/(pedido-recibido|order-received)\/(\d+)/.exec(location.pathname);
+  if (recibido) {
+    var listo = function () {
+      var main = document.querySelector('.woocommerce-order, .wp-block-woocommerce-order-confirmation-status, .wc-block-order-confirmation-status, main, #brx-content');
+      if (!main || document.querySelector('.f360-gracias')) return;
+      document.documentElement.classList.add('f360-gracias-on');
+      var porTitulo = function (re) {   // the block/section that starts with a heading matching re
+        var hs = [].filter.call(document.querySelectorAll('h2, h3'), function (h) { return re.test(h.textContent); });
+        return hs.map(function (h) { return h.closest('section, .wp-block-group, [class*="order-confirmation"], .woocommerce-column, .woocommerce-customer-details > *') || h.parentNode; });
+      };
+      // the address is shown once: "Enviamos a" (shipping); billing and "Información adicional" (CusRev consent text) are hidden
+      porTitulo(/direcci[oó]n de facturaci[oó]n|billing address/i).forEach(function (el) { el.classList.add('f360-g-oculto'); });
+      porTitulo(/informaci[oó]n adicional|additional information/i).forEach(function (el) { el.classList.add('f360-g-oculto'); });
+      [].forEach.call(document.querySelectorAll('h2, h3'), function (h) { if (/direcci[oó]n de env[ií]o|shipping address/i.test(h.textContent)) h.textContent = 'Enviamos a'; });
+      // sizes without stock: Woo's "Reservado: 1" / "Disponible para reserva" → the promise the customer saw
+      [].forEach.call(document.querySelectorAll('li, dt, dd, p, span, strong'), function (el) {
+        if (el.children.length > 1) return;
+        var t = (el.textContent || '').trim();
+        if (/^(reservado|backordered|disponible para reserva)\s*:?$/i.test(t)) {
+          var dd = el.nextElementSibling; if (dd && /^\s*\d+\s*$/.test(dd.textContent)) dd.style.display = 'none';
+          el.textContent = 'Se entrega en 10 días hábiles';
+        }
+      });
+      // name: first line of the shipping (or billing) address, as Woo printed it
+      var dir = document.querySelector('.woocommerce-customer-details address, [class*="shipping-address"] address, [class*="order-confirmation-shipping"] address, address');
+      var nombre = dir ? String(dir.innerText || '').split('\n')[0].trim().split(/\s+/)[0] : '';
+      if (/^testuser/i.test(nombre)) nombre = '';
+      var num = recibido[2], waNum = pais === 'co' ? '573166912433' : '525567914188';
+      var g = document.createElement('section'); g.className = 'f360-gracias';
+      g.innerHTML = '<div class="f360-g-ok" aria-hidden="true">✓</div>' +
+        '<h2></h2><p class="f360-g-sub">Tu pedido <b>#' + num + '</b> está confirmado. Te mandamos los detalles a tu correo.</p>' +
+        '<ol class="f360-g-pasos"><li class="hecho"><b>✓</b>Recibimos tu pago</li><li><b>2</b>Preparamos tus Fuxia</li><li><b>3</b>Te las entregamos</li></ol>' +
+        '<div class="f360-g-btns"><a class="f360-g-wa" target="_blank" rel="noopener">💬 ¿Dudas con tu pedido? Escríbenos</a>' +
+        '<a class="f360-g-app" target="_blank" rel="noopener">Descarga la app y suma tus puntos Club Fuxia</a>' +
+        '<a class="f360-g-tienda">Seguir viendo modelos</a></div>';
+      g.querySelector('h2').textContent = '¡Gracias' + (nombre ? ', ' + nombre : '') + '!';
+      g.querySelector('.f360-g-wa').href = 'https://wa.me/' + waNum + '?text=' + encodeURIComponent('Hola, tengo una pregunta sobre mi pedido #' + num + '.');
+      var ua = navigator.userAgent || '';
+      g.querySelector('.f360-g-app').href = /iPhone|iPad|iPod/.test(ua) ? 'https://apps.apple.com/mx/app/fuxia-ballerinas/id6764388920' : 'https://play.google.com/store/apps/details?id=com.fuxiaballerinas.loyalty';
+      g.querySelector('.f360-g-tienda').href = base + 'tienda/';
+      var antes = document.querySelector('.woocommerce-order, .wc-block-order-confirmation-summary, [class*="order-confirmation-summary"]') || main.firstElementChild;
+      (antes && antes.parentNode ? antes.parentNode : main).insertBefore(g, antes && antes.parentNode ? antes : main.firstChild);
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', listo); else listo();
+  }
+
   // ---------- checkout page ----------
   var root = document.querySelector('.wp-block-woocommerce-checkout');
   if (!root) return;
@@ -211,6 +278,10 @@ form.cart a.added_to_cart, form.cart + a.added_to_cart, .single_variation_wrap a
   var conf = document.createElement('div'); conf.className = 'f360-confianza'; conf.hidden = true;
   root.parentNode.insertBefore(conf, root.nextSibling);
   var sinc = function () {
+    // sizes without stock: Woo's badge "Disponible para reserva" → the promise the customer saw on the product page
+    [].forEach.call(root.querySelectorAll('.wc-block-components-product-backorder-badge, .wc-block-components-product-badge'), function (bd) {
+      if (/reserva|backorder/i.test(bd.textContent) && bd.textContent !== 'Se entrega en 10 días hábiles') bd.textContent = 'Se entrega en 10 días hábiles';
+    });
     var tot = root.querySelector('.wc-block-components-totals-footer-item .wc-block-components-totals-item__value');
     var t = tot ? tot.textContent.trim() : ''; barra.querySelector('.f360-resumen-total').textContent = t; barra.hidden = !t;
     var ship = root.querySelector('.wc-block-components-totals-shipping .wc-block-components-totals-item__value, .wc-block-components-shipping-rates-control');
