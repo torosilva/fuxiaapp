@@ -297,7 +297,7 @@ html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 
         var t = (el.textContent || '').trim();
         if (/^(reservado|backordered|disponible para reserva)\s*:?$/i.test(t)) {
           var dd = el.nextElementSibling; if (dd && /^\s*\d+\s*$/.test(dd.textContent)) dd.style.display = 'none';
-          el.textContent = 'Se entrega en 10 días hábiles';
+          el.textContent = 'A la medida · se entrega en 10 días hábiles';
         }
       });
       [].forEach.call(document.querySelectorAll('table.woocommerce-table--order-details tfoot tr'), function (tr) {
@@ -345,10 +345,12 @@ html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 
   // e) trust strip after the checkout, built only from what this page shows
   var conf = document.createElement('div'); conf.className = 'f360-confianza'; conf.hidden = true;
   root.parentNode.insertBefore(conf, root.nextSibling);
+  var conDescuento = false;
+  cart().then(function (c) { conDescuento = (c.items || []).some(function (it) { var p = it.prices || {}; return Number(p.regular_price) > Number(p.price); }); if (typeof sinc === 'function') sinc(); }).catch(function () {});
   var sinc = function () {
     // sizes without stock: Woo's badge "Disponible para reserva" → the promise the customer saw on the product page
     [].forEach.call(root.querySelectorAll('.wc-block-components-product-backorder-badge, .wc-block-components-product-badge'), function (bd) {
-      if (/reserva|backorder/i.test(bd.textContent) && bd.textContent !== 'Se entrega en 10 días hábiles') bd.textContent = 'Se entrega en 10 días hábiles';
+      if (/reserva|backorder/i.test(bd.textContent)) bd.textContent = 'A la medida · se entrega en 10 días hábiles';
     });
     var tot = root.querySelector('.wc-block-components-totals-footer-item .wc-block-components-totals-item__value');
     var t = tot ? tot.textContent.trim() : ''; barra.querySelector('.f360-resumen-total').textContent = t; barra.hidden = !t;
@@ -358,7 +360,9 @@ html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 
     var partes = [];
     if (gratis) partes.push('<span>🚚 <span><b>Envío gratis</b> en este pedido</span></span>');
     if (metodos) partes.push('<span>🔒 <span><b>Pago seguro</b>' + (/mercado\s*pago/i.test(metodos) ? ' con Mercado Pago' : '') + '</span></span>');
-    partes.push('<span>↺ <span>Si no te quedan, <a href="' + base + 'cambios/">cámbialas</a></span></span>');
+    // Cambios (Mario 2026-10-05): a direct discount on the shoe has no exchange; a coupon does → no promise when a pair is on sale
+    partes.push(conDescuento ? '<span>↺ <span>Cambios en 30 días · <a href="' + base + 'cambios/">ver condiciones</a> (pares con descuento directo no tienen cambio)</span></span>'
+                             : '<span>↺ <span>Si no te quedan, <a href="' + base + 'cambios/">cámbialas</a></span></span>');
     var nuevo = partes.join('');
     if (conf.innerHTML !== nuevo) conf.innerHTML = nuevo;
     conf.hidden = false;

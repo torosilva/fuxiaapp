@@ -1,4 +1,4 @@
-<p class="f360-sobrepedido" hidden>Esta talla y color se entrega en <b>10 días hábiles</b>.<span class="f360-cambio">Si no te quedan, <a class="f360-cambios-link" href="/cambios/">cámbialas</a>.</span></p>
+<p class="f360-sobrepedido" hidden>Esta talla y color te la hacemos <b>a la medida</b> y se entrega en <b>10 días hábiles</b>.<span class="f360-cambio">Si no te quedan, <a class="f360-cambios-link" href="/cambios/">cámbialas</a>.</span></p>
 <div class="f360-medida">
   <p class="f360-med-t">¿Dudas con tu talla o no encontraste tu color? <b>Lo hacemos a la medida.</b></p>
   <button type="button" class="f360-med-abrir">¡Pregúntale a Hilo!</button>
@@ -12,6 +12,7 @@
 <div class="f360-inmediata" hidden>
   <div class="f360-inm-envio" hidden>
     <p class="f360-inm-envio-t"></p>
+    <p class="f360-inm-envio-fuera">Fuera de la Zona Metropolitana te confirmamos el tiempo al hacer tu pedido.</p>
     <p class="f360-inm-envio-n">Si no te quedan, <a class="f360-cambios-link" href="/cambios/">cámbialas</a>.</p>
   </div>
   <div class="f360-inm-probar" hidden>
@@ -37,6 +38,7 @@
   <button type="button" class="f360-sticky-btn">Añadir al carrito</button>
 </div>
 <style>
+.f360-inm-envio-fuera { margin: 4px 0 0; font-size: 13px; color: #6B6B68; }
 /* CRO-4 · sticky "Añadir al carrito" (móvil/tableta). Solo refleja y acciona el formulario de Woo; no tiene lógica propia. */
 .f360-sticky { display: none; }
 @media (max-width: 900px) {
@@ -332,6 +334,10 @@
     var mexico = !(/^\/[a-z]{2}\//.test(location.pathname) && !/^\/mx\//.test(location.pathname));
     var pais = (location.pathname.match(/^\/[a-z]{2}\//) || ['/'])[0];         // keep the country: /mx/… or /co/…
     document.querySelectorAll('.f360-cambios-link').forEach(function (a) { a.href = pais + 'cambios/'; });
+    // Cambios (Mario 2026-10-05): a DIRECT discount on the shoe has no exchange (coupons do) → no "cámbialas" on a sale price
+    if (document.querySelector('.summary .price del, .brxe-product-price del, p.price del')) {
+      document.querySelectorAll('.f360-cambio, .f360-inm-envio-n').forEach(function (e) { e.style.display = 'none'; });
+    }
     if (mexico) tallasMexico();
     ocultarResenasVacias();
     stickyCompra(mexico);
@@ -379,7 +385,7 @@
       // (CDMX time) → "Entrega inmediata en Zona Metropolitana"; later → tomorrow from 8 a. m. Try-on in a store is offered too.
       if (v.is_in_stock && !bajoPedido) {
         var h = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;
-        q('.f360-inm-envio-t').textContent = h >= 8 && h < 19 ? '🛵 Entrega inmediata en Zona Metropolitana' : '🛵 Entrega mañana a partir de las 8 a. m. en Zona Metropolitana';
+        q('.f360-inm-envio-t').textContent = h >= 8 && h < 19 ? '🛵 Entrega Inmediata en Zona Metropolitana' : '🛵 Entrega mañana a partir de las 8 a. m. en Zona Metropolitana';
         q('.f360-inm-envio').hidden = false; box.hidden = false;
       }
       var asked = variation;
