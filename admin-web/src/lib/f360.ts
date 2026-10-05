@@ -231,3 +231,35 @@ export type CustomerCase = { id: string; kind: 'escalacion' | 'a_la_medida'; sou
   reason: string | null; summary: string | null; transcript: { role: string; content: string }[]; name: string | null; phone: string | null; email: string | null;
   country: string | null; product: string | null; color: string | null; size: string | null; page_url: string | null; created_at: string; updated_at: string; updated_by: string | null };
 export const listInbox = () => rpc<CustomerCase[]>('f360_inbox_list', { p_days: 90 });
+
+// Ventas pasadas (Mario 2026-10-05): general summaries Carolina loads for sales made BEFORE Fuxia 360 (store per month, bazaar
+// by dates). MXN only; not sale lines (no model / customer / inventory). Online history comes from WooCommerce, not from here.
+export type HistSale = { id: string; kind: 'store_month' | 'bazaar'; place: string; place_type: string; period_start: string; period_end: string;
+  amount: number; currency: 'MXN'; pairs: number; pairs_estimated: boolean; notes: string | null; created_at: string; created_by_name: string | null };
+export type HistSales = { year: number; items: HistSale[]; by_month: { month: string; amount: number; pairs: number; loads: number }[];
+  total: { amount: number; pairs: number; currency: 'MXN' }; stores: { id: string; name: string; starts_on: string | null }[];
+  bazaars: { id: string; name: string; starts_on: string | null; ends_on: string | null }[] };
+export const listHistSales = (year?: number) => rpc<HistSales>('f360_hist_sales_list', { p_year: year ?? null });
+
+// Centro de control (f360_exec_dashboard): one aggregate, real data, MXN headline; other currencies never summed with it.
+export type DashPeriod = 'hoy' | 'semana' | 'mes' | 'anio';
+export type ExecDashboard = {
+  period: DashPeriod; from: string; to: string; prev_from: string; prev_to: string; generated_at: string; includes_test_data: boolean; presentation: boolean;
+  kpis: { sales: number; sales_prev: number; pairs: number; pairs_prev: number; orders: number; ticket: number | null; store_identified_pct: number | null;
+    historical_included: number; currency: 'MXN' };
+  other_currencies: { currency: string; sales: number; orders: number }[];
+  mix: { store: number; online: number };
+  daily: { d: string; store: number; online: number }[];
+  by_location: { name: string; kind: string; sales: number; pairs: number; historical: boolean }[];
+  top_models: { name: string; pairs: number; sales: number | null; sizes: string[] | null }[];
+  heatmap: { sizes: string[]; rows: { name: string; cells: Record<string, { sold: number; on_hand: number }> }[] };
+  pipeline: { reservations: { count: number; value: number; expiring_48h: number }; to_ship: { orders: number; pairs: number };
+    made_to_order: { count: number; pairs: number }; pay_links: { open: number }; held_points: { points: number; customers: number } };
+  crm: { customers: number; new_in_period: number; by_source: Record<string, number>; tiers: { gold: number; silver: number; bronze: number };
+    marketing_consent: number; birthdays_month: number; birthdays: { name: string; day: number; size: string | null }[] | null };
+  inventory: { name: string; type: string; pairs: number; value: number }[];
+  feed: { at: string; channel: string; place: string; item: string | null; amount: number; currency: string }[];
+  trust: { sources: { target: string; freshness: 'VERIFIED' | 'STALE' | 'UNVERIFIED'; last_success_at: string | null }[]; historical_loads: number; unresolved_lines: number };
+};
+export const getExecDashboard = (period: DashPeriod, presentation: boolean) =>
+  rpc<ExecDashboard>('f360_exec_dashboard', { p_period: period, p_presentation: presentation });

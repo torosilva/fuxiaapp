@@ -527,3 +527,23 @@ export async function cancelReservationAction(id: string, reason: string): Promi
   const r = await call('f360_reservation_cancel', { p_reservation_id: id, p_reason: reason.trim() });
   if (r.ok) revalidatePath('/apartados'); return r;
 }
+
+// Ventas pasadas: the RPC answers refusals as { ok: false, error } data, so unwrap them into the same Result shape.
+type Refusal = { ok: boolean; error?: string };
+export async function saveHistSaleAction(input: { kind: 'store_month' | 'bazaar'; locationId: string | null; bazaarName: string | null; start: string;
+  end: string | null; amount: number; pairs: number; pairsEstimated: boolean; notes: string }): Promise<Result<unknown>> {
+  const r = await call<Refusal>('f360_hist_sales_save', { p_kind: input.kind, p_location: input.locationId || null, p_bazaar_name: input.bazaarName || null,
+    p_start: input.start || null, p_end: input.end || null, p_amount: input.amount, p_pairs: input.pairs, p_pairs_estimated: input.pairsEstimated,
+    p_notes: input.notes.trim() || null });
+  if (!r.ok) return r;
+  if (!r.data.ok) return { ok: false, error: r.data.error ?? 'No se pudo guardar.' };
+  revalidatePath('/ventas/pasadas');
+  return r;
+}
+export async function voidHistSaleAction(id: string, reason: string): Promise<Result<unknown>> {
+  const r = await call<Refusal>('f360_hist_sales_void', { p_id: id, p_reason: reason.trim() });
+  if (!r.ok) return r;
+  if (!r.data.ok) return { ok: false, error: r.data.error ?? 'No se pudo anular.' };
+  revalidatePath('/ventas/pasadas');
+  return r;
+}

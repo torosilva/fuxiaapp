@@ -1,0 +1,34 @@
+/* Centro de control — animations only (colors/layout live in the component). Respect reduced motion. */
+.cc-grid { background-image: linear-gradient(rgba(232,201,138,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(232,201,138,.06) 1px, transparent 1px);
+  background-size: 44px 44px; animation: cc-gridmove 18s linear infinite; }
+@keyframes cc-gridmove { from { background-position: 0 0, 0 0 } to { background-position: 0 44px, 44px 0 } }
+.cc-panel { background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015)); border: 1px solid rgba(232,201,138,.12); border-radius: 22px;
+  box-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 24px 60px -36px rgba(0,0,0,.9); transition: border-color .3s ease; }
+.cc-panel:hover { border-color: rgba(232,201,138,.3); }
+.cc-glow { text-shadow: 0 0 18px rgba(232,201,138,.28); }
+.cc-pulse { animation: cc-pulse 2.4s ease-out infinite; transform-origin: center; transform-box: fill-box; }
+@keyframes cc-pulse { 0% { opacity: .55; transform: scale(.6) } 80%, 100% { opacity: 0; transform: scale(2.2) } }
+.cc-flow { stroke-dasharray: 6 10; animation: cc-flow 1.6s linear infinite; }
+@keyframes cc-flow { to { stroke-dashoffset: -32 } }
+.cc-draw { stroke-dasharray: 3000; stroke-dashoffset: 3000; animation: cc-draw 2.4s cubic-bezier(.2,.8,.2,1) forwards; }
+@keyframes cc-draw { to { stroke-dashoffset: 0 } }
+.cc-fade { opacity: 0; animation: cc-fade 1.2s ease .5s forwards; }
+@keyframes cc-fade { to { opacity: 1 } }
+.cc-scan { animation: cc-scan 5s ease-in-out infinite; }
+@keyframes cc-scan { 0% { transform: translateX(0) } 50% { transform: translateX(960px) } 100% { transform: translateX(0) } }
+.cc-ring { transition: stroke-dashoffset 1.6s cubic-bezier(.2,.8,.2,1), width 1.6s cubic-bezier(.2,.8,.2,1); }
+.cc-spin { animation: cc-spin 26s linear infinite; transform-origin: center; transform-box: fill-box; }
+@keyframes cc-spin { to { transform: rotate(360deg) } }
+.cc-particle { position: absolute; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: #E8C98A; box-shadow: 0 0 12px #E8C98A;
+  animation: cc-travel 3.2s linear infinite; }
+@keyframes cc-travel { 0% { left: -2%; opacity: 0 } 10% { opacity: 1 } 90% { opacity: 1 } 100% { left: 100%; opacity: 0 } }
+.cc-hot { animation: cc-hot 2.2s ease-in-out infinite; }
+@keyframes cc-hot { 0%, 100% { box-shadow: 0 0 0 rgba(255,138,76,0) } 50% { box-shadow: 0 0 22px rgba(255,138,76,.75) } }
+.cc-live { animation: cc-blink 1.2s steps(2, start) infinite; }
+@keyframes cc-blink { to { visibility: hidden } }
+.cc-feedin { animation: cc-feedin .55s cubic-bezier(.2,.8,.2,1); }
+@keyframes cc-feedin { from { opacity: 0; transform: translateY(-8px) } to { opacity: 1; transform: none } }
+@media (prefers-reduced-motion: reduce) {
+  .cc-grid, .cc-pulse, .cc-flow, .cc-draw, .cc-fade, .cc-scan, .cc-spin, .cc-particle, .cc-hot, .cc-live, .cc-feedin { animation: none !important; }
+  .cc-draw { stroke-dashoffset: 0; } .cc-fade { opacity: 1; } .cc-ring { transition: none; }
+}

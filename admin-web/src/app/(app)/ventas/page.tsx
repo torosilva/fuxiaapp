@@ -26,7 +26,13 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<S
   const select = 'rounded-xl border border-line bg-surface px-3 py-2.5 text-[15px] outline-none focus:border-gold';
   return (
     <div>
-      <h1 className="font-display text-5xl text-ink">Ventas</h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h1 className="font-display text-5xl text-ink">Ventas</h1>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/tablero" className="rounded-full bg-ink px-4 py-2 text-sm text-surface">Centro de control</Link>
+          <Link href="/ventas/pasadas" className="rounded-full border border-line bg-surface px-4 py-2 text-sm text-ink-2">Cargar ventas pasadas (tiendas y bazares)</Link>
+        </div>
+      </div>
       <p className="mt-2 text-sm text-muted">Solo ventas registradas en Fuxia 360 (tiendas). Las ventas en línea se sumarán aquí cuando se conecte la tienda en línea.</p>
 
       <div className="mt-6 flex flex-wrap gap-2">{preset('Hoy', today())}{preset('7 días', daysAgo(6))}{preset('30 días', daysAgo(29))}</div>
