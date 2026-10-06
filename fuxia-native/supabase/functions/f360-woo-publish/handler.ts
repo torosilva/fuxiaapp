@@ -16,7 +16,18 @@ export type PublisherEnv = {
   /** Public base for product photos (defaults to SUPABASE_URL). */
   STORAGE_PUBLIC_BASE?: string;
 };
-export type HandlerOptions = { wrapAdapter?: (a: WooAdapter) => WooAdapter };
+export type HandlerOptions = { wrapAdapter?: (a: WooAdapter) => WooAdapter; storeHome?: (baseUrl: string) => Promise<string | null> };
+
+/** U2: ask the store who it is (WordPress REST index) before writing anything. */
+async function storeHome(baseUrl: string): Promise<string | null> {
+  try {
+    const r = await fetch(`${baseUrl.replace(/\/+$/, '')}/wp-json/`, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(15_000) });
+    if (!r.ok) return null;
+    const j = await r.json() as { home?: string; url?: string };
+    return String(j.home || j.url || '') || null;
+  } catch { return null; }
+}
+const hostOf = (u: string) => { try { return new URL(u).host.toLowerCase(); } catch { return ''; } };
 
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 const trimUrl = (u: string) => u.trim().replace(/\/+$/, '').toLowerCase();
@@ -71,9 +82,18 @@ export async function handle(req: Request, env: PublisherEnv, opts: HandlerOptio
     await rec.step({ step: 'preflight', action: 'error', ok: false, message });
     outcome = { status: 'failed', error: message, summary: { woo_product_id: null, woo_status: null, variations: 0, created: 0, updated: 0, hidden: 0, stock_pushed: 0, mismatches: [] } };
   } else {
-    let adapter = restAdapter({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET, timeoutMs: 140_000 });   // creating a product with many photos: the store sideloads each one
-    if (opts.wrapAdapter) adapter = opts.wrapAdapter(adapter);
-    outcome = await publish(snap, adapter, rec, { storageBase: env.STORAGE_PUBLIC_BASE || env.SUPABASE_URL, allowProduction: false });
+    // U2: the store itself must confirm it is the job's store (a wrong secret / DNS / copy can never receive a production publish)
+    const home = await (opts.storeHome ?? storeHome)(env.WOO_BASE_URL);
+    if (!home || hostOf(home) !== hostOf(snap.target.base_url)) {
+      const message = home ? `La tienda respondió como ${hostOf(home)}, no como ${hostOf(snap.target.base_url)}; no se tocó nada.` : 'La tienda no confirmó quién es; no se tocó nada.';
+      await rec.step({ step: 'preflight', action: 'error', ok: false, message });
+      outcome = { status: 'failed', error: message, summary: { woo_product_id: null, woo_status: null, variations: 0, created: 0, updated: 0, hidden: 0, stock_pushed: 0, mismatches: [] } };
+    } else {
+      let adapter = restAdapter({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET, timeoutMs: 140_000 });   // creating a product with many photos: the store sideloads each one
+      if (opts.wrapAdapter) adapter = opts.wrapAdapter(adapter);
+      // production is allowed only by the channel's catalog switch (checked in publish() from the snapshot), never by a flag here
+      outcome = await publish(snap, adapter, rec, { storageBase: env.STORAGE_PUBLIC_BASE || env.SUPABASE_URL });
+    }
   }
 
   // 4 · Close the job (only a read-back-verified run records the published hash)

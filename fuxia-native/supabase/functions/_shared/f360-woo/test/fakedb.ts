@@ -32,6 +32,7 @@ export class FakeDb {
   steps: { job: number; step: string; ref?: string | null; action: string; ok: boolean; message?: string }[] = [];
   jobs = 0;
   isProduction = false;
+  capabilities: Partial<Pick<Snapshot['target'], 'catalog_mode' | 'stock_sync_mode' | 'stock_policy'>> = {};   // U1/U2
 
   constructor(base: Base) { this.base = base; }
 
@@ -41,7 +42,7 @@ export class FakeDb {
     const b = structuredClone(this.base);
     return {
       job: { id: `job-${this.jobs}`, attempt: 1, requested_by_name: 'Carolina', content_hash: 'h' },
-      target: { id: 't-local', key: 'woo_local', base_url: 'http://localhost:8080', is_production: this.isProduction, fulfillment_location_id: 'bodega' },
+      target: { id: 't-local', key: 'woo_local', base_url: 'http://localhost:8080', is_production: this.isProduction, fulfillment_location_id: 'bodega', ...this.capabilities },
       product: { ...b.product, woo_product_id: this.productLink },
       sizes: b.sizes,
       colors: b.colors.map((c) => ({ ...c, media: c.media.map((m) => ({ ...m, woo_media_id: this.mediaLinks.get(m.id) ?? null })) })),

@@ -4,7 +4,7 @@
 // converges to the same single product with the same variations; nothing is ever deleted in Woo.
 import {
   activeVariants, buildImages, buildParent, buildVariation, COLOR_ATTR, isF360VariationOf, isManagedBy,
-  mediaName, parentSku, SIZE_ATTR, stockToPush, verify,
+  mediaName, parentSku, SIZE_ATTR, stockManaged, stockToPush, verify,
 } from './mapping.ts';
 import type { BatchItemResult, PublishOutcome, Recorder, Snapshot, WooAdapter, WooProduct, WooVariation } from './types.ts';
 
@@ -34,8 +34,9 @@ export async function publish(s: Snapshot, woo: WooAdapter, rec: Recorder, opts:
   };
 
   try {
-    // ── 0 · Preflight: never production in P2.2; category must exist by STABLE ID (never created, never by name) ──
-    if (s.target.is_production && !opts.allowProduction) await fail('preflight', 'Publicar en la tienda de producción no está habilitado.');
+    // ── 0 · Preflight: production only with its catalog switch on; category must exist by STABLE ID (never created, never by name) ──
+    // production only with the channel's catalog switched ON (U1); its stock is never touched unless the channel syncs stock
+    if (s.target.is_production && s.target.catalog_mode !== 'on' && !opts.allowProduction) await fail('preflight', 'Publicar en la tienda de producción no está habilitado.');
     const cat = s.product.woo_category;
     if (!cat) await fail('preflight', 'La categoría no está vinculada con esta tienda.');
     const wooCat = await guarded('preflight', `categoria:${s.product.category_key}`, () => woo.getCategory(cat!.id));
@@ -151,11 +152,12 @@ export async function publish(s: Snapshot, woo: WooAdapter, rec: Recorder, opts:
       }
     }
 
-    // ── 4 · Stock: Woo = sellable stock in the fulfillment location (P-STOCK) ──
+    // ── 4 · Stock: Woo = sellable stock in the fulfillment location (P-STOCK) — only when this channel syncs stock ──
     existing = await guarded('stock', sku, () => woo.listVariations(pid));
     const expected = new Map<string, number>();
     const pushes: { v: (typeof s.variants)[number]; qty: number; id: number }[] = [];
-    for (const v of activeVariants(s)) {
+    if (!stockManaged(s)) await rec.step({ step: 'stock', ref: sku, action: 'skip', ok: true, message: 'Stock de la tienda sin cambios: este canal no sincroniza existencias.' });
+    for (const v of stockManaged(s) ? activeVariants(s) : []) {
       const w = existing.find((x) => x.id === v.woo_variation_id);
       if (!w) continue;   // creation failed above → verification reports it
       const qty = stockToPush(v.ats, v.last_pushed_stock, w.stock_quantity);

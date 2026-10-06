@@ -53,18 +53,24 @@ export async function handleSync(req: Request, env: SyncEnv, opts: SyncOptions =
     }
     // G1 Commerce Facts heartbeat (cron every 15 min, or owner/operator): captures economics of orders modified since
     // the cursor. Its success is what makes the online source fresh (STALE never depends on order activity).
+    // U2: what this channel allows (production: stock / orders / visibility only when switched on)
+    const mode = await rpc('f360_channel_mode', { p_target_key: env.WOO_TARGET_KEY }) as { catalog_mode?: string; stock_sync_mode?: string } | null;
+    const stockOn = (mode?.stock_sync_mode ?? 'on') === 'on', catalogOn = (mode?.catalog_mode ?? 'on') === 'on';
     if (action === 'commerce_poll') {
+      if (!stockOn) return json({ skipped: 'Este canal todavía no lee pedidos (stock apagado).' });
       const cw = opts.commerceWoo ?? commerceWoo({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET });
       return json(await commercePoll(rpc, cw, env.WOO_TARGET_KEY, 'poll'));
     }
     if (action === 'reconcile') {
+      if (!stockOn) return json({ error: 'Este canal no sincroniza existencias; no hay nada que conciliar.' }, 409);
       const pushedBefore = await pushStock(rpc, woo, env.WOO_TARGET_KEY);
       const run = await reconcile(rpc, woo, env.WOO_TARGET_KEY, who);
       const pushedAfter = run.drifted || run.missing ? await pushStock(rpc, woo, env.WOO_TARGET_KEY) : null;
       return json({ reconcile: run, pushedBefore, pushedAfter });
     }
     // every tick: push queued stock, then hide/show store products as requested (D4)
-    return json({ push: await pushStock(rpc, woo, env.WOO_TARGET_KEY), visibility: await applyVisibility(rpc, woo, env.WOO_TARGET_KEY) });
+    return json({ push: stockOn ? await pushStock(rpc, woo, env.WOO_TARGET_KEY) : { skipped: 'stock apagado en este canal' },
+      visibility: catalogOn ? await applyVisibility(rpc, woo, env.WOO_TARGET_KEY) : { skipped: 'catálogo apagado en este canal' } });
   } catch (e) {
     return json({ error: `No se pudo completar: ${(e as Error).message}` }, 502);
   }

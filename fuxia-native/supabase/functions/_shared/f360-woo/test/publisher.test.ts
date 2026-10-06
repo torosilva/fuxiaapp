@@ -229,3 +229,39 @@ test('currency prices: a store value that differs from Fuxia 360 is reported by 
   const out = verify(s, [...store.products.values()][0], [...store.variations.values()], { colorAttr: 1, sizeAttr: 2 }, new Map());
   assert.ok(out.some((m) => m.includes('_price_cop 370000')), out.join('; '));
 });
+
+// ── U2 · channel capabilities ──
+test('production with its catalog ON publishes, but never touches the store stock (stock sync off)', async () => {
+  const store = mockStore(); const db = new FakeDb(macarena()); db.isProduction = true; db.capabilities = { catalog_mode: 'on', stock_sync_mode: 'off', stock_policy: 'woo_owned' };
+  const r = await run(db, store);
+  assert.equal(r.status, 'succeeded', JSON.stringify(r.summary.mismatches));
+  const p = [...store.products.values()].find((x) => x.sku === 'F360-MACARENA')!;
+  assert.equal(p.status, 'draft', 'still created non-public');
+  const vars = [...store.variations.values()].filter((v) => v.parent_id === p.id);
+  assert.equal(vars.length, 18);
+  for (const v of vars) {
+    assert.equal(v.manage_stock, false, `${v.sku} without stock control`);
+    assert.equal((v as { stock_status?: string }).stock_status, 'instock', `${v.sku} sellable (no stock → made to order)`);
+    assert.notEqual(v.stock_quantity, 0, `${v.sku} never created at 0`);
+  }
+  assert.equal(r.summary.stock_pushed, 0, 'no stock push');
+  assert.ok(!store.calls.some((c) => c.includes('stock')), 'no stock call to the store');
+});
+test('production with catalog ON but no explicit stock mode → stock still untouched (production never defaults to managing stock)', async () => {
+  const store = mockStore(); const db = new FakeDb(macarena()); db.isProduction = true; db.capabilities = { catalog_mode: 'on' };
+  const r = await run(db, store);
+  assert.equal(r.status, 'succeeded');
+  assert.ok([...store.variations.values()].every((v) => v.manage_stock === false));
+});
+test('production with catalog OFF is still refused before any store call', async () => {
+  const store = mockStore(); const db = new FakeDb(macarena()); db.isProduction = true; db.capabilities = { catalog_mode: 'off', stock_sync_mode: 'off' };
+  const r = await run(db, store);
+  assert.equal(r.status, 'failed');
+  assert.equal(store.calls.length, 0);
+});
+test('a test channel with stock sync ON keeps today\'s behaviour exactly (Bodega stock pushed)', async () => {
+  const store = mockStore(); const db = new FakeDb(macarena()); db.capabilities = { catalog_mode: 'on', stock_sync_mode: 'on', stock_policy: 'f360_owned' };
+  const r = await run(db, store);
+  assert.equal(r.status, 'succeeded');
+  assertMacarena(store, db);
+});

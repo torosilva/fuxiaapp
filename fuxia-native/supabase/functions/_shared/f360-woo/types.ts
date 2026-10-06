@@ -11,7 +11,9 @@ export type SnapVariant = {
 export type SnapPrice = { code: string; woo_meta_key: string; amount: number | string };
 export type Snapshot = {
   job: { id: string; attempt: number; requested_by_name: string; content_hash: string };
-  target: { id: string; key: string; base_url: string; is_production: boolean; fulfillment_location_id: string };
+  target: { id: string; key: string; base_url: string; is_production: boolean; fulfillment_location_id: string;
+    /** U1/U2 channel capabilities (absent in snapshots from before U2 → previous behaviour). */
+    catalog_mode?: 'on' | 'off'; stock_sync_mode?: 'on' | 'off'; stock_policy?: 'f360_owned' | 'woo_owned' };
   product: {
     id: string; code: string; name: string; slug: string; description: string | null; short_description: string | null;
     regular_price: number | string; sale_price: number | string | null; category_key: string;
@@ -37,7 +39,7 @@ export type WooProduct = {
 };
 export type WooVariation = {
   id: number; sku: string; status: string; regular_price: string; sale_price: string;
-  manage_stock: boolean | 'parent'; stock_quantity: number | null; backorders?: string;
+  manage_stock: boolean | 'parent'; stock_quantity: number | null; backorders?: string; stock_status?: string;
   attributes: { id: number; name?: string; option: string }[]; image: WooImage | null; meta_data: WooMeta[];
 };
 export type WooAttribute = { id: number; name: string; slug: string };

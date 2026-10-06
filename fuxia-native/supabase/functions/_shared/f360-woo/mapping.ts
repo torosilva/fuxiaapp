@@ -55,6 +55,12 @@ export function buildParent(s: Snapshot, ids: { colorAttr: number; sizeAttr: num
 }
 
 /** Variation content. Stock is NOT set here (see buildStock); new variations start at 0 = never oversell. */
+/** Does this publish manage the store's stock? Production only when its channel EXPLICITLY syncs stock (U1/U2); a store
+ *  whose stock F360 does not own keeps its own stock: variations are created sellable, never with manage_stock 0. */
+export function stockManaged(s: Snapshot): boolean {
+  return s.target.stock_sync_mode ? s.target.stock_sync_mode === 'on' : !s.target.is_production;
+}
+
 export function buildVariation(s: Snapshot, v: SnapVariant, ids: { colorAttr: number; sizeAttr: number }, isCreate: boolean) {
   const c = colorOf(s, v);
   const img = primaryWooMedia(c);
@@ -69,6 +75,10 @@ export function buildVariation(s: Snapshot, v: SnapVariant, ids: { colorAttr: nu
     meta_data: [{ key: META_VARIANT, value: v.id }, ...priceMeta(s)],
   };
   if (img) body.image = { id: img };
+  if (!stockManaged(s)) {                // the store owns its stock: sellable, no quantity (no stock → made to order, 10 business days)
+    body.manage_stock = false; body.stock_status = 'instock'; delete body.backorders;
+    return body;
+  }
   if (isCreate) body.stock_quantity = 0;
   return body;
 }
@@ -119,7 +129,7 @@ export function verify(s: Snapshot, p: WooProduct | null, vars: WooVariation[], 
     const wc = w.attributes.find((a) => a.id === ids.colorAttr)?.option;
     const ws = w.attributes.find((a) => a.id === ids.sizeAttr)?.option;
     if (wc?.toLowerCase() !== c.name.toLowerCase() || ws !== v.size) out.push(`${v.sku} atributos ${wc}/${ws}`);
-    if (w.manage_stock !== true) out.push(`${v.sku} sin control de stock`);
+    if (stockManaged(s) && w.manage_stock !== true) out.push(`${v.sku} sin control de stock`);
     const exp = expectedStock.get(v.id);
     if (exp != null && w.stock_quantity !== exp) out.push(`${v.sku} stock ${w.stock_quantity} (esperado ${exp})`);
     const img = primaryWooMedia(c);

@@ -49,7 +49,7 @@ export function mockAdapter(s: MockStore): WooAdapter {
     }
   };
   const applyVariation = (v: WooVariation, b: Record<string, unknown>) => {
-    for (const k of ['sku', 'status', 'regular_price', 'sale_price', 'manage_stock', 'stock_quantity', 'backorders'] as const) if (b[k] !== undefined) (v as Record<string, unknown>)[k] = b[k];
+    for (const k of ['sku', 'status', 'regular_price', 'sale_price', 'manage_stock', 'stock_quantity', 'backorders', 'stock_status'] as const) if (b[k] !== undefined) (v as Record<string, unknown>)[k] = b[k];
     if (b.attributes) v.attributes = clone(b.attributes) as WooVariation['attributes'];
     if (b.image) { const m = s.media.get((b.image as { id: number }).id); if (!m) throw new WooError(400, 'woocommerce_variation_invalid_image_id', 'Imagen no válida'); v.image = m; }
     if (b.meta_data) v.meta_data = clone(b.meta_data) as WooVariation['meta_data'];
