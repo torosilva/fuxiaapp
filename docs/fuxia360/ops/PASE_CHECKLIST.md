@@ -28,7 +28,7 @@ Leyenda: ✅ hecho · ⏳ en curso · ⬜ pendiente · 🔒 necesita OK de Mario
 | A3 | Chequeo de producción, solo lectura (P-1 a P-10) | ✅ Todo en verde (Mario, 2026-10-06) |
 | A4 | Ensayo completo en copia local (F2): 74 migraciones, datos de Carolina con los mismos ids, fotos, rollback | ✅ |
 | A5 | Todas las migraciones guardadas en git (incluidas las de otras sesiones) | ✅ 74 |
-| A6 | Comparar la estructura real de producción con la ensayada (P-5) | ⏳ Falta la contraseña correcta en `~/.fuxia-prod.env` |
+| A6 | Comparar la estructura real de producción con la ensayada (P-5) | ✅ **Idéntica**: 294 objetos de `public` (tablas, columnas, funciones, triggers, políticas), 0 diferencias, y todavía sin esquema `f360`. Misma imagen de Postgres (17.6.1.104). Leída con la API de administración de Supabase (sesión de la CLI, consulta de solo lectura), **sin la contraseña de la base** |
 | A7 | Probar la app de clientas contra la copia (login, tarjeta, puntos) | ⬜ |
 | A8 | Inventario de Carolina: cantidades por tienda aprobadas por ella; Bodega CDMX certificada (sin el pedido de prueba #3654 ni el traslado de prueba) | ⬜ Carolina confirma tienda por tienda |
 | A9 | Admin sin "staging4" escrito a mano (5 lugares) → variable de entorno | ⬜ |
