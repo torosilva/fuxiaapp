@@ -46,7 +46,7 @@ Leyenda: ✅ hecho · ⏳ en curso · ⬜ pendiente · 🔒 necesita OK de Mario
 | B4 | Cargar catálogo, fotos y equipo con los mismos ids (`pase_copy_master.mjs`, `pase_copy_photos.mjs`) | 🔒 |
 | B5 | Cargar el inventario aprobado como apertura por ubicación (A8) | 🔒 |
 | B6 | Comparar origen = destino, tabla por tabla. Si no cuadra, no se abre | 🔒 |
-| B7 | Admin de producción en Vercel (proyecto nuevo) | 🔒 |
+| B7 | Admin de producción en Vercel (proyecto nuevo) | ⏳ **Desplegado: https://fuxia360.vercel.app** (proyecto `fuxia360`, desde un worktree limpio de `7f7662f`). Variables: `NEXT_PUBLIC_F360_ENV=production`, URL y llave pública de producción, `NEXT_PUBLIC_F360_STORE_KEY=woo_production`; sin secretos ni publicador. El candado de producción pasa y `/login` pide teléfono (código por WhatsApp, la misma cuenta que la app). **Falta:** dar el rol a Carolina, Mario y Adrián por su teléfono (G8) |
 | B8 | Hilo: deploy de la rama `f360-delivery-promise` + parche KB (d), apuntando a F360 de producción | 🔒 |
 
 ## C. Conectar la tienda real (después de B)
