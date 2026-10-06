@@ -278,7 +278,9 @@ html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 
   // ---------- "Pedido recibido": thank-you page ----------
   // Presentation only: number, name and items stay exactly as Woo printed them. No delivery date here until matrix G is closed.
   var recibido = /\/(pedido-recibido|order-received)\/(\d+)/.exec(location.pathname);
-  if (recibido) {
+  // Payment state comes ONLY from the server (mu-plugin: order key checked, wc is_paid()). Unknown = never claim the payment.
+  var estado = window.F360_ORDER_STATE === 'paid' ? 'paid' : window.F360_ORDER_STATE === 'failed' ? 'failed' : 'pending';
+  if (recibido && estado !== 'failed') {   // failed: Woo's own notice and "pay again" stay as they are
     var listo = function () {
       var main = document.querySelector('.woocommerce-order, .wp-block-woocommerce-order-confirmation-status, .wc-block-order-confirmation-status, main, #brx-content');
       if (!main || document.querySelector('.f360-gracias')) return;
@@ -302,9 +304,12 @@ html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 
       if (/^testuser/i.test(nombre)) nombre = '';
       var num = recibido[2], waNum = pais === 'co' ? '573166912433' : '525567914188';
       var g = document.createElement('section'); g.className = 'f360-gracias';
-      g.innerHTML = '<div class="f360-g-ok" aria-hidden="true">✓</div>' +
-        '<h2></h2><p class="f360-g-sub">Tu pedido <b>#' + num + '</b> está confirmado. Te mandamos los detalles a tu correo.</p>' +
-        '<ol class="f360-g-pasos"><li class="hecho"><b>✓</b>Recibimos tu pago</li><li><b>2</b>Preparamos tus Fuxia</li><li><b>3</b>Te las entregamos</li></ol>' +
+      g.innerHTML = '<div class="f360-g-ok" aria-hidden="true">' + (estado === 'paid' ? '✓' : '⏳') + '</div>' +
+        (estado === 'paid'
+          ? '<h2></h2><p class="f360-g-sub">Tu pedido <b>#' + num + '</b> está confirmado. Te mandamos los detalles a tu correo.</p>' +
+            '<ol class="f360-g-pasos"><li class="hecho"><b>✓</b>Recibimos tu pago</li><li><b>2</b>Preparamos tus Fuxia</li><li><b>3</b>Te las entregamos</li></ol>'
+          : '<h2></h2><p class="f360-g-sub">Registramos tu pedido <b>#' + num + '</b>. En cuanto se confirme tu pago te avisamos por correo.</p>' +
+            '<ol class="f360-g-pasos"><li><b>1</b>Confirmamos tu pago</li><li><b>2</b>Preparamos tus Fuxia</li><li><b>3</b>Te las entregamos</li></ol>') +
         '<div class="f360-g-btns"><a class="f360-g-wa" target="_blank" rel="noopener">💬 ¿Dudas con tu pedido? Escríbenos</a>' +
         '<a class="f360-g-app" target="_blank" rel="noopener">Descarga la app y suma tus puntos Club Fuxia</a>' +
         '<a class="f360-g-tienda">Seguir viendo modelos</a></div>';

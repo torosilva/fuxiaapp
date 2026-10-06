@@ -42,6 +42,18 @@ function f360_promesa_lines() {
 	}
 	return $lines;
 }
+// "Pedido recibido": the order's REAL payment state for the thank-you copy (f360-compra.html never claims a payment by itself).
+// Printed in <head> so it exists before any footer snippet runs. Order key checked; no personal data.
+add_action( 'wp_head', function () {
+	if ( ! function_exists( 'is_order_received_page' ) || ! is_order_received_page() ) { return; }
+	$order_id = absint( get_query_var( 'order-received' ) );
+	$order    = $order_id ? wc_get_order( $order_id ) : null;
+	$key      = isset( $_GET['key'] ) ? wc_clean( wp_unslash( $_GET['key'] ) ) : '';
+	if ( ! $order || ! hash_equals( (string) $order->get_order_key(), (string) $key ) ) { return; }
+	$state = $order->has_status( 'failed' ) ? 'failed' : ( $order->is_paid() ? 'paid' : 'pending' );
+	echo '<script>window.F360_ORDER_STATE = ' . wp_json_encode( $state ) . ';</script>';
+}, 1 );
+
 add_action( 'wp_footer', function () {
 	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) { return; }
 	$lines = f360_promesa_lines();
