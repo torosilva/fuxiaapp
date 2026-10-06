@@ -48,9 +48,15 @@ let uploaded = 0, existed = 0; const failed = [];
 for (const file of walk(ROOT)) {
   const path = relative(ROOT, file).split('\\').join('/');
   if (!path.startsWith('f360/')) continue;                       // only Fuxia 360 catalog photos, never the app's own files
-  const r = await fetch(`${API}/storage/v1/object/${BUCKET}/${path}`, { method: 'POST',
-    headers: { ...H, 'Content-Type': TYPES[extname(file).toLowerCase()] || 'application/octet-stream', 'x-upsert': 'false' }, body: readFileSync(file) });
-  if (r.ok) uploaded++; else if (r.status === 409 || (await r.text()).includes('already exists')) existed++; else failed.push(path);
+  let r = null;
+  for (let attempt = 1; attempt <= 3 && !r; attempt++) {           // a dropped connection must not stop the run (60 s per photo)
+    try {
+      r = await fetch(`${API}/storage/v1/object/${BUCKET}/${path}`, { method: 'POST', signal: AbortSignal.timeout(60_000),
+        headers: { ...H, 'Content-Type': TYPES[extname(file).toLowerCase()] || 'application/octet-stream', 'x-upsert': 'false' }, body: readFileSync(file) });
+    } catch { await new Promise((ok) => setTimeout(ok, 3000 * attempt)); }
+  }
+  if (!r) failed.push(path);
+  else if (r.ok) uploaded++; else if (r.status === 409 || (await r.text()).includes('already exists')) existed++; else failed.push(path);
 }
 const REFS = `SELECT coalesce(json_agg(DISTINCT p), '[]') AS j FROM (SELECT storage_path p FROM f360.product_media WHERE storage_path IS NOT NULL
   UNION SELECT image_path FROM f360.product_colors WHERE image_path IS NOT NULL UNION SELECT image_path FROM f360.products WHERE image_path IS NOT NULL) z WHERE p !~ '^https?://'`;
@@ -64,8 +70,8 @@ if (PRODUCTION) {
 }
 const missing = [];
 for (const p of referenced) {
-  const r = await fetch(`${API}/storage/v1/object/public/${BUCKET}/${p}`, { method: 'HEAD' });
-  if (!r.ok) missing.push(p);
+  const r = await fetch(`${API}/storage/v1/object/public/${BUCKET}/${p}`, { method: 'HEAD', signal: AbortSignal.timeout(30_000) }).catch(() => null);
+  if (!r || !r.ok) missing.push(p);
 }
 console.log(JSON.stringify({ files_in_backup: uploaded + existed + failed.length, uploaded, already_there: existed, failed: failed.length,
   referenced_by_catalog: referenced.length, missing_in_target: missing.length, missing_sample: missing.slice(0, 5) }, null, 1));
