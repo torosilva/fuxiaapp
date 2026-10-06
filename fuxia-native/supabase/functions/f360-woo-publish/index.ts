@@ -13,4 +13,6 @@ const env = {
   WOO_SECRET: Deno.env.get('WOO_SECRET') ?? '',
 };
 
-Deno.serve((req) => handle(req, env));
+// Queue mode keeps working after responding (EdgeRuntime.waitUntil) and chains itself job by job.
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void };
+Deno.serve((req) => handle(req, env, { waitUntil: (p) => EdgeRuntime.waitUntil(p) }));

@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { consolidateFinishAction, consolidateStartAction, consolidationRedirectsAction, runPublishJobAction } from '../actions';
+import { consolidateStartAction, consolidationRedirectsAction, kickQueueAction } from '../actions';
 
 type Row = { model: string; from: string | null; to: string | null };
 
@@ -16,27 +16,14 @@ export function ConsolidatePanel() {
     const r = await consolidationRedirectsAction();
     if (r.ok) setRows(r.data.rows); else setMsg(r.error);
   };
+  // Creates the new products as jobs and starts the SERVER queue: the page can be closed; progress stays in “Publicando en la tienda”.
   const run = async () => {
     setRunning(true); setLog([]); setRows(null); setMsg('Preparando…');
     const s = await consolidateStartAction();
     if (!s.ok) { setMsg(s.error); setRunning(false); return; }
     for (const k of s.data.skipped) add(`⏸ ${k.name}: falta ${k.missing.join(', ')} (se queda como está)`);
-    let n = 0;
-    for (const it of s.data.items) {
-      n++;
-      if (it.status !== 'publicada') {
-        setMsg(`Creando en la tienda ${n} de ${s.data.items.length}: ${it.name}…`);
-        if (it.job_id) {
-          const p = await runPublishJobAction(it.job_id, it.product_id);
-          if (!p.ok || (p.data.status !== 'succeeded')) { add(`✗ ${it.name}: ${p.ok ? (p.data.error ?? p.data.status) : p.error}`); continue; }
-        }
-        const f = await consolidateFinishAction(it.product_id);
-        if (!f.ok) { add(`✗ ${it.name}: ${f.error}`); continue; }
-      }
-      add(`✓ ${it.name}`);
-    }
-    setMsg('Listo. La tienda muestra los productos nuevos y oculta los anteriores en 1–2 minutos. Purga la caché de SG.');
-    await redirects();
+    const k = await kickQueueAction();
+    setMsg(k.ok ? `Listo: ${s.data.items.length} modelos van en la cola del servidor. Ya puedes cerrar esta página; el avance se ve arriba.` : k.error);
     setRunning(false);
   };
   const csv = rows ? 'source,target\n' + rows.filter((r) => r.from && r.to).map((r) => `${r.from},${r.to}`).join('\n') : '';

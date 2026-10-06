@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { liveCandidatesAction, publishAction, publishCandidatesAction, setStoreVisibilityAction } from '../actions';
+import { liveCandidatesAction, publishAllQueuedAction, setStoreVisibilityAction } from '../actions';
 
 type Row = { id: string; name: string; state: 'pendiente' | 'publicando' | 'ok' | 'error'; error?: string };
 
@@ -30,19 +30,13 @@ export function PublishAllPanel({ storeName }: { storeName: string }) {
     router.refresh();
   };
 
+  // Creates the jobs and starts the SERVER queue (progress in “Publicando en la tienda”; the page can be closed).
   const run = async () => {
     setError(null); setRunning(true);
-    const c = await publishCandidatesAction();
-    if (!c.ok) { setError(c.error); setRunning(false); return; }
-    const list: Row[] = c.data.map((p) => ({ ...p, state: 'pendiente' }));
-    setRows(list);
-    for (let i = 0; i < list.length; i++) {
-      set(i, { state: 'publicando' });
-      const r = await publishAction(list[i].id, crypto.randomUUID());
-      if (r.ok && r.data.status === 'succeeded') set(i, { state: 'ok' });
-      else set(i, { state: 'error', error: r.ok ? (r.data.error ?? r.data.status) : r.error });
-    }
+    const r = await publishAllQueuedAction();
     setRunning(false);
+    if (!r.ok) { setError(r.error); return; }
+    setError(r.data.queued ? null : 'No hay modelos listos sin publicar.');
     router.refresh();
   };
 

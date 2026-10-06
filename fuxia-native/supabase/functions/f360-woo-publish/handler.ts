@@ -16,7 +16,9 @@ export type PublisherEnv = {
   /** Public base for product photos (defaults to SUPABASE_URL). */
   STORAGE_PUBLIC_BASE?: string;
 };
-export type HandlerOptions = { wrapAdapter?: (a: WooAdapter) => WooAdapter; storeHome?: (baseUrl: string) => Promise<string | null> };
+export type HandlerOptions = { wrapAdapter?: (a: WooAdapter) => WooAdapter; storeHome?: (baseUrl: string) => Promise<string | null>;
+  /** Edge runtime: keep working after the response (queue mode). Tests run inline without it. */ waitUntil?: (p: Promise<unknown>) => void;
+  /** how the queue calls itself for the next job (tests inject a stub) */ kick?: () => Promise<void> };
 
 /** U2: ask the store who it is (WordPress REST index) before writing anything. */
 async function storeHome(baseUrl: string): Promise<string | null> {
@@ -54,8 +56,11 @@ export async function handle(req: Request, env: PublisherEnv, opts: HandlerOptio
   let body: { job_id?: string; action?: string; product_id?: string; status?: string };
   try { body = (await req.json()) as typeof body; } catch { return json({ error: 'Solicitud no válida.' }, 400); }
   const visibility = body.action === 'visibility';
+  const queue = body.action === 'run_queue';
   const jobId = String(body.job_id ?? '');
-  if (visibility ? !/^[0-9a-f-]{36}$/i.test(String(body.product_id ?? '')) || !['publish', 'draft'].includes(String(body.status)) : !/^[0-9a-f-]{36}$/i.test(jobId)) {
+  // Queue mode called by the publisher itself (service role): process the next job, then call itself again.
+  if (queue && token === env.SUPABASE_SERVICE_ROLE_KEY) return runQueue(env, opts);
+  if (!queue && (visibility ? !/^[0-9a-f-]{36}$/i.test(String(body.product_id ?? '')) || !['publish', 'draft'].includes(String(body.status)) : !/^[0-9a-f-]{36}$/i.test(jobId))) {
     return json({ error: 'Solicitud no válida.' }, 400);
   }
 
@@ -69,12 +74,21 @@ export async function handle(req: Request, env: PublisherEnv, opts: HandlerOptio
 
   // "Publicar en vivo" / "Ocultar de la tienda": only the product's status in its store; owner re-checked in the database
   if (visibility) return setVisibility(env, opts, user.id, String(body.product_id), body.status as 'publish' | 'draft');
+  // An owner starts the server-side queue (the page can be closed afterwards).
+  if (queue) return runQueue(env, opts);
 
+  const r = await runJob(env, opts, jobId, user.id);
+  return r.claimError ? json({ error: r.claimError }, 409) : json({ job: r.job, outcome: r.outcome });
+}
+
+/** One publish job end to end (claim → store identity → publish → finish). Used by the button and by the queue. */
+async function runJob(env: PublisherEnv, opts: HandlerOptions, jobId: string, caller: string):
+  Promise<{ claimError?: string; job?: unknown; outcome?: { status: string; error: string | null; summary: unknown } }> {
   // 2 · Claim (re-checks owner + requester + readiness in the database; locks the codes)
   const svc = env.SUPABASE_SERVICE_ROLE_KEY;
   let snap: Snapshot;
-  try { snap = await rpc<Snapshot>(env, 'f360_pub_claim', { p_job_id: jobId, p_caller: user.id }, svc); }
-  catch (e) { return json({ error: (e as Error).message }, 409); }
+  try { snap = await rpc<Snapshot>(env, 'f360_pub_claim', { p_job_id: jobId, p_caller: caller }, svc); }
+  catch (e) { return { claimError: (e as Error).message }; }
 
   const rec: Recorder = {
     step: (s) => rpc(env, 'f360_pub_step', { p_job_id: jobId, p_step: s.step, p_object_ref: s.ref ?? null, p_action: s.action,
@@ -105,7 +119,27 @@ export async function handle(req: Request, env: PublisherEnv, opts: HandlerOptio
 
   // 4 · Close the job (only a read-back-verified run records the published hash)
   const job = await rpc(env, 'f360_pub_finish', { p_job_id: jobId, p_status: outcome.status, p_error: outcome.error, p_summary: outcome.summary }, svc);
-  return json({ job, outcome: { status: outcome.status, error: outcome.error, summary: outcome.summary } });
+  return { job, outcome: { status: outcome.status, error: outcome.error, summary: outcome.summary } };
+}
+
+/** Queue: take the next pending job of THIS store, run it, then call ourselves for the next one. Independent of any browser. */
+async function runQueue(env: PublisherEnv, opts: HandlerOptions): Promise<Response> {
+  const svc = env.SUPABASE_SERVICE_ROLE_KEY;
+  const work = (async () => {
+    const next = await rpc<{ job_id: string; requested_by: string } | null>(env, 'f360_pub_next_job', { p_target_key: env.WOO_TARGET_KEY }, svc).catch(() => null);
+    if (!next) return false;
+    await runJob(env, opts, next.job_id, next.requested_by).catch(() => undefined);   // a failed job is recorded in the job itself
+    return true;
+  })();
+  const chain = work.then(async (more) => {
+    if (!more) return;
+    await (opts.kick ?? (() => fetch(`${env.SUPABASE_URL}/functions/v1/f360-woo-publish`, { method: 'POST',
+      headers: { Authorization: `Bearer ${svc}`, apikey: svc, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'run_queue' }) })
+      .then(() => undefined)))().catch(() => undefined);
+  });
+  if (opts.waitUntil) { opts.waitUntil(chain); return json({ ok: true, queue: 'started' }, 202); }
+  await chain;
+  return json({ ok: true, queue: 'ran' });
 }
 
 async function setVisibility(env: PublisherEnv, opts: HandlerOptions, caller: string, productId: string, status: 'publish' | 'draft'): Promise<Response> {

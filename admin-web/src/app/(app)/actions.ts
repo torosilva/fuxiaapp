@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { publisherAvailable } from '@/lib/env-guard';
 import { suggestHex } from '@/lib/format';
 import type { InventoryEvent, Product, Transfer } from '@/lib/f360';
-import { getPublication, listProducts } from '@/lib/f360';
+import { getPublication, getQueueStatus, listProducts } from '@/lib/f360';
+import type { QueueStatus } from '@/lib/f360';
 import { MERGE_ENABLED, STORE_KEY } from '@/lib/store';
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -97,6 +98,35 @@ export async function publishCandidatesAction(): Promise<Result<{ id: string; na
     const pubs = await Promise.all(all.map(async (p) => ({ p, pub: await getPublication(p.id).catch(() => null) })));
     return { ok: true, data: pubs.filter((x) => x.pub?.state === 'listo').map((x) => ({ id: x.p.id, name: x.p.name })) };
   } catch (e) { return { ok: false, error: (e as Error).message }; }
+}
+
+// Server-side publishing queue: the publisher processes every pending job by itself (the page can be closed).
+export async function kickQueueAction(): Promise<Result<{ started: boolean }>> {
+  if (!publisherAvailable()) return { ok: false, error: 'La publicación en WooCommerce todavía no está disponible en este ambiente.' };
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' };
+  try {
+    const res = await fetch(process.env.F360_PUBLISHER_URL!, { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'run_queue' }), cache: 'no-store', signal: AbortSignal.timeout(30_000) });
+    const body = await res.json().catch(() => ({}));
+    return res.ok ? { ok: true, data: { started: true } } : { ok: false, error: body.error ?? 'No se pudo arrancar la cola.' };
+  } catch { return { ok: false, error: 'No hubo respuesta del publicador.' }; }
+}
+export async function queueStatusAction(): Promise<Result<QueueStatus>> {
+  try { return { ok: true, data: await getQueueStatus() }; } catch (e) { return { ok: false, error: (e as Error).message }; }
+}
+// "Publicar todos los listos": creates one job per ready, never-published product, then starts the server queue.
+export async function publishAllQueuedAction(): Promise<Result<{ queued: number }>> {
+  const c = await publishCandidatesAction();
+  if (!c.ok) return c;
+  let queued = 0;
+  for (const p of c.data) {
+    const r = await call<{ id: string }>('f360_request_publish', { p_product_id: p.id, p_idempotency_key: crypto.randomUUID(), p_target_key: STORE_KEY });
+    if (r.ok) queued++;
+  }
+  if (queued) await kickQueueAction();
+  return { ok: true, data: { queued } };
 }
 
 // "Poner en vivo todos": products Fuxia 360 already published in this store that are still hidden (draft).

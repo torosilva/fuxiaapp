@@ -1,17 +1,18 @@
 import Link from 'next/link';
 import { ColorDot, ProductImage } from '@/components/ProductImage';
 import { IconPlus, IconSearch } from '@/components/icons';
-import { canWrite, getMe, listCategories, listProducts } from '@/lib/f360';
+import { canWrite, getMe, getQueueStatus, listCategories, listProducts } from '@/lib/f360';
 import { pares, precio } from '@/lib/format';
 import { StoreContentPush } from './StoreContentPush';
 import { ConsolidatePanel } from './ConsolidatePanel';
 import { PublishAllPanel } from './PublishAllPanel';
+import { QueueStatusPanel } from './QueueStatusPanel';
 import { publisherAvailable } from '@/lib/env-guard';
 import { MERGE_ENABLED, STORE_KEY } from '@/lib/store';
 
 export default async function Productos({ searchParams }: { searchParams: Promise<{ q?: string; categoria?: string }> }) {
   const { q, categoria } = await searchParams;
-  const [me, all, categories] = await Promise.all([getMe(), listProducts(q), listCategories()]);
+  const [me, all, categories, queue] = await Promise.all([getMe(), listProducts(q), listCategories(), publisherAvailable() ? getQueueStatus().catch(() => null) : Promise.resolve(null)]);
   const tabs = [...categories.map((c) => ({ key: c.key, name: c.name })), { key: 'sin', name: 'Sin categoría' }];
   const inTab = (key: string | null, tab: string) => (tab === 'sin' ? !key : key === tab);
   const products = categoria ? all.filter((p) => inTab(p.category_key, categoria)) : all;
@@ -28,6 +29,7 @@ export default async function Productos({ searchParams }: { searchParams: Promis
           </Link>
         )}
       </div>
+      {publisherAvailable() && !categoria && !q && <div className="mt-6"><QueueStatusPanel initial={queue} storeName={STORE_KEY === 'woo_production' ? 'fuxiaballerinas.com' : 'la tienda de pruebas'} /></div>}
       {me.role === 'owner' && !categoria && !q && publisherAvailable() && <div className="mt-6"><PublishAllPanel storeName={STORE_KEY === 'woo_production' ? 'fuxiaballerinas.com' : 'la tienda de pruebas'} /></div>}
       {me.role === 'owner' && !categoria && !q && MERGE_ENABLED && <div className="mt-6 grid gap-4 lg:grid-cols-2"><ConsolidatePanel />{STORE_KEY !== 'woo_production' && <StoreContentPush />}</div>}
       <form className="relative mt-6 max-w-md" role="search">
