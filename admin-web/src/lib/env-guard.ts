@@ -19,17 +19,34 @@ export function environmentProblems(env: Record<string, string | undefined> = pr
   const f360 = env.NEXT_PUBLIC_F360_ENV;
   const onVercel = !!env.VERCEL;
 
-  if (onVercel && f360 !== 'staging') problems.push('En Vercel solo se permite el ambiente de pruebas: NEXT_PUBLIC_F360_ENV debe ser "staging".');
+  if (onVercel && f360 !== 'staging' && f360 !== 'production') problems.push('En Vercel NEXT_PUBLIC_F360_ENV debe ser "staging" o "production".');
 
   const storeKey = env.NEXT_PUBLIC_F360_STORE_KEY;
   if (storeKey && !/^[a-z0-9_]{1,40}$/.test(storeKey)) problems.push('NEXT_PUBLIC_F360_STORE_KEY no es una clave de tienda válida.');
 
   for (const [k, v] of Object.entries(env)) {
     if (!v) continue;
-    if ((k.startsWith('NEXT_PUBLIC_') || k.includes('SUPABASE') || k.startsWith('F360_')) && v.includes(PRODUCTION_REF)) {
-      problems.push(`${k} apunta al proyecto de PRODUCCIÓN.`);
+    const scoped = k.startsWith('NEXT_PUBLIC_') || k.includes('SUPABASE') || k.startsWith('F360_');
+    // Only an explicit production deployment may point at production (pase B7, Mario 2026-10-06), and it may not mix in staging.
+    if (f360 !== 'production' && scoped && v.includes(PRODUCTION_REF)) problems.push(`${k} apunta al proyecto de PRODUCCIÓN.`);
+    if (f360 === 'production' && scoped && v.includes(STAGING_REF)) problems.push(`${k} apunta al ambiente de PRUEBAS en un despliegue de producción.`);
+    if ((f360 === 'staging' || f360 === 'production') && FORBIDDEN.test(k)) problems.push(`${k} es un secreto de servidor y no debe existir en este despliegue.`);
+  }
+
+  if (f360 === 'production') {
+    const url = env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+    if (!url.includes(PRODUCTION_REF)) problems.push('NEXT_PUBLIC_SUPABASE_URL no es el proyecto de producción.');
+    const key = env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+    if (!key) problems.push('Falta NEXT_PUBLIC_SUPABASE_ANON_KEY.');
+    else if (key.startsWith('sb_secret_')) problems.push('NEXT_PUBLIC_SUPABASE_ANON_KEY es una llave SECRETA.');
+    else if (key.split('.').length === 3) {
+      const claims = jwtRef(key);
+      if (claims?.ref !== PRODUCTION_REF) problems.push('NEXT_PUBLIC_SUPABASE_ANON_KEY no pertenece al proyecto de producción.');
+      if (claims?.role !== 'anon') problems.push('NEXT_PUBLIC_SUPABASE_ANON_KEY no es una llave pública (anon).');
     }
-    if (f360 === 'staging' && FORBIDDEN.test(k)) problems.push(`${k} es un secreto de servidor y no debe existir en este despliegue.`);
+    if (env.NEXT_PUBLIC_F360_STORE_KEY !== 'woo_production') problems.push('En producción NEXT_PUBLIC_F360_STORE_KEY debe ser "woo_production".');
+    // Publishing to the real store opens only at pase step C (channel capabilities); until then there is no publisher.
+    if (env.F360_PUBLISHER_URL) problems.push('F360_PUBLISHER_URL todavía no se permite en producción (paso C del pase).');
   }
 
   if (f360 === 'staging') {

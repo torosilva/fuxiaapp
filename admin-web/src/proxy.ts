@@ -9,6 +9,7 @@ export async function proxy(request: NextRequest) {
   const guard = environmentProblems({
     VERCEL: process.env.VERCEL, NEXT_PUBLIC_F360_ENV: process.env.NEXT_PUBLIC_F360_ENV, F360_PUBLISHER_URL: process.env.F360_PUBLISHER_URL,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_F360_STORE_KEY: process.env.NEXT_PUBLIC_F360_STORE_KEY,
   });
   if (guard.length) return new NextResponse('Fuxia 360: configuración bloqueada por seguridad.', { status: 503 });
   let response = NextResponse.next({ request });
