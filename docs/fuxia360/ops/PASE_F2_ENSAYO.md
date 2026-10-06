@@ -38,7 +38,7 @@
 | P-9 tarjetas con QR que no empieza con `FX-` | **0** de 39 ✅ (Q1 resuelto) |
 | P-10 políticas anónimas | 7 (3 = A2 **no aplicado**): decisión Q2 antes de G4 |
 
-**P-5 hecho (2026-10-06):** la estructura de `public` en producción es **idéntica** al baseline del ensayo (294 = 294 objetos, 0 diferencias), con la misma versión de Postgres (17.6.1.104). Se leyó con la API de administración de Supabase (solo lectura, sin contraseña). Pendiente solo P-6 (historial de migraciones).
+**P-5 hecho (2026-10-06):** la estructura de `public` en producción es **idéntica** al baseline del ensayo (294 = 294 objetos, 0 diferencias), con la misma versión de Postgres (17.6.1.104). Se leyó con la API de administración de Supabase (solo lectura, sin contraseña). **P-6 hecho:** producción tiene registradas solo `20260924000000` y `20260924000001` (los dos baselines), tal como se esperaba. **Todos los pre-checks P-1 a P-10 están completos.**
 
 ### Q7 decidido (Mario): el inventario de Carolina **es real y viaja**
 
