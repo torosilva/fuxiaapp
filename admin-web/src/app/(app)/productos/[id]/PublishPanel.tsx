@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { IconCheck, IconClock, IconX } from '@/components/icons';
 import type { Publication, PubJob, PubStep } from '@/lib/f360';
 import { fecha } from '@/lib/format';
-import { publishAction } from '../../actions';
+import { publishAction, setStoreVisibilityAction } from '../../actions';
 
 const STEP_LABEL: Record<string, string> = {
   preflight: 'Revisión', terms: 'Colores y tallas', media: 'Fotos', product: 'Producto', variations: 'Variaciones', stock: 'Existencias', verify: 'Verificación',
@@ -30,10 +30,19 @@ export function PublishPanel({ productId, pub, isOwner, publisherReady }: { prod
     router.refresh();
   });
 
+  const [liveConfirm, setLiveConfirm] = useState(false);
+  const live = pub.woo_status === 'publish';
+  const setVisibility = (status: 'publish' | 'draft') => start(async () => {
+    setError(null); setLiveConfirm(false);
+    const r = await setStoreVisibilityAction(productId, status);
+    if (!r.ok) setError(r.error);
+    router.refresh();
+  });
+
   const busy = pending || pub.state === 'publicando';
   const last = pub.jobs[0];
   const firstTime = !pub.woo_product_id;
-  const label = pub.state === 'error' ? 'Reintentar' : pub.state === 'cambios' ? 'Sincronizar cambios' : firstTime ? 'Publicar en tienda online' : 'Sincronizar de nuevo';
+  const label = pub.state === 'error' ? 'Reintentar' : pub.state === 'cambios' ? 'Sincronizar cambios' : firstTime ? 'Publicar como borrador' : 'Sincronizar de nuevo';
 
   const box = {
     borrador: 'border-line bg-surface',
@@ -59,7 +68,7 @@ export function PublishPanel({ productId, pub, isOwner, publisherReady }: { prod
           <p className="text-ink">Listo para publicar. Se crea <strong>oculto</strong>: nadie lo ve en la tienda hasta que decidas mostrarlo.</p>
         ) : pub.state === 'publicado' ? (
           <div className="text-success">
-            <p className="flex items-center gap-2 text-lg"><IconCheck />Publicado en {pub.target?.name ?? "la tienda"}, oculto — {pub.variations_linked} variaciones</p>
+            <p className="flex items-center gap-2 text-lg"><IconCheck />Publicado en {pub.target?.name ?? "la tienda"}, {live ? <strong>EN VIVO (lo ven las clientas)</strong> : 'oculto (borrador)'} — {pub.variations_linked} variaciones</p>
             {last && <p className="mt-1 text-sm">Última sincronización: {last.requested_by_name}, {fecha(last.finished_at ?? last.created_at)}. Todo coincide con Fuxia 360.</p>}
           </div>
         ) : pub.state === 'cambios' ? (
@@ -86,13 +95,29 @@ export function PublishPanel({ productId, pub, isOwner, publisherReady }: { prod
             <div className="mt-4 rounded-2xl border border-line bg-surface p-4">
               <p className="text-ink">Se creará <strong>1 producto oculto</strong> con todos sus colores y tallas, fotos, precio y existencias de {pub.target?.name ?? 'la tienda'}.</p>
               <div className="mt-3 flex gap-3">
-                <button type="button" onClick={run} className="rounded-2xl bg-ink px-6 py-3.5 text-surface">Sí, publicar oculto</button>
+                <button type="button" onClick={run} className="rounded-2xl bg-ink px-6 py-3.5 text-surface">Sí, publicar como borrador</button>
                 <button type="button" onClick={() => setConfirming(false)} className="rounded-2xl px-4 text-muted">Cancelar</button>
               </div>
             </div>
           ) : (
             <button type="button" onClick={() => (firstTime && pub.state === 'listo' ? setConfirming(true) : run())}
               className={`mt-4 rounded-2xl px-6 py-3.5 ${pub.state === 'publicado' ? 'border border-line bg-surface text-ink' : 'bg-ink text-surface'}`}>{label}</button>
+          )
+        )}
+        {publisherReady && isOwner && pub.woo_product_id && !busy && pub.state !== 'publicando' && (
+          live ? (
+            <button type="button" onClick={() => setVisibility('draft')} className="mt-4 ml-3 rounded-2xl border border-line bg-surface px-6 py-3.5 text-ink" data-testid="hide-from-store">Ocultar de la tienda</button>
+          ) : liveConfirm ? (
+            <div className="mt-4 rounded-2xl border border-gold/40 bg-gold-soft p-4" data-testid="go-live-confirm">
+              <p className="text-ink">Se va a <strong>mostrar a las clientas</strong> en {pub.target?.name ?? 'la tienda'}.</p>
+              {!!pub.legacy_products && <p className="mt-2 text-danger">Ojo: este modelo todavía tiene <strong>{pub.legacy_products} producto{pub.legacy_products > 1 ? 's' : ''} viejo{pub.legacy_products > 1 ? 's' : ''} visible{pub.legacy_products > 1 ? 's' : ''}</strong> en la tienda. Si lo publicas en vivo se verán los dos hasta hacer la unión (redirecciones).</p>}
+              <div className="mt-3 flex gap-3">
+                <button type="button" onClick={() => setVisibility('publish')} className="rounded-2xl bg-ink px-6 py-3.5 text-surface">Sí, publicar en vivo</button>
+                <button type="button" onClick={() => setLiveConfirm(false)} className="rounded-2xl px-4 text-muted">Cancelar</button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setLiveConfirm(true)} className="mt-4 ml-3 rounded-2xl bg-success px-6 py-3.5 text-surface" data-testid="go-live">Publicar en vivo</button>
           )
         )}
         {publisherReady && !isOwner && pub.state !== 'sin_tienda' && <p className="mt-3 text-sm text-muted">Solo una dueña puede publicar en la tienda.</p>}

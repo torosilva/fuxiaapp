@@ -51,9 +51,13 @@ export async function handle(req: Request, env: PublisherEnv, opts: HandlerOptio
   }
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
   if (!token) return json({ error: 'Falta la sesión.' }, 401);
-  let jobId: string;
-  try { jobId = String(((await req.json()) as { job_id?: string }).job_id ?? ''); } catch { return json({ error: 'Solicitud no válida.' }, 400); }
-  if (!/^[0-9a-f-]{36}$/i.test(jobId)) return json({ error: 'Solicitud no válida.' }, 400);
+  let body: { job_id?: string; action?: string; product_id?: string; status?: string };
+  try { body = (await req.json()) as typeof body; } catch { return json({ error: 'Solicitud no válida.' }, 400); }
+  const visibility = body.action === 'visibility';
+  const jobId = String(body.job_id ?? '');
+  if (visibility ? !/^[0-9a-f-]{36}$/i.test(String(body.product_id ?? '')) || !['publish', 'draft'].includes(String(body.status)) : !/^[0-9a-f-]{36}$/i.test(jobId)) {
+    return json({ error: 'Solicitud no válida.' }, 400);
+  }
 
   // 1 · Who is calling? (verified by Supabase Auth, not by anything the client says)
   const u = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, { headers: { apikey: env.SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` } });
@@ -62,6 +66,9 @@ export async function handle(req: Request, env: PublisherEnv, opts: HandlerOptio
   let me: { role: string };
   try { me = await rpc<{ role: string }>(env, 'f360_me', {}, token); } catch { return json({ error: 'Esta cuenta no tiene acceso a Fuxia 360.' }, 403); }
   if (me.role !== 'owner') return json({ error: 'Solo una dueña puede publicar.' }, 403);
+
+  // "Publicar en vivo" / "Ocultar de la tienda": only the product's status in its store; owner re-checked in the database
+  if (visibility) return setVisibility(env, opts, user.id, String(body.product_id), body.status as 'publish' | 'draft');
 
   // 2 · Claim (re-checks owner + requester + readiness in the database; locks the codes)
   const svc = env.SUPABASE_SERVICE_ROLE_KEY;
@@ -99,4 +106,34 @@ export async function handle(req: Request, env: PublisherEnv, opts: HandlerOptio
   // 4 · Close the job (only a read-back-verified run records the published hash)
   const job = await rpc(env, 'f360_pub_finish', { p_job_id: jobId, p_status: outcome.status, p_error: outcome.error, p_summary: outcome.summary }, svc);
   return json({ job, outcome: { status: outcome.status, error: outcome.error, summary: outcome.summary } });
+}
+
+async function setVisibility(env: PublisherEnv, opts: HandlerOptions, caller: string, productId: string, status: 'publish' | 'draft'): Promise<Response> {
+  const svc = env.SUPABASE_SERVICE_ROLE_KEY;
+  let link: { woo_product_id: number; woo_status: string | null; target: { key: string; base_url: string } };
+  try { link = await rpc(env, 'f360_pub_visibility_begin', { p_product_id: productId, p_target_key: env.WOO_TARGET_KEY, p_status: status, p_caller: caller }, svc); }
+  catch (e) { return json({ error: (e as Error).message }, 409); }
+  const finish = (ok: boolean, wooStatus: string | null, message: string | null) => rpc<{ ok: boolean; woo_status: string | null }>(env, 'f360_pub_visibility_finish',
+    { p_product_id: productId, p_target_key: env.WOO_TARGET_KEY, p_status: status, p_caller: caller, p_ok: ok, p_woo_status: wooStatus, p_message: message }, svc);
+  if (link.target.key !== env.WOO_TARGET_KEY || trimUrl(link.target.base_url) !== trimUrl(env.WOO_BASE_URL)) {
+    const m = `Este publicador está configurado para otra tienda (${env.WOO_TARGET_KEY}); no se tocó nada.`;
+    await finish(false, null, m); return json({ error: m }, 409);
+  }
+  const home = await (opts.storeHome ?? storeHome)(env.WOO_BASE_URL);
+  if (!home || hostOf(home) !== hostOf(link.target.base_url)) {
+    const m = 'La tienda no confirmó quién es; no se tocó nada.';
+    await finish(false, null, m); return json({ error: m }, 502);
+  }
+  let adapter = restAdapter({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET, timeoutMs: 60_000 });
+  if (opts.wrapAdapter) adapter = opts.wrapAdapter(adapter);
+  try {
+    await adapter.updateProduct(link.woo_product_id, { status });
+    const after = await adapter.getProduct(link.woo_product_id);              // read back: report what the store REALLY shows
+    const ok = after?.status === status;
+    const r = await finish(ok, after?.status ?? null, ok ? null : `La tienda quedó en ${after?.status ?? 'desconocido'}.`);
+    return ok ? json({ ok: true, woo_status: r.woo_status }) : json({ error: `La tienda quedó en ${after?.status ?? 'desconocido'}.` }, 502);
+  } catch (e) {
+    const m = `Error de la tienda: ${(e as Error).message}`;
+    await finish(false, null, m); return json({ error: m }, 502);
+  }
 }

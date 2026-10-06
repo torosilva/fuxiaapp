@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { publisherAvailable } from '@/lib/env-guard';
 import { suggestHex } from '@/lib/format';
 import type { InventoryEvent, Product, Transfer } from '@/lib/f360';
+import { getPublication, listProducts } from '@/lib/f360';
 import { MERGE_ENABLED, STORE_KEY } from '@/lib/store';
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -87,6 +88,33 @@ export async function setPrimaryMediaAction(productId: string, mediaId: string):
 
 // P2.2 · Publish/sync to the online store (owner only; checked in the database AND again by the publisher).
 // The publisher runs server-side with the store credentials; the browser never sees them.
+
+// "Publicar todos los listos": products ready for the store and never published there (state 'listo'). Owner-only actions run per product.
+export async function publishCandidatesAction(): Promise<Result<{ id: string; name: string }[]>> {
+  if (!publisherAvailable()) return { ok: false, error: 'La publicación en WooCommerce todavía no está disponible en este ambiente.' };
+  try {
+    const all = (await listProducts()).filter((p) => p.ready);
+    const pubs = await Promise.all(all.map(async (p) => ({ p, pub: await getPublication(p.id).catch(() => null) })));
+    return { ok: true, data: pubs.filter((x) => x.pub?.state === 'listo').map((x) => ({ id: x.p.id, name: x.p.name })) };
+  } catch (e) { return { ok: false, error: (e as Error).message }; }
+}
+
+// "Publicar en vivo" / "Ocultar de la tienda": only the product's status in its store (the publisher re-checks owner + store identity).
+export async function setStoreVisibilityAction(productId: string, status: 'publish' | 'draft'): Promise<Result<{ woo_status: string }>> {
+  if (!publisherAvailable()) return { ok: false, error: 'La publicación en WooCommerce todavía no está disponible en este ambiente.' };
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' };
+  let out: Result<{ woo_status: string }>;
+  try {
+    const res = await fetch(process.env.F360_PUBLISHER_URL!, { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'visibility', product_id: productId, status }), cache: 'no-store', signal: AbortSignal.timeout(90_000) });
+    const body = await res.json().catch(() => ({}));
+    out = res.ok ? { ok: true, data: { woo_status: body.woo_status } } : { ok: false, error: body.error ?? 'No se pudo cambiar en la tienda.' };
+  } catch { out = { ok: false, error: 'No hubo respuesta de la tienda. Puedes reintentar.' }; }
+  revalidatePath(`/productos/${productId}`);
+  return out;
+}
 
 export async function publishAction(productId: string, idempotencyKey: string): Promise<Result<{ status: string; error: string | null }>> {
   // Checked BEFORE creating a job: without a publisher a job would sit in the queue forever.

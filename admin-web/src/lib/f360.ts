@@ -56,6 +56,7 @@ export type Publication = {
   state: PubState; ready?: boolean; can_publish: boolean; message?: string;
   target?: { key: string; name: string; base_url: string; is_production: boolean };
   woo_product_id?: number | null; woo_status?: string | null; last_success_at?: string | null; variations_linked?: number;
+  /** old (legacy) store products of this model still in the store — warn before going live */ legacy_products?: number;
   active_job?: PubJob | null; jobs: PubJob[];
 };
 

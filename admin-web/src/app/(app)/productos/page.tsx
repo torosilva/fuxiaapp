@@ -5,6 +5,9 @@ import { canWrite, getMe, listCategories, listProducts } from '@/lib/f360';
 import { pares, precio } from '@/lib/format';
 import { StoreContentPush } from './StoreContentPush';
 import { ConsolidatePanel } from './ConsolidatePanel';
+import { PublishAllPanel } from './PublishAllPanel';
+import { publisherAvailable } from '@/lib/env-guard';
+import { MERGE_ENABLED, STORE_KEY } from '@/lib/store';
 
 export default async function Productos({ searchParams }: { searchParams: Promise<{ q?: string; categoria?: string }> }) {
   const { q, categoria } = await searchParams;
@@ -25,7 +28,8 @@ export default async function Productos({ searchParams }: { searchParams: Promis
           </Link>
         )}
       </div>
-      {me.role === 'owner' && !categoria && !q && <div className="mt-6 grid gap-4 lg:grid-cols-2"><ConsolidatePanel /><StoreContentPush /></div>}
+      {me.role === 'owner' && !categoria && !q && publisherAvailable() && <div className="mt-6"><PublishAllPanel storeName={STORE_KEY === 'woo_production' ? 'fuxiaballerinas.com' : 'la tienda de pruebas'} /></div>}
+      {me.role === 'owner' && !categoria && !q && MERGE_ENABLED && <div className="mt-6 grid gap-4 lg:grid-cols-2"><ConsolidatePanel /><StoreContentPush /></div>}
       <form className="relative mt-6 max-w-md" role="search">
         <IconSearch className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted" />
         <input name="q" defaultValue={q} placeholder="Busca por nombre o color" className="w-full rounded-full border border-line bg-surface py-3.5 pl-12 pr-4 text-base outline-none focus:border-gold" />
