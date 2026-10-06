@@ -42,7 +42,7 @@ Leyenda: ✅ hecho · ⏳ en curso · ⬜ pendiente · 🔒 necesita OK de Mario
 |---|---|---|
 | B1 | Congelar la captura en el admin | 🔒 |
 | B2 | Respaldo de producción completo + respaldo F0 de ese momento | 🔒 |
-| B3 | Aplicar las 74 migraciones a producción (`--db-url` explícito, dry-run primero) | 🔒 |
+| B3 | Aplicar las 74 migraciones a producción (`--db-url` explícito, dry-run primero) | ✅ **2026-10-06.** Dry-run en producción misma (transacción con ROLLBACK, verificado sin cambios) → **aplicado por Mario** en una sola transacción: 72 migraciones F360 + permiso de compatibilidad anon (Q2) + registro. Verificado: 90 tablas, 13 vistas, 327 funciones, 5 jobs, 74 migraciones; **datos de la app intactos** (41 clientas, 39 tarjetas, 36 ventas, 44 transacciones); lecturas de la app sin sesión → 200. Catálogo F360 vacío hasta B4 |
 | B4 | Cargar catálogo, fotos y equipo con los mismos ids (`pase_copy_master.mjs`, `pase_copy_photos.mjs`) | 🔒 |
 | B5 | Cargar el inventario aprobado como apertura por ubicación (A8) | 🔒 |
 | B6 | Comparar origen = destino, tabla por tabla. Si no cuadra, no se abre | 🔒 |
