@@ -147,6 +147,8 @@ PASE_TARGET_API_URL=http://127.0.0.1:54321 PASE_TARGET_SERVICE_KEY=<local> PASE_
 
 Así no se pierde nada de lo que ella contó y no viaja nada de prueba.
 
-**Fuera del pase por ahora:** `20261010000900_f360_opening_undo` (de fuxiaapp-3e, sin aplicar en ningún lado; espera la aprobación de su usuario).
+**`20261010000900_f360_opening_undo`** (de fuxiaapp-3e): commiteada (`3b3ac0e`, `71cfae7`), aplicada en `faltx…` y **probada en las dos bases del ensayo**. Entra en el pase (solo esquema).
+
+**Set del pase:** las **74 migraciones commiteadas** (2 baseline + 72 F360), en orden.
 
 **Riesgo de proceso (X3).** `supabase/.temp/project-ref` del repo apunta a **producción**. Toda orden de la CLI lleva `--db-url` explícito, nunca `--linked`.
