@@ -31,8 +31,8 @@ Leyenda: ✅ hecho · ⏳ en curso · ⬜ pendiente · 🔒 necesita OK de Mario
 | A6 | Comparar la estructura real de producción con la ensayada (P-5) | ✅ **Idéntica**: 294 objetos de `public` (tablas, columnas, funciones, triggers, políticas), 0 diferencias, y todavía sin esquema `f360`. Misma imagen de Postgres (17.6.1.104). Leída con la API de administración de Supabase (sesión de la CLI, consulta de solo lectura), **sin la contraseña de la base** |
 | A7 | Probar la app de clientas contra la copia (login, tarjeta, puntos) | ⬜ |
 | A8 | Inventario de Carolina: cantidades por tienda aprobadas por ella; Bodega CDMX certificada (sin el pedido de prueba #3654 ni el traslado de prueba) | ⬜ Carolina confirma tienda por tienda |
-| A9 | Admin sin "staging4" escrito a mano (5 lugares) → variable de entorno | ⬜ |
-| A10 | Instalar y probar en staging4 el arreglo P0 "Recibimos tu pago" en pedidos pendientes | ⬜ Código listo (`40204ca`) |
+| A9 | Admin sin "staging4" escrito a mano (5 lugares) → variable de entorno | ✅ `975ab00`: `NEXT_PUBLIC_F360_STORE_KEY` (por defecto staging4, sin cambio hoy); el candado rechaza `woo_production` en pruebas. `f360-store-reserve` toma la tienda de la configuración y ya no del navegador (desplegada en staging) |
+| A10 | Instalar y probar en staging4 el arreglo P0 "Recibimos tu pago" en pedidos pendientes | ✅ Instalado (WPCode #4105 + mu-plugin; respaldos `~/f360-backups/*_20261006-090003*`). Pendiente → "Registramos tu pedido… en cuanto se confirme tu pago"; pagado → "Recibimos tu pago"; sin llave del pedido no se revela el estado. Evidencia: `docs/fuxia360/cro/screens/p0-pedido-recibido/` |
 | A11 | Decidir cuándo se quita el acceso anónimo viejo (A2), según la versión publicada de la app | 🔒 |
 
 ## B. Ventana del pase (con Carolina avisada)
