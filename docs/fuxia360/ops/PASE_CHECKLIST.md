@@ -23,13 +23,14 @@ Leyenda: ✅ hecho · ⏳ en curso · ⬜ pendiente · 🔒 necesita OK de Mario
 
 | # | Paso | Estado |
 |---|---|---|
+| A0 | Respaldo completo de producción antes de tocarla (no hay respaldos automáticos: 0 y sin PITR) | ✅ `~/fuxia360-respaldos/prod-20261006-091255/`: 24 tablas, 735 filas, solo lectura |
 | A1 | Respaldo diario de lo de Carolina (F0), con fotos | ✅ Automático cada noche + uno extra hoy (64 modelos, 486 pares, 582 fotos) |
 | A2 | Auditoría de las migraciones (F1) | ✅ |
 | A3 | Chequeo de producción, solo lectura (P-1 a P-10) | ✅ Todo en verde (Mario, 2026-10-06) |
 | A4 | Ensayo completo en copia local (F2): 74 migraciones, datos de Carolina con los mismos ids, fotos, rollback | ✅ |
 | A5 | Todas las migraciones guardadas en git (incluidas las de otras sesiones) | ✅ 74 |
 | A6 | Comparar la estructura real de producción con la ensayada (P-5) | ✅ **Idéntica**: 294 objetos de `public` (tablas, columnas, funciones, triggers, políticas), 0 diferencias, y todavía sin esquema `f360`. Misma imagen de Postgres (17.6.1.104). Leída con la API de administración de Supabase (sesión de la CLI, consulta de solo lectura), **sin la contraseña de la base** |
-| A7 | Probar la app de clientas contra la copia (login, tarjeta, puntos) | ⬜ |
+| A7 | Probar la app de clientas contra la copia (login, tarjeta, puntos) | ✅ Con lo que hace la app **1.0.2**, usando sus mismos roles (`supabase/staging/pase_app_compat_check.sql`): la venta de vendedora sin sesión, el alta de clienta, la tarjeta (el servidor pone `FX-`, 0 puntos, bronce) y el reclamo de venta con puntos funcionan. Hizo falta el permiso de compatibilidad para anon (ya va en G8). **Bug que YA existe hoy en producción, no causado por el pase:** si la clienta tenía "puntos pendientes", crear su tarjeta falla (el trigger usa el canal `popup`, que la regla de `transactions` no acepta). Producción tiene 37 pendientes sin aplicar. Decisión de Mario, fuera del pase |
 | A8 | Inventario de Carolina: cantidades por tienda aprobadas por ella; Bodega CDMX certificada (sin el pedido de prueba #3654 ni el traslado de prueba) | ⬜ Carolina confirma tienda por tienda |
 | A9 | Admin sin "staging4" escrito a mano (5 lugares) → variable de entorno | ✅ `975ab00`: `NEXT_PUBLIC_F360_STORE_KEY` (por defecto staging4, sin cambio hoy); el candado rechaza `woo_production` en pruebas. `f360-store-reserve` toma la tienda de la configuración y ya no del navegador (desplegada en staging) |
 | A10 | Instalar y probar en staging4 el arreglo P0 "Recibimos tu pago" en pedidos pendientes | ✅ Instalado (WPCode #4105 + mu-plugin; respaldos `~/f360-backups/*_20261006-090003*`). Pendiente → "Registramos tu pedido… en cuanto se confirme tu pago"; pagado → "Recibimos tu pago"; sin llave del pedido no se revela el estado. Evidencia: `docs/fuxia360/cro/screens/p0-pedido-recibido/` |

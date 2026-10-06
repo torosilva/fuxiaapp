@@ -92,6 +92,10 @@ for (const id of auth.pii_viewers || []) {
 }
 sql += `INSERT INTO f360.sales_targets (key, name, base_url, fulfillment_location_id, active, is_production, is_test)
   SELECT 'woo_production', 'Tienda en línea', 'https://fuxiaballerinas.com', id, false, true, false FROM f360.locations WHERE name = 'Bodega CDMX' AND type = 'warehouse';\n`;
+// §5.9 / Q2 (decided 2026-10-06): the published app 1.0.2 still sells WITHOUT login (anon) and A2 stays out of the pase,
+// so the legacy-store freeze check (offline_sales_client_guard) must be callable by anon. Definer; returns only
+// 'migrada' / 'en_corte' / NULL. Revoked when A2 is applied with a new app version.
+sql += `GRANT EXECUTE ON FUNCTION public.f360_legacy_channel_frozen(uuid) TO anon;\n`;
 // bigserial history tables: move each sequence past the copied ids
 sql += `DO $s$ DECLARE r record; m bigint; BEGIN
   FOR r IN SELECT n.nspname || '.' || c.relname AS t, a.attname AS col, pg_get_serial_sequence(n.nspname || '.' || c.relname, a.attname) AS seq
