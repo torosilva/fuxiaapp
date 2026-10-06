@@ -111,7 +111,7 @@ export const getEvent = (id: string) => rpc<InventoryEvent>('f360_get_event', { 
 export const listCategories = () => rpc<Category[]>('f360_list_categories');
 export const inventoryByLocation = (locationId?: string) => rpc<LocationInventory[]>('f360_inventory_by_location', { p_location_id: locationId ?? null });
 
-export const getPublication = (productId: string) => rpc<Publication>('f360_publication_status', { p_product_id: productId });
+export const getPublication = (productId: string) => rpc<Publication>('f360_publication_status', { p_product_id: productId, p_target_key: STORE_KEY });
 
 export const getSyncOverview = (status: 'open' | 'resolved' | 'all' = 'open') => rpc<SyncOverview>('f360_list_sync_issues', { p_status: status });
 export const getSyncBadge = () => rpc<number>('f360_sync_badge');

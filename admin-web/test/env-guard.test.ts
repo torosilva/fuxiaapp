@@ -30,6 +30,8 @@ test('production deployment refuses staging pieces, secrets, wrong store and the
   assert.ok(environmentProblems({ ...production, SUPABASE_SERVICE_ROLE_KEY: 'x' }).length > 0);
   assert.ok(environmentProblems({ ...production, NEXT_PUBLIC_F360_STORE_KEY: 'woo_staging4' }).length > 0);
   assert.ok(environmentProblems({ ...production, F360_PUBLISHER_URL: 'https://publisher.example' }).length > 0);
+  assert.ok(environmentProblems({ ...production, F360_PUBLISHER_URL: 'https://faltxpkaicwpnlqaxrdu.supabase.co/functions/v1/f360-woo-publish' }).length > 0);
+  assert.deepEqual(environmentProblems({ ...production, F360_PUBLISHER_URL: 'https://tgzgiwfzddsghnxgkcqd.supabase.co/functions/v1/f360-woo-publish' }), []);
 });
 test('a staging deployment still may NOT point at production; unknown env names are refused on Vercel', () => {
   assert.ok(environmentProblems({ ...staging, VERCEL: '1', NEXT_PUBLIC_SUPABASE_URL: 'https://tgzgiwfzddsghnxgkcqd.supabase.co' }).length > 0);

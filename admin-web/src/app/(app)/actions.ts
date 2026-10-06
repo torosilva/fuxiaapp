@@ -93,7 +93,7 @@ export async function publishAction(productId: string, idempotencyKey: string): 
   if (!publisherAvailable()) return { ok: false, error: 'La publicación en WooCommerce todavía no está disponible en este ambiente.' };
   const url = process.env.F360_PUBLISHER_URL!;
   const supabase = await createClient();
-  const req = await call<{ id: string; status: string }>('f360_request_publish', { p_product_id: productId, p_idempotency_key: idempotencyKey });
+  const req = await call<{ id: string; status: string }>('f360_request_publish', { p_product_id: productId, p_idempotency_key: idempotencyKey, p_target_key: STORE_KEY });
   if (!req.ok) return req;
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' };

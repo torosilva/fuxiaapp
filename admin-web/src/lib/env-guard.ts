@@ -45,8 +45,11 @@ export function environmentProblems(env: Record<string, string | undefined> = pr
       if (claims?.role !== 'anon') problems.push('NEXT_PUBLIC_SUPABASE_ANON_KEY no es una llave pública (anon).');
     }
     if (env.NEXT_PUBLIC_F360_STORE_KEY !== 'woo_production') problems.push('En producción NEXT_PUBLIC_F360_STORE_KEY debe ser "woo_production".');
-    // Publishing to the real store opens only at pase step C (channel capabilities); until then there is no publisher.
-    if (env.F360_PUBLISHER_URL) problems.push('F360_PUBLISHER_URL todavía no se permite en producción (paso C del pase).');
+    // The only publisher a production admin may call is the production project's own f360-woo-publish (pase C, Mario 2026-10-06).
+    const pub = env.F360_PUBLISHER_URL;
+    if (pub && pub.replace(/\/+$/, '') !== `https://${PRODUCTION_REF}.supabase.co/functions/v1/f360-woo-publish`) {
+      problems.push('F360_PUBLISHER_URL en producción solo puede ser la función f360-woo-publish del proyecto de producción.');
+    }
   }
 
   if (f360 === 'staging') {
