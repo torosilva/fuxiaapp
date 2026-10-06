@@ -110,7 +110,7 @@ export async function handle(req: Request, env: PublisherEnv, opts: HandlerOptio
 
 async function setVisibility(env: PublisherEnv, opts: HandlerOptions, caller: string, productId: string, status: 'publish' | 'draft'): Promise<Response> {
   const svc = env.SUPABASE_SERVICE_ROLE_KEY;
-  let link: { woo_product_id: number; woo_status: string | null; target: { key: string; base_url: string } };
+  let link: { woo_product_id: number; woo_status: string | null; legacy_woo_product_ids?: number[]; target: { key: string; base_url: string } };
   try { link = await rpc(env, 'f360_pub_visibility_begin', { p_product_id: productId, p_target_key: env.WOO_TARGET_KEY, p_status: status, p_caller: caller }, svc); }
   catch (e) { return json({ error: (e as Error).message }, 409); }
   const finish = (ok: boolean, wooStatus: string | null, message: string | null) => rpc<{ ok: boolean; woo_status: string | null }>(env, 'f360_pub_visibility_finish',
@@ -130,8 +130,18 @@ async function setVisibility(env: PublisherEnv, opts: HandlerOptions, caller: st
     await adapter.updateProduct(link.woo_product_id, { status });
     const after = await adapter.getProduct(link.woo_product_id);              // read back: report what the store REALLY shows
     const ok = after?.status === status;
-    const r = await finish(ok, after?.status ?? null, ok ? null : `La tienda quedó en ${after?.status ?? 'desconocido'}.`);
-    return ok ? json({ ok: true, woo_status: r.woo_status }) : json({ error: `La tienda quedó en ${after?.status ?? 'desconocido'}.` }, 502);
+    // Old store products of the model: out of the catalog when the new one goes live (URL keeps working), back when it is hidden.
+    const legacy = ok ? (link.legacy_woo_product_ids ?? []) : [];
+    const failedLegacy: number[] = [];
+    for (const id of legacy) {
+      try { await adapter.updateProduct(id, { catalog_visibility: status === 'publish' ? 'hidden' : 'visible' }); }
+      catch { failedLegacy.push(id); }
+    }
+    const note = legacy.length ? `${status === 'publish' ? 'Fuera del catálogo' : 'De vuelta en el catálogo'}: ${legacy.length - failedLegacy.length} producto(s) viejo(s)` +
+      (failedLegacy.length ? `; no se pudo: ${failedLegacy.join(', ')}` : '') : null;
+    const r = await finish(ok, after?.status ?? null, ok ? note : `La tienda quedó en ${after?.status ?? 'desconocido'}.`);
+    return ok ? json({ ok: true, woo_status: r.woo_status, legacy_changed: legacy.length - failedLegacy.length, legacy_failed: failedLegacy })
+      : json({ error: `La tienda quedó en ${after?.status ?? 'desconocido'}.` }, 502);
   } catch (e) {
     const m = `Error de la tienda: ${(e as Error).message}`;
     await finish(false, null, m); return json({ error: m }, 502);

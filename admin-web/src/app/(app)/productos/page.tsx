@@ -55,7 +55,7 @@ export default async function Productos({ searchParams }: { searchParams: Promis
             <Link key={p.id} href={`/productos/${p.id}`} className="group overflow-hidden rounded-2xl border border-line bg-surface transition hover:border-gold/40">
               <div className="relative aspect-[4/3] overflow-hidden">
                 <ProductImage path={p.image_path} name={p.name} className="transition duration-500 group-hover:scale-[1.03]" />
-                <span className={`absolute left-3 top-3 rounded-full px-2.5 py-0.5 text-xs font-medium ${p.from_store || p.ready ? 'bg-success-soft text-success' : 'bg-gold-soft text-ink-2'}`}>{p.from_store ? 'En la tienda' : p.ready ? 'Listo' : 'Borrador'}</span>
+                <span className={`absolute left-3 top-3 rounded-full px-2.5 py-0.5 text-xs font-medium ${p.from_store || p.ready ? 'bg-success-soft text-success' : 'bg-gold-soft text-ink-2'}`}>{p.from_store ? 'Viene de la tienda' : p.ready ? 'Listo' : 'Borrador'}</span>
               </div>
               <div className="p-4">
                 <div className="font-display text-2xl leading-tight text-ink">{p.name}</div>

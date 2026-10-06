@@ -10,7 +10,7 @@ const PID = '11111111-2222-3333-4444-555555555555';
 
 function setup(role = 'owner') {
   const rpcs: { fn: string; args: Record<string, unknown> }[] = [];
-  const store = { status: 'draft', updates: 0 };
+  const store = { status: 'draft', updates: 0, legacy: {} as Record<number, string> };
   globalThis.fetch = (async (url: string, init?: RequestInit) => {
     const u = String(url);
     if (u.endsWith('/auth/v1/user')) return new Response(JSON.stringify({ id: 'user-1' }));
@@ -18,12 +18,12 @@ function setup(role = 'owner') {
     const args = init?.body ? JSON.parse(String(init.body)) : {};
     rpcs.push({ fn, args });
     if (fn === 'f360_me') return new Response(JSON.stringify({ role }));
-    if (fn === 'f360_pub_visibility_begin') return new Response(JSON.stringify({ woo_product_id: 3674, woo_status: 'draft', target: { key: 'woo_production', base_url: 'https://fuxiaballerinas.com' } }));
+    if (fn === 'f360_pub_visibility_begin') return new Response(JSON.stringify({ woo_product_id: 3674, woo_status: 'draft', legacy_woo_product_ids: [145, 146], target: { key: 'woo_production', base_url: 'https://fuxiaballerinas.com' } }));
     if (fn === 'f360_pub_visibility_finish') return new Response(JSON.stringify({ ok: args.p_ok, woo_status: args.p_woo_status }));
     return new Response('{}', { status: 404 });
   }) as typeof fetch;
   const adapter = {
-    updateProduct: async (_id: number, b: Record<string, unknown>) => { store.updates++; store.status = String(b.status); return { id: 3674, status: store.status } },
+    updateProduct: async (id: number, b: Record<string, unknown>) => { store.updates++; if (id === 3674) store.status = String(b.status); else store.legacy[id] = String(b.catalog_visibility); return { id, status: store.status } },
     getProduct: async () => ({ id: 3674, status: store.status }),
   } as unknown as WooAdapter;
   return { rpcs, store, opts: { wrapAdapter: () => adapter, storeHome: async () => 'https://fuxiaballerinas.com' } };
@@ -34,8 +34,9 @@ test('owner → live: the store product becomes publish, read back, audited', as
   const { rpcs, store, opts } = setup();
   const r = await handle(req({ action: 'visibility', product_id: PID, status: 'publish' }), env, opts);
   assert.equal(r.status, 200);
-  assert.deepEqual(await r.json(), { ok: true, woo_status: 'publish' });
-  assert.equal(store.status, 'publish'); assert.equal(store.updates, 1);
+  assert.deepEqual(await r.json(), { ok: true, woo_status: 'publish', legacy_changed: 2, legacy_failed: [] });
+  assert.equal(store.status, 'publish');
+  assert.deepEqual(store.legacy, { 145: 'hidden', 146: 'hidden' }, 'old products leave the catalog (URL still works)');
   const fin = rpcs.find((x) => x.fn === 'f360_pub_visibility_finish')!;
   assert.equal(fin.args.p_ok, true); assert.equal(fin.args.p_caller, 'user-1'); assert.equal(fin.args.p_target_key, 'woo_production');
 });
@@ -55,4 +56,12 @@ test('only publish / draft are accepted', async () => {
   const { opts } = setup();
   const r = await handle(req({ action: 'visibility', product_id: PID, status: 'trash' }), env, opts);
   assert.equal(r.status, 400);
+});
+
+test('hide again → the new product back to draft and the old products back in the catalog', async () => {
+  const { store, opts } = setup();
+  const r = await handle(req({ action: 'visibility', product_id: PID, status: 'draft' }), env, opts);
+  assert.equal(r.status, 200);
+  assert.equal(store.status, 'draft');
+  assert.deepEqual(store.legacy, { 145: 'visible', 146: 'visible' });
 });

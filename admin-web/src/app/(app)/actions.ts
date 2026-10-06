@@ -99,6 +99,16 @@ export async function publishCandidatesAction(): Promise<Result<{ id: string; na
   } catch (e) { return { ok: false, error: (e as Error).message }; }
 }
 
+// "Poner en vivo todos": products Fuxia 360 already published in this store that are still hidden (draft).
+export async function liveCandidatesAction(): Promise<Result<{ id: string; name: string }[]>> {
+  if (!publisherAvailable()) return { ok: false, error: 'La publicación en WooCommerce todavía no está disponible en este ambiente.' };
+  try {
+    const all = await listProducts();
+    const pubs = await Promise.all(all.map(async (p) => ({ p, pub: await getPublication(p.id).catch(() => null) })));
+    return { ok: true, data: pubs.filter((x) => x.pub?.woo_product_id && x.pub.state === 'publicado' && x.pub.woo_status !== 'publish').map((x) => ({ id: x.p.id, name: x.p.name })) };
+  } catch (e) { return { ok: false, error: (e as Error).message }; }
+}
+
 // "Publicar en vivo" / "Ocultar de la tienda": only the product's status in its store (the publisher re-checks owner + store identity).
 export async function setStoreVisibilityAction(productId: string, status: 'publish' | 'draft'): Promise<Result<{ woo_status: string }>> {
   if (!publisherAvailable()) return { ok: false, error: 'La publicación en WooCommerce todavía no está disponible en este ambiente.' };
@@ -144,6 +154,8 @@ export async function publishAction(productId: string, idempotencyKey: string): 
 export type ConsolidationItem = { product_id: string; name: string; job_id: string | null; status: string };
 export async function consolidateStartAction(productIds?: string[]) {
   if (!MERGE_ENABLED) return { ok: false as const, error: 'La unión de modelos todavía no está habilitada en esta tienda.' };
+  // every ready model that comes from the old store — also the ones that were a single old product — gets its F360 product
+  if (!productIds) productIds = (await listProducts()).filter((p) => p.from_store && p.ready).map((p) => p.id);
   return call<{ items: ConsolidationItem[]; skipped: { product_id: string; name: string; missing: string[] }[] }>('f360_consolidate_start',
     { p_target_key: STORE_KEY, p_product_ids: productIds ?? null, p_legacy_paths: {} });
 }
