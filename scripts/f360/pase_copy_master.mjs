@@ -23,6 +23,7 @@ const BACKUP = arg('--backup'), AUTH = arg('--auth'), WITH_INV = process.argv.in
 // --emit-sql <file> --team-map <json>: write the SQL (BEGIN … COMMIT) instead of executing it. Used for PRODUCTION, where the
 // file is committed and applied ONLY through scripts/f360/prod_sql.sh (dry-run first). No database is touched in this mode.
 const EMIT = arg('--emit-sql'), TEAM_MAP = arg('--team-map');
+const ONLY_INV = process.argv.includes('--only-inventory');   // catalog already loaded: emit ONLY Carolina's inventory
 const TARGET = process.env.PASE_TARGET_DB_URL || '';
 if (!BACKUP || !AUTH || (!TARGET && !EMIT)) throw new Error('uso: PASE_TARGET_DB_URL=… --backup <dir> --auth <json>  |  --emit-sql <file> --team-map <json>');
 if (EMIT && !TEAM_MAP) throw new Error('--emit-sql requiere --team-map (cuentas del equipo en el destino, por persona)');
@@ -74,7 +75,7 @@ const add = (t, rows) => {
   sql += `INSERT INTO ${t} OVERRIDING SYSTEM VALUE SELECT * FROM jsonb_populate_recordset(NULL::${t}, $f360copy$${json}$f360copy$::jsonb)${SEEDED.has(t) ? ' ON CONFLICT DO NOTHING' : t === 'f360.locations' ? ' ON CONFLICT (id) DO NOTHING' : ''};\n`;
 };
 
-for (const t of CATALOG) {
+if (!ONLY_INV) for (const t of CATALOG) {
   let rows = load(t);
   if (t === 'f360.locations') {
     // §5.8: the migrations already create "En camino" (transit) with their own id → align it to Carolina's id (nothing references it yet)
@@ -86,12 +87,31 @@ for (const t of CATALOG) {
   add(t, rows);
 }
 // Q4 (option "history"): the staging4 channel travels as an inactive test channel, so the 666 confirmed homologations keep their FK.
-if (s4) {
+if (s4 && !ONLY_INV) {
   sql += `INSERT INTO f360.sales_targets SELECT * FROM jsonb_populate_recordset(NULL::f360.sales_targets, $f360copy$${JSON.stringify([{ ...s4, active: false, is_test: true, is_production: false }])}$f360copy$::jsonb);\n`;
   for (const t of HOMOLOGATION) add(t, load(t));
 }
-if (WITH_INV) for (const t of INVENTORY) add(t, load(t));
+// --exclude-events id,id: test events that must not travel (e.g. a SALE from a staging4 test order). Their movements go too,
+// and the balances are RECOMPUTED from the remaining movements (never copied raw), so balance = Σ movements by construction.
+const EXCLUDE = new Set((arg('--exclude-events') || '').split(',').map((x) => x.trim()).filter(Boolean));
+if (WITH_INV || ONLY_INV) {
+  const keep = (rows, key) => rows.filter((r) => !EXCLUDE.has(r[key]));
+  for (const t of INVENTORY) {
+    if (t === 'f360.inventory_events') add(t, keep(load(t), 'id'));
+    else if (t === 'f360.inventory_movements') add(t, keep(load(t), 'event_id'));
+    else if (t === 'f360.inventory_balances') {
+      stats[t] = 'recomputed';
+      sql += `INSERT INTO f360.inventory_balances (variant_id, location_id, on_hand, last_event_id, updated_at)
+  SELECT variant_id, location_id, sum(q)::int, (array_agg(event_id ORDER BY occurred_at DESC))[1], max(occurred_at) FROM (
+    SELECT m.variant_id, m.to_location_id AS location_id, m.quantity AS q, m.event_id, e.occurred_at FROM f360.inventory_movements m JOIN f360.inventory_events e ON e.id = m.event_id WHERE m.to_location_id IS NOT NULL
+    UNION ALL
+    SELECT m.variant_id, m.from_location_id, -m.quantity, m.event_id, e.occurred_at FROM f360.inventory_movements m JOIN f360.inventory_events e ON e.id = m.event_id WHERE m.from_location_id IS NOT NULL) x
+  GROUP BY variant_id, location_id HAVING sum(q) <> 0;\n`;
+    } else add(t, load(t));
+  }
+}
 
+if (!ONLY_INV) {
 // G8 · people by e-mail and the real channel (inactive until F5, Q3 default)
 for (const m of auth.team) {
   const t = remap.get(m.id);
@@ -107,6 +127,7 @@ sql += `INSERT INTO f360.sales_targets (key, name, base_url, fulfillment_locatio
 // so the legacy-store freeze check (offline_sales_client_guard) must be callable by anon. Definer; returns only
 // 'migrada' / 'en_corte' / NULL. Revoked when A2 is applied with a new app version.
 sql += `GRANT EXECUTE ON FUNCTION public.f360_legacy_channel_frozen(uuid) TO anon;\n`;
+}
 // bigserial history tables: move each sequence past the copied ids
 sql += `DO $s$ DECLARE r record; m bigint; BEGIN
   FOR r IN SELECT n.nspname || '.' || c.relname AS t, a.attname AS col, pg_get_serial_sequence(n.nspname || '.' || c.relname, a.attname) AS seq
