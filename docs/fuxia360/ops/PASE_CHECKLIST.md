@@ -54,7 +54,7 @@ Leyenda: ✅ hecho · ⏳ en curso · ⬜ pendiente · 🔒 necesita OK de Mario
 |---|---|---|
 | C1 | Llave de WooCommerce de producción (usuario solo-catálogo) | 🔒 Mario |
 | C2 | Canal `woo_production` encendido para catálogo; publicar los 58 modelos; redirecciones antes de ocultar los viejos; mover reseñas | ⬜ Diseño hecho, nada construido |
-| C3 | Snippets de la PDP, el checkout y "Pedido recibido" en producción; quitar "6 MSI tiempo limitado" | 🔒 |
+| C3 | Snippets de la PDP, el checkout y "Pedido recibido" en producción. **"6 MSI" se queda** (es estrategia comercial, Mario 2026-10-06) | 🔒 |
 | C4 | Sincronización de stock con la tienda | 🔒 Al final, aprobación aparte |
 
 ## D. Fuera de F360 (Adrián)

@@ -661,3 +661,6 @@ Es un cambio de producción (KB en vivo), así que se aplica junto con el deploy
 - Está en `tools/storefront/f360-compra.html` (WPCode #4105), unidad de la sesión 67. No se corrigió dentro de CRO-6.
 
 **Estado final: CRO-5 = DONE (staging). CRO-6 = PARTIAL**: PDP, checkout y Pedido recibido ✅; Hilo listo en rama y se despliega en el pase.
+
+
+> **Corrección (Mario, 2026-10-06):** "6 MSI" es parte de la estrategia comercial y **no se quita**, ni en staging4 ni en producción. Se restauró en staging4 (WPCode #2551, respaldo `wpcode_2551_20261005-215116.txt`). Cualquier instrucción anterior de este documento que diga quitar "6 MSI" queda sin efecto.

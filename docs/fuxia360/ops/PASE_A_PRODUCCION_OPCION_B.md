@@ -96,3 +96,6 @@
 
 ## Siguiente paso
 F0 (respaldo diario) y F1 (auditoría de las 65 migraciones) no tocan producción. Con la aprobación de Mario, se ejecutan primero.
+
+
+> **Corrección (Mario, 2026-10-06):** "6 MSI" es parte de la estrategia comercial y **no se quita**, ni en staging4 ni en producción. Se restauró en staging4 (WPCode #2551, respaldo `wpcode_2551_20261005-215116.txt`). Cualquier instrucción anterior de este documento que diga quitar "6 MSI" queda sin efecto.
