@@ -76,7 +76,8 @@ BEGIN
   PERFORM pg_temp.as(op, format($q$SELECT public.f360_opening_record(%L, '1', '[{"variant_id":"%s","qty":1}]')$q$, cid, v36));
   PERFORM pg_temp.as(car, format($q$SELECT public.f360_opening_freeze(%L)$q$, cid));
   PERFORM pg_temp.as(car, format($q$SELECT public.f360_opening_reconcile(%L)$q$, cid));
-  PERFORM pg_temp.as(car, format($q$SELECT public.f360_opening_approve(%L, 'ok')$q$, cid));
+  r := pg_temp.as(car, format($q$SELECT public.f360_opening_approve(%L, 'Conteo de prueba aprobado')$q$, cid));
+  PERFORM pg_temp.ok(r->'count'->>'status' = 'aprobado', 'approve after undo (setup for the next check)', coalesce(r->>'error', r->'count'->>'status') || ' ' || coalesce((r->'blockers')::text, ''));
   r := pg_temp.as(car, format($q$SELECT public.f360_opening_clear_line(%L, %L)$q$, cid, v36));
   PERFORM pg_temp.ok(r->>'error' LIKE '%no está abierto%', 'clear: refused once the count is approved', r->>'error');
 END $$;
