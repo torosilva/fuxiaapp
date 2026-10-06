@@ -19,7 +19,7 @@ REL="$(git ls-files --full-name --error-unmatch "$OLDPWD/$FILE" 2>/dev/null || g
   || { echo "ABORT: $FILE no está en git. Commitea el archivo primero." >&2; exit 3; }
 git diff --quiet HEAD -- "$REL" || { echo "ABORT: $REL tiene cambios sin commitear." >&2; exit 3; }
 COMMIT="$(git log -1 --format=%h -- "$REL")"
-first="$(grep -v '^\s*--' "$REL" | grep -v '^\s*$' | head -1)"; last="$(grep -v '^\s*--' "$REL" | grep -v '^\s*$' | tail -1)"
+first="$(awk '!/^[[:space:]]*(--|$)/ { print; exit }' "$REL")"; last="$(awk '!/^[[:space:]]*(--|$)/ { l = $0 } END { print l }' "$REL")"
 [ "$first" = "BEGIN;" ] && [ "$last" = "COMMIT;" ] || { echo "ABORT: el archivo debe empezar con BEGIN; y terminar con COMMIT;" >&2; exit 3; }
 
 T="$(security find-generic-password -s "Supabase CLI" -a supabase -w 2>/dev/null || true)"
