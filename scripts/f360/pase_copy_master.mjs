@@ -60,7 +60,7 @@ const add = (t, rows) => {
   stats[t] = fixed.length;
   if (!fixed.length) return;
   const json = JSON.stringify(fixed).replaceAll('$f360copy$', '');
-  sql += `INSERT INTO ${t} OVERRIDING SYSTEM VALUE SELECT * FROM jsonb_populate_recordset(NULL::${t}, $f360copy$${json}$f360copy$::jsonb)${SEEDED.has(t) ? ' ON CONFLICT DO NOTHING' : ''};\n`;
+  sql += `INSERT INTO ${t} OVERRIDING SYSTEM VALUE SELECT * FROM jsonb_populate_recordset(NULL::${t}, $f360copy$${json}$f360copy$::jsonb)${SEEDED.has(t) ? ' ON CONFLICT DO NOTHING' : t === 'f360.locations' ? ' ON CONFLICT (id) DO NOTHING' : ''};\n`;
 };
 
 for (const t of CATALOG) {
@@ -69,7 +69,7 @@ for (const t of CATALOG) {
     // §5.8: the migrations already create "En camino" (transit) with their own id → align it to Carolina's id (nothing references it yet)
     const transit = rows.find((r) => r.type === 'transit');
     if (transit) sql += `UPDATE f360.locations SET id = '${transit.id}' WHERE type = 'transit' AND id <> '${transit.id}';\n`;
-    rows = rows.filter((r) => r.type !== 'transit').map((r) => ({ ...r, legacy_channel_id: null }));   // Q6 default: no legacy channel link
+    rows = rows.map((r) => ({ ...r, legacy_channel_id: null }));   // Q6 default: no legacy channel link (transit: inserted only if missing)
   }
   if (t === 'f360.historical_sales' || t === 'f360.historical_sales_log') rows = rows.filter((r) => !/^ZZ/i.test(JSON.stringify(r.label ?? r.notes ?? '')));
   add(t, rows);

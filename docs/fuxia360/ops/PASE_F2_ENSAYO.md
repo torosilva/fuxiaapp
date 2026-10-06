@@ -23,6 +23,59 @@
 | 4 · App de clientas contra la copia | ⏳ **Pendiente**: una build de desarrollo de la app apuntando al ensayo (login, tarjeta, puntos) |
 | Rollback | ✅ **Esquema:** los 61 `.down.sql` en orden inverso (en transacción) dejan `public` **idéntico** al baseline de prod (294 objetos, 0 diferencias) y quitan `f360`. **Con datos:** los rollbacks se niegan a borrar ("product prices exist"), a propósito. El rollback de una ventana real es el **respaldo de G0** |
 
+## Actualización 2026-10-06 (tarde)
+
+### Pre-checks de producción (Mario los corrió en `tgzg…`, solo lectura)
+
+| Chequeo | Resultado |
+|---|---|
+| P-1 clientas duplicadas por teléfono normalizado | **0** ✅ (la migración CRM C1 entra) |
+| P-2 teléfonos fuera de formato | **0** ✅ (41 clientas) |
+| P-3 existencias inválidas | **0** ✅ (el CHECK de `channel_inventory` entra) |
+| P-4 colisiones (esquema, tablas, funciones, columnas F360) | **Ninguna** ✅ |
+| P-7 extensiones | `pg_cron`, `pgcrypto`, `supabase_vault` instaladas; `pg_net` disponible ✅ |
+| P-8 bucket `product-images` | Existe, 0 objetos `f360/` ✅ |
+| P-9 tarjetas con QR que no empieza con `FX-` | **0** de 39 ✅ (Q1 resuelto) |
+| P-10 políticas anónimas | 7 (3 = A2 **no aplicado**): decisión Q2 antes de G4 |
+
+Pendiente de producción solo P-5 (dump del esquema, para comparar con el baseline) y P-6 (historial de migraciones).
+
+### Q7 decidido (Mario): el inventario de Carolina **es real y viaja**
+
+En el pase se usa `--with-inventory`.
+
+### "No perder nada de Carolina": auditoría de las 84 tablas con datos del ambiente actual
+
+| Grupo | Tablas | Destino en el pase |
+|---|---|---|
+| **Trabajo de Carolina** | Catálogo, colores, tallas, variantes, fotos, precios e historial, fichas de ajuste, ubicaciones, homologación (792), **inventario** (eventos, movimientos, saldos, traslados, conteo de apertura de 672 líneas), plan de crecimiento | **Viaja** con los mismos ids (respaldo F0 → `pase_copy_master.mjs`) |
+| **Configuración** | Reglas de promesa, destinatarios de correo, propósitos y aviso de consentimiento | La crean las migraciones: **idéntica** al ambiente actual (comparada por hash). El aviso cambia solo de id y fecha |
+| **Tienda de prueba (staging4)** | Pedidos, sincronizaciones, webhooks, conciliaciones, bitácora de stock, ligas Woo de staging4 | No viaja (§6) |
+| **Pruebas con datos tipo cliente** | `customer_cases` (3), `custom_requests` (1), apartados, aviso de stock, búsquedas, `email_outbox` | Verificado: **todo es de prueba** (staging4, teléfonos y nombres de prueba). No viaja |
+| **Equipo y accesos** | Roles, vendedoras, sesiones, bitácora de accesos | Se recrean **por correo** (G8) |
+| **Tablas de la app** (`public.*`) | 6 clientas de prueba, canales de laboratorio, `tier_config` | Producción tiene las suyas reales: no se tocan |
+| **Reseñas (CRO-3B1)** | `review_facts` | Se regeneran en producción con `review_backfill.php` |
+
+**El ambiente actual (`faltx…`) no se borra ni se limpia en el pase.** Queda intacto como respaldo vivo hasta que Mario apruebe convertirlo en desarrollo (F6).
+
+### Segundo ensayo con los datos de HOY (respaldo F0 tomado el 2026-10-06 a las 08:40 CDMX)
+
+Hecho en una base gemela vacía con el mismo esquema:
+
+| Dato | Resultado |
+|---|---|
+| Copia | ✅ **33/33 tablas iguales** al respaldo: 64 modelos, 948 variantes, 582 fotos, **6 fichas de ajuste validadas**, 792 homologaciones |
+| Inventario | **486 pares** = lo que tiene hoy el ambiente actual, 0 diferencias entre saldos y movimientos; conteo de apertura (672 líneas) en su estado "preliminar" |
+| Mejora del script | Si "En camino" no existe, la crea con el id de Carolina; si existe, alinea el id |
+
+### En la ventana real (F4), regla para no perder nada
+
+1. Aviso a Carolina y congelar la captura.
+2. **Respaldo F0 en ese momento** + respaldo completo de producción (G0).
+3. Migraciones → `pase_copy_master.mjs --with-inventory` → `pase_copy_photos.mjs`.
+4. **Conteos origen = destino, tabla por tabla, contra ese respaldo.** Saldos = movimientos. Fotos 100%.
+5. Si algo no cuadra: no se abre producción. Se corrige o se regresa con el respaldo de G0. `faltx…` sigue intacto.
+
 ## Lo que se construyó (repo)
 
 | Archivo | Qué |
@@ -46,7 +99,7 @@
 
 ## Lo que falta para el pase real (en orden)
 
-1. **Pre-checks de producción (P-1 a P-10).** Mario pega `docs/fuxia360/ops/PASE_F1_PRECHECK_PROD.sql` en el SQL Editor de producción. Es solo lectura, devuelve conteos y termina en ROLLBACK. Con eso se sabe si hay clientas duplicadas, teléfonos sin formato o existencias imposibles que harían abortar dos migraciones.
+1. ~~Pre-checks de producción (P-1 a P-10)~~ ✅ **Hechos 2026-10-06: todo en verde** (ver arriba).
 2. **Esquema real de producción (P-5)**, para confirmar que no difiere del baseline:
    - `supabase db dump --schema public` con la URL de producción (solo esquema, sin datos);
    - o Mario lo exporta desde el dashboard.
@@ -62,7 +115,7 @@
 | Q4 | Las 666 homologaciones | **Llevarlas** con `woo_staging4` como histórico (probado: entra sin romper FKs) y re-anclar en F5 tras la verificación 1:1 |
 | Q5 | Roles | Carolina, Mario y Adrián como dueños (igual que hoy) |
 | Q6 | Tiendas ligadas a canales de la app | Sin liga al inicio (así quedó el ensayo); se liga tienda por tienda en su corte |
-| Q7 | ¿El inventario de Carolina viaja? | **Sí, si es real** (probado: entra cuadrado). Si es de prueba, se omite con no poner `--with-inventory` |
+| Q7 | ¿El inventario de Carolina viaja? | **Decidido: SÍ, es real** (Mario 2026-10-06). Probado: entra cuadrado |
 
 6. **Ventana F4** con Carolina avisada: congelar la captura → respaldo G0 → migraciones → script de copia → fotos → admin de producción en Vercel.
 
