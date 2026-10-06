@@ -24,7 +24,7 @@ for f in $files; do
   echo "instalado: $name ($(git log -1 --format=%h -- "$f"))"
 done
 "${SSH[@]}" "cd $WP && wp sg purge >/dev/null 2>&1 || true"
-code=$(curl -s -o /dev/null -w '%{http_code}' "https://fuxiaballerinas.com/?nc=$TS")
+code=$(curl -sL -o /dev/null -w '%{http_code}' "https://fuxiaballerinas.com/?nc=$TS")   # / redirects to /mx/ by country
 echo "Página de inicio después de instalar: http $code"
 [ "$code" = "200" ] || { echo "ATENCIÓN: la tienda no respondió 200. Rollback: borrar o restaurar desde ~/f360-backups/prod-mu/$TS/" >&2; exit 3; }
 echo "LISTO. Respaldo y rollback: ~/f360-backups/prod-mu/$TS/"

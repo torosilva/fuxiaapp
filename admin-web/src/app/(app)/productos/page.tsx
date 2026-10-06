@@ -29,7 +29,7 @@ export default async function Productos({ searchParams }: { searchParams: Promis
         )}
       </div>
       {me.role === 'owner' && !categoria && !q && publisherAvailable() && <div className="mt-6"><PublishAllPanel storeName={STORE_KEY === 'woo_production' ? 'fuxiaballerinas.com' : 'la tienda de pruebas'} /></div>}
-      {me.role === 'owner' && !categoria && !q && MERGE_ENABLED && <div className="mt-6 grid gap-4 lg:grid-cols-2"><ConsolidatePanel /><StoreContentPush /></div>}
+      {me.role === 'owner' && !categoria && !q && MERGE_ENABLED && <div className="mt-6 grid gap-4 lg:grid-cols-2"><ConsolidatePanel />{STORE_KEY !== 'woo_production' && <StoreContentPush />}</div>}
       <form className="relative mt-6 max-w-md" role="search">
         <IconSearch className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted" />
         <input name="q" defaultValue={q} placeholder="Busca por nombre o color" className="w-full rounded-full border border-line bg-surface py-3.5 pl-12 pr-4 text-base outline-none focus:border-gold" />
