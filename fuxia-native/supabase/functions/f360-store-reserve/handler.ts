@@ -5,7 +5,7 @@
 // 2 hours, free pair) is enforced again in the database. CORS limited to ALLOWED_ORIGINS. Runtime-agnostic (Deno / Node).
 // · pay_link {phone, name, email, items:[{id, quantity}], coupons?, address?, country} (checkout rescue: Woo order + Woo's payment page).
 export type ReserveEnv = { SUPABASE_URL: string; SUPABASE_SERVICE_ROLE_KEY: string; ALLOWED_ORIGINS: string; TEST_PHONES: string; TEST_CODE: string;
-  WOO_BASE_URL?: string; WOO_USER?: string; WOO_SECRET?: string };
+  WOO_BASE_URL?: string; WOO_USER?: string; WOO_SECRET?: string; TARGET_KEY?: string };   // TARGET_KEY: from configuration, never the browser
 
 export function normalizePhone(raw: unknown): string | null {
   const s = String(raw ?? '').trim();
@@ -58,7 +58,8 @@ export async function handleReserve(req: Request, env: ReserveEnv, fetchImpl: ty
   if (body.action === 'catalog') {
     const now = Date.now();
     if (!catalogCache || now - catalogCache.at > 120_000) {
-      const r = await rpc<{ items: unknown[] }>('f360_storefront_catalog', { p_target_key: 'woo_staging4' });
+      if (!env.TARGET_KEY) return json({ error: 'Canal no configurado.' }, 500);
+      const r = await rpc<{ items: unknown[] }>('f360_storefront_catalog', { p_target_key: env.TARGET_KEY });
       if (!r.ok) return json({ error: r.error }, 400);
       const top = await rpc<string[]>('f360_top_searches', { p_days: 30, p_limit: 6 });
       catalogCache = { at: now, data: { ...r.data, top_searches: top.ok ? top.data : [] } };
@@ -105,8 +106,9 @@ export async function handleReserve(req: Request, env: ReserveEnv, fetchImpl: ty
     if (!color) return json({ error: 'Dinos qué color te gustaría.' }, 400);
     if (!name) return json({ error: 'Dinos tu nombre.' }, 400);
     const foot = Number(String(body.foot_cm ?? '').replace(',', '.'));
+    if (!env.TARGET_KEY) return json({ error: 'Canal no configurado.' }, 500);   // the channel comes from configuration, never from the browser
     const r = await rpc<{ id: string; product: string }>('f360_custom_request_create', { p: {
-      target_key: text(body.target_key, 40) || 'woo_staging4', woo_product_id: String(Number(body.woo_product_id) || ''),
+      target_key: env.TARGET_KEY, woo_product_id: String(Number(body.woo_product_id) || ''),
       product_name: text(body.product_name, 200), color, size: text(body.size, 20), store_size: text(body.store_size, 10),
       foot_cm: Number.isFinite(foot) && foot >= 18 && foot <= 32 ? String(foot) : '', name, phone, note: text(body.note, 500), country: text(body.country, 8) } });
     return r.ok ? json({ ok: true, product: r.data.product }) : json({ error: r.error }, 400);

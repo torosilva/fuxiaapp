@@ -21,6 +21,9 @@ export function environmentProblems(env: Record<string, string | undefined> = pr
 
   if (onVercel && f360 !== 'staging') problems.push('En Vercel solo se permite el ambiente de pruebas: NEXT_PUBLIC_F360_ENV debe ser "staging".');
 
+  const storeKey = env.NEXT_PUBLIC_F360_STORE_KEY;
+  if (storeKey && !/^[a-z0-9_]{1,40}$/.test(storeKey)) problems.push('NEXT_PUBLIC_F360_STORE_KEY no es una clave de tienda válida.');
+
   for (const [k, v] of Object.entries(env)) {
     if (!v) continue;
     if ((k.startsWith('NEXT_PUBLIC_') || k.includes('SUPABASE') || k.startsWith('F360_')) && v.includes(PRODUCTION_REF)) {
@@ -40,6 +43,8 @@ export function environmentProblems(env: Record<string, string | undefined> = pr
       if (claims?.ref !== STAGING_REF) problems.push('NEXT_PUBLIC_SUPABASE_ANON_KEY no pertenece al proyecto de staging.');
       if (claims?.role !== 'anon') problems.push('NEXT_PUBLIC_SUPABASE_ANON_KEY no es una llave pública (anon).');
     }
+    const store = env.NEXT_PUBLIC_F360_STORE_KEY;
+    if (store && store === 'woo_production') problems.push('NEXT_PUBLIC_F360_STORE_KEY apunta a la tienda de PRODUCCIÓN en un ambiente de pruebas.');
     const pub = env.F360_PUBLISHER_URL;
     if (onVercel && pub && /\/\/(localhost|127\.|0\.0\.0\.0|\[::1\])/i.test(pub)) problems.push('F360_PUBLISHER_URL apunta a localhost; no se permite en un despliegue remoto.');
   }

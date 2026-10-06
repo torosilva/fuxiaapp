@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { handleReserve, normalizePhone } from '../handler.ts';
 
-const env = { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'svc', ALLOWED_ORIGINS: 'https://staging4.fuxiaballerinas.com', TEST_PHONES: '+15550100099', TEST_CODE: '246810' };
+const env = { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'svc', ALLOWED_ORIGINS: 'https://staging4.fuxiaballerinas.com', TEST_PHONES: '+15550100099', TEST_CODE: '246810', TARGET_KEY: 'woo_staging4' };
 const ORIGIN = 'https://staging4.fuxiaballerinas.com';
 function fakeFetch(answers: Record<string, unknown>, calls: { fn: string; args: unknown }[] = []) {
   return (async (url: string, init: RequestInit) => {
@@ -51,6 +51,13 @@ test('a la medida: any phone leaves a request (validated); honeypot ignored', as
     fakeFetch({ f360_custom_request_create: { id: 'x', product: 'Botas Largas' } }, calls));
   assert.deepEqual(await r.json(), { ok: true, product: 'Botas Largas' });
   assert.equal(calls[0].args.p.phone, '+525512345678'); assert.equal(calls[0].args.p.name, 'Ana b');
+  // the channel comes from configuration: a browser-sent target_key is ignored
+  const c3: any[] = [];
+  await handleReserve(post({ action: 'a_la_medida', phone: '55 1234 5678', name: 'Ana', color: 'Verde', target_key: 'woo_production' }), env,
+    fakeFetch({ f360_custom_request_create: { id: 'y', product: 'Botas' } }, c3));
+  assert.equal(c3[0].args.p.target_key, 'woo_staging4');
+  r = await handleReserve(post({ action: 'a_la_medida', phone: '55 1234 5678', name: 'Ana', color: 'Verde' }), { ...env, TARGET_KEY: '' }, fakeFetch({}));
+  assert.equal(r.status, 500);                                    // unconfigured channel → fail closed
   r = await handleReserve(post({ action: 'a_la_medida', phone: '55 1234 5678', name: 'Ana', color: '' }), env, fakeFetch({}));
   assert.equal(r.status, 400);
   const c2: any[] = [];
@@ -61,6 +68,7 @@ test('catalog: availability states for the shop page, store origin only', async 
   const calls: any[] = [];
   const r = await handleReserve(post({ action: 'catalog' }), env, fakeFetch({ f360_storefront_catalog: { items: [{ woo_product_id: 1, name: 'X', colors: [] }] } }, calls));
   assert.deepEqual((await r.json()).items[0].name, 'X');
+  assert.equal(calls[0].args.p_target_key, 'woo_staging4');       // from configuration
   assert.equal((await handleReserve(post({ action: 'catalog' }, 'https://evil.example'), env, fakeFetch({}))).status, 403);
 });
 test('search_log: records the term only (short terms ignored)', async () => {

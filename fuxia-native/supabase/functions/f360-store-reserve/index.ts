@@ -10,6 +10,7 @@ const env = {
   WOO_BASE_URL: Deno.env.get('WOO_BASE_URL') ?? '',
   WOO_USER: Deno.env.get('WOO_USER') ?? '',
   WOO_SECRET: Deno.env.get('WOO_SECRET') ?? '',
+  TARGET_KEY: Deno.env.get('F360_STOREFRONT_TARGET') ?? '',   // the store this project serves (same secret as f360-storefront)
 };
 
 Deno.serve((req) => handleReserve(req, env));

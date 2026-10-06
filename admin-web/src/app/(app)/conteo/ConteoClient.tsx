@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import type { OpeningLineStatus, OpeningSheet, OpeningSize, OpeningStatus, OpeningView } from '@/lib/f360';
 import { ColorDot } from '@/components/ProductImage';
 import { linkChannelAction, openingAddUnlistedAction, openingLoadAction, openingRecordAction, openingRefreshAction, openingResolveUnlistedAction, openingStartAction, openingStepAction } from '../actions';
+import { STORE_KEY } from '@/lib/store';
 
 const LINE: Record<OpeningLineStatus, { label: string; tone: string }> = {
   pendiente: { label: 'Sin contar', tone: 'bg-surface-2 text-muted' }, contado_1: { label: 'Falta 2º conteo', tone: 'bg-surface-2 text-ink-2' },
@@ -25,7 +26,7 @@ export function StartCount() {
       <p className="mt-1 text-sm text-muted">La hoja sale de lo confirmado en Homologación. Lo que se confirme después se agrega con “Actualizar lista”. Se puede contar antes (preliminar) y congelar la bodega solo al final.</p>
       <input aria-label="Nota" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Nota (opcional)" className="mt-3 w-full rounded-xl border border-line bg-bg px-3 py-2.5 text-sm" />
       <button type="button" disabled={pending} onClick={() => start(async () => {
-        const r = await openingStartAction('woo_staging4', note);
+        const r = await openingStartAction(STORE_KEY, note);
         if (!r.ok) setMsg({ ok: false, text: r.error }); else router.refresh();
       })} className="mt-3 rounded-full bg-ink px-5 py-3 text-sm text-surface disabled:opacity-40">{pending ? 'Iniciando…' : 'Iniciar conteo'}</button>
       <Msg m={msg} />
@@ -52,7 +53,7 @@ export function CountControls({ id, status, owner, blockers }: { id: string; sta
         {status === 'congelado' && <button type="button" disabled={pending} onClick={() => run(() => openingStepAction(id, 'reconcile'), 'Reconciliado: revisa “Reconteo” por si algo vendió o se movió después de contarse.')} className="rounded-full border border-line px-4 py-2 text-sm text-ink-2">Reconciliar ventas y movimientos</button>}
         {owner && status === 'congelado' && <button type="button" disabled={pending || blockers.length > 0} onClick={() => setAsk('approve')} className="rounded-full bg-ink px-4 py-2 text-sm text-surface disabled:opacity-40">Aprobar conteo</button>}
         {owner && status === 'aprobado' && <button type="button" disabled={pending} data-testid="load-opening" onClick={() => run(() => openingLoadAction(id, loadKey), 'Inventario inicial cargado en Bodega CDMX.')} className="rounded-full bg-ink px-4 py-2 text-sm text-surface">Cargar inventario inicial</button>}
-        {owner && status === 'cargado' && <button type="button" disabled={pending} onClick={() => run(async () => { const r = await linkChannelAction('woo_staging4'); return r.ok ? { ok: true } : r; }, 'Tienda ligada: las cantidades se envían en ~1 minuto (0 = agotado).')} className="rounded-full bg-ink px-4 py-2 text-sm text-surface">Ligar la tienda completa</button>}
+        {owner && status === 'cargado' && <button type="button" disabled={pending} onClick={() => run(async () => { const r = await linkChannelAction(STORE_KEY); return r.ok ? { ok: true } : r; }, 'Tienda ligada: las cantidades se envían en ~1 minuto (0 = agotado).')} className="rounded-full bg-ink px-4 py-2 text-sm text-surface">Ligar la tienda completa</button>}
         {owner && open && <button type="button" disabled={pending} onClick={() => setAsk('cancel')} className="ml-auto rounded-full px-4 py-2 text-sm text-muted underline">Cancelar conteo</button>}
       </div>
       {status === 'congelado' && blockers.length > 0 && (

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { STORE_KEY } from './store';
 
 // ── Types returned by the f360 RPCs ─────────────────────────────────────────
 export type Role = 'owner' | 'operator' | 'seller' | 'viewer';
@@ -176,7 +177,7 @@ export type Homologation = {
   target: { key: string; name: string; is_production: boolean }; can_edit: boolean; summary: HomologationSummary;
   categories: Category[]; models: { id: string; name: string; category_key: string | null; published: boolean; colors: string[] }[]; rows: HomologationRow[];
 };
-export const getHomologation = (target = 'woo_staging4') => rpc<Homologation>('f360_legacy_homologation', { p_target_key: target });
+export const getHomologation = (target = STORE_KEY) => rpc<Homologation>('f360_legacy_homologation', { p_target_key: target });
 export type LegacySource = { color_id: string; color: string; woo_product_id: number; woo_product_name: string; target_key: string; target_name: string; base_url: string; variations: number };
 export const getLegacySources = (productId: string) => rpc<LegacySource[]>('f360_legacy_sources', { p_product_id: productId });
 export type ArchiveState = { status: 'active' | 'archived'; blockers: string[]; last_change: { to: string; by: string; at: string; reason: string } | null };
@@ -208,7 +209,7 @@ export const getOpeningEasySheet = (id: string) => rpc<EasySheet>('f360_opening_
 export const getColorRemoveState = (colorId: string) => rpc<{ blockers: string[] }>('f360_color_remove_state', { p_color_id: colorId });
 export type ChannelState = { target: string; links: number; queue: number; last_push: string | null; opening_loaded: boolean;
   visibility: { woo_product_id: number; pending: 'ocultar' | 'mostrar' | null; last: { kind: 'ocultar' | 'mostrar'; status: 'pendiente' | 'hecho' | 'error'; by: string; at: string; error: string | null } | null }[] };
-export const getChannelState = (target = 'woo_staging4') => rpc<ChannelState>('f360_legacy_channel_state', { p_target_key: target });
+export const getChannelState = (target = STORE_KEY) => rpc<ChannelState>('f360_legacy_channel_state', { p_target_key: target });
 export type LegacyChannel = { id: string; name: string; type: string; active: boolean; legacy_pairs: number };
 export const listLegacyChannelsAvailable = () => rpc<LegacyChannel[]>('f360_legacy_channels_available');
 
