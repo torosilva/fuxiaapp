@@ -130,3 +130,23 @@ PASE_TARGET_API_URL=http://127.0.0.1:54321 PASE_TARGET_SERVICE_KEY=<local> PASE_
 ```
 
 `staging_auth.json` lleva solo los ids de usuarios del ambiente actual y el correo de las 3 personas del equipo. **No se commitea.**
+
+## Reparto entre sesiones (acordado 2026-10-06)
+
+| Parte del pase | Dueño | Documento |
+|---|---|---|
+| Esquema, datos maestros, fotos, personas (G1–G9), comparación con el esquema real de prod (P-5) | fuxiaapp-c4 | este documento, `PASE_F1_MIGRATIONS_AUDIT.md` |
+| **Inventario de Carolina**: apertura por ubicación desde su ledger, Bodega certificada (X1, X2) | fuxiaapp-3e | `PRODUCTION_INVENTORY_CUTOVER.md` §7–§8 |
+| Canal de catálogo fuxiaballerinas.com y admin sin `woo_staging4` fijo (U1–U6): **diseño, nada construido** | fuxiaapp-3e | `CANAL_PRODUCCION_CATALOGO.md` |
+| Cambios de Woo/WordPress staging4 → producción | fuxiaapp-3e | `STAGING4_TO_PRODUCTION_MANIFEST.md` |
+| Tiendas: editar y dar de baja (migración `20261010001100`) | fuxiaapp-1a | **Commiteada** (`33e04d1`) y probada en el ensayo. Entra en el pase |
+
+**Corrección a la regla del inventario.** En la ventana real **no** se copia el ledger tal cual (`--with-inventory` queda solo para ensayo). El inventario de Carolina entra por el procedimiento de `PRODUCTION_INVENTORY_CUTOVER.md` §7:
+- un `OPENING_PHYSICAL_COUNT` por ubicación, con sus cantidades aprobadas y referencia a sus eventos de origen;
+- Bodega CDMX se certifica, porque mezcla el pedido de prueba #3654 y un traslado de prueba.
+
+Así no se pierde nada de lo que ella contó y no viaja nada de prueba.
+
+**Fuera del pase por ahora:** `20261010000900_f360_opening_undo` (de fuxiaapp-3e, sin aplicar en ningún lado; espera la aprobación de su usuario).
+
+**Riesgo de proceso (X3).** `supabase/.temp/project-ref` del repo apunta a **producción**. Toda orden de la CLI lleva `--db-url` explícito, nunca `--linked`.
