@@ -537,6 +537,17 @@ export async function createLocationAction(input: { name: string; type: 'store' 
   if (r.ok) { revalidatePath('/tiendas'); revalidatePath('/inventario', 'layout'); }
   return r;
 }
+export async function updateLocationAction(input: { id: string; name: string; type: 'store' | 'bazaar' | 'warehouse'; startsOn: string | null; endsOn: string | null }): Promise<Result<unknown>> {
+  if (!input.name.trim()) return { ok: false, error: 'Escribe el nombre.' };
+  const r = await call('f360_update_location', { p_location_id: input.id, p_name: input.name.trim(), p_type: input.type, p_starts_on: input.startsOn || null, p_ends_on: input.endsOn || null });
+  if (r.ok) { revalidatePath('/tiendas'); revalidatePath('/inventario', 'layout'); }
+  return r;
+}
+export async function deactivateLocationAction(id: string): Promise<Result<unknown>> {
+  const r = await call('f360_deactivate_location', { p_location_id: id });
+  if (r.ok) { revalidatePath('/tiendas'); revalidatePath('/inventario', 'layout'); }
+  return r;
+}
 
 export async function cancelReservationAction(id: string, reason: string): Promise<Result<unknown>> {
   if (reason.trim().length < 3) return { ok: false, error: 'Escribe el motivo.' };
