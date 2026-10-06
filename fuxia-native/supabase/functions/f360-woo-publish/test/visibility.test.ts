@@ -10,7 +10,7 @@ const PID = '11111111-2222-3333-4444-555555555555';
 
 function setup(role = 'owner') {
   const rpcs: { fn: string; args: Record<string, unknown> }[] = [];
-  const store = { status: 'draft', updates: 0, legacy: {} as Record<number, string> };
+  const store = { status: 'draft', updates: 0, legacy: {} as Record<number, string>, redirect: {} as Record<number, string> };
   globalThis.fetch = (async (url: string, init?: RequestInit) => {
     const u = String(url);
     if (u.endsWith('/auth/v1/user')) return new Response(JSON.stringify({ id: 'user-1' }));
@@ -23,7 +23,7 @@ function setup(role = 'owner') {
     return new Response('{}', { status: 404 });
   }) as typeof fetch;
   const adapter = {
-    updateProduct: async (id: number, b: Record<string, unknown>) => { store.updates++; if (id === 3674) store.status = String(b.status); else store.legacy[id] = String(b.catalog_visibility); return { id, status: store.status } },
+    updateProduct: async (id: number, b: Record<string, unknown>) => { store.updates++; if (id === 3674) store.status = String(b.status); else { store.legacy[id] = String(b.catalog_visibility); store.redirect[id] = String((b.meta_data as { value: string }[])[0].value); } return { id, status: store.status } },
     getProduct: async () => ({ id: 3674, status: store.status }),
   } as unknown as WooAdapter;
   return { rpcs, store, opts: { wrapAdapter: () => adapter, storeHome: async () => 'https://fuxiaballerinas.com' } };
@@ -37,6 +37,7 @@ test('owner → live: the store product becomes publish, read back, audited', as
   assert.deepEqual(await r.json(), { ok: true, woo_status: 'publish', legacy_changed: 2, legacy_failed: [] });
   assert.equal(store.status, 'publish');
   assert.deepEqual(store.legacy, { 145: 'hidden', 146: 'hidden' }, 'old products leave the catalog (URL still works)');
+  assert.deepEqual(store.redirect, { 145: '3674', 146: '3674' }, 'old URLs point to the new product');
   const fin = rpcs.find((x) => x.fn === 'f360_pub_visibility_finish')!;
   assert.equal(fin.args.p_ok, true); assert.equal(fin.args.p_caller, 'user-1'); assert.equal(fin.args.p_target_key, 'woo_production');
 });
@@ -64,4 +65,5 @@ test('hide again → the new product back to draft and the old products back in 
   assert.equal(r.status, 200);
   assert.equal(store.status, 'draft');
   assert.deepEqual(store.legacy, { 145: 'visible', 146: 'visible' });
+  assert.deepEqual(store.redirect, { 145: '', 146: '' }, 'redirect removed');
 });

@@ -134,7 +134,9 @@ async function setVisibility(env: PublisherEnv, opts: HandlerOptions, caller: st
     const legacy = ok ? (link.legacy_woo_product_ids ?? []) : [];
     const failedLegacy: number[] = [];
     for (const id of legacy) {
-      try { await adapter.updateProduct(id, { catalog_visibility: status === 'publish' ? 'hidden' : 'visible' }); }
+      // _f360_redirect_to: the production mu-plugin 301-redirects the old product URL to the new product while it is live
+      try { await adapter.updateProduct(id, { catalog_visibility: status === 'publish' ? 'hidden' : 'visible',
+        meta_data: [{ key: '_f360_redirect_to', value: status === 'publish' ? String(link.woo_product_id) : '' }] }); }
       catch { failedLegacy.push(id); }
     }
     const note = legacy.length ? `${status === 'publish' ? 'Fuera del catálogo' : 'De vuelta en el catálogo'}: ${legacy.length - failedLegacy.length} producto(s) viejo(s)` +
