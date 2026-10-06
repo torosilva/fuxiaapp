@@ -1,14 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import type { EasyModel, EasySheet, EasySize } from '@/lib/f360';
 import { ColorDot, ProductImage } from '@/components/ProductImage';
-import { openingAddUnlistedAction, openingRecordAction } from '../../actions';
+import { openingAddUnlistedAction, openingClearLineAction, openingRecordAction, openingRemoveUnlistedAction, openingUnlistedOpenAction } from '../../actions';
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-function SizeTile({ countId, s, locked, onSaved }: { countId: string; s: EasySize; locked: boolean; onSaved: (qty: number) => void }) {
+function SizeTile({ countId, s, locked, onSaved, onCleared }: { countId: string; s: EasySize; locked: boolean; onSaved: (qty: number) => void; onCleared: () => void }) {
   const [qty, setQty] = useState<string>(s.qty === null ? '' : String(s.qty));
   const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'error'>(s.qty === null ? 'idle' : 'saved');
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +25,15 @@ function SizeTile({ countId, s, locked, onSaved }: { countId: string; s: EasySiz
     }, 500);
   };
   const set = (v: string) => { const clean = v.replace(/\D/g, '').slice(0, 4); setQty(clean); setState('idle'); save(clean); };
-  const step = (d: number) => set(String(Math.max(0, Number(qty || 0) + d)));
+  // "−" on an empty size must not save a 0 (it would mark the size as counted)
+  // Carolina 2026-10-05: a size typed by mistake goes back to "sin contar" (logged in the database)
+  const clear = async () => {
+    if (timer.current) clearTimeout(timer.current);
+    setState('saving'); setError(null);
+    const r = await openingClearLineAction(countId, s.variant_id);
+    if (r.ok) { setQty(''); setState('idle'); onCleared(); } else { setState('error'); setError(r.error); }
+  };
+  const step = (d: number) => { if (qty === '' && d < 0) return; set(String(Math.max(0, Number(qty || 0) + d))); };
 
   const ring = state === 'error' ? 'border-danger bg-danger-soft' : recount ? 'border-danger bg-danger-soft/60'
     : state === 'saved' ? 'border-success/50 bg-success-soft/60' : 'border-line bg-surface';
@@ -42,7 +50,7 @@ function SizeTile({ countId, s, locked, onSaved }: { countId: string; s: EasySiz
       </div>
       <span className="h-4 text-xs">
         {state === 'saving' ? <span className="text-muted">Guardando…</span>
-          : state === 'saved' ? <span className="text-success">✓ Guardado</span>
+          : state === 'saved' ? <span className="text-success">✓ Guardado{!locked && !recount && <> · <button type="button" onClick={clear} className="text-muted underline">Borrar</button></>}</span>
           : recount ? <span className="text-danger">Se vendió o movió: vuelve a contar</span>
           : state === 'error' ? <span className="text-danger">No se guardó</span> : null}
       </span>
@@ -68,14 +76,45 @@ function ModelCard({ m, onOpen }: { m: EasyModel & { done: number }; onOpen: () 
   );
 }
 
-function Unlisted({ countId }: { countId: string }) {
+type OpenUnlisted = { id: string; description: string; size: string | null; quantity: number; found_by: string };
+
+// Pairs noted while counting; a mistaken one can be removed (author or Carolina; kept in the log as "quitado")
+function UnlistedList({ items, reload, locked }: { items: OpenUnlisted[]; reload: () => void; locked: boolean }) {
+  const [err, setErr] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  if (!items.length) return null;
+  return (
+    <div className="mb-3 rounded-2xl border border-line bg-surface p-4">
+      <p className="text-sm text-muted">Pares anotados que no están en la lista</p>
+      <ul className="mt-2 divide-y divide-line">
+        {items.map((u) => (
+          <li key={u.id} className="flex items-center justify-between gap-3 py-2">
+            <span className="text-[15px] text-ink">{u.description}{u.size ? ` · talla ${u.size}` : ''} · {u.quantity} {u.quantity === 1 ? 'par' : 'pares'}
+              <span className="block text-xs text-muted">Anotó {u.found_by}</span></span>
+            {!locked && <button type="button" disabled={pending} onClick={() => start(async () => {
+              setErr(null); const r = await openingRemoveUnlistedAction(u.id); if (r.ok) reload(); else setErr(r.error);
+            })} className="rounded-full border border-line px-4 py-2 text-sm text-ink-2 disabled:opacity-50">Quitar</button>}
+          </li>
+        ))}
+      </ul>
+      {err && <p role="alert" className="mt-2 text-sm text-danger">{err}</p>}
+    </div>
+  );
+}
+
+function Unlisted({ countId, locked }: { countId: string; locked: boolean }) {
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ description: '', size: '', quantity: '1' });
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
-  if (!open) return <button type="button" onClick={() => setOpen(true)} className="rounded-full border border-line bg-surface px-4 py-3 text-[15px] text-ink-2">Encontré un par que no está en la lista</button>;
+  const [items, setItems] = useState<OpenUnlisted[]>([]);
+  const reload = () => { openingUnlistedOpenAction(countId).then((r) => { if (r.ok) setItems(r.data); }); };
+  useEffect(reload, [countId]);
+  const list = <UnlistedList items={items} reload={reload} locked={locked} />;
+  if (!open) return <div>{list}<button type="button" onClick={() => setOpen(true)} className="rounded-full border border-line bg-surface px-4 py-3 text-[15px] text-ink-2">Encontré un par que no está en la lista</button></div>;
   const input = 'mt-1 w-full rounded-xl border border-line bg-bg px-3 py-3 text-[16px]';
   return (
+    <div>{list}
     <div className="rounded-2xl border border-gold/40 bg-gold-soft/50 p-4">
       <p className="text-ink">Par que no está en la lista</p>
       <label className="mt-3 block text-sm text-muted">¿Cómo es? (modelo y color como lo ves)<input className={input} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></label>
@@ -86,12 +125,13 @@ function Unlisted({ countId }: { countId: string }) {
       <div className="mt-3 flex gap-2">
         <button type="button" disabled={pending} onClick={() => start(async () => {
           const r = await openingAddUnlistedAction(countId, f.description.trim(), f.size.trim(), Number(f.quantity || 0));
-          if (r.ok) { setMsg({ ok: true, text: 'Anotado. Carolina lo revisa antes de aprobar.' }); setF({ description: '', size: '', quantity: '1' }); }
+          if (r.ok) { setMsg({ ok: true, text: 'Anotado. Si fue un error, quítalo de la lista de arriba.' }); setF({ description: '', size: '', quantity: '1' }); reload(); }
           else setMsg({ ok: false, text: r.error });
         })} className="rounded-full bg-ink px-5 py-3 text-sm text-surface disabled:opacity-50">Anotar</button>
         <button type="button" onClick={() => { setOpen(false); setMsg(null); }} className="rounded-full px-4 py-3 text-sm text-ink-2">Cerrar</button>
       </div>
       {msg && <p role={msg.ok ? 'status' : 'alert'} className={`mt-3 text-sm ${msg.ok ? 'text-success' : 'text-danger'}`}>{msg.text}</p>}
+    </div>
     </div>
   );
 }
@@ -129,7 +169,8 @@ export function EasyCount({ sheet }: { sheet: EasySheet }) {
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
               {c.sizes.map((s) => (
                 <SizeTile key={s.variant_id} countId={sheet.count_id} s={s} locked={locked}
-                  onSaved={() => setCounted((x) => ({ ...x, [s.variant_id]: true }))} />
+                  onSaved={() => setCounted((x) => ({ ...x, [s.variant_id]: true }))}
+                  onCleared={() => setCounted((x) => ({ ...x, [s.variant_id]: false }))} />
               ))}
             </div>
           </section>
@@ -162,7 +203,7 @@ export function EasyCount({ sheet }: { sheet: EasySheet }) {
           : shown.map((m) => <ModelCard key={m.product_id} m={m} onOpen={() => setOpenId(m.product_id)} />)}
       </div>
 
-      <div className="mt-6"><Unlisted countId={sheet.count_id} /></div>
+      <div className="mt-6"><Unlisted countId={sheet.count_id} locked={locked} /></div>
     </div>
   );
 }

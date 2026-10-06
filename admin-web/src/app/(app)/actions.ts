@@ -484,6 +484,16 @@ export async function openingAddUnlistedAction(id: string, description: string, 
 export async function openingResolveUnlistedAction(unlistedId: string, resolution: string): Promise<Result<unknown>> {
   const r = await call('f360_opening_resolve_unlisted', { p_unlisted_id: unlistedId, p_resolution: resolution }); if (r.ok) revalidateCount(); return r;
 }
+// Carolina 2026-10-05: undo mistakes while counting (open count only; logged; never inventory)
+export async function openingClearLineAction(id: string, variantId: string): Promise<Result<unknown>> {
+  const r = await call('f360_opening_clear_line', { p_count_id: id, p_variant_id: variantId }); if (r.ok) revalidateCount(); return r;
+}
+export async function openingRemoveUnlistedAction(unlistedId: string): Promise<Result<unknown>> {
+  const r = await call('f360_opening_remove_unlisted', { p_unlisted_id: unlistedId }); if (r.ok) revalidateCount(); return r;
+}
+export async function openingUnlistedOpenAction(id: string): Promise<Result<{ id: string; description: string; size: string | null; quantity: number; found_by: string }[]>> {
+  return call('f360_opening_unlisted_open', { p_count_id: id });
+}
 export async function openingStepAction(id: string, step: 'freeze' | 'reconcile' | 'approve' | 'cancel', note = ''): Promise<Result<unknown>> {
   const fn = { freeze: 'f360_opening_freeze', reconcile: 'f360_opening_reconcile', approve: 'f360_opening_approve', cancel: 'f360_opening_cancel' }[step];
   const args: Record<string, unknown> = { p_count_id: id };
