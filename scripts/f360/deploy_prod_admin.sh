@@ -21,8 +21,9 @@ echo "Desplegando el panel de producción desde $(git -C "$W" log --oneline -1)"
 cd "$W/admin-web"
 for i in 1 2 3; do
   ok=1; out=$(npx -y vercel deploy --prod --yes --scope team_U7bX9aQ3EadSQOVAOKVAhoNj 2>&1) || ok=0
-  if [ "$ok" = 1 ] && grep -q "Production:" <<<"$out"; then
-    grep -E "Production:" <<<"$out" | head -1; echo "LISTO: panel de Fuxia 360 en producción."; exit 0
+  # Vercel CLI ≥ 62 answers in JSON (no "Production:" line): success = exit 0 + a deployment URL in the answer
+  if [ "$ok" = 1 ] && grep -qE "Production:|https://fuxia360-[a-z0-9]+-[a-z0-9-]+\.vercel\.app" <<<"$out"; then
+    grep -oE "https://fuxia360-[a-z0-9]+-[a-z0-9-]+\.vercel\.app" <<<"$out" | head -1; echo "LISTO: panel de Fuxia 360 en producción (https://fuxia360.vercel.app)."; exit 0
   fi
   echo "Intento $i no terminó. Lo que dijo Vercel:"; tail -15 <<<"$out"
   sleep 10
