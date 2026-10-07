@@ -62,9 +62,13 @@ async function syncStoreAfterChange(productId: string) {
   if (!publisherAvailable()) return;
   const pub = await getPublication(productId).catch(() => null);
   if (!pub?.woo_product_id || !['cambios', 'publicando', 'error'].includes(pub.state)) return;
-  if (pub.jobs.some((j) => j.status === 'queued')) return;
-  const req = await call<{ id: string }>('f360_request_publish', { p_product_id: productId, p_idempotency_key: crypto.randomUUID(), p_target_key: STORE_KEY });
-  if (req.ok && !pub.jobs.some((j) => j.status === 'running')) await kickQueueAction();
+  const queued = pub.jobs.some((j) => j.status === 'queued'), running = pub.jobs.some((j) => j.status === 'running');
+  if (!queued) {
+    const req = await call<{ id: string }>('f360_request_publish', { p_product_id: productId, p_idempotency_key: crypto.randomUUID(), p_target_key: STORE_KEY });
+    if (!req.ok) return;
+  }
+  // a running sync starts the next one itself when it ends; otherwise start the queue now (also wakes a sync left waiting)
+  if (!running) await kickQueueAction();
 }
 async function afterCatalogChange(productId: string) { revalidateProduct(productId); await syncStoreAfterChange(productId); }
 
