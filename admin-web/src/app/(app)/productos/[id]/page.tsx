@@ -14,6 +14,7 @@ import { ArchivePanel } from './ArchivePanel';
 import { MakeToOrderPanel, NewPanel } from './MakeToOrderPanel';
 import { AdjustPanel } from './AdjustPanel';
 import { publisherAvailable } from '@/lib/env-guard';
+import { STORE_KEY } from '@/lib/store';
 
 const MISSING_ANCHOR: Record<string, string> = { precio: '#info', categoria: '#info', descripcion: '#info', fotos: '#fotos', color: '#fotos', talla: '#fotos' };
 
@@ -22,7 +23,12 @@ export default async function ProductoDetalle({ params, searchParams }: { params
   const [me, product, locations, events, categories, pub, prices, knowledge] = await Promise.all([getMe(), getProduct(id), listLocations(), listEvents({ productId: id, limit: 20 }), listCategories(), getPublication(id), getProductPrices(id), getProductKnowledge(id)]);
   const edit = canWrite(me.role);
   const sources = edit ? await getLegacySources(id) : [];   // adopted from the current store (Track D)
-  const legacy = sources.length > 0;
+  // A model that has its OWN product in this store (published by Fuxia 360, e.g. merged from the old colour products) is managed
+  // like any other: the "Tienda en línea" panel with "Sincronizar cambios". Before (Mario 2026-10-07) every model adopted from the old
+  // store hid that panel, so in production Carolina had no way to send new photos to fuxiaballerinas.com.
+  const legacy = sources.length > 0 && !pub.woo_product_id;
+  // staging-only rehearsal tools (send quantities / content to the old products of the test store) never show on the real store
+  const rehearsal = STORE_KEY !== 'woo_production' && sources[0]?.target_key === STORE_KEY;
   const archive = await getArchiveState(id);
   const color = product.colors.find((c) => c.id === sp.color) ?? product.colors[0];
   const removeBlockers = edit && color ? (await getColorRemoveState(color.id)).blockers : [];
@@ -46,7 +52,7 @@ export default async function ProductoDetalle({ params, searchParams }: { params
         <div>
           <div className="flex flex-wrap items-center gap-2">
             {product.category && <span className="text-xs uppercase tracking-[0.2em] text-muted">{product.category}</span>}
-            <span className={`rounded-full px-3 py-1 text-xs font-medium ${legacy || ready ? 'bg-success-soft text-success' : 'bg-gold-soft text-ink-2'}`}>{legacy ? 'En la tienda' : ready ? 'Listo para publicar' : 'Borrador'}</span>
+            <span className={`rounded-full px-3 py-1 text-xs font-medium ${legacy || ready || pub.woo_product_id ? 'bg-success-soft text-success' : 'bg-gold-soft text-ink-2'}`}>{legacy || pub.woo_product_id ? 'En la tienda' : ready ? 'Listo para publicar' : 'Borrador'}</span>
           </div>
           <h1 className="font-display mt-2 break-words text-5xl text-ink md:text-6xl">{product.name}</h1>
           <p className="tabular mt-2 text-lg text-ink-2">
@@ -58,7 +64,7 @@ export default async function ProductoDetalle({ params, searchParams }: { params
           </div>
 
           {legacy ? (
-            <StoreOrigin productId={product.id} sources={sources} canEdit={edit} owner={me.role === 'owner'}
+            <StoreOrigin productId={product.id} sources={sources} canEdit={edit} owner={me.role === 'owner'} rehearsal={rehearsal}
               missing={product.readiness.missing.filter((m) => m === 'precio' || m === 'descripcion' || m === 'fotos').map((m) => (MISSING_LABEL[m] ?? m).toLowerCase())} />
           ) : !ready ? (
             <div className="mt-6 rounded-2xl border border-line bg-surface p-5">

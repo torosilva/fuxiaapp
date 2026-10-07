@@ -20,7 +20,7 @@ export async function runStoreImport(productId: string, onProgress?: (text: stri
 }
 
 // Shown instead of the "falta para la tienda" checklist on a model adopted from the current store.
-export function StoreOrigin({ productId, sources, canEdit, missing, owner = false }: { productId: string; sources: LegacySource[]; canEdit: boolean; missing: string[]; owner?: boolean }) {
+export function StoreOrigin({ productId, sources, canEdit, missing, owner = false, rehearsal = false }: { productId: string; sources: LegacySource[]; canEdit: boolean; missing: string[]; owner?: boolean; rehearsal?: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
@@ -42,7 +42,7 @@ export function StoreOrigin({ productId, sources, canEdit, missing, owner = fals
           {pending ? 'Trayendo…' : 'Traer fotos, precio y descripción de la tienda'}
         </button>
       )}
-      {owner && sources[0]?.target_key !== undefined && (
+      {owner && rehearsal && (
         <div className="mt-4 border-t border-line pt-4">
           <p className="text-sm text-ink-2">Ensayo en la tienda de pruebas: envía a {sources[0].target_name} las cantidades reales de este modelo (lo que hay en Bodega CDMX; con 0 sale agotado).</p>
           <button type="button" disabled={pending} onClick={() => start(async () => {
