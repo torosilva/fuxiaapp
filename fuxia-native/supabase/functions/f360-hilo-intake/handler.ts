@@ -26,7 +26,9 @@ export async function handleIntake(req: Request, env: IntakeEnv, fetchImpl: type
     color: s(page.color, 80) || null, size: s(page.talla_mx ? page.talla_mx + ' MX' : page.talla_tienda, 20) || null, page_url: s(page.url, 300) || null,
   };
   const r = await fetchImpl(`${env.SUPABASE_URL}/rest/v1/rpc/f360_case_upsert`, { method: 'POST',
-    headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ p }) });
+    headers: env.SUPABASE_SERVICE_ROLE_KEY.split('.').length === 3   // legacy JWT key: apikey + Bearer; new sb_secret_ key: apikey only
+      ? { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json' }
+      : { apikey: env.SUPABASE_SERVICE_ROLE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p }) });
   const data = await r.json().catch(() => null);
   return r.ok ? json({ ok: true, ...(data ?? {}) }) : json({ error: (data as any)?.message ?? 'No se pudo registrar.' }, 400);
 }

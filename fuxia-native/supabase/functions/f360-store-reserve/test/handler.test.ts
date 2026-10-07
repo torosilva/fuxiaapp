@@ -160,3 +160,8 @@ test('favorite: bad event / market / visitor id / product → 400 before touchin
   assert.equal(calls.length, 0);
   assert.equal((await handleReserve(post(base, 'https://evil.example'), env, fakeFetch({}, calls))).status, 403);
 });
+test('service key: legacy JWT goes as apikey + Bearer; a new sb_secret_ key goes only as apikey', async () => {
+  const { serviceHeaders } = await import('../handler.ts');
+  assert.deepEqual(serviceHeaders('aaa.bbb.ccc'), { apikey: 'aaa.bbb.ccc', Authorization: 'Bearer aaa.bbb.ccc', 'Content-Type': 'application/json' });
+  assert.deepEqual(serviceHeaders('sb_secret_xyz'), { apikey: 'sb_secret_xyz', 'Content-Type': 'application/json' });
+});

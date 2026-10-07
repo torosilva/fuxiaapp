@@ -17,6 +17,11 @@ export function normalizePhone(raw: unknown): string | null {
   return d.length >= 11 && d.length <= 15 ? `+${d}` : null;
 }
 
+/** A legacy service-role key is a JWT (apikey + Bearer); a new secret key (sb_secret_…) goes ONLY as apikey — it is not a JWT. */
+export function serviceHeaders(key: string): Record<string, string> {
+  return key.split('.').length === 3 ? { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' } : { apikey: key, 'Content-Type': 'application/json' };
+}
+
 function safeEqual(a: string, b: string) {
   if (a.length !== b.length) return false;
   let x = 0; for (let i = 0; i < a.length; i++) x |= a.charCodeAt(i) ^ b.charCodeAt(i);
@@ -38,9 +43,9 @@ export async function handleReserve(req: Request, env: ReserveEnv, fetchImpl: ty
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return json({ error: 'Solicitud no válida.' }, 400); }
   const rpc = async <T>(fn: string, args: Record<string, unknown>): Promise<{ ok: true; data: T } | { ok: false; error: string }> => {
-    const r = await fetchImpl(`${env.SUPABASE_URL}/rest/v1/rpc/${fn}`, { method: 'POST',
-      headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
+    const r = await fetchImpl(`${env.SUPABASE_URL}/rest/v1/rpc/${fn}`, { method: 'POST', headers: serviceHeaders(env.SUPABASE_SERVICE_ROLE_KEY), body: JSON.stringify(args) });
     const data = await r.json().catch(() => null);
+    if (!r.ok) console.error(`f360-store-reserve rpc ${fn} → ${r.status}`, JSON.stringify(data)?.slice(0, 300));
     return r.ok ? { ok: true, data: data as T } : { ok: false, error: (data as { message?: string } | null)?.message ?? 'No se pudo completar.' };
   };
   const testPhones = new Set(env.TEST_PHONES.split(',').map((p) => normalizePhone(p)).filter(Boolean) as string[]);
