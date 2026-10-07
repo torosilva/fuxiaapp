@@ -28,6 +28,9 @@ export const colorOf = (s: Snapshot, v: SnapVariant) => s.colors.find((c) => c.i
 export const primaryWooMedia = (c: SnapColor) => c.media[0]?.woo_media_id ?? null;
 
 /** Gallery: every photo of every color, in color order (color → its photos). Linked photos by id, new ones by URL. */
+/** How the store tells colour names apart: case and accents do not count. */
+const termKey = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+
 export function buildImages(s: Snapshot, storageBase: string): WooImageInput[] {
   return s.colors.flatMap((c) => c.media.map((m): WooImageInput =>
     m.woo_media_id ? { id: m.woo_media_id } : { src: publicImageUrl(storageBase, m.path), name: mediaName(m.id), alt: m.alt || `${s.product.name} ${c.name}` }));
@@ -111,7 +114,8 @@ export function verify(s: Snapshot, p: WooProduct | null, vars: WooVariation[], 
   const sizeA = p.attributes.find((a) => a.id === ids.sizeAttr);
   // Woo colour terms are unique regardless of case: an existing store term "Chocolate" IS Fuxia 360's "chocolate"
   // (Mafalda chocolate, 2026-10-06), exactly like the variation check below.
-  const low = (xs: string[]) => xs.map((x) => x.trim().toLowerCase());
+  // the store treats "Cafe" and "Café" (or "negro" / "Negro") as the same term: compare like it does (Mafalda Taches 2026-10-07)
+  const low = (xs: string[]) => xs.map(termKey);
   if (!colorA || !sameSet(low(colorA.options ?? []), low(s.colors.map((c) => c.name)))) out.push('colores distintos');
   if (!sizeA || !sameSet(sizeA.options ?? [], s.sizes)) out.push('tallas distintas');
   const photos = s.colors.reduce((n, c) => n + c.media.length, 0);
@@ -132,7 +136,7 @@ export function verify(s: Snapshot, p: WooProduct | null, vars: WooVariation[], 
     for (const pm of priceMeta(s)) if (money(metaValue(w.meta_data, pm.key) as string) !== pm.value) out.push(`${v.sku} ${pm.key} ${metaValue(w.meta_data, pm.key) ?? '—'} (esperado ${pm.value})`);
     const wc = w.attributes.find((a) => a.id === ids.colorAttr)?.option;
     const ws = w.attributes.find((a) => a.id === ids.sizeAttr)?.option;
-    if (wc?.toLowerCase() !== c.name.toLowerCase() || ws !== v.size) out.push(`${v.sku} atributos ${wc}/${ws}`);
+    if (termKey(wc ?? '') !== termKey(c.name) || ws !== v.size) out.push(`${v.sku} atributos ${wc}/${ws}`);
     if (stockManaged(s) && w.manage_stock !== true) out.push(`${v.sku} sin control de stock`);
     const exp = expectedStock.get(v.id);
     if (exp != null && w.stock_quantity !== exp) out.push(`${v.sku} stock ${w.stock_quantity} (esperado ${exp})`);

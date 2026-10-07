@@ -298,3 +298,16 @@ test('out of time → "yield" (not a failure); the next run continues and ends w
   assert.equal(second.status, 'succeeded', second.error ?? '');
   assertMacarena(store, db);
 });
+
+test('a colour written without its accent ("Cafe" vs the store term "Café") still verifies (Mafalda Taches, 2026-10-07)', async () => {
+  const base = macarena();
+  base.colors[1].name = 'Cafe';
+  const store = mockStore(); const db = new FakeDb(base);
+  // like the real store: it answers with ITS term name ("Café"), not the one that was sent
+  const real = <T>(x: T): T => JSON.parse(JSON.stringify(x).replaceAll('"Cafe"', '"Café"'));
+  const a = mockAdapter(store);
+  const storeLike = { ...a, getProduct: async (id: number) => real(await a.getProduct(id)), listVariations: async (id: number) => real(await a.listVariations(id)) };
+  const r = await publish(db.claim(), storeLike, db.recorder(), OPTS);
+  assert.equal(r.status, 'succeeded', r.error ?? '');
+  assert.deepEqual(r.summary.mismatches, []);
+});
