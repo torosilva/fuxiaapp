@@ -375,7 +375,13 @@ html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 
     var st = window.wp && wp.data && wp.data.select('wc/store/cart'), dis = window.wp && wp.data && wp.data.dispatch('wc/store/cart');
     if (!st || !dis || !dis.removeItemFromCart) return;
     var items = (st.getCartData() || {}).items || [];
-    [].forEach.call(root.querySelectorAll('.wc-block-components-order-summary-item'), function (row, i) {
+    // on phones Woo paints the summary twice (folded copy + full copy): number the lines inside EACH copy
+    var filas = [];
+    [].forEach.call(root.querySelectorAll('.wc-block-components-order-summary'), function (sum) {
+      [].forEach.call(sum.querySelectorAll('.wc-block-components-order-summary-item'), function (row, i) { filas.push([row, i]); });
+    });
+    if (!filas.length) [].forEach.call(root.querySelectorAll('.wc-block-components-order-summary-item'), function (row, i) { filas.push([row, i]); });
+    filas.forEach(function (fi) { var row = fi[0], i = fi[1];
       var it = items[i], b = row.querySelector('.f360-quitar');
       if (!it) { if (b) b.remove(); return; }
       if (b && b.dataset.key === it.key) return;

@@ -20,14 +20,17 @@
 </div>
 <style>
 #f360-fav-root [hidden] { display: none !important; }
-.f360-fav-btn { position: absolute; top: 10px; right: 10px; z-index: 5; width: 38px; height: 38px; border-radius: 50%; border: 0; padding: 0;
-  display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.92); color: #242424; cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0,0,0,.12); transition: transform .15s ease; }
-.f360-fav-btn:hover { transform: scale(1.06); }
-.f360-fav-btn svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.f360-fav-btn { position: absolute; top: 10px; right: 10px; z-index: 5; width: 30px; height: 30px; border-radius: 50%; border: 0 !important; padding: 0 !important;
+  display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.78); color: #3a352e; cursor: pointer;
+  box-shadow: none; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); transition: transform .15s ease, background .15s ease; }
+.f360-fav-btn::after { content: ''; position: absolute; inset: -7px; }   /* a comfortable finger target while the circle stays small */
+.f360-fav-btn:hover { background: #fff; }
+.f360-fav-btn:active { transform: scale(.92); }
+.f360-fav-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.4; }
 .f360-fav-btn[aria-pressed="true"] { color: #B23A48; }
 .f360-fav-btn[aria-pressed="true"] svg { fill: currentColor; }
-.f360-fav-btn.f360-fav-pdp { position: static; margin-left: 12px; vertical-align: middle; flex: 0 0 auto; }
+.f360-fav-btn.f360-fav-pdp { position: relative; top: auto; right: auto; margin-left: 12px; vertical-align: middle; flex: 0 0 auto; width: 36px; height: 36px; background: transparent; }
+.f360-fav-btn.f360-fav-pdp svg { width: 20px; height: 20px; }
 .f360-fav-host { position: relative; }
 .f360-fav-head { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; margin-right: 12px;
   border: 0; background: none; color: inherit; cursor: pointer; padding: 0; }
@@ -71,7 +74,7 @@
 .f360-fav-err { width: 100%; font-size: 12px; color: #9b2c2c; } .f360-fav-err:empty { display: none; }
 .f360-fav-pie { margin: 0; padding: 14px 20px; border-top: 1px solid #f0e9df; font-size: 12px; color: #9A9A96; }
 /* phone: the header is tight (centred logo); the ♡ sits snug against the account icon so it never touches the logo */
-@media (max-width: 767px) { .f360-fav-head { width: 24px; margin-right: -6px; } .f360-fav-head svg { width: 20px; height: 20px; } .f360-fav-btn { width: 34px; height: 34px; top: 8px; right: 8px; } }
+@media (max-width: 767px) { .f360-fav-head { width: 24px; margin-right: -6px; } .f360-fav-head svg { width: 20px; height: 20px; } .f360-fav-btn { width: 28px; height: 28px; top: 8px; right: 8px; } .f360-fav-btn svg { width: 14px; height: 14px; } }
 @media (prefers-reduced-motion: reduce) { .f360-fav-btn { transition: none; } }
 </style>
 <script>
