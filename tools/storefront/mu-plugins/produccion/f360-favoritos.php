@@ -31,6 +31,7 @@ add_action('wp_footer', function () {
     <div class="f360-fav-lista" aria-live="polite"></div>
     <p class="f360-fav-pie">Se guardan en este dispositivo.</p>
   </aside>
+  <div class="f360-fav-toast" role="status" aria-live="polite" hidden><span></span><button type="button"></button></div>
 </div>
 <style>
 #f360-fav-root [hidden] { display: none !important; }
@@ -111,6 +112,14 @@ add_action('wp_footer', function () {
 @keyframes f360-sello { 0% { opacity: 0; transform: translateY(0) scale(.4); } 30% { opacity: 1; transform: translateY(-14px) scale(1.05); } 100% { opacity: 0; transform: translateY(-30px) scale(.9); } }
 .f360-fav-tit-logo { display: inline-flex; width: 16px; height: 18px; margin-right: 8px; color: #857652; vertical-align: -2px; }
 .f360-fav-tit-logo svg { width: 100%; height: 100%; fill: currentColor; }
+.f360-fav-quitar.f360-fav-quitar-txt { width: auto !important; height: 32px; padding: 0 2px !important; border-radius: 0; color: #8a8378 !important; font: inherit; font-size: 12px; text-decoration: underline; align-self: start; }
+.f360-fav-quitar.f360-fav-quitar-txt:hover { color: #242424 !important; }
+.f360-fav-toast { position: fixed; left: 50%; bottom: 96px; z-index: 100000; transform: translate(-50%, 12px); opacity: 0; display: flex; align-items: center; gap: 14px;
+  max-width: calc(100vw - 32px); padding: 11px 12px 11px 16px; border-radius: 24px; background: #242424; color: #fff; font-family: inherit; font-size: 13px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18); transition: opacity .2s ease, transform .2s ease; white-space: nowrap; }
+.f360-fav-toast.entra { opacity: 1; transform: translate(-50%, 0); }
+.f360-fav-toast span::before { content: '♥'; color: #c9b88f; margin-right: 8px; }
+.f360-fav-toast button { border: 0 !important; background: none !important; padding: 4px 6px !important; color: #e8d9b0 !important; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .f360-fav-btn { transition: none; } }
 </style>
 <script>
@@ -157,12 +166,25 @@ add_action('wp_footer', function () {
         event: ev, market: pais, anon_id: anon(), woo_product_id: it.id, woo_variation_id: it.vid || null, color: it.color || null }) }).catch(function () {});
     } catch (e) {}
   };
-  var cambiar = function (it, on) {
+  var cambiar = function (it, on, sinAviso) {
     favs = leer();
-    if (on && !tiene(it.id)) { favs.unshift({ id: it.id, name: it.name || '', img: it.img || '', url: it.url || '', color: it.color || null, at: Date.now() }); guardar(favs); avisar('favorite_added', it); }
-    else if (!on && tiene(it.id)) { favs = favs.filter(function (x) { return x.id !== it.id; }); guardar(favs); avisar('favorite_removed', it); }
+    if (on && !tiene(it.id)) { favs.unshift({ id: it.id, name: it.name || '', img: it.img || '', url: it.url || '', color: it.color || null, at: Date.now() }); guardar(favs); avisar('favorite_added', it); if (!sinAviso) aviso(true, it); }
+    else if (!on && tiene(it.id)) { var era = favs.filter(function (x) { return x.id === it.id; })[0]; favs = favs.filter(function (x) { return x.id !== it.id; }); guardar(favs); avisar('favorite_removed', it); if (!sinAviso) aviso(false, era || it); }
     pintar();
   };
+  // Mario 2026-10-07: confirm every tap — "Guardado en Mis Fuxia · Ver" / "Quitado de Mis Fuxia · Deshacer" (teaches that the
+  // same heart removes it, and an accidental tap is one touch away from being undone)
+  var toast = null, toastT = null;
+  var aviso = function (guardado, it) {
+    toast = toast || root.querySelector('.f360-fav-toast');
+    var t = toast.querySelector('span'), b = toast.querySelector('button');
+    t.textContent = guardado ? 'Guardado en Mis Fuxia' : 'Quitado de Mis Fuxia';
+    b.textContent = guardado ? 'Ver' : 'Deshacer';
+    b.onclick = function () { ocultar(); if (guardado) abrir(); else cambiar({ id: it.id, name: it.name, img: it.img, url: it.url, color: it.color }, true, true); };
+    toast.hidden = false; toast.classList.remove('sale'); void toast.offsetWidth; toast.classList.add('entra');
+    clearTimeout(toastT); toastT = setTimeout(ocultar, 3200);
+  };
+  var ocultar = function () { if (!toast) return; clearTimeout(toastT); toast.classList.remove('entra'); toast.classList.add('sale'); setTimeout(function () { if (toast.classList.contains('sale')) toast.hidden = true; }, 220); };
 
   // ── hearts on every product card, the shop carousels and the product page ──
   var boton = function (it, extra) {
@@ -335,7 +357,7 @@ add_action('wp_footer', function () {
       // the MXN one with another label. The real price is on the product page (incident 2026-10-06).
       else if (p) s.textContent = !vivo ? 'Por ahora no está a la venta' : pais === 'mx' ? dinero(p.prices || {}) : 'Ver precio en el modelo';
       a.appendChild(b); a.appendChild(s);
-      var quitar = document.createElement('button'); quitar.type = 'button'; quitar.className = 'f360-fav-quitar f360-fav-v-' + ESTILO; quitar.innerHTML = ICONO;
+      var quitar = document.createElement('button'); quitar.type = 'button'; quitar.className = 'f360-fav-quitar f360-fav-quitar-txt'; quitar.textContent = 'Quitar';
       quitar.setAttribute('aria-label', 'Quitar ' + b.textContent + ' de Mis Fuxia');
       quitar.onclick = function () { cambiar({ id: x.id }, false); };
       div.appendChild(img); div.appendChild(a); div.appendChild(quitar);
