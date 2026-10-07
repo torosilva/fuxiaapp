@@ -342,6 +342,17 @@ html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 
   root.parentNode.insertBefore(barra, root);
   var html = document.documentElement; html.classList.add('f360-res-cerrado');
   barra.onclick = function () { var ab = html.classList.toggle('f360-res-abierto'); html.classList.toggle('f360-res-cerrado', !ab); barra.setAttribute('aria-expanded', String(ab)); };
+  // the site's header is FIXED: the bar lands just below it and stays pinned there while she scrolls (Instagram test
+  // 2026-10-06: it sat under the header, so on a phone the order — and its "Quitar" — could not be opened)
+  var bajoHeader = function () {
+    var h = document.querySelector('#brx-header'), cs = h && getComputedStyle(h);
+    var hb = h && (cs.position === 'fixed' || cs.position === 'sticky') ? Math.max(0, h.getBoundingClientRect().bottom) : 0;
+    barra.style.position = 'sticky'; barra.style.top = Math.round(hb) + 'px'; barra.style.zIndex = '60';
+    barra.style.marginTop = '0px';
+    var falta = window.scrollY === 0 ? hb + 8 - barra.getBoundingClientRect().top : 0;
+    if (falta > 0) barra.style.marginTop = Math.round(falta) + 'px';
+  };
+  bajoHeader(); window.addEventListener('resize', bajoHeader); window.addEventListener('load', bajoHeader); setTimeout(bajoHeader, 1500);
   // e) trust strip after the checkout, built only from what this page shows
   var conf = document.createElement('div'); conf.className = 'f360-confianza'; conf.hidden = true;
   root.parentNode.insertBefore(conf, root.nextSibling);
