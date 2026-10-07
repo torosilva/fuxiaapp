@@ -23,6 +23,7 @@ export default async function Productos({ searchParams }: { searchParams: Promis
         <h1 className="font-display text-5xl text-ink">Productos</h1>
         <Link href="/bandeja" className="ml-auto rounded-full px-5 py-3 text-ink-2 ring-1 ring-line">Bandeja de clientas</Link>
         <Link href="/sobre-pedido" className="rounded-full px-5 py-3 text-ink-2 ring-1 ring-line">Pedidos en línea</Link>
+        <Link href="/productos/orden" className="rounded-full px-5 py-3 text-ink-2 ring-1 ring-line" data-testid="link-store-order">⭐ Orden en la tienda</Link>
         {canWrite(me.role) && (
           <Link href="/productos/nuevo" className="flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-surface transition hover:bg-ink-2">
             <IconPlus className="size-5" />Nuevo producto

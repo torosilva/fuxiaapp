@@ -114,6 +114,9 @@ export const inventoryByLocation = (locationId?: string) => rpc<LocationInventor
 
 export type QueueStatus = { queued: number; running: number; succeeded_today: number; failed_today: number; now: string | null; published: number; live: number };
 export const getQueueStatus = () => rpc<QueueStatus>('f360_pub_queue_status', { p_target_key: STORE_KEY });
+export type StoreOrderItem = { position: number; woo_product_id: number; product_id: string; name: string; store_rank: number | null; sold: number; legacy: boolean };
+export type StoreOrder = { items: StoreOrderItem[]; last_run: { at: string; ok: boolean; items: number; message: string | null; by: string } | null };
+export const getStoreOrder = () => rpc<StoreOrder>('f360_store_order', { p_target_key: STORE_KEY });
 export const getPublication = (productId: string) => rpc<Publication>('f360_publication_status', { p_product_id: productId, p_target_key: STORE_KEY });
 
 export const getSyncOverview = (status: 'open' | 'resolved' | 'all' = 'open') => rpc<SyncOverview>('f360_list_sync_issues', { p_status: status });

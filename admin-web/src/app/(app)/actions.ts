@@ -156,6 +156,28 @@ export async function setStoreVisibilityAction(productId: string, status: 'publi
   return out;
 }
 
+// "Orden en la tienda": the destacados (in order), then the shop order written to the store by the publisher.
+export async function setStoreFeaturedAction(productIds: string[]): Promise<Result<{ featured: number }>> {
+  const r = await call<{ featured: number }>('f360_set_store_featured', { p_product_ids: productIds });
+  revalidatePath('/productos/orden');
+  return r;
+}
+export async function applyStoreOrderAction(): Promise<Result<{ done: number }>> {
+  if (!publisherAvailable()) return { ok: false, error: 'La publicación en WooCommerce todavía no está disponible en este ambiente.' };
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' };
+  let out: Result<{ done: number }>;
+  try {
+    const res = await fetch(process.env.F360_PUBLISHER_URL!, { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'store_order' }), cache: 'no-store', signal: AbortSignal.timeout(120_000) });
+    const body = await res.json().catch(() => ({}));
+    out = res.ok ? { ok: true, data: { done: body.done ?? 0 } } : { ok: false, error: body.error ?? 'No se pudo aplicar el orden en la tienda.' };
+  } catch { out = { ok: false, error: 'No hubo respuesta de la tienda. Puedes reintentar.' }; }
+  revalidatePath('/productos/orden');
+  return out;
+}
+
 export async function publishAction(productId: string, idempotencyKey: string): Promise<Result<{ status: string; error: string | null }>> {
   // Checked BEFORE creating a job: without a publisher a job would sit in the queue forever.
   if (!publisherAvailable()) return { ok: false, error: 'La publicación en WooCommerce todavía no está disponible en este ambiente.' };

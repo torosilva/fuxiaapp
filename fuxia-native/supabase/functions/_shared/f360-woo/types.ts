@@ -62,6 +62,8 @@ export interface WooAdapter {
   listVariations(productId: number): Promise<WooVariation[]>;
   /** purpose only labels the call (e.g. for fault injection in tests); REST ignores it. */
   batchVariations(productId: number, input: BatchInput, purpose: 'variations' | 'stock' | 'hide'): Promise<BatchResult>;
+  /** products/batch (≤100 updates): e.g. the shop order (menu_order). Optional: adapters without it fall back to updateProduct. */
+  batchProducts?(update: (Record<string, unknown> & { id: number })[]): Promise<{ update?: { id?: number; error?: { code: string; message: string } }[] }>;
 }
 
 // ── Where the publisher writes its audit trail and Woo ids (Supabase RPCs in production code). ──

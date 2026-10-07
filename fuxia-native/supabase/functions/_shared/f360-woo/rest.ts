@@ -55,5 +55,6 @@ export function restAdapter(cfg: RestConfig): WooAdapter {
     updateProduct: (id, body) => call<WooProduct>('PUT', `/products/${id}`, body).then((r) => r!),
     listVariations: (pid) => all<WooVariation>(`/products/${pid}/variations`),
     batchVariations: (pid, input: BatchInput) => call<BatchResult>('POST', `/products/${pid}/variations/batch`, input).then((r) => r ?? {}),
+    batchProducts: (update) => call<{ update?: { id?: number; error?: { code: string; message: string } }[] }>('POST', '/products/batch', { update }).then((r) => r ?? {}),
   };
 }

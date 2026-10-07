@@ -56,11 +56,12 @@ export async function handle(req: Request, env: PublisherEnv, opts: HandlerOptio
   let body: { job_id?: string; action?: string; product_id?: string; status?: string };
   try { body = (await req.json()) as typeof body; } catch { return json({ error: 'Solicitud no válida.' }, 400); }
   const visibility = body.action === 'visibility';
+  const order = body.action === 'store_order';
   const queue = body.action === 'run_queue';
   const jobId = String(body.job_id ?? '');
   // Queue mode called by the publisher itself (service role): process the next job, then call itself again.
   if (queue && token === env.SUPABASE_SERVICE_ROLE_KEY) return runQueue(env, opts);
-  if (!queue && (visibility ? !/^[0-9a-f-]{36}$/i.test(String(body.product_id ?? '')) || !['publish', 'draft'].includes(String(body.status)) : !/^[0-9a-f-]{36}$/i.test(jobId))) {
+  if (!queue && !order && (visibility ? !/^[0-9a-f-]{36}$/i.test(String(body.product_id ?? '')) || !['publish', 'draft'].includes(String(body.status)) : !/^[0-9a-f-]{36}$/i.test(jobId))) {
     return json({ error: 'Solicitud no válida.' }, 400);
   }
 
@@ -74,6 +75,8 @@ export async function handle(req: Request, env: PublisherEnv, opts: HandlerOptio
 
   // "Publicar en vivo" / "Ocultar de la tienda": only the product's status in its store; owner re-checked in the database
   if (visibility) return setVisibility(env, opts, user.id, String(body.product_id), body.status as 'publish' | 'draft');
+  // "Aplicar orden a la tienda": the shop order computed by Fuxia 360 → each product's menu_order.
+  if (order) return setStoreOrder(env, opts, user.id);
   // An owner starts the server-side queue (the page can be closed afterwards).
   if (queue) return runQueue(env, opts);
 
@@ -182,4 +185,46 @@ async function setVisibility(env: PublisherEnv, opts: HandlerOptions, caller: st
     const m = `Error de la tienda: ${(e as Error).message}`;
     await finish(false, null, m); return json({ error: m }, 502);
   }
+}
+
+/** The shop order (Fuxia 360 decides it: destacados → most sold → newest) written as each store product's menu_order. */
+async function setStoreOrder(env: PublisherEnv, opts: HandlerOptions, caller: string): Promise<Response> {
+  const svc = env.SUPABASE_SERVICE_ROLE_KEY;
+  let plan: { target: { key: string; base_url: string }; items: { woo_product_id: number; position: number }[] };
+  try { plan = await rpc(env, 'f360_pub_order_begin', { p_target_key: env.WOO_TARGET_KEY, p_caller: caller }, svc); }
+  catch (e) { return json({ error: (e as Error).message }, 409); }
+  const finish = (ok: boolean, items: number, message: string | null) => rpc(env, 'f360_pub_order_finish',
+    { p_target_key: env.WOO_TARGET_KEY, p_caller: caller, p_ok: ok, p_items: items, p_message: message }, svc);
+  if (plan.target.key !== env.WOO_TARGET_KEY || trimUrl(plan.target.base_url) !== trimUrl(env.WOO_BASE_URL)) {
+    const m = `Este publicador está configurado para otra tienda (${env.WOO_TARGET_KEY}); no se tocó nada.`;
+    await finish(false, 0, m); return json({ error: m }, 409);
+  }
+  const home = await (opts.storeHome ?? storeHome)(env.WOO_BASE_URL);
+  if (!home || hostOf(home) !== hostOf(plan.target.base_url)) {
+    const m = 'La tienda no confirmó quién es; no se tocó nada.';
+    await finish(false, 0, m); return json({ error: m }, 502);
+  }
+  let adapter = restAdapter({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET, timeoutMs: 90_000 });
+  if (opts.wrapAdapter) adapter = opts.wrapAdapter(adapter);
+  const updates = plan.items.map((x) => ({ id: x.woo_product_id, menu_order: x.position }));
+  let done = 0; const failed: number[] = [];
+  try {
+    for (let i = 0; i < updates.length; i += 100) {
+      const chunk = updates.slice(i, i + 100);
+      if (adapter.batchProducts) {
+        const r = await adapter.batchProducts(chunk);
+        const res = r.update ?? [];
+        chunk.forEach((u, k) => { const x = res[k]; if (!x || x.error) failed.push(u.id); else done++; });
+      } else {
+        for (const u of chunk) { try { await adapter.updateProduct(u.id, { menu_order: u.menu_order }); done++; } catch { failed.push(u.id); } }
+      }
+    }
+  } catch (e) {
+    const m = `Error de la tienda: ${(e as Error).message}`;
+    await finish(false, done, m); return json({ error: m, done }, 502);
+  }
+  const ok = failed.length === 0;
+  const m = ok ? `Orden aplicado a ${done} productos.` : `Orden aplicado a ${done}; no se pudo: ${failed.slice(0, 20).join(', ')}`;
+  await finish(ok, done, m);
+  return ok ? json({ ok: true, done }) : json({ error: m, done, failed }, 502);
 }
