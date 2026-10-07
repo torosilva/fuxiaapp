@@ -48,6 +48,7 @@ export function Shell({ name, role, env, alerts = 0, signOut, children }: { name
         <Link href="/" className="mb-8 block px-3">
           <div className="font-display text-3xl leading-none text-[#F7E7C4]">Fuxia <span className="text-[#E8C98A]">360</span></div>
           <div className="mt-1 text-[10px] uppercase tracking-[0.28em] text-[#A79F92]">Fuxia Ballerinas</div>
+          <div className="mt-1 text-[11px] text-[#8E877C]">by HiloLabs.ai</div>
         </Link>
         <nav className="flex flex-1 flex-col gap-5">
           {GROUPS.map((g) => ({ ...g, items: g.items.filter((n) => !('admin' in n) || role === 'owner' || role === 'operator') })).filter((g) => g.items.length > 0).map((g) => (
@@ -76,7 +77,7 @@ export function Shell({ name, role, env, alerts = 0, signOut, children }: { name
       <div className="min-w-0 flex-1 pb-24 lg:pb-0">
         {/* Mobile / portrait tablet header */}
         <header className="flex items-center justify-between px-5 pt-5 lg:hidden">
-          <Link href="/" className="font-display text-2xl">Fuxia <span className="text-gold">360</span></Link>
+          <Link href="/" className="flex items-baseline gap-2"><span className="font-display text-2xl">Fuxia <span className="text-gold">360</span></span><span className="text-[11px] text-muted">by HiloLabs.ai</span></Link>
           <form action={signOut}><button aria-label="Salir" className="rounded-full p-2 text-muted"><IconLogout /></button></form>
         </header>
         <main className="mx-auto w-full max-w-6xl px-5 py-6 md:px-8 lg:py-10">{children}</main>

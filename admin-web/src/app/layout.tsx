@@ -7,8 +7,8 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const cormorant = Cormorant_Garamond({ subsets: ['latin'], weight: ['500', '600'], variable: '--font-cormorant' });
 
 export const metadata: Metadata = {
-  title: 'Fuxia 360',
-  description: 'Fuxia 360 — productos e inventario de Fuxia Ballerinas',
+  title: 'Fuxia 360 by HiloLabs.ai',
+  description: 'Fuxia 360 by HiloLabs.ai — productos e inventario de Fuxia Ballerinas',
 };
 
 export const viewport: Viewport = { themeColor: '#f6f2ec', width: 'device-width', initialScale: 1 };
