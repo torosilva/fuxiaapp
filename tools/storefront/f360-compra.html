@@ -387,6 +387,9 @@ html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 
       (row.querySelector('.wc-block-components-order-summary-item__description') || row).appendChild(b);
     });
   }
+  // Woo paints the summary (React) after this snippet runs and repaints it on every change: watch it directly
+  if (window.MutationObserver) { var pq = false; new MutationObserver(function () { if (!pq) { pq = true; requestAnimationFrame(function () { pq = false; quitarLineas(); }); } })
+    .observe(root, { childList: true, subtree: true }); }
   sinc();
 
   // Less typing on the phone: numeric keyboards, and e-mail / WhatsApp the customer already gave us (welcome popup, a
