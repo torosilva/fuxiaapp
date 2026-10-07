@@ -33,7 +33,7 @@ export default async function Favoritos({ searchParams }: { searchParams: Promis
             <thead className="text-left text-[11px] font-bold tracking-[0.16em] text-muted">
               <tr className="border-b border-line">
                 <th className="px-5 py-3">MODELO</th><th className="px-3 py-3 text-right">FAVORITOS ACTIVOS</th><th className="px-3 py-3 text-right">AGREGADOS {days}D</th>
-                <th className="px-3 py-3 text-right">QUITADOS {days}D</th><th className="px-3 py-3 text-right">AL CARRITO</th><th className="px-5 py-3 text-right">VENDIDOS {days}D</th>
+                <th className="px-3 py-3 text-right">QUITADOS {days}D</th><th className="px-3 py-3 text-right">A LA BOLSA DESDE ♡</th><th className="px-5 py-3 text-right">VENDIDOS {days}D</th>
               </tr>
             </thead>
             <tbody>
@@ -51,7 +51,7 @@ export default async function Favoritos({ searchParams }: { searchParams: Promis
           </table>
         </div>
       )}
-      <p className="text-xs text-muted">“Al carrito” todavía no se registra en Fuxia 360 (se mide en GA4); llegará en la siguiente fase y aquí no se estima. Vendidos = pares de ese modelo en tiendas y en línea en el mismo periodo.</p>
+      <p className="text-xs text-muted">“A la bolsa desde ♡” = veces que agregaron ese modelo a la bolsa desde “Mis favoritos”. Lo que se agrega desde la ficha del producto todavía se mide solo en GA4 y aquí no se estima. Vendidos = pares de ese modelo en tiendas y en línea en el mismo periodo.</p>
     </div>
   );
 }

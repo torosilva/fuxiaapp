@@ -165,3 +165,10 @@ test('service key: legacy JWT goes as apikey + Bearer; a new sb_secret_ key goes
   assert.deepEqual(serviceHeaders('aaa.bbb.ccc'), { apikey: 'aaa.bbb.ccc', Authorization: 'Bearer aaa.bbb.ccc', 'Content-Type': 'application/json' });
   assert.deepEqual(serviceHeaders('sb_secret_xyz'), { apikey: 'sb_secret_xyz', 'Content-Type': 'application/json' });
 });
+test('favorite: "Agregar a la bolsa" from Mis favoritos is recorded as favorite_add_to_cart with its variation', async () => {
+  const calls: { fn: string; args: unknown }[] = [];
+  const r = await handleReserve(post({ action: 'favorite', event: 'favorite_add_to_cart', market: 'co', anon_id: '11111111-1111-4111-8111-111111111111', woo_product_id: 5322, woo_variation_id: 5335, color: 'Azul' }), env, fakeFetch({ f360_favorite_record: { ok: true } }, calls));
+  assert.equal(r.status, 200);
+  assert.equal((calls[0].args as { p: { event: string; woo_variation_id: number } }).p.event, 'favorite_add_to_cart');
+  assert.equal((calls[0].args as { p: { event: string; woo_variation_id: number } }).p.woo_variation_id, 5335);
+});

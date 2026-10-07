@@ -63,7 +63,7 @@ export async function handleReserve(req: Request, env: ReserveEnv, fetchImpl: ty
   if (body.action === 'favorite') {
     const ev = String(body.event ?? ''), market = String(body.market ?? '').toLowerCase(), anon = String(body.anon_id ?? '');
     const wp = Number(body.woo_product_id), wv = body.woo_variation_id == null ? null : Number(body.woo_variation_id);
-    if (!['favorite_added', 'favorite_removed'].includes(ev) || !['mx', 'co'].includes(market)
+    if (!['favorite_added', 'favorite_removed', 'favorite_add_to_cart'].includes(ev) || !['mx', 'co'].includes(market)
       || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(anon)
       || !Number.isInteger(wp) || wp <= 0 || (wv !== null && (!Number.isInteger(wv) || wv <= 0))) return json({ error: 'Solicitud no válida.' }, 400);
     if (!env.TARGET_KEY) return json({ error: 'Canal no configurado.' }, 500);

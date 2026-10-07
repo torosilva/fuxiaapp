@@ -118,7 +118,7 @@ export type StoreOrderItem = { position: number; woo_product_id: number; product
 export type StoreOrder = { items: StoreOrderItem[]; last_run: { at: string; ok: boolean; items: number; message: string | null; by: string } | null };
 export const getStoreOrder = () => rpc<StoreOrder>('f360_store_order', { p_target_key: STORE_KEY });
 export type FavoriteRow = { key: string; product_id: string | null; model: string; identified: boolean; active: number; adds: number; removes: number; atc: number | null; sold: number | null };
-export type FavoritesReport = { days: number; generated_at: string; atc_captured: boolean; rows: FavoriteRow[] };
+export type FavoritesReport = { days: number; generated_at: string; atc_captured: boolean; atc_scope?: 'favoritos'; rows: FavoriteRow[] };
 export const getFavoritesReport = (days = 30) => rpc<FavoritesReport>('f360_favorites_report', { p_target_key: STORE_KEY, p_days: days });
 export const getPublication = (productId: string) => rpc<Publication>('f360_publication_status', { p_product_id: productId, p_target_key: STORE_KEY });
 
