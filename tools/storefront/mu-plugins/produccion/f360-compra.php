@@ -96,6 +96,8 @@ form.cart a.added_to_cart, form.cart + a.added_to_cart, .single_variation_wrap a
 .f360-wa-pts em { color: #9A9A96; font-style: normal; }
 
 /* b) checkout with the Fuxia identity (presentation only) */
+.f360-quitar { display: block; margin-top: 4px; padding: 6px 0; min-height: 32px; border: 0; background: none; color: #8a8378; text-decoration: underline; font: inherit; font-size: 12px; cursor: pointer; }
+.f360-quitar:hover { color: #242424; } .f360-quitar:disabled { cursor: wait; text-decoration: none; }
 .wc-block-checkout { font-family: inherit; color: #242424; }
 .wc-block-checkout .wc-block-components-checkout-step__title, .wc-block-checkout .wc-block-components-title.wc-block-components-checkout-step__title {
   font-size: 13px !important; font-weight: 700 !important; letter-spacing: .16em; text-transform: uppercase; color: #83734C !important; }
@@ -388,7 +390,27 @@ html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 
     if (rv && mexico && linkRescate.parentNode !== conf.parentNode) conf.parentNode.insertBefore(linkRescate, conf.nextSibling);
     if (typeof teclados === 'function') { teclados(); prellenar(); }
     if (typeof vigilarErrores === 'function') vigilarErrores();
+    quitarLineas();
   };
+  // Quitar un par desde el resumen (Mario 2026-10-06: "no se pueden quitar artículos del carrito"): Woo's checkout summary has no
+  // remove and "Pagar ahora" skips the cart page. Each line gets "Quitar", done by Woo's OWN cart store (totals, coupons and
+  // shipping recalculate; an empty cart shows Woo's own empty state). Lines and cart items come in the same order.
+  function quitarLineas() {
+    var st = window.wp && wp.data && wp.data.select('wc/store/cart'), dis = window.wp && wp.data && wp.data.dispatch('wc/store/cart');
+    if (!st || !dis || !dis.removeItemFromCart) return;
+    var items = (st.getCartData() || {}).items || [];
+    [].forEach.call(root.querySelectorAll('.wc-block-components-order-summary-item'), function (row, i) {
+      var it = items[i], b = row.querySelector('.f360-quitar');
+      if (!it) { if (b) b.remove(); return; }
+      if (b && b.dataset.key === it.key) return;
+      if (b) b.remove();
+      b = document.createElement('button'); b.type = 'button'; b.className = 'f360-quitar'; b.dataset.key = it.key; b.textContent = 'Quitar';
+      b.setAttribute('aria-label', 'Quitar ' + it.name + ' del pedido');
+      b.onclick = function () { b.disabled = true; b.textContent = 'Quitando…';
+        Promise.resolve(dis.removeItemFromCart(it.key)).catch(function () { b.disabled = false; b.textContent = 'Quitar'; }); };
+      (row.querySelector('.wc-block-components-order-summary-item__description') || row).appendChild(b);
+    });
+  }
   sinc();
 
   // Less typing on the phone: numeric keyboards, and e-mail / WhatsApp the customer already gave us (welcome popup, a
