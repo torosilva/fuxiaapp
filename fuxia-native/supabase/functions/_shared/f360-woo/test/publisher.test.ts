@@ -265,3 +265,12 @@ test('a test channel with stock sync ON keeps today\'s behaviour exactly (Bodega
   assert.equal(r.status, 'succeeded');
   assertMacarena(store, db);
 });
+
+test('a colour written in another case than the store term ("negro" vs existing "Negro") still verifies (Mafalda chocolate, 2026-10-06)', async () => {
+  const base = macarena();
+  base.colors[1].name = 'negro';
+  const store = mockStore(); const db = new FakeDb(base);
+  const r = await run(db, store);
+  assert.equal(r.status, 'succeeded', r.error ?? '');
+  assert.deepEqual(r.summary.mismatches, []);
+});

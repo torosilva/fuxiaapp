@@ -43,7 +43,11 @@ export function mockAdapter(s: MockStore): WooAdapter {
       const cat = s.categories.find((x) => x.id === c.id); if (!cat) throw new WooError(400, 'woocommerce_rest_invalid_term', 'Categoría no válida'); return { ...cat };
     });
     if (b.images) p.images = images(b.images);
-    if (b.attributes) p.attributes = clone(b.attributes) as WooProduct['attributes'];
+    if (b.attributes) {
+      // like real Woo: a global attribute option is stored with the EXISTING term's name ("chocolate" → "Chocolate")
+      p.attributes = (clone(b.attributes) as WooProduct['attributes']).map((a) => ({ ...a, options: (a.options ?? []).map((o) => {
+        const t = (s.terms.get(a.id) ?? []).find((x) => x.name.toLowerCase() === String(o).toLowerCase()); return t ? t.name : o; }) }));
+    }
     if (b.meta_data) for (const m of b.meta_data as { key: string; value: unknown }[]) {
       const hit = p.meta_data.find((x) => x.key === m.key); if (hit) hit.value = m.value; else p.meta_data.push({ id: next(), key: m.key, value: m.value });
     }

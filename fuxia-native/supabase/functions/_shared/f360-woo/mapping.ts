@@ -108,7 +108,10 @@ export function verify(s: Snapshot, p: WooProduct | null, vars: WooVariation[], 
   const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
   const colorA = p.attributes.find((a) => a.id === ids.colorAttr);
   const sizeA = p.attributes.find((a) => a.id === ids.sizeAttr);
-  if (!colorA || !sameSet(colorA.options ?? [], s.colors.map((c) => c.name))) out.push('colores distintos');
+  // Woo colour terms are unique regardless of case: an existing store term "Chocolate" IS Fuxia 360's "chocolate"
+  // (Mafalda chocolate, 2026-10-06), exactly like the variation check below.
+  const low = (xs: string[]) => xs.map((x) => x.trim().toLowerCase());
+  if (!colorA || !sameSet(low(colorA.options ?? []), low(s.colors.map((c) => c.name)))) out.push('colores distintos');
   if (!sizeA || !sameSet(sizeA.options ?? [], s.sizes)) out.push('tallas distintas');
   const photos = s.colors.reduce((n, c) => n + c.media.length, 0);
   if (p.images.length !== photos) out.push(`${p.images.length} fotos en la tienda (esperadas ${photos})`);
