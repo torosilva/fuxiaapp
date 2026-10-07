@@ -1,12 +1,26 @@
-<!--
-  Fuxia 360 · Página de TIENDA: encuentra rápido lo que buscas (Mario 2026-10-03). Bricks → plantilla/página "Tienda" →
-  elemento Code con "Ejecutar código", ARRIBA del elemento "Productos". Firmar código, guardar, purgar caché de SG.
-  · Buscar por modelo (o color), filtrar por COLOR y TALLA (talla mexicana en /mx/) y "Solo entrega inmediata".
-  · Carruseles "Más vendidas" (todas las ventas, 60 días) y "Nuevas" (45 días o marcadas por Carolina).
-  Fuxia 360 da colores, tallas y disponibilidad (sin cantidades); fotos, precios y ligas vienen de la propia tienda.
-  Filtra la cuadrícula que ya existe: conviene quitar la paginación y mostrar todos los productos.
-  STAGING: servicio de staging.
--->
+<?php
+/**
+ * Plugin Name: Fuxia 360 · buscador de la Tienda (producción)
+ * Description: Swaps the copy of the shop search / filters pasted in Bricks (/tienda/) for the repo's current version.
+ *              GENERADO por scripts/f360/build_prod_storefront_mu.mjs desde tools/storefront/f360-tienda.html — no editar a mano.
+ * Apagar: borrar este archivo de wp-content/mu-plugins/ (queda la copia pegada en Bricks).
+ */
+if (!defined('ABSPATH')) exit;
+$f360_host = strtolower((string) wp_parse_url(home_url(), PHP_URL_HOST));
+if ($f360_host !== 'fuxiaballerinas.com' && $f360_host !== 'www.fuxiaballerinas.com') return;   // production store only
+add_action('template_redirect', function () {
+  if (is_admin() || wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST) || isset($_GET['bricks'])) return;   // never the Bricks editor
+  if (!function_exists('is_shop') || !(is_shop() || is_product_taxonomy())) return;
+  ob_start(function ($page) {
+    $start = strpos($page, '<div class="f360-tienda">');
+    if ($start === false) return $page;
+    $mark = strpos($page, 'filtros de la Tienda', $start);
+    $end = $mark === false ? false : strpos($page, '</script>', $mark);
+    if ($end === false) return $page;
+    // the pasted install notes (an HTML comment right before the block) go too
+    $c = strrpos(substr($page, 0, $start), '<!--');
+    if ($c !== false && strpos(substr($page, $c, $start - $c), 'Fuxia 360 · Página de TIENDA') !== false) $start = $c;
+    return substr($page, 0, $start) . <<<'F360SNIP'
 <div class="f360-tienda">
   <div class="f360-t-filtros">
     <div class="f360-t-top">
@@ -105,9 +119,9 @@ li.product.f360-fuera { display: none !important; }
 }
 </style>
 <script>
-/* Fuxia 360 · filtros de la Tienda. STAGING. Fuente: tools/storefront/f360-tienda.html */
+/* Fuxia 360 · filtros de la Tienda. PRODUCCIÓN. Fuente: tools/storefront/f360-tienda.html */
 (function () {
-  var ENDPOINT = 'https://faltxpkaicwpnlqaxrdu.supabase.co/functions/v1/f360-store-reserve';   // STAGING
+  var ENDPOINT = 'https://tgzgiwfzddsghnxgkcqd.supabase.co/functions/v1/f360-store-reserve';   // PRODUCCIÓN
   var pais = (location.pathname.match(/^\/[a-z]{2}\//) || ['/'])[0];
   var mexico = pais === '/' || pais === '/mx/';
   var TALLAS = ['35', '36', '37', '38', '39', '40'];
@@ -364,3 +378,7 @@ li.product.f360-fuera { display: none !important; }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
+F360SNIP
+      . substr($page, $end + strlen('</script>'));
+  });
+}, 1);
