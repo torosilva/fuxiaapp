@@ -1,12 +1,248 @@
+<?php
+/**
+ * Plugin Name: Fuxia 360 · Favoritos V1 (STAGING4)
+ * Description: ♡ en tarjetas, carruseles, ficha y header + "Mis favoritos"; captura anónima en Fuxia 360 (staging).
+ *              GENERADO por scripts/f360/build_staging4_storefront_mu.mjs — no editar a mano.
+ * Apagar: borrar este archivo de wp-content/mu-plugins/ en staging4.
+ */
+if (!defined('ABSPATH')) exit;
+if (strpos((string) wp_parse_url(home_url(), PHP_URL_HOST), 'staging4.') !== 0) return;   // staging4 only, never production
+add_action('wp_footer', function () {
+  if (is_admin() || isset($_GET['bricks'])) return;
+  echo <<<'F360SNIP'
 <!--
-  Fuxia 360 · Página de TIENDA: encuentra rápido lo que buscas (Mario 2026-10-03). Bricks → plantilla/página "Tienda" →
-  elemento Code con "Ejecutar código", ARRIBA del elemento "Productos". Firmar código, guardar, purgar caché de SG.
-  · Buscar por modelo (o color), filtrar por COLOR y TALLA (talla mexicana en /mx/) y "Solo entrega inmediata".
-  · Carruseles "Más vendidas" (todas las ventas, 60 días) y "Nuevas" (45 días o marcadas por Carolina).
-  Fuxia 360 da colores, tallas y disponibilidad (sin cantidades); fotos, precios y ligas vienen de la propia tienda.
-  Filtra la cuadrícula que ya existe: conviene quitar la paginación y mostrar todos los productos.
-  STAGING: servicio de staging.
+  Fuxia 360 · ♡ Favoritos V1 (Mario 2026-10-06). STAGING. Fuente: tools/storefront/f360-favoritos.html
+  · ♡ en cada tarjeta de producto (tienda, categorías, home, relacionados), en los carruseles de la Tienda y en la ficha.
+  · ♡ con contador en el header (junto a Club Fuxia) → panel "Mis favoritos" (foto, nombre, precio del país, ver / quitar).
+  · Sin cuenta: la lista vive en este dispositivo (localStorage) y se sincroniza entre pestañas; /mx/ y /co/ comparten la lista
+    y cada uno muestra su precio. Producto que ya no existe o no se vende: "Ya no está disponible" + quitar.
+  · Fuxia 360 recibe cada favorite_added / favorite_removed ANÓNIMO (id aleatorio del navegador, nunca datos personales) para
+    el reporte "Favoritos / Intent". Nada se envía al cargar la página; el panel hace una sola consulta a la tienda al abrirse.
 -->
+<div id="f360-fav-root">
+  <div class="f360-fav-velo" hidden></div>
+  <aside class="f360-fav-panel" hidden role="dialog" aria-modal="true" aria-labelledby="f360-fav-titulo">
+    <div class="f360-fav-top">
+      <h2 id="f360-fav-titulo">Mis favoritos <span class="f360-fav-n"></span></h2>
+      <button type="button" class="f360-fav-x" aria-label="Cerrar mis favoritos">✕</button>
+    </div>
+    <div class="f360-fav-lista" aria-live="polite"></div>
+    <p class="f360-fav-pie">Se guardan en este dispositivo.</p>
+  </aside>
+</div>
+<style>
+#f360-fav-root [hidden] { display: none !important; }
+.f360-fav-btn { position: absolute; top: 10px; right: 10px; z-index: 5; width: 38px; height: 38px; border-radius: 50%; border: 0; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.92); color: #242424; cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,.12); transition: transform .15s ease; }
+.f360-fav-btn:hover { transform: scale(1.06); }
+.f360-fav-btn svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.f360-fav-btn[aria-pressed="true"] { color: #B23A48; }
+.f360-fav-btn[aria-pressed="true"] svg { fill: currentColor; }
+.f360-fav-btn.f360-fav-pdp { position: static; margin-left: 12px; vertical-align: middle; flex: 0 0 auto; }
+.f360-fav-host { position: relative; }
+.f360-fav-head { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; margin-right: 12px;
+  border: 0; background: none; color: inherit; cursor: pointer; padding: 0; }
+.f360-fav-head svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+.f360-fav-head.lleno svg { fill: #B23A48; stroke: #B23A48; }
+.f360-fav-head b { position: absolute; top: -2px; right: -4px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: #B23A48; color: #fff;
+  font: 600 10px/17px inherit; font-family: inherit; text-align: center; box-sizing: border-box; }
+.f360-fav-velo { position: fixed; inset: 0; z-index: 99998; background: rgba(20,17,13,.35); }
+.f360-fav-panel { position: fixed; top: 0; right: 0; bottom: 0; z-index: 99999; width: min(420px, 100vw); background: #fff; color: #242424;
+  display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,.15); font-family: inherit; }
+.f360-fav-top { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid #f0e9df; }
+.f360-fav-top h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .02em; }
+.f360-fav-n { color: #83734C; font-weight: 500; }
+.f360-fav-x { border: 0; background: none; font-size: 20px; cursor: pointer; width: 40px; height: 40px; color: #242424; }
+.f360-fav-lista { flex: 1; overflow-y: auto; padding: 8px 20px; overscroll-behavior: contain; }
+.f360-fav-item { display: grid; grid-template-columns: 76px 1fr auto; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid #f4efe7; }
+.f360-fav-item img { width: 76px; height: 76px; object-fit: cover; border-radius: 6px; background: #f5f2ec; display: block; }
+.f360-fav-item a { color: inherit; text-decoration: none; }
+.f360-fav-item b { display: block; font-size: 14px; font-weight: 600; }
+.f360-fav-item span { display: block; font-size: 13px; color: #6B6B68; margin-top: 3px; }
+.f360-fav-item .f360-fav-no { color: #9b2c2c; }
+.f360-fav-quitar { border: 0; background: none; color: #B23A48; cursor: pointer; width: 40px; height: 40px; }
+.f360-fav-quitar svg { width: 19px; height: 19px; fill: currentColor; }
+.f360-fav-vacio { padding: 40px 10px; text-align: center; color: #6B6B68; font-size: 14px; line-height: 1.6; }
+.f360-fav-pie { margin: 0; padding: 14px 20px; border-top: 1px solid #f0e9df; font-size: 12px; color: #9A9A96; }
+@media (prefers-reduced-motion: reduce) { .f360-fav-btn { transition: none; } }
+</style>
+<script>
+/* Fuxia 360 · Favoritos V1. STAGING. Fuente: tools/storefront/f360-favoritos.html */
+(function () {
+  if (window.F360Fav || /[?&]bricks=run/.test(location.search)) return;
+  var F360 = 'https://faltxpkaicwpnlqaxrdu.supabase.co/functions/v1/f360-store-reserve';   // STAGING
+  var KEY = 'f360_favs_v1', ANON = 'f360_anon_v1';
+  var pais = (location.pathname.match(/^\/(mx|co)\//) || [0, 'mx'])[1];
+  var base = location.origin + '/' + pais + '/';
+  var HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3s-7.6-4.6-9.3-9.4C1.6 7.6 3.6 4.5 6.9 4.5c2 0 3.6 1.1 4.6 2.7 1-1.6 2.6-2.7 4.6-2.7 3.3 0 5.3 3.1 4.2 6.4-1.7 4.8-9.3 9.4-9.3 9.4z"/></svg>';
+  var root = document.getElementById('f360-fav-root'); if (!root) return;
+  document.body.appendChild(root);
+  var q = function (s) { return root.querySelector(s); };
+  var panel = q('.f360-fav-panel'), velo = q('.f360-fav-velo'), lista = q('.f360-fav-lista');
+
+  // ── the list (this device) ──
+  var leer = function () { try { var v = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v.filter(function (x) { return x && x.id > 0; }) : []; } catch (e) { return []; } };
+  var guardar = function (l) { try { localStorage.setItem(KEY, JSON.stringify(l.slice(0, 200))); } catch (e) {} };
+  var favs = leer();
+  var tiene = function (id) { return favs.some(function (x) { return x.id === id; }); };
+  var anon = function () {
+    var a = null; try { a = localStorage.getItem(ANON); } catch (e) {}
+    if (!a || !/^[0-9a-f-]{36}$/i.test(a)) {
+      a = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
+      try { localStorage.setItem(ANON, a); } catch (e) {}
+    }
+    return a;
+  };
+  // anonymous intent event to Fuxia 360 (fire and forget; never blocks the page)
+  var avisar = function (ev, it) {
+    try {
+      fetch(F360, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'favorite',
+        event: ev, market: pais, anon_id: anon(), woo_product_id: it.id, woo_variation_id: it.vid || null, color: it.color || null }) }).catch(function () {});
+    } catch (e) {}
+  };
+  var cambiar = function (it, on) {
+    favs = leer();
+    if (on && !tiene(it.id)) { favs.unshift({ id: it.id, name: it.name || '', img: it.img || '', url: it.url || '', at: Date.now() }); guardar(favs); avisar('favorite_added', it); }
+    else if (!on && tiene(it.id)) { favs = favs.filter(function (x) { return x.id !== it.id; }); guardar(favs); avisar('favorite_removed', it); }
+    pintar();
+  };
+
+  // ── hearts on every product card, the shop carousels and the product page ──
+  var boton = function (it, extra) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'f360-fav-btn' + (extra ? ' ' + extra : ''); b.innerHTML = HEART;
+    b.dataset.favId = String(it.id);
+    b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation();
+      var on = !tiene(it.id); if (it.pdp) { it.vid = pdpVar.vid; it.color = pdpVar.color; } cambiar(it, on); });
+    return b;
+  };
+  var datosDe = function (el, id) {
+    var a = el.tagName === 'A' ? el : el.querySelector('a[href]'), img = el.querySelector('img');
+    var nombre = (a && (a.getAttribute('aria-label') || '').replace(/^Ver\s+/i, '')) || (el.querySelector('h2, h3, b') || {}).textContent || '';
+    return { id: id, name: String(nombre).trim(), img: img ? (img.currentSrc || img.src) : '', url: a ? a.href : '' };
+  };
+  var tarjetas = function () {
+    document.querySelectorAll('li.type-product[class*="post-"]:not([data-f360-fav]), [data-f360-product-id]:not([data-f360-fav])').forEach(function (el) {
+      var id = Number(el.getAttribute('data-f360-product-id') || ((el.className.match(/\bpost-(\d+)\b/) || [])[1]));
+      el.setAttribute('data-f360-fav', '1');
+      if (!(id > 0)) return;
+      if (getComputedStyle(el).position === 'static') el.classList.add('f360-fav-host');
+      el.appendChild(boton(datosDe(el, id)));
+    });
+  };
+  var pdpVar = { vid: null, color: null };
+  var ficha = function () {
+    if (!document.body.classList.contains('single-product')) return;
+    var id = Number((document.body.className.match(/\bpostid-(\d+)\b/) || [])[1]);
+    var h1 = document.querySelector('.brxe-product-title, h1.product_title, h1');
+    if (!(id > 0) || !h1 || h1.querySelector('.f360-fav-btn')) return;
+    var img = document.querySelector('.woocommerce-product-gallery img, .brxe-product-gallery img');
+    var it = { id: id, name: h1.textContent.trim(), img: img ? (img.currentSrc || img.src) : '', url: location.href.split('?')[0].split('#')[0], pdp: true };
+    var b = boton(it, 'f360-fav-pdp'); b.setAttribute('aria-label', 'Guardar ' + it.name + ' en mis favoritos');
+    h1.style.display = 'flex'; h1.style.alignItems = 'center'; h1.style.justifyContent = 'space-between'; h1.appendChild(b);
+    // the colour / size she is looking at travels with the ♡ (canonical colour / variant in Fuxia 360)
+    var form = document.querySelector('form.variations_form');
+    if (form && window.jQuery) {
+      jQuery(form).on('found_variation', function (e, v) { pdpVar.vid = v && v.variation_id || null; })
+        .on('reset_data', function () { pdpVar.vid = null; });
+      var sel = form.querySelector('[name="attribute_pa_color"]');
+      var col = function () { var o = sel && sel.selectedOptions && sel.selectedOptions[0]; pdpVar.color = o && o.value ? o.textContent.trim() : null; };
+      if (sel) { sel.addEventListener('change', col); col(); }
+    }
+  };
+
+  // ── header: ♡ with counter, next to Club Fuxia (or before the account icon) ──
+  var head = null;
+  var cabecera = function () {
+    if (head && document.body.contains(head)) return;
+    // always right before the account icon: with "★ Club Fuxia" in the header it reads  Club Fuxia ★ | ♡ 3 | 👤
+    var cuenta = document.querySelector('#brx-header a[href*="/mi-cuenta"]');
+    var ancla = cuenta, padre = cuenta && cuenta.parentNode;
+    if (!padre) return;
+    head = document.createElement('button'); head.type = 'button'; head.className = 'f360-fav-head'; head.innerHTML = HEART + '<b hidden></b>';
+    head.addEventListener('click', abrir);
+    padre.insertBefore(head, ancla || null);
+  };
+
+  var pintar = function () {
+    favs = leer();
+    var n = favs.length;
+    document.querySelectorAll('.f360-fav-btn').forEach(function (b) {
+      var on = tiene(Number(b.dataset.favId)); b.setAttribute('aria-pressed', String(on));
+      if (!b.classList.contains('f360-fav-pdp')) b.setAttribute('aria-label', (on ? 'Quitar de mis favoritos' : 'Agregar a mis favoritos'));
+    });
+    if (head) { var c = head.querySelector('b'); c.hidden = !n; c.textContent = n > 99 ? '99+' : String(n); head.classList.toggle('lleno', n > 0);
+      head.setAttribute('aria-label', 'Mis favoritos' + (n ? ': ' + n : '')); }
+    q('.f360-fav-n').textContent = n ? '(' + n + ')' : '';
+    if (!panel.hidden) listar();
+  };
+
+  // ── "Mis favoritos": current data from the store of THIS country (price, photo, link); gone products say so ──
+  var cache = {};
+  var listar = function () {
+    var l = favs;
+    if (!l.length) { lista.innerHTML = '<p class="f360-fav-vacio">Todavía no tienes favoritos.<br>Toca ♡ en los modelos que te gusten y aquí los verás juntos.</p>'; return; }
+    var fila = function (x) {
+      var p = cache[x.id], div = document.createElement('div'); div.className = 'f360-fav-item';
+      var vivo = p && p.is_purchasable !== false;
+      var img = document.createElement('img'); img.alt = ''; img.loading = 'lazy'; img.src = (p && p.images && p.images[0] && (p.images[0].thumbnail || p.images[0].src)) || x.img || '';
+      var a = document.createElement('a'); a.href = (p && p.permalink) || x.url || '#';
+      var b = document.createElement('b'); b.textContent = (p && p.name ? p.name.replace(/&amp;/g, '&') : x.name) || 'Modelo';
+      var s = document.createElement('span');
+      if (p === null) { s.textContent = 'Ya no está disponible'; s.className = 'f360-fav-no'; a.removeAttribute('href'); }
+      else if (p) { var pr = p.prices || {}, dec = pr.currency_minor_unit || 0;
+        s.textContent = !vivo ? 'Por ahora no está a la venta' : (pr.currency_prefix || '$') + Number(pr.price / Math.pow(10, dec)).toLocaleString('es-MX') + (pr.currency_suffix || ''); }
+      a.appendChild(b); a.appendChild(s);
+      var quitar = document.createElement('button'); quitar.type = 'button'; quitar.className = 'f360-fav-quitar'; quitar.innerHTML = HEART;
+      quitar.setAttribute('aria-label', 'Quitar ' + b.textContent + ' de mis favoritos');
+      quitar.onclick = function () { cambiar({ id: x.id }, false); };
+      div.appendChild(img); div.appendChild(a); div.appendChild(quitar); return div;
+    };
+    lista.innerHTML = ''; l.forEach(function (x) { lista.appendChild(fila(x)); });
+  };
+  var cargar = function () {
+    var ids = favs.map(function (x) { return x.id; }).filter(function (id) { return !(id in cache); });
+    if (!ids.length) return;
+    fetch(base + 'wp-json/wc/store/v1/products?per_page=100&include=' + ids.join(','), { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (prods) {
+        var vistos = {}; (prods || []).forEach(function (p) { cache[p.id] = p; vistos[p.id] = 1; });
+        ids.forEach(function (id) { if (!vistos[id]) cache[id] = null; });   // deleted / hidden / not for sale here
+        listar();
+      }).catch(function () {});
+  };
+  var ultimoFoco = null;
+  function abrir() { ultimoFoco = document.activeElement; panel.hidden = false; velo.hidden = false; listar(); cargar(); q('.f360-fav-x').focus(); }
+  function cerrar() { panel.hidden = true; velo.hidden = true; if (ultimoFoco && ultimoFoco.focus) ultimoFoco.focus(); }
+  q('.f360-fav-x').onclick = cerrar; velo.onclick = cerrar;
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) cerrar(); });
+  window.addEventListener('storage', function (e) { if (e.key === KEY) pintar(); });   // other tabs
+
+  var todo = function () { cabecera(); tarjetas(); ficha(); pintar(); };
+  todo();
+  // grids / carousels that appear later (filters, "Más vendidas", lazy sections)
+  var pend = false;
+  new MutationObserver(function () { if (pend) return; pend = true; setTimeout(function () { pend = false; cabecera(); tarjetas(); pintar(); }, 250); })
+    .observe(document.body, { childList: true, subtree: true });
+  window.F360Fav = { abrir: abrir, lista: function () { return leer(); } };
+})();
+</script>
+F360SNIP;
+  echo "\n";
+}, 30);
+// the shop search pasted in Bricks → the repo's version (carousel cards carry data-f360-product-id for the ♡)
+add_action('template_redirect', function () {
+  if (is_admin() || wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST) || isset($_GET['bricks'])) return;
+  if (!function_exists('is_shop') || !(is_shop() || is_product_taxonomy())) return;
+  ob_start(function ($page) {
+    $start = strpos($page, '<div class="f360-tienda">');
+    if ($start === false) return $page;
+    $mark = strpos($page, 'filtros de la Tienda', $start);
+    $end = $mark === false ? false : strpos($page, '</script>', $mark);
+    if ($end === false) return $page;
+    $c = strrpos(substr($page, 0, $start), '<!--');
+    if ($c !== false && strpos(substr($page, $c, $start - $c), 'Fuxia 360 · Página de TIENDA') !== false) $start = $c;
+    return substr($page, 0, $start) . <<<'F360SNIP'
 <div class="f360-tienda">
   <div class="f360-t-filtros">
     <div class="f360-t-top">
@@ -364,3 +600,7 @@ li.product.f360-fuera { display: none !important; }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
+F360SNIP
+      . substr($page, $end + strlen('</script>'));
+  });
+}, 1);

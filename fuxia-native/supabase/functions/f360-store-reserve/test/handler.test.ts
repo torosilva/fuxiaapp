@@ -145,3 +145,18 @@ test('pay_link: Woo down → friendly error and the case records the failure', a
   assert.equal(r.status, 502);
   assert.ok(calls.some((c) => c.url.includes('/rpc/f360_pay_link_done') && c.body.p_error === 'boom'));
 });
+test('favorite: anonymous intent recorded with the channel from configuration; never personal data', async () => {
+  const calls: { fn: string; args: unknown }[] = [];
+  const ok = await handleReserve(post({ action: 'favorite', event: 'favorite_added', market: 'MX', anon_id: '11111111-1111-4111-8111-111111111111', woo_product_id: 3990, woo_variation_id: 4001, color: 'Chocolate<b>', target_key: 'woo_production' }), env, fakeFetch({ f360_favorite_record: { ok: true, identified: true } }, calls));
+  assert.equal(ok.status, 200); assert.deepEqual(await ok.json(), { ok: true });
+  assert.deepEqual(calls[0], { fn: 'f360_favorite_record', args: { p: { target_key: 'woo_staging4', event: 'favorite_added', market: 'mx', anon_id: '11111111-1111-4111-8111-111111111111', woo_product_id: 3990, woo_variation_id: 4001, color: 'Chocolateb' } } });
+});
+test('favorite: bad event / market / visitor id / product → 400 before touching the database; other origins 403', async () => {
+  const calls: { fn: string; args: unknown }[] = [];
+  const base = { action: 'favorite', event: 'favorite_added', market: 'mx', anon_id: '11111111-1111-4111-8111-111111111111', woo_product_id: 10 };
+  for (const bad of [{ event: 'buy' }, { market: 'us' }, { anon_id: 'ana@correo.com' }, { woo_product_id: 0 }, { woo_variation_id: -2 }]) {
+    assert.equal((await handleReserve(post({ ...base, ...bad }), env, fakeFetch({}, calls))).status, 400, JSON.stringify(bad));
+  }
+  assert.equal(calls.length, 0);
+  assert.equal((await handleReserve(post(base, 'https://evil.example'), env, fakeFetch({}, calls))).status, 403);
+});

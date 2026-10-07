@@ -1,6 +1,6 @@
 // f360-store-reserve — public endpoint for the store's product page: "Entrega inmediata" + "Apártalo 2 horas" (Fuxia Gold).
 // Actions (POST JSON): availability {woo_variation_id} · send_code {phone} · reserve {phone, code, woo_variation_id, location_id}
-// · scarcity {woo_variation_id} (CRO-5a) · catalog {} (shop page filters) · a_la_medida {phone, name, color, size?, store_size?, foot_cm?, note?, woo_product_id, product_name, country} (Hilo chat).
+// · scarcity {woo_variation_id} (CRO-5a) · catalog {} (shop page filters) · favorite {event, market, anon_id, woo_product_id, woo_variation_id?, color?} (♡, anonymous) · a_la_medida {phone, name, color, size?, store_size?, foot_cm?, note?, woo_product_id, product_name, country} (Hilo chat).
 // STAGING / testing: only TEST_PHONES can reserve, with TEST_CODE (no WhatsApp is sent). Every rule (Gold, 2 pairs,
 // 2 hours, free pair) is enforced again in the database. CORS limited to ALLOWED_ORIGINS. Runtime-agnostic (Deno / Node).
 // · pay_link {phone, name, email, items:[{id, quantity}], coupons?, address?, country} (checkout rescue: Woo order + Woo's payment page).
@@ -51,6 +51,21 @@ export async function handleReserve(req: Request, env: ReserveEnv, fetchImpl: ty
     const term = String(body.term ?? '').replace(/[<>]/g, '').trim().slice(0, 60);
     if (term.length >= 3) await rpc('f360_log_search', { p_term: term, p_country: String(body.country ?? '').slice(0, 8) });
     return json({ ok: true });
+  }
+
+  // ♡ Favoritos V1 (Mario 2026-10-06): anonymous intent signal. The browser keeps the list; Fuxia 360 records the event with a
+  // random visitor id (never personal data) and resolves the canonical model itself. The channel comes from configuration.
+  if (body.action === 'favorite') {
+    const ev = String(body.event ?? ''), market = String(body.market ?? '').toLowerCase(), anon = String(body.anon_id ?? '');
+    const wp = Number(body.woo_product_id), wv = body.woo_variation_id == null ? null : Number(body.woo_variation_id);
+    if (!['favorite_added', 'favorite_removed'].includes(ev) || !['mx', 'co'].includes(market)
+      || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(anon)
+      || !Number.isInteger(wp) || wp <= 0 || (wv !== null && (!Number.isInteger(wv) || wv <= 0))) return json({ error: 'Solicitud no válida.' }, 400);
+    if (!env.TARGET_KEY) return json({ error: 'Canal no configurado.' }, 500);
+    const color = String(body.color ?? '').replace(/[<>]/g, '').trim().slice(0, 80);
+    const r = await rpc<{ ok: boolean; identified?: boolean; limited?: boolean }>('f360_favorite_record', { p: { target_key: env.TARGET_KEY, event: ev, market,
+      anon_id: anon, woo_product_id: wp, woo_variation_id: wv, color: color || null } });
+    return r.ok ? json({ ok: r.data.ok !== false }) : json({ error: r.error }, 400);
   }
 
   // Shop page (Mario 2026-10-03): colours, sizes and availability states per store product + best sellers / new.
