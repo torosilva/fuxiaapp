@@ -8,15 +8,21 @@ import {
 } from './mapping.ts';
 import type { BatchItemResult, PublishOutcome, Recorder, Snapshot, WooAdapter, WooProduct, WooVariation } from './types.ts';
 
-const BATCH = 100;   // Woo batch endpoint limit
+const BATCH = 25;    // variations per store call (Woo allows 100, but a large batch can outlast one Edge invocation)
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const isErr = <T>(r: BatchItemResult<T>): r is { id?: number; error: { code: string; message: string } } =>
   !!r && typeof r === 'object' && 'error' in (r as object);
 const slugish = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 class StepFailure extends Error {}
+/** Out of time for this invocation: the job goes back to the queue and the next run continues where this one stopped. */
+class OutOfTime extends Error {}
 
-export type PublishOptions = { storageBase: string; allowProduction?: boolean };
+export type PublishOptions = {
+  storageBase: string; allowProduction?: boolean;
+  /** epoch ms after which no new store call starts (the Edge runtime stops every invocation at 150 s) */ deadline?: number;
+  /** new photos sent per store call (the store downloads each one before answering); default: all at once */ photosPerCall?: number;
+};
 
 export async function publish(s: Snapshot, woo: WooAdapter, rec: Recorder, opts: PublishOptions): Promise<PublishOutcome> {
   const summary: PublishOutcome['summary'] = { woo_product_id: s.product.woo_product_id, woo_status: null, variations: 0, created: 0, updated: 0, hidden: 0, stock_pushed: 0, mismatches: [] };
@@ -31,6 +37,13 @@ export async function publish(s: Snapshot, woo: WooAdapter, rec: Recorder, opts:
       if (e instanceof StepFailure) throw e;
       return fail(step, `Error de la tienda: ${errMsg(e)}`, ref);
     }
+  };
+
+  const inTime = () => { if (opts.deadline && Date.now() > opts.deadline) throw new OutOfTime(); };
+  // every photo already in the store (by id) + at most photosPerCall new ones; the rest go in the next calls
+  const imagesNow = () => {
+    let room = opts.photosPerCall ?? Infinity;
+    return buildImages(s, opts.storageBase).filter((i) => !('src' in i && i.src) || room-- > 0);
   };
 
   try {
@@ -82,7 +95,8 @@ export async function publish(s: Snapshot, woo: WooAdapter, rec: Recorder, opts:
     if (product) await linkExistingMedia(s, product, rec);
 
     const isCreate = !product;
-    const body = buildParent(s, ids, buildImages(s, opts.storageBase), isCreate);
+    inTime();
+    const body = buildParent(s, ids, imagesNow(), isCreate);
     const newPhotos = (body.images as { src?: string }[]).filter((i) => i.src).length;
     if (isCreate) {
       product = await guarded('product', sku, () => woo.createProduct(body));
@@ -95,7 +109,18 @@ export async function publish(s: Snapshot, woo: WooAdapter, rec: Recorder, opts:
     }
     summary.woo_product_id = product!.id;
     summary.woo_status = product!.status;
-    const linked = await linkExistingMedia(s, product!, rec);
+    let linked = await linkExistingMedia(s, product!, rec);
+    // the remaining photos, a few per call (a model with many colours would not fit in one store request)
+    while (s.colors.some((c) => c.media.some((m) => !m.woo_media_id))) {
+      inTime();
+      const images = imagesNow();
+      const sending = images.filter((i) => 'src' in i && i.src).length;
+      product = await guarded('product', sku, () => woo.updateProduct(product!.id, { images }));
+      const n = await linkExistingMedia(s, product!, rec);
+      await rec.step({ step: 'media', ref: sku, action: 'update', wooId: product!.id, ok: true, message: `${n} de ${sending} foto(s) subidas en esta tanda` });
+      linked += n;
+      if (!n) break;   // the store did not keep any of them → reported just below
+    }
     const missing = s.colors.flatMap((c) => c.media).filter((m) => !m.woo_media_id);
     if (missing.length) await fail('media', `${missing.length} foto(s) no quedaron en la tienda.`, undefined, { missing: missing.map((m) => m.id) });
     await rec.step({ step: 'media', action: 'check', ok: true, message: `${linked} foto(s) nuevas vinculadas; ${s.colors.reduce((n, c) => n + c.media.length, 0)} en total` });
@@ -121,6 +146,7 @@ export async function publish(s: Snapshot, woo: WooAdapter, rec: Recorder, opts:
     const hides = existing.filter((w) => isF360VariationOf(w, s.product.code) && !activeSkus.has(w.sku) && w.status !== 'private');
 
     for (let i = 0; i < creates.length; i += BATCH) {
+      inTime();
       const chunk = creates.slice(i, i + BATCH);
       const r = await guarded('variations', sku, () => woo.batchVariations(pid, { create: chunk.map((c) => c.body) }, 'variations'));
       for (const [k, item] of (r.create ?? []).entries()) {
@@ -134,6 +160,7 @@ export async function publish(s: Snapshot, woo: WooAdapter, rec: Recorder, opts:
       }
     }
     for (let i = 0; i < updates.length; i += BATCH) {
+      inTime();
       const chunk = updates.slice(i, i + BATCH);
       const r = await guarded('variations', sku, () => woo.batchVariations(pid, { update: chunk.map((c) => c.body) }, 'variations'));
       for (const [k, item] of (r.update ?? []).entries()) {
@@ -153,6 +180,7 @@ export async function publish(s: Snapshot, woo: WooAdapter, rec: Recorder, opts:
     }
 
     // ── 4 · Stock: Woo = sellable stock in the fulfillment location (P-STOCK) — only when this channel syncs stock ──
+    inTime();
     existing = await guarded('stock', sku, () => woo.listVariations(pid));
     const expected = new Map<string, number>();
     const pushes: { v: (typeof s.variants)[number]; qty: number; id: number }[] = [];
@@ -167,6 +195,7 @@ export async function publish(s: Snapshot, woo: WooAdapter, rec: Recorder, opts:
       } else pushes.push({ v, qty, id: w.id });
     }
     for (let i = 0; i < pushes.length; i += BATCH) {
+      inTime();
       const chunk = pushes.slice(i, i + BATCH);
       const r = await guarded('stock', sku, () => woo.batchVariations(pid, { update: chunk.map((p) => ({ id: p.id, manage_stock: true, stock_quantity: p.qty, backorders: 'no' })) }, 'stock'));
       for (const [k, item] of (r.update ?? []).entries()) {
@@ -180,6 +209,7 @@ export async function publish(s: Snapshot, woo: WooAdapter, rec: Recorder, opts:
     }
 
     // ── 5 · Read-back verification: "Publicado" only if the store matches exactly ──
+    inTime();
     const after = await guarded('verify', sku, () => woo.getProduct(pid));
     const afterVars = await guarded('verify', sku, () => woo.listVariations(pid));
     summary.variations = afterVars.filter((w) => isF360VariationOf(w, s.product.code) && w.status !== 'private').length;
@@ -193,6 +223,10 @@ export async function publish(s: Snapshot, woo: WooAdapter, rec: Recorder, opts:
     }
     return { status: 'succeeded', error: null, summary };
   } catch (e) {
+    if (e instanceof OutOfTime) {
+      try { await rec.step({ step: 'verify', action: 'yield', ok: true, message: 'Sin tiempo en esta vuelta: sigue en la siguiente (no se duplica nada).' }); } catch { /* the queue still resumes it */ }
+      return { status: 'yield', error: null, summary };
+    }
     const message = e instanceof StepFailure ? e.message : `Error inesperado: ${errMsg(e)}`;
     if (!(e instanceof StepFailure)) { try { await rec.step({ step: 'verify', action: 'error', ok: false, message }); } catch { /* keep original error */ } }
     return { status: 'failed', error: message, summary };

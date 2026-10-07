@@ -67,7 +67,7 @@ export interface WooAdapter {
 }
 
 // ── Where the publisher writes its audit trail and Woo ids (Supabase RPCs in production code). ──
-export type StepAction = 'create' | 'update' | 'link' | 'relink' | 'reuse' | 'check' | 'skip' | 'hide' | 'error';
+export type StepAction = 'create' | 'update' | 'link' | 'relink' | 'reuse' | 'check' | 'skip' | 'hide' | 'error' | 'yield';
 export type StepName = 'preflight' | 'terms' | 'media' | 'product' | 'variations' | 'stock' | 'verify';
 export interface Recorder {
   step(s: { step: StepName; ref?: string | null; action: StepAction; wooId?: number | null; ok: boolean; message?: string; detail?: unknown }): Promise<void>;
@@ -75,7 +75,8 @@ export interface Recorder {
 }
 
 export type PublishOutcome = {
-  status: 'succeeded' | 'partial' | 'failed';
+  /** 'yield': out of time in this invocation; the job goes back to the queue and continues (never final) */
+  status: 'succeeded' | 'partial' | 'failed' | 'yield';
   error: string | null;
   summary: {
     woo_product_id: number | null; woo_status: string | null; variations: number; created: number; updated: number;

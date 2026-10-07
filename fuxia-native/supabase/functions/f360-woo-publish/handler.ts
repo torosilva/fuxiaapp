@@ -18,7 +18,11 @@ export type PublisherEnv = {
 };
 export type HandlerOptions = { wrapAdapter?: (a: WooAdapter) => WooAdapter; storeHome?: (baseUrl: string) => Promise<string | null>;
   /** Edge runtime: keep working after the response (queue mode). Tests run inline without it. */ waitUntil?: (p: Promise<unknown>) => void;
-  /** how the queue calls itself for the next job (tests inject a stub) */ kick?: () => Promise<void> };
+  /** how the queue calls itself for the next job (tests inject a stub) */ kick?: () => Promise<void>;
+  /** ms of store work per invocation before handing the job back to the queue (tests shorten it) */ budgetMs?: number };
+
+// Edge invocations stop at 150 s: start no store call after 85 s, let none last more than 55 s, send 3 new photos per call.
+const DEADLINE_MS = 85_000, STORE_TIMEOUT_MS = 55_000, PHOTOS_PER_CALL = 3, MAX_ROUNDS = 40;
 
 /** U2: ask the store who it is (WordPress REST index) before writing anything. */
 async function storeHome(baseUrl: string): Promise<string | null> {
@@ -81,12 +85,14 @@ export async function handle(req: Request, env: PublisherEnv, opts: HandlerOptio
   if (queue) return runQueue(env, opts);
 
   const r = await runJob(env, opts, jobId, user.id);
+  if (r.yielded) await kickQueue(env, opts);   // the queue finishes it in the background
   return r.claimError ? json({ error: r.claimError }, 409) : json({ job: r.job, outcome: r.outcome });
 }
 
 /** One publish job end to end (claim → store identity → publish → finish). Used by the button and by the queue. */
 async function runJob(env: PublisherEnv, opts: HandlerOptions, jobId: string, caller: string):
-  Promise<{ claimError?: string; job?: unknown; outcome?: { status: string; error: string | null; summary: unknown } }> {
+  Promise<{ claimError?: string; job?: unknown; yielded?: boolean; outcome?: { status: string; error: string | null; summary: unknown } }> {
+  const startedAt = Date.now();
   // 2 · Claim (re-checks owner + requester + readiness in the database; locks the codes)
   const svc = env.SUPABASE_SERVICE_ROLE_KEY;
   let snap: Snapshot;
@@ -113,16 +119,37 @@ async function runJob(env: PublisherEnv, opts: HandlerOptions, jobId: string, ca
       await rec.step({ step: 'preflight', action: 'error', ok: false, message });
       outcome = { status: 'failed', error: message, summary: { woo_product_id: null, woo_status: null, variations: 0, created: 0, updated: 0, hidden: 0, stock_pushed: 0, mismatches: [] } };
     } else {
-      let adapter = restAdapter({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET, timeoutMs: 140_000 });   // creating a product with many photos: the store sideloads each one
+      // The Edge runtime stops every invocation at 150 s: no store call starts after DEADLINE_MS and none lasts more than
+      // STORE_TIMEOUT_MS, photos go PHOTOS_PER_CALL at a time (the store downloads each one before answering).
+      let adapter = restAdapter({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET, timeoutMs: STORE_TIMEOUT_MS });
       if (opts.wrapAdapter) adapter = opts.wrapAdapter(adapter);
       // production is allowed only by the channel's catalog switch (checked in publish() from the snapshot), never by a flag here
-      outcome = await publish(snap, adapter, rec, { storageBase: env.STORAGE_PUBLIC_BASE || env.SUPABASE_URL });
+      outcome = await publish(snap, adapter, rec, { storageBase: env.STORAGE_PUBLIC_BASE || env.SUPABASE_URL,
+        deadline: startedAt + (opts.budgetMs ?? DEADLINE_MS), photosPerCall: PHOTOS_PER_CALL });
     }
+  }
+
+  // 4a · Out of time in this invocation: the same job goes back to the queue and the queue continues it (capped, never forever)
+  if (outcome.status === 'yield') {
+    const attempt = Number((snap.job as { attempt?: number } | undefined)?.attempt ?? 0);
+    if (attempt < MAX_ROUNDS) {
+      await rpc(env, 'f360_pub_yield', { p_job_id: jobId }, svc);
+      return { job: null, outcome: { status: 'yield', error: null, summary: outcome.summary }, yielded: true };
+    }
+    outcome = { ...outcome, status: 'failed', error: `No terminó después de ${MAX_ROUNDS} vueltas; vuelve a intentarlo (no se duplica nada).` };
   }
 
   // 4 · Close the job (only a read-back-verified run records the published hash)
   const job = await rpc(env, 'f360_pub_finish', { p_job_id: jobId, p_status: outcome.status, p_error: outcome.error, p_summary: outcome.summary }, svc);
   return { job, outcome: { status: outcome.status, error: outcome.error, summary: outcome.summary } };
+}
+
+/** Calls the publisher again (service role) to take the next queued job in a fresh invocation. */
+async function kickQueue(env: PublisherEnv, opts: HandlerOptions) {
+  const svc = env.SUPABASE_SERVICE_ROLE_KEY;
+  await (opts.kick ?? (() => fetch(`${env.SUPABASE_URL}/functions/v1/f360-woo-publish`, { method: 'POST',
+    headers: { Authorization: `Bearer ${svc}`, apikey: svc, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'run_queue' }) })
+    .then(() => undefined)))().catch(() => undefined);
 }
 
 /** Queue: take the next pending job of THIS store, run it, then call ourselves for the next one. Independent of any browser. */
@@ -134,12 +161,7 @@ async function runQueue(env: PublisherEnv, opts: HandlerOptions): Promise<Respon
     await runJob(env, opts, next.job_id, next.requested_by).catch(() => undefined);   // a failed job is recorded in the job itself
     return true;
   })();
-  const chain = work.then(async (more) => {
-    if (!more) return;
-    await (opts.kick ?? (() => fetch(`${env.SUPABASE_URL}/functions/v1/f360-woo-publish`, { method: 'POST',
-      headers: { Authorization: `Bearer ${svc}`, apikey: svc, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'run_queue' }) })
-      .then(() => undefined)))().catch(() => undefined);
-  });
+  const chain = work.then(async (more) => { if (more) await kickQueue(env, opts); });
   if (opts.waitUntil) { opts.waitUntil(chain); return json({ ok: true, queue: 'started' }, 202); }
   await chain;
   return json({ ok: true, queue: 'ran' });

@@ -274,3 +274,27 @@ test('a colour written in another case than the store term ("negro" vs existing 
   assert.equal(r.status, 'succeeded', r.error ?? '');
   assert.deepEqual(r.summary.mismatches, []);
 });
+
+test('photos go a few per store call (Cucarron 2026-10-07): same single product, all 6 photos, none uploaded twice', async () => {
+  const store = mockStore(); const db = new FakeDb(macarena());
+  const calls: number[] = [];
+  const adapter = mockAdapter(store);
+  const counting = { ...adapter,
+    createProduct: (b: Record<string, unknown>) => { calls.push((b.images as { src?: string }[]).filter((i) => i.src).length); return adapter.createProduct(b); },
+    updateProduct: (id: number, b: Record<string, unknown>) => { if (b.images) calls.push((b.images as { src?: string }[]).filter((i) => i.src).length); return adapter.updateProduct(id, b); } };
+  const r = await publish(db.claim(), counting, db.recorder(), { ...OPTS, photosPerCall: 2 });
+  assert.equal(r.status, 'succeeded', r.error ?? '');
+  assert.ok(calls.every((n) => n <= 2), `never more than 2 new photos per call: ${calls}`);
+  assert.equal(calls.reduce((a, b) => a + b, 0), 6, 'each photo sent exactly once');
+  assertMacarena(store, db);
+});
+
+test('out of time → "yield" (not a failure); the next run continues and ends with the same single product', async () => {
+  const store = mockStore(); const db = new FakeDb(macarena());
+  const first = await publish(db.claim(), mockAdapter(store), db.recorder(), { ...OPTS, deadline: Date.now() - 1 });
+  assert.equal(first.status, 'yield');
+  assert.equal(db.steps.at(-1)?.action, 'yield');
+  const second = await run(db, store);
+  assert.equal(second.status, 'succeeded', second.error ?? '');
+  assertMacarena(store, db);
+});
