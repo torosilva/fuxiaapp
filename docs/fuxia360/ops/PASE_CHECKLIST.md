@@ -48,6 +48,7 @@ Leyenda: ✅ hecho · ⏳ en curso · ⬜ pendiente · 🔒 necesita OK de Mario
 | B6 | Comparar origen = destino, tabla por tabla. Si no cuadra, no se abre | 🔒 |
 | B7 | Admin de producción en Vercel (proyecto nuevo) | ⏳ **Desplegado: https://fuxia360.vercel.app** (proyecto `fuxia360`, desde un worktree limpio de `7f7662f`). Variables: `NEXT_PUBLIC_F360_ENV=production`, URL y llave pública de producción, `NEXT_PUBLIC_F360_STORE_KEY=woo_production`; sin secretos ni publicador. El candado de producción pasa y `/login` pide teléfono (código por WhatsApp, la misma cuenta que la app). **Falta:** dar el rol a Carolina, Mario y Adrián por su teléfono (G8) |
 | B8 | Hilo: deploy de la rama `f360-delivery-promise` + parche KB (d), apuntando a F360 de producción | 🔒 |
+| B9 | ✅ 2026-10-06 Hilo en fuxiaballerinas.com: `f360-store-reserve` + `f360-hilo-intake` en prod (`deploy_prod_function.sh`), mu-plugins `f360-hilo.php` (reemplaza Joinchat, oculta AI Studio de SG) y `f360-compra.php` (link de pago REAL + estado real del pago en Pedido recibido) con `deploy_prod_wp.sh`; Railway `web` (profound-growth) `F360_INTAKE_URL` → intake de prod. Pendiente: filtros de /mx/tienda (Bricks) siguen apuntando a staging — requiere canal activo + stock | ✅ |
 
 ## C. Conectar la tienda real (después de B)
 
