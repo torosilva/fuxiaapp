@@ -5,7 +5,8 @@ import { canWrite, getCrmAccess, getMe, listAdminCustomers } from '@/lib/f360';
 // Clientas (CRM C4 · Mario 2026-10-05). Full personal data only for customer_pii_viewers (Carolina, Mario), enforced by the
 // database (f360_admin_customers refuses everyone else and logs every access). Others see counts only. No export button.
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-const TIER: Record<string, string> = { gold: 'bg-gold-soft text-ink', silver: 'bg-surface-2 text-ink-2', bronze: 'bg-surface-2 text-muted' };
+const TIER: Record<string, string> = { gold: 'tier-gold', silver: 'tier-silver', bronze: 'tier-bronze' };
+const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || '·';
 const SOURCE: Record<string, string> = { app: 'App', store: 'Tienda', import: 'Carga', woo: 'En línea', admin: 'Admin' };
 
 export default async function Clientes({ searchParams }: { searchParams: Promise<{ q?: string; cumple?: string }> }) {
@@ -48,18 +49,19 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
           {sp.q || sp.cumple ? 'No hay clientas con ese filtro.' : 'Todavía no hay clientas en este ambiente. Las clientas reales llegarán con el pase a producción (opción B).'}
         </p>
       ) : (
-        <ul className="mt-6 divide-y divide-line overflow-hidden rounded-3xl border border-line bg-surface">
+        <ul className="atelier-card mt-6 divide-y divide-line overflow-hidden">
           {rows.map((c) => (
             <li key={c.customer_ref}>
               <Link href={`/clientes/${c.customer_ref}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-4 transition hover:bg-surface-2">
+                <span className="font-display flex size-11 shrink-0 items-center justify-center rounded-full bg-night-2 text-lg text-champagne-light">{initials(c.name)}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-ink">{c.name}</p>
+                  <p className="font-medium text-ink">{c.name}</p>
                   <p className="text-sm text-muted">{c.phone}{c.email ? ` · ${c.email}` : ''}</p>
                 </div>
                 <span className="text-sm text-ink-2">{c.shoe_size ? `Talla ${c.shoe_size}` : c.sizes_bought.length ? `Compra ${c.sizes_bought.join(', ')}` : 'Talla —'}</span>
                 {c.birthday_day && c.birthday_month && <span className="tabular text-sm text-ink-2">Cumple {c.birthday_day} {MONTHS[c.birthday_month - 1]}</span>}
                 <span className="rounded-full bg-surface-2 px-2.5 py-1 text-xs text-ink-2">{SOURCE[c.source] ?? c.source}</span>
-                <span className={`rounded-full px-2.5 py-1 text-xs ${TIER[c.tier] ?? ''}`}>{c.tier} · {c.points.toLocaleString('es-MX')} pts</span>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${TIER[c.tier] ?? ''}`}>{c.tier} · {c.points.toLocaleString('es-MX')} pts</span>
               </Link>
             </li>
           ))}
