@@ -1,0 +1,508 @@
+<?php
+/**
+ * Plugin Name: Fuxia 360 · Compra (producción)
+ * Description: "✓ Agregado" + checkout Fuxia + link de pago (pedido pendiente en Woo → página de pago de Woo) + "Pedido recibido" con el estado REAL del pago.
+ *              GENERADO por scripts/f360/build_prod_storefront_mu.mjs desde tools/storefront/f360-compra.html — no editar a mano.
+ * Apagar: borrar este archivo de wp-content/mu-plugins/.
+ */
+if (!defined('ABSPATH')) exit;
+$f360_host = strtolower((string) wp_parse_url(home_url(), PHP_URL_HOST));
+if ($f360_host !== 'fuxiaballerinas.com' && $f360_host !== 'www.fuxiaballerinas.com') return;   // production store only
+// "Pedido recibido": the order's REAL payment state for the thank-you copy (the snippet never claims a payment by itself).
+// Printed in <head> so it exists before the footer snippet runs. Order key checked; no personal data.
+add_action('wp_head', function () {
+  if (!function_exists('is_order_received_page') || !is_order_received_page()) return;
+  $order_id = absint(get_query_var('order-received'));
+  $order = $order_id ? wc_get_order($order_id) : null;
+  $key = isset($_GET['key']) ? wc_clean(wp_unslash($_GET['key'])) : '';
+  if (!$order || !hash_equals((string) $order->get_order_key(), (string) $key)) return;
+  $state = $order->has_status('failed') ? 'failed' : ($order->is_paid() ? 'paid' : 'pending');
+  echo '<script>window.F360_ORDER_STATE = ' . wp_json_encode($state) . ';</script>';
+}, 1);
+add_action('wp_footer', function () {
+  if (is_admin() || wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST)) return;
+  echo <<<'F360SNIP'
+<!--
+  Fuxia 360 · CRO-CHECKOUT (advisor 2026-10-04). PRODUCCIÓN. WPCode → HTML snippet, "Site Wide Footer" (todas las páginas).
+  Solo presentación sobre el carrito y el checkout REALES de Woo (Woo Blocks sigue siendo el motor). No calcula dinero:
+  todo lo que muestra viene de Woo (Store API o lo que el checkout ya pintó).
+   a) Después de "Añadir al carrito": panel "✓ Agregado" (modelo, color, talla, precio) con "Pagar ahora" (→ checkout, mismo
+      carrito) y "Seguir comprando". Reemplaza el botón dorado y el link suelto "Ver carrito".
+   b) Checkout con la identidad Fuxia (CSS sobre los bloques de Woo).
+   c) Móvil: "Tu pedido · $X ▾" arriba; el resumen de Woo se abre al tocarlo.
+   d) Teléfono: rotulado como WhatsApp para la entrega (uso operativo; no es consentimiento de marketing).
+   e) Confianza junto al botón de pago: solo lo verificable en la página (envío gratis si Woo lo cobra en $0, medios de pago
+      si existen, cambios). La promesa de entrega NO va aquí hasta cerrar la matriz G.
+   f) El cupón que da el popup de bienvenida se aplica solo (el mismo cupón; Woo valida y no deja duplicarlo).
+   Popup: el campo de WhatsApp se ve directo (sigue opcional).
+-->
+<div class="f360-ag" hidden role="dialog" aria-label="Agregado a tu carrito" aria-live="polite">
+  <div class="f360-ag-top"><b>✓ Agregado a tu carrito</b><button type="button" class="f360-ag-x" aria-label="Cerrar">✕</button></div>
+  <div class="f360-ag-item"><img alt=""><div><b class="f360-ag-nombre"></b><span class="f360-ag-det"></span><span class="f360-ag-precio"></span></div></div>
+  <a class="f360-ag-pagar" href="#">Pagar ahora</a>
+  <button type="button" class="f360-ag-seguir">Seguir comprando</button>
+</div>
+<div class="f360-rescate-velo" hidden></div>
+<div class="f360-rescate" hidden role="dialog" aria-label="Link de pago">
+  <button type="button" class="f360-r-x" aria-label="Cerrar">✕</button>
+  <div class="f360-r-paso1">
+    <h3>¿No pudiste pagar?</h3>
+    <p>Te generamos un <b>link de pago seguro de Mercado Pago</b> con tu pedido. Lo abres aquí, en Chrome o Safari, o desde WhatsApp.</p>
+    <label>Tu nombre<input type="text" class="f360-r-nombre" autocomplete="name" enterkeyhint="next"></label>
+    <label>Tu WhatsApp<input type="tel" class="f360-r-tel" autocomplete="tel-national" inputmode="tel" placeholder="55 1234 5678" enterkeyhint="next"></label>
+    <label>Tu correo (ahí te llega la confirmación)<input type="email" class="f360-r-email" autocomplete="email" inputmode="email" enterkeyhint="done"></label>
+    <input type="text" class="f360-r-hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;height:1px;width:1px;opacity:0">
+    <button type="button" class="f360-r-btn f360-r-generar">Generar mi link de pago</button>
+    <p class="f360-r-err" role="alert"></p>
+  </div>
+  <div class="f360-r-paso2" hidden>
+    <h3>✓ Tu link está listo</h3>
+    <p class="f360-r-resumen"></p>
+    <a class="f360-r-btn f360-r-pagar">Pagar ahora</a>
+    <button type="button" class="f360-r-btn f360-r-sec f360-r-copiar">Copiar link (para abrir en Chrome o Safari)</button>
+    <a class="f360-r-btn f360-r-sec f360-r-wa" target="_blank" rel="noopener">Mandármelo a mi WhatsApp</a>
+    <p class="f360-r-hint f360-r-iab" hidden>En Instagram: toca <b>⋯</b> arriba a la derecha → <b>Abrir en el navegador</b>, y pega el link.</p>
+    <p class="f360-r-hint">El equipo de Fuxia también lo recibió y te puede ayudar por WhatsApp.</p>
+  </div>
+</div>
+<style>
+/* a) panel "Agregado" */
+.f360-ag { position: fixed; z-index: 2147483001; right: 20px; top: 90px; width: 360px; max-width: calc(100vw - 32px); box-sizing: border-box; padding: 16px; background: #fff;
+  border: 1px solid #ece6db; border-radius: 14px; box-shadow: 0 18px 50px rgba(0,0,0,.18); font-family: inherit; color: #242424; }
+.f360-ag[hidden] { display: none !important; }
+.f360-ag-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 15px; }
+.f360-ag-top b { color: #2f6b3a; }
+.f360-ag-x { border: 0 !important; background: none !important; padding: 4px 6px !important; font-size: 18px; color: #6B6B68 !important; cursor: pointer; }
+.f360-ag-item { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; }
+.f360-ag-item img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; background: #f5f2ec; flex: 0 0 auto; }
+.f360-ag-item div { min-width: 0; line-height: 1.35; }
+.f360-ag-nombre { display: block; font-size: 15px; }
+.f360-ag-det, .f360-ag-precio { display: block; font-size: 13px; color: #6B6B68; }
+.f360-ag-precio { color: #242424; font-weight: 600; margin-top: 2px; }
+.f360-ag-pagar { display: flex; align-items: center; justify-content: center; height: 50px; border-radius: 25px; background: #1d1d1b; color: #fff !important; text-decoration: none !important;
+  font-size: 14px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.f360-ag-seguir { display: block; width: 100%; margin-top: 8px; height: 44px; border: 1px solid #d9d2c5 !important; border-radius: 22px !important; background: #fff !important; color: #4a433a !important;
+  font: inherit; font-size: 14px; cursor: pointer; text-align: center !important; padding: 0 !important; }
+@media (max-width: 767px) {
+  .f360-ag { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-width: none; border-radius: 18px 18px 0 0; padding: 18px 16px calc(16px + env(safe-area-inset-bottom)); }
+}
+/* the old feedback: gold "added" button + loose "Ver carrito" link */
+form.cart a.added_to_cart, form.cart + a.added_to_cart, .single_variation_wrap a.added_to_cart, .woocommerce-variation-add-to-cart a.added_to_cart { display: none !important; }
+.single_add_to_cart_button.added, .single_add_to_cart_button.bricks-cart-added { background-color: #1d1d1b !important; border-color: #1d1d1b !important; color: #fff !important; }
+
+/* popup: WhatsApp visible directly (optional) */
+.f360-wa-pts { margin: 12px 0 8px !important; font-size: 13px; line-height: 1.4; color: #6B6B68; text-align: center; }
+.f360-wa-pts b { color: #8c6414; }
+.f360-wa-pts em { color: #9A9A96; font-style: normal; }
+
+/* b) checkout with the Fuxia identity (presentation only) */
+.wc-block-checkout { font-family: inherit; color: #242424; }
+.wc-block-checkout .wc-block-components-checkout-step__title, .wc-block-checkout .wc-block-components-title.wc-block-components-checkout-step__title {
+  font-size: 13px !important; font-weight: 700 !important; letter-spacing: .16em; text-transform: uppercase; color: #83734C !important; }
+.wc-block-checkout .wc-block-components-checkout-step { margin-bottom: 28px; }
+.wc-block-checkout .wc-block-components-text-input input, .wc-block-checkout .wc-block-components-combobox .components-combobox-control input,
+.wc-block-checkout .wc-blocks-components-select__select, .wc-block-checkout textarea {
+  border: 1px solid #d9d2c5 !important; border-radius: 10px !important; background: #fff !important; box-shadow: none !important; }
+.wc-block-checkout .wc-block-components-text-input input, .wc-block-checkout .wc-blocks-components-select__select { min-height: 54px; }
+.wc-block-checkout .wc-block-components-text-input input:focus, .wc-block-checkout .wc-blocks-components-select__select:focus, .wc-block-checkout textarea:focus {
+  border-color: #B8966E !important; box-shadow: 0 0 0 1px #B8966E !important; outline: none; }
+.wc-block-checkout .wc-block-components-text-input label, .wc-block-checkout .wc-blocks-components-select__label { color: #8a8378; }
+.wc-block-checkout .wc-block-components-text-input.has-error input, .wc-block-checkout .has-error .wc-blocks-components-select__select { border-color: #b3261e !important; box-shadow: 0 0 0 1px #b3261e !important; }
+.wc-block-checkout .wc-block-components-validation-error { color: #b3261e; font-size: 13px; }
+.wc-block-checkout .wc-block-components-checkbox .wc-block-components-checkbox__input { border-radius: 6px; border-color: #bdb5a8; }
+.wc-block-checkout .wc-block-components-checkbox .wc-block-components-checkbox__input:checked { background: #1d1d1b; border-color: #1d1d1b; }
+.wc-block-checkout .wc-block-components-checkbox .wc-block-components-checkbox__mark { fill: #fff; }
+.wc-block-checkout .wc-block-components-checkout-place-order-button { min-height: 56px; border-radius: 28px !important; background: #1d1d1b !important; color: #fff !important;
+  font-size: 14px !important; font-weight: 600 !important; letter-spacing: .14em; text-transform: uppercase; border: 0 !important; }
+.wc-block-checkout .wc-block-components-checkout-place-order-button:hover { background: #000 !important; }
+.wc-block-checkout .wc-block-components-notice-banner { border-radius: 10px; }
+.wc-block-checkout .wc-block-components-address-form__address_2-toggle, .wc-block-checkout .wc-block-components-checkout-step__description { color: #8c6414; }
+.wp-block-woocommerce-checkout-order-summary-block { border: 1px solid #ece6db !important; border-radius: 14px !important; background: #fffdf9; }
+.wc-block-checkout .wc-block-components-order-summary-item__quantity { background: #1d1d1b; color: #fff; border-color: #1d1d1b; }
+/* d) phone = WhatsApp for the delivery (operational use only) */
+.wc-block-checkout .wc-block-components-address-form__phone { position: relative; }
+.wc-block-checkout .wc-block-components-address-form__phone::after { content: 'Solo para coordinar tu entrega.'; display: block; margin-top: 6px; font-size: 12px; color: #8a8378; }
+/* c) mobile: collapsed summary under "Tu pedido · $X" */
+.f360-resumen { display: none; }
+@media (max-width: 767px) {
+  .f360-resumen { display: flex; width: 100%; box-sizing: border-box; justify-content: space-between; align-items: center; gap: 10px; margin: 6px 0 18px; padding: 0 16px; height: 56px;
+    border: 1px solid #ece6db !important; border-radius: 14px !important; background: #fffdf9 !important; color: #242424 !important; font: inherit; font-size: 15px; cursor: pointer; text-align: left; }
+  .f360-resumen b { font-weight: 600; }
+  .f360-resumen i { font-style: normal; display: inline-block; transition: transform .2s; color: #83734C; }
+  html.f360-res-abierto .f360-resumen i { transform: rotate(180deg); }
+  html.f360-res-cerrado .wp-block-woocommerce-checkout-order-summary-block { display: none !important; }
+}
+/* e) trust next to the pay button */
+.f360-confianza { box-sizing: border-box; max-width: calc(100% - 32px); margin-left: auto !important; margin-right: auto !important; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin: 18px 0 8px; padding: 16px; border: 1px solid #ece6db; border-radius: 14px; background: #fffdf9; font-size: 13px; color: #4a433a; }
+.f360-rescate-link { display: block; margin: 10px auto 0; padding: 6px; border: 0 !important; background: none !important; color: #8c6414 !important; font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; }
+.f360-rescate { position: fixed; z-index: 2147483002; left: 0; right: 0; bottom: 0; max-height: 92vh; overflow-y: auto; overscroll-behavior: contain; box-sizing: border-box; padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+  background: #fff; border-radius: 18px 18px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,.2); font-family: inherit; color: #242424; }
+@media (min-width: 768px) { .f360-rescate { left: 50%; right: auto; bottom: auto; top: 50%; width: 440px; transform: translate(-50%, -50%); border-radius: 18px; } }
+.f360-rescate[hidden], .f360-rescate-velo[hidden] { display: none !important; }
+.f360-rescate-velo { position: fixed; inset: 0; z-index: 2147483001; background: rgba(0,0,0,.35); }
+.f360-rescate h3 { margin: 0 0 6px !important; padding: 0 !important; border: 0 !important; font-size: 20px !important; font-weight: 600; text-transform: none !important; letter-spacing: 0 !important; }
+.f360-rescate p { margin: 0 0 12px; font-size: 14px; color: #6B6B68; line-height: 1.45; }
+.f360-rescate label { display: block; margin: 0 0 10px; font-size: 13px; color: #6B6B68; }
+.f360-rescate input { display: block; width: 100%; box-sizing: border-box; height: 50px; margin-top: 4px; padding: 0 14px; border: 1px solid #d9d2c5; border-radius: 10px; font: inherit; font-size: 16px; color: #242424; }
+.f360-rescate .f360-r-btn { display: flex; align-items: center; justify-content: center; width: 100%; height: 52px; margin-top: 8px; border: 0 !important; border-radius: 26px !important; background: #1d1d1b !important; color: #fff !important; font: inherit; font-size: 15px; font-weight: 600; text-decoration: none !important; cursor: pointer; }
+.f360-rescate .f360-r-sec { background: #fff !important; color: #4a433a !important; border: 1px solid #d9d2c5 !important; font-weight: 500; }
+.f360-rescate .f360-r-x { position: absolute; right: 10px; top: 8px; border: 0 !important; background: none !important; font-size: 20px; color: #6B6B68 !important; padding: 8px !important; cursor: pointer; }
+.f360-rescate .f360-r-err { color: #b3261e; font-size: 13px; min-height: 18px; margin: 4px 0 0; }
+.f360-rescate .f360-r-hint { font-size: 12px; color: #8a8378; margin-top: 8px; }
+.f360-elige-pago { margin: 0 0 10px !important; padding: 10px 14px; border-radius: 10px; background: #fff4e5; color: #8c4a00; font-size: 14px; font-weight: 600; }
+.f360-elige-pago[hidden] { display: none !important; }
+.f360-confianza[hidden] { display: none !important; }
+.f360-confianza span { display: flex; gap: 8px; align-items: flex-start; line-height: 1.35; }
+.f360-confianza a { color: #8c6414; }
+@media (max-width: 420px) { .f360-confianza { grid-template-columns: 1fr; } }
+/* "Pedido recibido": a Fuxia thank-you page (presentation only; the order data is Woo's) */
+.f360-gracias { box-sizing: border-box; max-width: 720px; margin: 18px auto 26px; padding: 26px 22px; border: 1px solid #ece6db; border-radius: 18px; background: #fffdf9; text-align: center; font-family: inherit; color: #242424; }
+.f360-gracias .f360-g-ok { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; background: #2f6b3a; color: #fff; font-size: 30px; line-height: 56px; }
+.f360-gracias h2 { margin: 0 0 6px !important; font-size: 26px !important; line-height: 1.2; font-weight: 500; }
+.f360-gracias .f360-g-sub { margin: 0 0 18px; color: #6B6B68; font-size: 15px; }
+.f360-g-pasos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 0 20px; padding: 0; list-style: none; }
+.f360-g-pasos li { padding: 12px 8px; border-radius: 12px; background: #fff; border: 1px solid #ece6db; font-size: 13px; line-height: 1.3; color: #4a433a; }
+.f360-g-pasos li b { display: block; margin-bottom: 4px; font-size: 18px; }
+.f360-g-pasos li.hecho { border-color: #2f6b3a; color: #2f6b3a; }
+.f360-g-btns { display: flex; flex-direction: column; gap: 10px; }
+.f360-g-btns a { display: flex; align-items: center; justify-content: center; gap: 8px; height: 50px; border-radius: 25px; font-size: 14px; font-weight: 600; text-decoration: none !important; }
+.f360-g-wa { background: #1d1d1b; color: #fff !important; }
+.f360-g-app { border: 1px solid #d9d2c5; color: #4a433a !important; background: #fff; }
+.f360-g-tienda { color: #8c6414 !important; font-weight: 500 !important; height: auto !important; text-decoration: underline !important; }
+html.f360-gracias-on .f360-g-oculto { display: none !important; }
+html.f360-gracias-on .woocommerce-order h2, html.f360-gracias-on .wc-block-order-confirmation-totals-wrapper h2, html.f360-gracias-on [class*="order-confirmation"] h2,
+html.f360-gracias-on .woocommerce-order h3 { font-size: 13px !important; letter-spacing: .16em; text-transform: uppercase; color: #83734C !important; font-weight: 700 !important; margin: 26px 0 10px !important; line-height: 1.3 !important; }
+html.f360-gracias-on .woocommerce-order table, html.f360-gracias-on [class*="order-confirmation"] table { border-radius: 12px; overflow: hidden; }
+.f360-gracias { margin-top: calc(var(--fx-hdr-h, 70px) + 20px) !important; }
+@media (max-width: 767px) { html.f360-gracias-on ul.woocommerce-order-overview { margin: 0 16px 8px !important; } }
+@media (max-width: 480px) { .f360-g-pasos li { padding: 10px 4px; font-size: 12px; } .f360-gracias h2 { font-size: 22px !important; } .f360-gracias { margin: 24px 16px 22px; padding: 22px 16px; } }
+html.f360-gracias-on .woocommerce-thankyou-order-received, html.f360-gracias-on .woocommerce-notice--success { display: none !important; }
+html.f360-gracias-on ul.woocommerce-order-overview { display: grid !important; grid-template-columns: 1fr 1fr; gap: 0; max-width: 720px; margin: 0 auto 8px !important; padding: 0 !important; list-style: none;
+  border: 1px solid #ece6db; border-radius: 14px; overflow: hidden; background: #fff; }
+html.f360-gracias-on ul.woocommerce-order-overview li { margin: 0 !important; padding: 12px 16px !important; border: 0 !important; border-bottom: 1px solid #f0ebe2 !important; font-size: 12px !important; color: #8a8378; text-transform: none; float: none !important; width: auto !important; }
+html.f360-gracias-on ul.woocommerce-order-overview li strong { display: block; margin-top: 2px; font-size: 15px; color: #242424; font-weight: 600; }
+html.f360-gracias-on .woocommerce-order-details, html.f360-gracias-on .woocommerce-customer-details { max-width: 720px; margin-left: auto !important; margin-right: auto !important; padding: 0 16px; box-sizing: border-box; }
+html.f360-gracias-on table.woocommerce-table--order-details { width: 100%; border: 1px solid #ece6db !important; border-radius: 14px; border-collapse: separate !important; border-spacing: 0; background: #fff; }
+html.f360-gracias-on table.woocommerce-table--order-details th, html.f360-gracias-on table.woocommerce-table--order-details td { padding: 12px 16px !important; border: 0 !important; border-bottom: 1px solid #f0ebe2 !important; background: transparent !important; font-size: 14px; }
+html.f360-gracias-on table.woocommerce-table--order-details thead { display: none; }
+html.f360-gracias-on table.woocommerce-table--order-details tfoot th { font-weight: 500 !important; color: #6B6B68; }
+html.f360-gracias-on table.woocommerce-table--order-details tfoot tr:last-child th, html.f360-gracias-on table.woocommerce-table--order-details tfoot tr:last-child td { border-bottom: 0 !important; }
+html.f360-gracias-on table.woocommerce-table--order-details .wc-item-meta { margin: 6px 0 0 !important; padding: 0 !important; list-style: none; font-size: 13px; color: #8c6414; }
+html.f360-gracias-on table.woocommerce-table--order-details .wc-item-meta p { display: inline; margin: 0; }
+html.f360-gracias-on .woocommerce-customer-details address { padding: 14px 16px; border: 1px solid #ece6db !important; border-radius: 14px; background: #fff; font-style: normal; line-height: 1.5; font-size: 14px; }
+html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 100% !important; float: none !important; padding: 0 !important; }
+</style>
+<script>
+/* Fuxia 360 · CRO-CHECKOUT. PRODUCCIÓN. Fuente: tools/storefront/f360-compra.html */
+(function () {
+  if (window.F360Compra || /[?&]bricks=run/.test(location.search)) return;
+  window.F360Compra = true;
+  var F360 = 'https://tgzgiwfzddsghnxgkcqd.supabase.co/functions/v1/f360-store-reserve';   // PRODUCCIÓN
+  var path = location.pathname, pais = (path.match(/^\/([a-z]{2})\//) || [0, ''])[1];
+  var base = location.origin + '/' + (pais ? pais + '/' : '');
+  var mexico = !pais || pais === 'mx';
+  var store = function (k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } };
+  // formatting only, with Woo's own separators (the amount is Woo's)
+  var dinero = function (minor, pz) {
+    var dec = pz.currency_minor_unit || 0, n = Number(minor) / Math.pow(10, dec), ent = Math.floor(n), frac = Math.round((n - ent) * Math.pow(10, dec));
+    var txt = String(ent).replace(/\B(?=(\d{3})+(?!\d))/g, pz.currency_thousand_separator || ',') + (frac ? (pz.currency_decimal_separator || '.') + String(frac).padStart(dec, '0') : '');
+    return (pz.currency_prefix || '$') + txt + (pz.currency_suffix || '');
+  };
+  var nonce = null;
+  function cart() {   // the real Woo cart (Store API); keeps the Nonce for writes
+    return fetch(base + 'wp-json/wc/store/v1/cart', { credentials: 'same-origin' }).then(function (r) { nonce = r.headers.get('Nonce') || nonce; return r.json(); });
+  }
+
+  // ---------- a) panel "Agregado" ----------
+  var ag = document.querySelector('.f360-ag');
+  if (ag) {
+    document.body.appendChild(ag);
+    ag.querySelector('.f360-ag-pagar').href = base + 'finalizar-compra/';
+    var cerrarAg = function () { ag.hidden = true; };
+    ag.querySelector('.f360-ag-x').onclick = cerrarAg; ag.querySelector('.f360-ag-seguir').onclick = cerrarAg;
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarAg(); });
+    var ultimo = null;   // variation/product id at the moment of the click
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('.single_add_to_cart_button, .f360-sticky-btn'); if (!b) return;
+      var f = document.querySelector('form.variations_form, form.cart'); if (!f) return;
+      var v = f.querySelector('input.variation_id, input[name="variation_id"]'), pid = f.querySelector('[name="add-to-cart"]');
+      ultimo = Number((v && v.value) || (pid && pid.value) || 0) || null;
+    }, true);
+    var mostrar = function () {
+      cart().then(function (c) {
+        var items = (c && c.items) || []; if (!items.length) return;
+        var it = items.filter(function (x) { return ultimo && x.id === ultimo; })[0] || items[items.length - 1];
+        var img = ag.querySelector('img'), im = (it.images && it.images[0]) || {};
+        if (im.thumbnail || im.src) { img.src = im.thumbnail || im.src; img.hidden = false; } else img.hidden = true;
+        ag.querySelector('.f360-ag-nombre').textContent = String(it.name || '').replace(/&amp;/g, '&');
+        var det = (it.variation || []).map(function (a) {
+          var n = String(a.attribute || ''), val = String(a.value || '');
+          if (/medida|talla/i.test(n)) return mexico && /^(3[5-9]|40)$/.test(val) ? 'Talla MX ' + (Number(val) - 13) : 'Talla ' + val;
+          return val;
+        });
+        if (it.quantity > 1) det.push(it.quantity + ' pares');
+        ag.querySelector('.f360-ag-det').textContent = det.join(' · ');
+        var pz = it.prices || {}; ag.querySelector('.f360-ag-precio').textContent = pz.price != null ? dinero(pz.price, pz) : '';
+        ag.hidden = false; ag.querySelector('.f360-ag-pagar').focus({ preventScroll: true });
+        aplicarCupon();   // f) the welcome coupon goes on as soon as there is a cart
+      }).catch(function () { /* the cart badge still updates; nothing else to do */ });
+    };
+    if (window.jQuery) window.jQuery(document.body).on('added_to_cart', mostrar);
+  }
+
+  // ---------- popup: WhatsApp field visible directly (still optional) ----------
+  // the popup is printed later in the footer than this snippet: wait for the DOM
+  function popup() {
+  var waToggle = document.getElementById('fx-pop-wa-toggle'), waBox = document.getElementById('fx-pop-tel');
+  if (waToggle && waBox) {
+    // the popup hides its own "+50" button once the field is open, so the points line is our own label above the field
+    waBox.hidden = false; waToggle.setAttribute('aria-expanded', 'true'); waToggle.style.display = 'none';
+    var tel = document.getElementById('fx-pop-telefono');
+    if (!document.querySelector('.f360-wa-pts')) {
+      var pts = document.createElement('p'); pts.className = 'f360-wa-pts';
+      pts.innerHTML = '<b>+50 puntos</b> en Club Fuxia si dejas tu WhatsApp <em>(opcional)</em>';
+      waBox.parentNode.insertBefore(pts, waBox);
+    }
+    if (tel) tel.placeholder = 'WhatsApp (opcional)';
+  }
+
+  // ---------- f) welcome coupon: the SAME coupon the popup gives, applied by Woo ----------
+  // The popup shows its code after the lead is saved (#fx-pop-paso2). We keep the code and ask Woo to apply it; Woo validates it
+  // (expiry, first purchase, usage limits, individual use) and never applies the same coupon twice. If Woo rejects it, we stop.
+  // If the customer removes it in the checkout, we don't put it back.
+  var paso2 = document.getElementById('fx-pop-paso2');
+  if (paso2 && window.MutationObserver) {
+    new MutationObserver(function () {
+      if (paso2.style.display === 'none') return;
+      var cod = (document.querySelector('#fx-pop-cupon span') || {}).textContent;
+      if (cod && !store('f360_bv_cupon')) { store('f360_bv_cupon', cod.trim()); store('f360_bv_estado', 'pendiente'); aplicarCupon(); }
+    }).observe(paso2, { attributes: true, attributeFilter: ['style'] });
+  }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', popup); else popup();
+  var aplicando = false;
+  function aplicarCupon() {
+    var cod = store('f360_bv_cupon'), est = store('f360_bv_estado');
+    if (!cod || est !== 'pendiente' || aplicando) return;
+    aplicando = true;
+    cart().then(function (c) {
+      if (!c || !(c.items || []).length) return;                               // nothing to discount yet: try again later
+      var ya = (c.coupons || []).some(function (k) { return String(k.code).toLowerCase() === cod.toLowerCase(); });
+      if (ya) { store('f360_bv_estado', 'aplicado'); return; }
+      var wpCart = window.wp && wp.data && wp.data.dispatch && wp.data.dispatch('wc/store/cart');
+      var hecho = wpCart && wpCart.applyCoupon
+        ? wpCart.applyCoupon(cod)                                              // checkout/cart blocks: their own store refreshes the totals
+        : fetch(base + 'wp-json/wc/store/v1/cart/apply-coupon', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'Nonce': nonce || '' }, body: JSON.stringify({ code: cod }) })
+            .then(function (r) { if (!r.ok) throw new Error('rechazado'); return r.json(); });
+      return Promise.resolve(hecho).then(function () { store('f360_bv_estado', 'aplicado'); }, function () { store('f360_bv_estado', 'rechazado'); });
+    }).catch(function () {}).then(function () { aplicando = false; });
+  }
+  aplicarCupon();
+
+  // ---------- "Pedido recibido": thank-you page ----------
+  // Presentation only: number, name and items stay exactly as Woo printed them. No delivery date here until matrix G is closed.
+  var recibido = /\/(pedido-recibido|order-received)\/(\d+)/.exec(location.pathname);
+  // Payment state comes ONLY from the server (mu-plugin: order key checked, wc is_paid()). Unknown = never claim the payment.
+  var estado = window.F360_ORDER_STATE === 'paid' ? 'paid' : window.F360_ORDER_STATE === 'failed' ? 'failed' : 'pending';
+  if (recibido && estado !== 'failed') {   // failed: Woo's own notice and "pay again" stay as they are
+    var listo = function () {
+      var main = document.querySelector('.woocommerce-order, .wp-block-woocommerce-order-confirmation-status, .wc-block-order-confirmation-status, main, #brx-content');
+      if (!main || document.querySelector('.f360-gracias')) return;
+      document.documentElement.classList.add('f360-gracias-on');
+      var porTitulo = function (re) {   // the block/section that starts with a heading matching re
+        var hs = [].filter.call(document.querySelectorAll('h2, h3'), function (h) { return re.test(h.textContent); });
+        return hs.map(function (h) { return h.closest('section, .wp-block-group, [class*="order-confirmation"], .woocommerce-column, .woocommerce-customer-details > *') || h.parentNode; });
+      };
+      // the address is shown once: "Enviamos a" (shipping); billing and "Información adicional" (CusRev consent text) are hidden
+      porTitulo(/direcci[oó]n de facturaci[oó]n|billing address/i).forEach(function (el) { el.classList.add('f360-g-oculto'); });
+      porTitulo(/informaci[oó]n adicional|additional information/i).forEach(function (el) { el.classList.add('f360-g-oculto'); });
+      [].forEach.call(document.querySelectorAll('h2, h3'), function (h) { if (/direcci[oó]n de env[ií]o|shipping address/i.test(h.textContent)) h.textContent = 'Enviamos a'; });
+      // Delivery promise per line: CRO-6 (Mario 2026-10-05) — Fuxia 360's rule via f360-promesa-checkout.html (staging4
+      // mu-plugin), which also hides Woo's "Reservado / Disponible para reserva". No promise text is written here.
+      [].forEach.call(document.querySelectorAll('table.woocommerce-table--order-details tfoot tr'), function (tr) {
+        if (/m[eé]todo de pago|payment method/i.test(tr.textContent)) tr.classList.add('f360-g-oculto');
+      });
+      // name: first line of the shipping (or billing) address, as Woo printed it
+      var dir = document.querySelector('.woocommerce-customer-details address, [class*="shipping-address"] address, [class*="order-confirmation-shipping"] address, address');
+      var nombre = dir ? String(dir.innerText || '').split('\n')[0].trim().split(/\s+/)[0] : '';
+      if (/^testuser/i.test(nombre)) nombre = '';
+      var num = recibido[2], waNum = pais === 'co' ? '573166912433' : '525567914188';
+      var g = document.createElement('section'); g.className = 'f360-gracias';
+      g.innerHTML = '<div class="f360-g-ok" aria-hidden="true">' + (estado === 'paid' ? '✓' : '⏳') + '</div>' +
+        (estado === 'paid'
+          ? '<h2></h2><p class="f360-g-sub">Tu pedido <b>#' + num + '</b> está confirmado. Te mandamos los detalles a tu correo.</p>' +
+            '<ol class="f360-g-pasos"><li class="hecho"><b>✓</b>Recibimos tu pago</li><li><b>2</b>Preparamos tus Fuxia</li><li><b>3</b>Te las entregamos</li></ol>'
+          : '<h2></h2><p class="f360-g-sub">Registramos tu pedido <b>#' + num + '</b>. En cuanto se confirme tu pago te avisamos por correo.</p>' +
+            '<ol class="f360-g-pasos"><li><b>1</b>Confirmamos tu pago</li><li><b>2</b>Preparamos tus Fuxia</li><li><b>3</b>Te las entregamos</li></ol>') +
+        '<div class="f360-g-btns"><a class="f360-g-wa" target="_blank" rel="noopener">💬 ¿Dudas con tu pedido? Escríbenos</a>' +
+        '<a class="f360-g-app" target="_blank" rel="noopener">Descarga la app y suma tus puntos Club Fuxia</a>' +
+        '<a class="f360-g-tienda">Seguir viendo modelos</a></div>';
+      g.querySelector('h2').textContent = '¡Gracias' + (nombre ? ', ' + nombre : '') + '!';
+      g.querySelector('.f360-g-wa').href = 'https://wa.me/' + waNum + '?text=' + encodeURIComponent('Hola, tengo una pregunta sobre mi pedido #' + num + '.');
+      var ua = navigator.userAgent || '';
+      g.querySelector('.f360-g-app').href = /iPhone|iPad|iPod/.test(ua) ? 'https://apps.apple.com/mx/app/fuxia-ballerinas/id6764388920' : 'https://play.google.com/store/apps/details?id=com.fuxiaballerinas.loyalty';
+      g.querySelector('.f360-g-tienda').href = base + 'tienda/';
+      var antes = document.querySelector('.woocommerce-order, .wc-block-order-confirmation-summary, [class*="order-confirmation-summary"]') || main.firstElementChild;
+      (antes && antes.parentNode ? antes.parentNode : main).insertBefore(g, antes && antes.parentNode ? antes : main.firstChild);
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', listo); else listo();
+  }
+
+  // ---------- contact from the welcome popup → pre-fills the checkout (less typing on the phone) ----------
+  document.addEventListener('submit', function (e) {
+    if (!e.target || e.target.id !== 'fx-pop-form') return;
+    var em = (document.getElementById('fx-pop-email') || {}).value || '', tl = ((document.getElementById('fx-pop-telefono') || {}).value || '').replace(/\D/g, '');
+    try { localStorage.setItem('f360_contacto', JSON.stringify({ email: em.trim(), tel: tl })); } catch (x) {}
+  }, true);
+
+  // ---------- checkout page ----------
+  var root = document.querySelector('.wp-block-woocommerce-checkout');
+  if (!root) return;
+  // c) mobile summary bar, outside Woo's React tree; the total text is the one Woo painted (no money maths here)
+  var barra = document.createElement('button'); barra.type = 'button'; barra.className = 'f360-resumen'; barra.setAttribute('aria-expanded', 'false');
+  barra.innerHTML = '<span>Tu pedido · <b class="f360-resumen-total"></b></span><i aria-hidden="true">▾</i>';
+  root.parentNode.insertBefore(barra, root);
+  var html = document.documentElement; html.classList.add('f360-res-cerrado');
+  barra.onclick = function () { var ab = html.classList.toggle('f360-res-abierto'); html.classList.toggle('f360-res-cerrado', !ab); barra.setAttribute('aria-expanded', String(ab)); };
+  // e) trust strip after the checkout, built only from what this page shows
+  var conf = document.createElement('div'); conf.className = 'f360-confianza'; conf.hidden = true;
+  root.parentNode.insertBefore(conf, root.nextSibling);
+  var conDescuento = false;
+  cart().then(function (c) { conDescuento = (c.items || []).some(function (it) { var p = it.prices || {}; return Number(p.regular_price) > Number(p.price); }); if (typeof sinc === 'function') sinc(); }).catch(function () {});
+  var sinc = function () {
+    // Delivery promise per line: CRO-6 — Fuxia 360's rule via f360-promesa-checkout.html (no promise text here).
+    var tot = root.querySelector('.wc-block-components-totals-footer-item .wc-block-components-totals-item__value');
+    var t = tot ? tot.textContent.trim() : ''; barra.querySelector('.f360-resumen-total').textContent = t; barra.hidden = !t;
+    var ship = root.querySelector('.wc-block-components-totals-shipping .wc-block-components-totals-item__value, .wc-block-components-shipping-rates-control');
+    var gratis = !!(ship && /gratis|free|\$\s?0(\D|$)/i.test(ship.textContent)) || !!root.querySelector('input[value^="free_shipping"]:checked');
+    var metodos = [].map.call(root.querySelectorAll('.wc-block-checkout__payment-method .wc-block-components-radio-control__label, .wc-block-checkout__payment-method .wc-block-components-radio-control-accordion-option'), function (x) { return x.textContent; }).join(' ');
+    var partes = [];
+    if (gratis) partes.push('<span>🚚 <span><b>Envío gratis</b> en este pedido</span></span>');
+    if (metodos) partes.push('<span>🔒 <span><b>Pago seguro</b>' + (/mercado\s*pago/i.test(metodos) ? ' con Mercado Pago' : '') + '</span></span>');
+    // Cambios (Mario 2026-10-05): a direct discount on the shoe has no exchange; a coupon does → no promise when a pair is on sale
+    partes.push(conDescuento ? '<span>↺ <span>Cambios en 30 días · <a href="' + base + 'cambios/">ver condiciones</a> (pares con descuento directo no tienen cambio)</span></span>'
+                             : '<span>↺ <span>Si no te quedan, <a href="' + base + 'cambios/">cámbialas</a></span></span>');
+    var nuevo = partes.join('');
+    if (conf.innerHTML !== nuevo) conf.innerHTML = nuevo;
+    conf.hidden = false;
+    if (rv && mexico && linkRescate.parentNode !== conf.parentNode) conf.parentNode.insertBefore(linkRescate, conf.nextSibling);
+    if (typeof teclados === 'function') { teclados(); prellenar(); }
+    if (typeof vigilarErrores === 'function') vigilarErrores();
+  };
+  sinc();
+
+  // Less typing on the phone: numeric keyboards, and e-mail / WhatsApp the customer already gave us (welcome popup, a
+  // previous link request) go into Woo's own checkout store — only into empty fields; she can change them.
+  var teclados = function () {
+    [['#shipping-postcode, #billing-postcode', 'numeric'], ['#shipping-phone, #billing-phone', 'tel'], ['#email', 'email']].forEach(function (x) {
+      [].forEach.call(root.querySelectorAll(x[0]), function (i) { if (i.getAttribute('inputmode') !== x[1]) i.setAttribute('inputmode', x[1]); });
+    });
+  };
+  var cartStore = function () { return window.wp && wp.data && wp.data.select('wc/store/cart'); };
+  // the checkout store loads the customer from the server after the page: retry a few times until our values stay
+  var intentosPre = 0, prePend = false;
+  var prellenar = function () {
+    var cs = cartStore(); if (prePend || intentosPre >= 5 || !cs || !cs.getCustomerData) return;
+    var c = null; try { c = JSON.parse(localStorage.getItem('f360_contacto') || 'null'); } catch (x) {}
+    if (!c || (!c.email && !c.tel)) { intentosPre = 5; return; }
+    var d = cs.getCustomerData() || {}, bill = d.billingAddress || {}, ship = d.shippingAddress || {}, dis = wp.data.dispatch('wc/store/cart');
+    var falta = (c.email && !bill.email) || (c.tel && !ship.phone);
+    if (!falta) { intentosPre = 5; return; }
+    intentosPre++; prePend = true;
+    setTimeout(function () {
+      prePend = false;
+      var d2 = cs.getCustomerData() || {};
+      if (c.email && !(d2.billingAddress || {}).email && dis.setBillingAddress) dis.setBillingAddress({ email: c.email });
+      if (c.tel && !(d2.shippingAddress || {}).phone && dis.setShippingAddress) dis.setShippingAddress({ phone: c.tel });
+      setTimeout(prellenar, 1500);
+    }, 900);
+  };
+
+  // "¿No pudiste pagar?" → payment link (Woo prices the order on the server; nothing about money comes from here)
+  var rv = document.querySelector('.f360-rescate'), velo = document.querySelector('.f360-rescate-velo');
+  var iab = /Instagram|FBAN|FBAV|FB_IAB/i.test(navigator.userAgent || '');
+  var linkRescate = document.createElement('button'); linkRescate.type = 'button'; linkRescate.className = 'f360-rescate-link'; linkRescate.textContent = '¿Problemas para pagar? Te mandamos un link de pago';
+  if (rv) {
+    document.body.appendChild(velo); document.body.appendChild(rv);
+    var rq = function (x) { return rv.querySelector(x); };
+    var cerrarR = function () { rv.hidden = true; velo.hidden = true; };
+    rq('.f360-r-x').onclick = cerrarR; velo.onclick = cerrarR;
+    var motivo = '';
+    var abrirR = function (porque) {
+      motivo = porque || 'la clienta lo pidió';
+      var cs = cartStore(), d = cs && cs.getCustomerData ? cs.getCustomerData() : {}, sh = d.shippingAddress || {}, bi = d.billingAddress || {};
+      var c = null; try { c = JSON.parse(localStorage.getItem('f360_contacto') || 'null'); } catch (x) {}
+      if (!rq('.f360-r-nombre').value) rq('.f360-r-nombre').value = [sh.first_name || bi.first_name, sh.last_name || bi.last_name].filter(Boolean).join(' ');
+      if (!rq('.f360-r-tel').value) rq('.f360-r-tel').value = (sh.phone || bi.phone || (c && c.tel) || '').replace(/^\+?52/, '');
+      if (!rq('.f360-r-email').value) rq('.f360-r-email').value = bi.email || (c && c.email) || '';
+      rq('.f360-r-paso1').hidden = false; rq('.f360-r-paso2').hidden = true; rq('.f360-r-err').textContent = '';
+      rv.hidden = false; velo.hidden = false;
+    };
+    linkRescate.onclick = function () { abrirR('la clienta lo pidió'); };
+    rq('.f360-r-generar').onclick = function () {
+      var bt = this, err = rq('.f360-r-err'); err.textContent = '';
+      if (!rq('.f360-r-nombre').value.trim()) { err.textContent = 'Dinos tu nombre.'; return; }
+      if (rq('.f360-r-tel').value.replace(/\D/g, '').length < 10) { err.textContent = 'Escribe tu WhatsApp a 10 dígitos.'; return; }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(rq('.f360-r-email').value.trim())) { err.textContent = 'Escribe tu correo.'; return; }
+      bt.disabled = true; bt.textContent = 'Generando…';
+      cart().then(function (c) {
+        var items = (c.items || []).map(function (it) { return { id: it.id, quantity: it.quantity }; });
+        var prods = (c.items || []).map(function (it) { return String(it.name || '').replace(/&amp;/g, '&') + (it.variation || []).map(function (a) { return ' · ' + a.value; }).join(''); }).join(' + ');
+        var cs = cartStore(), d = cs && cs.getCustomerData ? cs.getCustomerData() : {}, sh = d.shippingAddress || {};
+        return fetch(F360, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'pay_link', country: pais || 'mx',
+          name: rq('.f360-r-nombre').value.trim(), phone: rq('.f360-r-tel').value, email: rq('.f360-r-email').value.trim(), items: items,
+          coupons: (c.coupons || []).map(function (k) { return k.code; }), products: prods.slice(0, 200), reason: motivo, page_url: location.href.split('?')[0],
+          address: { address_1: sh.address_1, address_2: sh.address_2, city: sh.city, state: sh.state, postcode: sh.postcode }, website: rq('.f360-r-hp').value }) })
+          .then(function (r) { return r.json().then(function (j) { if (!r.ok || !j.url) throw new Error(j.error || 'No pudimos crear tu link.'); return j; }); });
+      }).then(function (j) {
+        try { localStorage.setItem('f360_contacto', JSON.stringify({ email: rq('.f360-r-email').value.trim(), tel: rq('.f360-r-tel').value.replace(/\D/g, '') })); } catch (x) {}
+        rq('.f360-r-resumen').textContent = 'Pedido #' + j.order + ' por ' + j.total + '. Paga con tarjeta, tu cuenta de Mercado Pago o sin tarjeta.';
+        rq('.f360-r-pagar').href = j.url;
+        var tel = rq('.f360-r-tel').value.replace(/\D/g, ''); if (tel.length === 10) tel = '52' + tel;
+        rq('.f360-r-wa').href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent('Mi link de pago Fuxia (pedido #' + j.order + '): ' + j.url);
+        rq('.f360-r-copiar').onclick = function () {
+          var b2 = this, ok = function () { b2.textContent = '✓ Link copiado'; };
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(j.url).then(ok, function () { window.prompt('Copia tu link:', j.url); });
+          else window.prompt('Copia tu link:', j.url);
+        };
+        rq('.f360-r-iab').hidden = !iab;
+        rq('.f360-r-paso1').hidden = true; rq('.f360-r-paso2').hidden = false;
+      }).catch(function (e) { err.textContent = e.message || 'No pudimos crear tu link. Escríbenos por WhatsApp.'; })
+        .then(function () { bt.disabled = false; bt.textContent = 'Generar mi link de pago'; });
+    };
+    // a payment error in the checkout (rejected card, gateway error) → offer the link right away, once per visit
+    var ofrecido = false;
+    var vigilarErrores = function () {
+      if (ofrecido) return;
+      var n = root.querySelector('.wc-block-components-notice-banner.is-error');
+      if (n && /pago|rechaz|tarjeta|payment|error/i.test(n.textContent) && !/introduce|v[aá]lid/i.test(n.textContent)) { ofrecido = true; abrirR('error en el pago: ' + n.textContent.trim().slice(0, 80)); }
+    };
+  }
+  // No payment method preselected (Mario 2026-10-04): the customer chooses. Woo Blocks picks the first one by default; we clear
+  // that choice until she taps one herself. Paying without a choice → a clear message instead of an error.
+  var eligio = false;
+  var pay = function () { return window.wp && wp.data && wp.data.select('wc/store/payment'); };
+  var limpiarMetodo = function () {
+    var sel = pay(); if (eligio || !sel) return;
+    var act = sel.getActivePaymentMethod();
+    var d = wp.data.dispatch('wc/store/payment');
+    if (act && d.__internalSetActivePaymentMethod) d.__internalSetActivePaymentMethod('');
+  };
+  root.addEventListener('change', function (e) { if (e.target && e.target.name && /payment-method|radio-control-wc-payment/.test(e.target.name)) eligio = true; }, true);
+  root.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('.wc-block-checkout__payment-method .wc-block-components-radio-control__option, .wc-block-checkout__payment-method .wc-block-components-radio-control-accordion-option label')) eligio = true; }, true);
+  if (window.wp && wp.data && wp.data.subscribe) { var limpiando = false; wp.data.subscribe(function () { if (limpiando || eligio) return; limpiando = true; try { limpiarMetodo(); } finally { limpiando = false; } }); }
+  var avisoMetodo = document.createElement('p'); avisoMetodo.className = 'f360-elige-pago'; avisoMetodo.textContent = 'Elige cómo quieres pagar 👇'; avisoMetodo.hidden = true;
+  document.addEventListener('click', function (e) {
+    var bt = e.target.closest && e.target.closest('.wc-block-components-checkout-place-order-button'); if (!bt) return;
+    var sel = pay(); if (!sel || sel.getActivePaymentMethod()) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    var box = root.querySelector('.wc-block-checkout__payment-method');
+    if (box) { if (!avisoMetodo.parentNode) box.insertBefore(avisoMetodo, box.firstChild); avisoMetodo.hidden = false; box.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  }, true);
+  root.addEventListener('change', function () { if (pay() && pay().getActivePaymentMethod()) avisoMetodo.hidden = true; }, true);
+  if (window.MutationObserver) { var pend = false; new MutationObserver(function () { if (!pend) { pend = true; requestAnimationFrame(function () { pend = false; sinc(); }); } }).observe(root, { childList: true, subtree: true, characterData: true }); }
+})();
+</script>
+F360SNIP;
+  echo "\n";
+}, 99);
