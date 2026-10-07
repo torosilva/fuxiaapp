@@ -24,6 +24,8 @@ const GROUPS = [
   { label: 'Clientas', items: [
     { href: '/clientes', label: 'Clientes', icon: IconUsers, live: true, admin: true },
     { href: '/demanda', label: 'Demanda sin inventario', icon: IconGrowth, live: true, admin: true },
+    // ♡ Favoritos V1: staging only until production is approved (its database objects exist only there)
+    ...(process.env.NEXT_PUBLIC_F360_ENV === 'production' ? [] : [{ href: '/favoritos', label: 'Favoritos · intención', icon: IconGrowth, live: true, admin: true }]),
   ] },
   { label: 'Crecer', items: [
     { href: '/growth', label: 'Growth', icon: IconGrowth, live: true, admin: true },
