@@ -53,6 +53,8 @@
 .f360-fav-quitar svg { width: 19px; height: 19px; fill: currentColor; }
 .f360-fav-vacio { padding: 40px 10px; text-align: center; color: #6B6B68; font-size: 14px; line-height: 1.6; }
 .f360-fav-pie { margin: 0; padding: 14px 20px; border-top: 1px solid #f0e9df; font-size: 12px; color: #9A9A96; }
+/* phone: the header is tight (centred logo); the ♡ sits snug against the account icon so it never touches the logo */
+@media (max-width: 767px) { .f360-fav-head { width: 24px; margin-right: -6px; } .f360-fav-head svg { width: 20px; height: 20px; } .f360-fav-btn { width: 34px; height: 34px; top: 8px; right: 8px; } }
 @media (prefers-reduced-motion: reduce) { .f360-fav-btn { transition: none; } }
 </style>
 <script>
