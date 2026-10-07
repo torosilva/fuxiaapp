@@ -103,7 +103,8 @@ export function verify(s: Snapshot, p: WooProduct | null, vars: WooVariation[], 
   if (p.type !== 'variable') out.push(`tipo ${p.type} (esperado variable)`);
   if (p.sku !== parentSku(s.product.code)) out.push(`SKU del producto ${p.sku}`);
   if (p.name !== s.product.name) out.push('nombre distinto');
-  if (p.status === 'publish') out.push('el producto está PÚBLICO (P2.2 solo publica oculto)');
+  // Visibility is the owner's decision ("Publicar en vivo" / "Ocultar"), never a sync mismatch: a live product stays live
+  // (the P2.2 "drafts only" check made every re-sync of a live product end as 'partial' — C9 price sync, 2026-10-06).
   if (!p.categories.some((c) => c.id === s.product.woo_category?.id)) out.push('categoría distinta');
   const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
   const colorA = p.attributes.find((a) => a.id === ids.colorAttr);

@@ -197,7 +197,7 @@ test('a product the owner already made public is left public (visibility never c
   store.products.get(db.productLink!)!.status = 'publish';
   const r = await run(db, store);
   assert.equal(store.products.get(db.productLink!)?.status, 'publish');
-  assert.equal(r.status, 'partial', 'P2.2 verification flags a public product (publishing visibility is P2.3)');
+  assert.equal(r.status, 'succeeded', 'a live product re-synced (prices, photos…) is a success: visibility is the owner\'s decision, not a mismatch');
 });
 
 test('currency prices: COP / USD go to the store meta keys on the parent and every variation; a price change is re-sent', async () => {
