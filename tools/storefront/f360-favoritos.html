@@ -279,7 +279,9 @@
       var b = document.createElement('b'); b.textContent = (p && p.name ? p.name.replace(/&amp;/g, '&') : x.name) || 'Modelo';
       var s = document.createElement('span');
       if (p === null) { s.textContent = 'Ya no está disponible'; s.className = 'f360-fav-no'; a.removeAttribute('href'); }
-      else if (p) s.textContent = !vivo ? 'Por ahora no está a la venta' : dinero(p.prices || {});
+      // the theme converts COP / USD per variation (bricks-child); Woo's Store API does not → outside Mexico the API number is
+      // the MXN one with another label. The real price is on the product page (incident 2026-10-06).
+      else if (p) s.textContent = !vivo ? 'Por ahora no está a la venta' : pais === 'mx' ? dinero(p.prices || {}) : 'Ver precio en el modelo';
       a.appendChild(b); a.appendChild(s);
       var quitar = document.createElement('button'); quitar.type = 'button'; quitar.className = 'f360-fav-quitar'; quitar.innerHTML = HEART;
       quitar.setAttribute('aria-label', 'Quitar ' + b.textContent + ' de mis favoritos');
