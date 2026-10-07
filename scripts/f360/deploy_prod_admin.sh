@@ -20,9 +20,11 @@ printf '{"projectId":"prj_i204K1Aj52KRUQB0bzmg1nAGx6Yw","orgId":"team_U7bX9aQ3Ea
 echo "Desplegando el panel de producción desde $(git -C "$W" log --oneline -1)"
 cd "$W/admin-web"
 for i in 1 2 3; do
-  out=$(npx -y vercel deploy --prod --yes --scope team_U7bX9aQ3EadSQOVAOKVAhoNj 2>&1) && ok=1 || ok=0
-  echo "$out" | grep -E "Production:|Error" | head -3
-  [ "$ok" = 1 ] && echo "$out" | grep -q "Production:" && { echo "LISTO: panel de Fuxia 360 en producción."; exit 0; }
+  ok=1; out=$(npx -y vercel deploy --prod --yes --scope team_U7bX9aQ3EadSQOVAOKVAhoNj 2>&1) || ok=0
+  if [ "$ok" = 1 ] && grep -q "Production:" <<<"$out"; then
+    grep -E "Production:" <<<"$out" | head -1; echo "LISTO: panel de Fuxia 360 en producción."; exit 0
+  fi
+  echo "Intento $i no terminó. Lo que dijo Vercel:"; tail -15 <<<"$out"
   sleep 10
 done
 echo "ATENCIÓN: el despliegue no terminó; revisa Vercel → fuxia360." >&2; exit 2
