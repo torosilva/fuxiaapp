@@ -29,7 +29,7 @@ test('Carolina receives Macarena Negro into Bodega CDMX', async ({ page }) => {
 
   // 3 · Productos → Nuevo producto: Macarena, Negro, sizes (default Colombian 35–40)
   await page.getByRole('link', { name: 'Productos', exact: true }).first().click();
-  await page.getByRole('link', { name: 'Nuevo producto' }).click();
+  await page.getByRole('link', { name: 'Nuevo modelo' }).click();
   await page.getByPlaceholder('Ej. Macarena').fill('Macarena');
   await page.getByRole('button', { name: 'Negro' }).click();
   for (const s of ['35', '36', '37', '38', '39', '40']) await expect(page.getByRole('button', { name: s, exact: true })).toHaveAttribute('aria-pressed', 'true');
