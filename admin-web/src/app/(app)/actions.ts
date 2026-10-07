@@ -53,37 +53,52 @@ export async function receiveInventoryAction(input: {
 // ── P2.1 product master ─────────────────────────────────────────────────────
 function revalidateProduct(id: string) { revalidatePath(`/productos/${id}`); revalidatePath('/productos'); revalidatePath('/'); }
 
+// The store updates by itself (Mario 2026-10-07: "debería ser automático"): after any change to a model that is ALREADY in the
+// store (photos, colours, price, description, category), one sync is queued and the server queue started — no button. If a sync
+// is already waiting it takes every change (the snapshot is read when it starts), so several quick edits become one update; if
+// one is running, one more waits for what changed after it began. Visibility (live / hidden) is never touched: that stays a
+// decision. Only an owner's change syncs (the publisher re-checks); otherwise the panel shows the change as pending.
+async function syncStoreAfterChange(productId: string) {
+  if (!publisherAvailable()) return;
+  const pub = await getPublication(productId).catch(() => null);
+  if (!pub?.woo_product_id || !['cambios', 'publicando', 'error'].includes(pub.state)) return;
+  if (pub.jobs.some((j) => j.status === 'queued')) return;
+  const req = await call<{ id: string }>('f360_request_publish', { p_product_id: productId, p_idempotency_key: crypto.randomUUID(), p_target_key: STORE_KEY });
+  if (req.ok && !pub.jobs.some((j) => j.status === 'running')) await kickQueueAction();
+}
+async function afterCatalogChange(productId: string) { revalidateProduct(productId); await syncStoreAfterChange(productId); }
+
 export async function updateProductAction(productId: string, fields: {
   name?: string; description?: string | null; short_description?: string | null; category_key?: string | null;
   regular_price?: number | null; sale_price?: number | null;
 }): Promise<Result<Product>> {
   const r = await call<Product>('f360_update_product', { p_product_id: productId, p_fields: fields });
-  if (r.ok) revalidateProduct(productId);
+  if (r.ok) await afterCatalogChange(productId);
   return r;
 }
 
 export async function addColorAction(productId: string, name: string, hex: string | null): Promise<Result<Product>> {
   if (!name.trim()) return { ok: false, error: 'Escribe el nombre del color.' };
   const r = await call<Product>('f360_add_color', { p_product_id: productId, p_name: name.trim(), p_hex: hex });
-  if (r.ok) revalidateProduct(productId);
+  if (r.ok) await afterCatalogChange(productId);
   return r;
 }
 
 export async function addMediaAction(productId: string, colorId: string, paths: string[]): Promise<Result<Product>> {
   const r = await call<Product>('f360_add_media', { p_product_id: productId, p_color_id: colorId, p_paths: paths });
-  if (r.ok) revalidateProduct(productId);
+  if (r.ok) await afterCatalogChange(productId);
   return r;
 }
 
 export async function removeMediaAction(productId: string, mediaId: string): Promise<Result<Product>> {
   const r = await call<Product>('f360_remove_media', { p_media_id: mediaId });
-  if (r.ok) revalidateProduct(productId);
+  if (r.ok) await afterCatalogChange(productId);
   return r;
 }
 
 export async function setPrimaryMediaAction(productId: string, mediaId: string): Promise<Result<Product>> {
   const r = await call<Product>('f360_set_primary_media', { p_media_id: mediaId });
-  if (r.ok) revalidateProduct(productId);
+  if (r.ok) await afterCatalogChange(productId);
   return r;
 }
 
@@ -368,7 +383,7 @@ export async function cancelTransferAction(id: string, idempotencyKey: string, r
 export async function setProductPriceAction(productId: string, currency: string, amount: number | null): Promise<Result<unknown>> {
   if (amount != null && !(amount > 0)) return { ok: false, error: 'El precio debe ser mayor a cero.' };
   const r = await call('f360_set_product_price', { p_product_id: productId, p_currency: currency, p_amount: amount });
-  if (r.ok) revalidateProduct(productId);
+  if (r.ok) await afterCatalogChange(productId);
   return r;
 }
 export async function saveCurrencyAction(input: { code: string; name: string; symbol: string; decimals: number; wooMetaKey: string; active: boolean }): Promise<Result<unknown>> {
@@ -598,7 +613,7 @@ export async function openingStepAction(id: string, step: 'freeze' | 'reconcile'
 export async function removeColorAction(productId: string, colorId: string, reason: string): Promise<Result<Product>> {
   if (reason.trim().length < 3) return { ok: false, error: 'Escribe el motivo.' };
   const r = await call<Product>('f360_remove_color', { p_color_id: colorId, p_reason: reason.trim() });
-  if (r.ok) revalidateProduct(productId);
+  if (r.ok) await afterCatalogChange(productId);
   return r;
 }
 
@@ -621,7 +636,7 @@ export async function linkChannelAction(target: string): Promise<Result<{ linked
 export async function renameColorAction(productId: string, colorId: string, name: string): Promise<Result<Product>> {
   if (!name.trim()) return { ok: false, error: 'Escribe el nombre del color.' };
   const r = await call<Product>('f360_rename_color', { p_color_id: colorId, p_name: name.trim() });
-  if (r.ok) revalidateProduct(productId);
+  if (r.ok) await afterCatalogChange(productId);
   return r;
 }
 export async function createLocationAction(input: { name: string; type: 'store' | 'bazaar' | 'warehouse'; legacyChannelId: string | null; startsOn: string | null; endsOn: string | null }): Promise<Result<unknown>> {

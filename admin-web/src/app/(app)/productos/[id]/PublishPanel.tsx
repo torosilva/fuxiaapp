@@ -1,5 +1,5 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { IconCheck, IconClock, IconX } from '@/components/icons';
 import type { Publication, PubJob, PubStep } from '@/lib/f360';
@@ -41,6 +41,65 @@ export function PublishPanel({ productId, pub, isOwner, publisherReady }: { prod
 
   const busy = pending || pub.state === 'publicando';
   const last = pub.jobs[0];
+  const inStore = !!pub.woo_product_id;
+  // a change waiting in the queue counts as "updating": the store updates by itself (no button)
+  const waiting = pub.jobs.some((j) => j.status === 'queued' || j.status === 'running');
+  const updating = busy || (inStore && waiting);
+  useEffect(() => {   // while the store is updating, refresh the page every few seconds until it says "al día"
+    if (!inStore || !updating) return;
+    const t = setInterval(() => router.refresh(), 5000);
+    return () => clearInterval(t);
+  }, [inStore, updating, router]);
+
+  // ── Models already in the store: one honest status, no buttons for routine work (Mario 2026-10-07) ──
+  if (inStore && publisherReady) {
+    const failed = !updating && pub.state === 'error';
+    const pendingByHand = !updating && pub.state === 'cambios';   // the automatic sync could not start (e.g. not an owner)
+    return (
+      <section id="tienda" className="mt-12 scroll-mt-6">
+        <h2 className="font-display text-3xl text-ink">Tienda en línea</h2>
+        <div className={`mt-4 rounded-3xl border p-5 md:p-6 ${failed ? 'border-danger/30 bg-danger-soft' : updating || pendingByHand ? 'border-gold/40 bg-gold-soft' : 'border-success/30 bg-success-soft'}`}
+          data-testid="publish-panel" data-state={updating ? 'publicando' : pub.state}>
+          {updating ? (
+            <p className="flex items-center gap-2 text-lg text-ink"><IconClock className="size-5 animate-pulse" />Actualizando la tienda… se hace solo, puedes seguir trabajando o cerrar la página.</p>
+          ) : failed ? (
+            <div className="text-danger">
+              <p className="flex items-center gap-2 text-lg"><IconX />No se pudo actualizar la tienda</p>
+              <p className="mt-1 text-sm" data-testid="publish-error">{last?.error_message ?? 'Error de sincronización.'}</p>
+            </div>
+          ) : pendingByHand ? (
+            <p className="text-ink">Hay cambios que todavía no están en la tienda.</p>
+          ) : (
+            <p className="flex items-center gap-2 text-lg text-success"><IconCheck />En la tienda · al día · {live ? <strong>visible para las clientas</strong> : 'oculto (borrador)'}</p>
+          )}
+          {error && <p role="alert" className="mt-3 rounded-xl bg-danger-soft px-4 py-3 text-danger">{error}</p>}
+          {isOwner && !updating && (failed || pendingByHand) && (
+            <button type="button" onClick={run} className="mt-4 rounded-2xl bg-ink px-6 py-3.5 text-surface">{failed ? 'Reintentar' : 'Subir a la tienda'}</button>
+          )}
+          {isOwner && !updating && !live && (
+            liveConfirm ? (
+              <div className="mt-4 rounded-2xl border border-gold/40 bg-surface p-4" data-testid="go-live-confirm">
+                <p className="text-ink">Se va a <strong>mostrar a las clientas</strong> en {pub.target?.name ?? 'la tienda'}.</p>
+                <div className="mt-3 flex gap-3">
+                  <button type="button" onClick={() => setVisibility('publish')} className="rounded-2xl bg-ink px-6 py-3.5 text-surface">Sí, publicar en vivo</button>
+                  <button type="button" onClick={() => setLiveConfirm(false)} className="rounded-2xl px-4 text-muted">Cancelar</button>
+                </div>
+              </div>
+            ) : <button type="button" onClick={() => setLiveConfirm(true)} className="mt-4 rounded-2xl bg-success px-6 py-3.5 text-surface" data-testid="go-live">Publicar en vivo</button>
+          )}
+        </div>
+        <details className="mt-4 rounded-2xl border border-line bg-surface p-4 text-sm text-ink-2" data-testid="store-more">
+          <summary className="cursor-pointer text-ink-2">Más opciones de la tienda</summary>
+          {isOwner && live && !updating && (
+            <button type="button" onClick={() => setVisibility('draft')} className="mt-3 rounded-2xl border border-line bg-surface px-5 py-3 text-ink" data-testid="hide-from-store">Ocultar de la tienda</button>
+          )}
+          {pub.target && <p className="mt-3">Tienda: {pub.target.name} · producto #{pub.woo_product_id}
+            {' · '}<a className="text-gold-strong hover:underline" target="_blank" rel="noreferrer" href={`${pub.target.base_url}/wp-admin/post.php?post=${pub.woo_product_id}&action=edit`}>Abrir en WooCommerce</a></p>}
+          {pub.jobs.length > 0 && <History jobs={pub.jobs} />}
+        </details>
+      </section>
+    );
+  }
   const firstTime = !pub.woo_product_id;
   const label = pub.state === 'error' ? 'Reintentar' : pub.state === 'cambios' ? 'Sincronizar cambios' : firstTime ? 'Publicar como borrador' : 'Sincronizar de nuevo';
 
@@ -131,34 +190,38 @@ export function PublishPanel({ productId, pub, isOwner, publisherReady }: { prod
         )}
       </div>
 
-      {pub.jobs.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-lg text-ink">Historial de publicación</h3>
-          <ul className="mt-3 space-y-2" data-testid="publish-history">
-            {pub.jobs.map((j, i) => (
-              <li key={j.id} className="rounded-2xl border border-line bg-surface p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-ink"><JobDot status={j.status} />{JOB_LABEL[j.status]} · {j.requested_by_name}</p>
-                  <p className="text-sm text-muted">{fecha(j.finished_at ?? j.created_at)}</p>
-                </div>
-                {j.summary && j.status !== 'failed' && (
-                  <p className="mt-1 text-sm text-ink-2">{j.summary.variations} variaciones · {j.summary.created} creadas · {j.summary.updated} actualizadas · existencias enviadas: {j.summary.stock_pushed}</p>
-                )}
-                {j.error_message && <p className="mt-1 text-sm text-danger">{j.error_message}</p>}
-                {i === 0 && j.steps && j.steps.length > 0 && (
-                  <details className="mt-2">
-                    <summary className="cursor-pointer text-sm text-gold-strong">Ver los {j.steps.length} pasos</summary>
-                    <ol className="mt-2 space-y-1 text-sm">
-                      {j.steps.map((s, k) => <StepRow key={k} s={s} />)}
-                    </ol>
-                  </details>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {pub.jobs.length > 0 && <div className="mt-6"><History jobs={pub.jobs} /></div>}
     </section>
+  );
+}
+
+function History({ jobs }: { jobs: PubJob[] }) {
+  return (
+    <div className="mt-4">
+      <h3 className="text-base text-ink">Historial de publicación</h3>
+      <ul className="mt-3 space-y-2" data-testid="publish-history">
+        {jobs.map((j, i) => (
+          <li key={j.id} className="rounded-2xl border border-line bg-surface p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-ink"><JobDot status={j.status} />{JOB_LABEL[j.status]} · {j.requested_by_name}</p>
+              <p className="text-sm text-muted">{fecha(j.finished_at ?? j.created_at)}</p>
+            </div>
+            {j.summary && j.status !== 'failed' && (
+              <p className="mt-1 text-sm text-ink-2">{j.summary.variations} variaciones · {j.summary.created} creadas · {j.summary.updated} actualizadas · existencias enviadas: {j.summary.stock_pushed}</p>
+            )}
+            {j.error_message && <p className="mt-1 text-sm text-danger">{j.error_message}</p>}
+            {i === 0 && j.steps && j.steps.length > 0 && (
+              <details className="mt-2">
+                <summary className="cursor-pointer text-sm text-gold-strong">Ver los {j.steps.length} pasos</summary>
+                <ol className="mt-2 space-y-1 text-sm">
+                  {j.steps.map((s, k) => <StepRow key={k} s={s} />)}
+                </ol>
+              </details>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

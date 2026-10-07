@@ -97,7 +97,11 @@ export default async function ProductoDetalle({ params, searchParams }: { params
       {color && <ColorPhotos product={product} color={color} canEdit={edit} removeBlockers={removeBlockers} />}
       <ProductInfoForm key={`${product.regular_price}-${product.category_key}-${product.description?.length ?? 0}`} product={product} categories={categories} canEdit={edit} />
       <PricesPanel key={prices.map((p) => `${p.code}:${p.amount}`).join('|')} productId={product.id} prices={prices} canEdit={edit} />
-      <KnowledgePanel key={`${knowledge.knowledge?.version ?? 0}`} productId={product.id} data={knowledge} canEdit={edit} />
+      {/* Fit sheet: closed by default (optional for Carolina; Hilo and the product page read it) */}
+      <details className="mt-10 rounded-3xl border border-line bg-surface px-5 py-4">
+        <summary className="cursor-pointer font-display text-2xl text-ink">Ajuste y talla <span className="font-sans text-sm text-muted">· horma, punta, ancho (opcional)</span></summary>
+        <KnowledgePanel key={`${knowledge.knowledge?.version ?? 0}`} productId={product.id} data={knowledge} canEdit={edit} />
+      </details>
 
       {color && (
         <section className="mt-12">
@@ -133,17 +137,6 @@ export default async function ProductoDetalle({ params, searchParams }: { params
         </section>
       )}
 
-      <details className="mt-12 rounded-2xl border border-line bg-surface p-5">
-        <summary className="cursor-pointer text-ink-2">Códigos para la tienda en línea</summary>
-        <p className="mt-3 text-sm text-muted">{product.codes_locked ? 'Fijos: ya se usaron para publicar y no cambian aunque cambies el nombre.' : 'Se generan solos. Quedan fijos cuando el producto se publica, aunque cambies el nombre.'}</p>
-        <p className="mt-3 text-sm text-ink-2">Producto: <span className="font-mono text-ink">{product.code}</span></p>
-        {product.colors.map((c) => (
-          <div key={c.id} className="mt-3">
-            <p className="flex items-center gap-2 text-sm text-ink-2"><ColorDot hex={c.hex} className="size-3" />{c.name}: <span className="font-mono text-ink">{c.code}</span></p>
-            <div className="mt-1 flex flex-wrap gap-1.5">{c.variants.map((v) => <span key={v.id} className="rounded-md bg-surface-2 px-2 py-0.5 font-mono text-xs text-ink-2">{v.sku}</span>)}</div>
-          </div>
-        ))}
-      </details>
 
       <section className="mt-12">
         <h2 className="font-display text-3xl text-ink">Historial</h2>
@@ -152,9 +145,24 @@ export default async function ProductoDetalle({ params, searchParams }: { params
             : events.map((e) => <EventCard key={e.id} e={e} />)}
         </div>
       </section>
-      {edit && <MakeToOrderPanel productId={product.id} on={product.make_to_order !== false} />}
-      {edit && <NewPanel productId={product.id} value={product.new_override ?? null} />}
-      {edit && <ArchivePanel productId={product.id} name={product.name} state={archive} />}
+      {/* Occasional decisions, out of the way of routine work (Mario 2026-10-07: "hay muchos botones… confunden") */}
+      <details className="mt-12 rounded-3xl border border-line bg-surface px-5 py-4" data-testid="model-more">
+        <summary className="cursor-pointer font-display text-2xl text-ink">Más opciones del modelo <span className="font-sans text-sm text-muted">· sobre pedido, nuevo, archivar, códigos</span></summary>
+        {edit && <MakeToOrderPanel productId={product.id} on={product.make_to_order !== false} />}
+        {edit && <NewPanel productId={product.id} value={product.new_override ?? null} />}
+        {edit && <ArchivePanel productId={product.id} name={product.name} state={archive} />}
+        <details className="mt-6 rounded-2xl border border-line bg-surface p-5">
+          <summary className="cursor-pointer text-ink-2">Códigos para la tienda en línea</summary>
+          <p className="mt-3 text-sm text-muted">{product.codes_locked ? 'Fijos: ya se usaron para publicar y no cambian aunque cambies el nombre.' : 'Se generan solos. Quedan fijos cuando el producto se publica, aunque cambies el nombre.'}</p>
+          <p className="mt-3 text-sm text-ink-2">Producto: <span className="font-mono text-ink">{product.code}</span></p>
+          {product.colors.map((c) => (
+            <div key={c.id} className="mt-3">
+              <p className="flex items-center gap-2 text-sm text-ink-2"><ColorDot hex={c.hex} className="size-3" />{c.name}: <span className="font-mono text-ink">{c.code}</span></p>
+              <div className="mt-1 flex flex-wrap gap-1.5">{c.variants.map((v) => <span key={v.id} className="rounded-md bg-surface-2 px-2 py-0.5 font-mono text-xs text-ink-2">{v.sku}</span>)}</div>
+            </div>
+          ))}
+        </details>
+      </details>
     </div>
   );
 }
