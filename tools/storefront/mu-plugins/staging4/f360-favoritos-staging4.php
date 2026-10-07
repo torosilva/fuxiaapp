@@ -187,7 +187,7 @@ add_action('wp_footer', function () {
     var fila = function (x) {
       var p = cache[x.id], div = document.createElement('div'); div.className = 'f360-fav-item';
       var vivo = p && p.is_purchasable !== false;
-      var img = document.createElement('img'); img.alt = ''; img.loading = 'lazy'; img.src = (p && p.images && p.images[0] && (p.images[0].thumbnail || p.images[0].src)) || x.img || '';
+      var img = document.createElement('img'); img.alt = ''; img.loading = 'lazy'; var src = (p && p.images && p.images[0] && (p.images[0].thumbnail || p.images[0].src)) || x.img || ''; if (src) img.src = src;   // no photo: the beige tile, never a broken icon
       var a = document.createElement('a'); a.href = (p && p.permalink) || x.url || '#';
       var b = document.createElement('b'); b.textContent = (p && p.name ? p.name.replace(/&amp;/g, '&') : x.name) || 'Modelo';
       var s = document.createElement('span');
