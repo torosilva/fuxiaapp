@@ -169,7 +169,7 @@ li.product.f360-fuera { display: none !important; }
         var h = document.createElement('h3'); h.textContent = titulo; sec.appendChild(h);
         var row = document.createElement('div'); row.className = 'f360-t-cards'; sec.appendChild(row);
         lista.forEach(function (p) {
-          var a = document.createElement('a'); a.className = 'f360-t-card'; a.href = p.permalink;
+          var a = document.createElement('a'); a.className = 'f360-t-card'; a.href = p.permalink; a.setAttribute('data-f360-product-id', String(p.id));   // ♡ favoritos
           var img = document.createElement('img'); img.loading = 'lazy'; img.alt = p.name; img.src = (p.images && p.images[0] && (p.images[0].thumbnail || p.images[0].src)) || '';
           var b = document.createElement('b'); b.textContent = p.name.replace(/&amp;/g, '&');
           var s = document.createElement('span'); var pr = p.prices || {}; var dec = pr.currency_minor_unit || 0;

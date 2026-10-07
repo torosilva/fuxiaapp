@@ -1,0 +1,335 @@
+<?php
+/**
+ * Plugin Name: Fuxia 360 · Favoritos (producción)
+ * Description: ♡ en tarjetas, carruseles, ficha y header + "Mis favoritos" (talla, disponibilidad, agregar a la bolsa); captura anónima en Fuxia 360.
+ *              GENERADO por scripts/f360/build_prod_storefront_mu.mjs desde tools/storefront/f360-favoritos.html — no editar a mano.
+ * Apagar: borrar este archivo de wp-content/mu-plugins/.
+ */
+if (!defined('ABSPATH')) exit;
+$f360_host = strtolower((string) wp_parse_url(home_url(), PHP_URL_HOST));
+if ($f360_host !== 'fuxiaballerinas.com' && $f360_host !== 'www.fuxiaballerinas.com') return;   // production store only
+
+add_action('wp_footer', function () {
+  if (is_admin() || wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST)) return;
+  echo <<<'F360SNIP'
+<!--
+  Fuxia 360 · ♡ Favoritos V1 (Mario 2026-10-06). PRODUCCIÓN. Fuente: tools/storefront/f360-favoritos.html
+  · ♡ en cada tarjeta de producto (tienda, categorías, home, relacionados), en los carruseles de la Tienda y en la ficha.
+  · ♡ con contador en el header (junto a Club Fuxia) → panel "Mis favoritos" (foto, nombre, precio del país, ver / quitar).
+  · Sin cuenta: la lista vive en este dispositivo (localStorage) y se sincroniza entre pestañas; /mx/ y /co/ comparten la lista
+    y cada uno muestra su precio. Producto que ya no existe o no se vende: "Ya no está disponible" + quitar.
+  · Fuxia 360 recibe cada favorite_added / favorite_removed ANÓNIMO (id aleatorio del navegador, nunca datos personales) para
+    el reporte "Favoritos / Intent". Nada se envía al cargar la página; el panel hace una sola consulta a la tienda al abrirse.
+-->
+<div id="f360-fav-root">
+  <div class="f360-fav-velo" hidden></div>
+  <aside class="f360-fav-panel" hidden role="dialog" aria-modal="true" aria-labelledby="f360-fav-titulo">
+    <div class="f360-fav-top">
+      <h2 id="f360-fav-titulo">Mis favoritos <span class="f360-fav-n"></span></h2>
+      <button type="button" class="f360-fav-x" aria-label="Cerrar mis favoritos">✕</button>
+    </div>
+    <div class="f360-fav-lista" aria-live="polite"></div>
+    <p class="f360-fav-pie">Se guardan en este dispositivo.</p>
+  </aside>
+</div>
+<style>
+#f360-fav-root [hidden] { display: none !important; }
+.f360-fav-btn { position: absolute; top: 10px; right: 10px; z-index: 5; width: 38px; height: 38px; border-radius: 50%; border: 0; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.92); color: #242424; cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,.12); transition: transform .15s ease; }
+.f360-fav-btn:hover { transform: scale(1.06); }
+.f360-fav-btn svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.f360-fav-btn[aria-pressed="true"] { color: #B23A48; }
+.f360-fav-btn[aria-pressed="true"] svg { fill: currentColor; }
+.f360-fav-btn.f360-fav-pdp { position: static; margin-left: 12px; vertical-align: middle; flex: 0 0 auto; }
+.f360-fav-host { position: relative; }
+.f360-fav-head { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; margin-right: 12px;
+  border: 0; background: none; color: inherit; cursor: pointer; padding: 0; }
+.f360-fav-head svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+.f360-fav-head.lleno svg { fill: #B23A48; stroke: #B23A48; }
+.f360-fav-head b { position: absolute; top: -2px; right: -4px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: #B23A48; color: #fff;
+  font: 600 10px/17px inherit; font-family: inherit; text-align: center; box-sizing: border-box; }
+.f360-fav-velo { position: fixed; inset: 0; z-index: 99998; background: rgba(20,17,13,.35); }
+.f360-fav-panel { position: fixed; top: 0; right: 0; bottom: 0; z-index: 99999; width: min(420px, 100vw); background: #fff; color: #242424;
+  display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,.15); font-family: inherit; }
+.f360-fav-top { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid #f0e9df; }
+.f360-fav-top h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .02em; }
+.f360-fav-n { color: #83734C; font-weight: 500; }
+.f360-fav-x { border: 0; background: none; font-size: 20px; cursor: pointer; width: 40px; height: 40px; color: #242424; }
+.f360-fav-lista { flex: 1; overflow-y: auto; padding: 8px 20px; overscroll-behavior: contain; }
+.f360-fav-item { display: grid; grid-template-columns: 76px 1fr auto; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid #f4efe7; }
+.f360-fav-item img { width: 76px; height: 76px; object-fit: cover; border-radius: 6px; background: #f5f2ec; display: block; }
+.f360-fav-item a { color: inherit; text-decoration: none; }
+.f360-fav-item b { display: block; font-size: 14px; font-weight: 600; }
+.f360-fav-item span { display: block; font-size: 13px; color: #6B6B68; margin-top: 3px; }
+.f360-fav-item .f360-fav-no { color: #9b2c2c; }
+.f360-fav-quitar { border: 0; background: none; color: #B23A48; cursor: pointer; width: 40px; height: 40px; }
+.f360-fav-quitar svg { width: 19px; height: 19px; fill: currentColor; }
+.f360-fav-vacio { padding: 40px 10px; text-align: center; color: #6B6B68; font-size: 14px; line-height: 1.6; }
+.f360-fav-item { grid-template-areas: "img info x" "img buy buy"; }
+.f360-fav-item > img { grid-area: img; align-self: start; } .f360-fav-item > a { grid-area: info; } .f360-fav-item > .f360-fav-quitar { grid-area: x; }
+.f360-fav-comprar { grid-area: buy; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.f360-fav-color { height: 34px; border: 1px solid #e6dfd4; border-radius: 17px; padding: 0 10px; background: #fff; font: inherit; font-size: 13px; color: #242424; max-width: 100%; }
+.f360-fav-tallas { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+.f360-fav-tallas button { min-width: 38px; height: 34px; padding: 0 8px; border: 1px solid #d9d2c5; border-radius: 17px; background: #fff; cursor: pointer; font: inherit; font-size: 13px; color: #242424; }
+.f360-fav-tallas button.inm { border-color: #83734C; }
+.f360-fav-tallas button[aria-pressed="true"] { background: #242424; border-color: #242424; color: #fff; }
+.f360-fav-tallas button:disabled { opacity: .35; text-decoration: line-through; cursor: not-allowed; }
+.f360-fav-estado { font-size: 12px; color: #6B6B68; flex: 1 1 auto; } .f360-fav-estado.inm { color: #3f6b4f; font-weight: 600; }
+.f360-fav-bolsa { height: 38px; padding: 0 16px; border: 0; border-radius: 19px; background: #242424; color: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.f360-fav-bolsa:disabled { background: #cfc8bc; cursor: not-allowed; }
+.f360-fav-err { width: 100%; font-size: 12px; color: #9b2c2c; } .f360-fav-err:empty { display: none; }
+.f360-fav-pie { margin: 0; padding: 14px 20px; border-top: 1px solid #f0e9df; font-size: 12px; color: #9A9A96; }
+/* phone: the header is tight (centred logo); the ♡ sits snug against the account icon so it never touches the logo */
+@media (max-width: 767px) { .f360-fav-head { width: 24px; margin-right: -6px; } .f360-fav-head svg { width: 20px; height: 20px; } .f360-fav-btn { width: 34px; height: 34px; top: 8px; right: 8px; } }
+@media (prefers-reduced-motion: reduce) { .f360-fav-btn { transition: none; } }
+</style>
+<script>
+/* Fuxia 360 · Favoritos V1. PRODUCCIÓN. Fuente: tools/storefront/f360-favoritos.html */
+(function () {
+  if (window.F360Fav || /[?&]bricks=run/.test(location.search)) return;
+  var F360 = 'https://tgzgiwfzddsghnxgkcqd.supabase.co/functions/v1/f360-store-reserve';   // PRODUCCIÓN
+  var KEY = 'f360_favs_v1', ANON = 'f360_anon_v1';
+  var pais = (location.pathname.match(/^\/(mx|co)\//) || [0, 'mx'])[1];
+  var base = location.origin + '/' + pais + '/';
+  var HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3s-7.6-4.6-9.3-9.4C1.6 7.6 3.6 4.5 6.9 4.5c2 0 3.6 1.1 4.6 2.7 1-1.6 2.6-2.7 4.6-2.7 3.3 0 5.3 3.1 4.2 6.4-1.7 4.8-9.3 9.4-9.3 9.4z"/></svg>';
+  var root = document.getElementById('f360-fav-root'); if (!root) return;
+  document.body.appendChild(root);
+  var q = function (s) { return root.querySelector(s); };
+  var panel = q('.f360-fav-panel'), velo = q('.f360-fav-velo'), lista = q('.f360-fav-lista');
+
+  // ── the list (this device) ──
+  var leer = function () { try { var v = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v.filter(function (x) { return x && x.id > 0; }) : []; } catch (e) { return []; } };
+  var guardar = function (l) { try { localStorage.setItem(KEY, JSON.stringify(l.slice(0, 200))); } catch (e) {} };
+  var favs = leer();
+  var tiene = function (id) { return favs.some(function (x) { return x.id === id; }); };
+  var anon = function () {
+    var a = null; try { a = localStorage.getItem(ANON); } catch (e) {}
+    if (!a || !/^[0-9a-f-]{36}$/i.test(a)) {
+      a = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
+      try { localStorage.setItem(ANON, a); } catch (e) {}
+    }
+    return a;
+  };
+  // anonymous intent event to Fuxia 360 (fire and forget; never blocks the page)
+  var avisar = function (ev, it) {
+    try {
+      fetch(F360, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'favorite',
+        event: ev, market: pais, anon_id: anon(), woo_product_id: it.id, woo_variation_id: it.vid || null, color: it.color || null }) }).catch(function () {});
+    } catch (e) {}
+  };
+  var cambiar = function (it, on) {
+    favs = leer();
+    if (on && !tiene(it.id)) { favs.unshift({ id: it.id, name: it.name || '', img: it.img || '', url: it.url || '', color: it.color || null, at: Date.now() }); guardar(favs); avisar('favorite_added', it); }
+    else if (!on && tiene(it.id)) { favs = favs.filter(function (x) { return x.id !== it.id; }); guardar(favs); avisar('favorite_removed', it); }
+    pintar();
+  };
+
+  // ── hearts on every product card, the shop carousels and the product page ──
+  var boton = function (it, extra) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'f360-fav-btn' + (extra ? ' ' + extra : ''); b.innerHTML = HEART;
+    b.dataset.favId = String(it.id);
+    b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation();
+      var on = !tiene(it.id); if (it.pdp) { it.vid = pdpVar.vid; it.color = pdpVar.color; } cambiar(it, on); });
+    return b;
+  };
+  var datosDe = function (el, id) {
+    var a = el.tagName === 'A' ? el : el.querySelector('a[href]'), img = el.querySelector('img');
+    var nombre = (a && (a.getAttribute('aria-label') || '').replace(/^Ver\s+/i, '')) || (el.querySelector('h2, h3, b') || {}).textContent || '';
+    return { id: id, name: String(nombre).trim(), img: img ? (img.currentSrc || img.src) : '', url: a ? a.href : '' };
+  };
+  var tarjetas = function () {
+    document.querySelectorAll('li.type-product[class*="post-"]:not([data-f360-fav]), [data-f360-product-id]:not([data-f360-fav])').forEach(function (el) {
+      var id = Number(el.getAttribute('data-f360-product-id') || ((el.className.match(/\bpost-(\d+)\b/) || [])[1]));
+      el.setAttribute('data-f360-fav', '1');
+      if (!(id > 0)) return;
+      if (getComputedStyle(el).position === 'static') el.classList.add('f360-fav-host');
+      el.appendChild(boton(datosDe(el, id)));
+    });
+  };
+  var pdpVar = { vid: null, color: null };
+  var ficha = function () {
+    if (!document.body.classList.contains('single-product')) return;
+    var id = Number((document.body.className.match(/\bpostid-(\d+)\b/) || [])[1]);
+    var h1 = document.querySelector('.brxe-product-title, h1.product_title, h1');
+    if (!(id > 0) || !h1 || h1.querySelector('.f360-fav-btn')) return;
+    var img = document.querySelector('.woocommerce-product-gallery img, .brxe-product-gallery img');
+    var it = { id: id, name: h1.textContent.trim(), img: img ? (img.currentSrc || img.src) : '', url: location.href.split('?')[0].split('#')[0], pdp: true };
+    var b = boton(it, 'f360-fav-pdp'); b.setAttribute('aria-label', 'Guardar ' + it.name + ' en mis favoritos');
+    h1.style.display = 'flex'; h1.style.alignItems = 'center'; h1.style.justifyContent = 'space-between'; h1.appendChild(b);
+    // the colour / size she is looking at travels with the ♡ (canonical colour / variant in Fuxia 360)
+    var form = document.querySelector('form.variations_form');
+    if (form && window.jQuery) {
+      jQuery(form).on('found_variation', function (e, v) { pdpVar.vid = v && v.variation_id || null; })
+        .on('reset_data', function () { pdpVar.vid = null; });
+      var sel = form.querySelector('[name="attribute_pa_color"]');
+      var col = function () { var o = sel && sel.selectedOptions && sel.selectedOptions[0]; pdpVar.color = o && o.value ? o.textContent.trim() : null; };
+      if (sel) { sel.addEventListener('change', col); col(); }
+    }
+  };
+
+  // ── header: ♡ with counter, next to Club Fuxia (or before the account icon) ──
+  var head = null;
+  var cabecera = function () {
+    if (head && document.body.contains(head)) return;
+    // always right before the account icon: with "★ Club Fuxia" in the header it reads  Club Fuxia ★ | ♡ 3 | 👤
+    var cuenta = document.querySelector('#brx-header a[href*="/mi-cuenta"]');
+    var ancla = cuenta, padre = cuenta && cuenta.parentNode;
+    if (!padre) return;
+    head = document.createElement('button'); head.type = 'button'; head.className = 'f360-fav-head'; head.innerHTML = HEART + '<b hidden></b>';
+    head.addEventListener('click', abrir);
+    padre.insertBefore(head, ancla || null);
+  };
+
+  var pintar = function () {
+    favs = leer();
+    var n = favs.length;
+    document.querySelectorAll('.f360-fav-btn').forEach(function (b) {
+      var on = tiene(Number(b.dataset.favId)); b.setAttribute('aria-pressed', String(on));
+      if (!b.classList.contains('f360-fav-pdp')) b.setAttribute('aria-label', (on ? 'Quitar de mis favoritos' : 'Agregar a mis favoritos'));
+    });
+    if (head) { var c = head.querySelector('b'); c.hidden = !n; c.textContent = n > 99 ? '99+' : String(n); head.classList.toggle('lleno', n > 0);
+      head.setAttribute('aria-label', 'Mis favoritos' + (n ? ': ' + n : '')); }
+    q('.f360-fav-n').textContent = n ? '(' + n + ')' : '';
+    var firma = favs.map(function (x) { return x.id; }).join(',');
+    if (!panel.hidden && firma !== ultimaFirma) listar();
+  };
+  var ultimaFirma = null;
+
+  // ── "Mis favoritos": current data from the store of THIS country (price, photo, link); gone products say so.
+  //    V1.1 (Mario 2026-10-06 "sube de nivel el sitio"): colour + size right here (her size remembered), availability from
+  //    Fuxia 360 (same states as the shop filter, no delivery promise) and "Agregar a la bolsa" (Woo's own cart).
+  var cache = {}, elec = {}, estados = null, TALLA = 'f360_talla_v1';
+  var norm = function (v) { return String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-'); };
+  var verTalla = function (t) { return pais === 'mx' && /^\d+(\.5)?$/.test(t) && Number(t) >= 33 ? String(Number(t) - 13) : String(t); };
+  var miTalla = function (v) { try { if (v === undefined) return localStorage.getItem(TALLA); localStorage.setItem(TALLA, v); } catch (e) { return null; } };
+  var opciones = function (p) {
+    var at = function (tax) { return (p.attributes || []).filter(function (a) { return a.taxonomy === tax && a.has_variations; })[0]; };
+    var c = at('pa_color'), t = at('pa_medida');
+    return { colores: c ? c.terms.map(function (x) { return x.name; }) : [], tallas: t ? t.terms.map(function (x) { return x.name; }) : [] };
+  };
+  var variacion = function (p, color, talla) {
+    return (p.variations || []).filter(function (v) {
+      return (v.attributes || []).every(function (a) {
+        if (a.value === '' || a.value == null) return true;                                   // "any"
+        if (/color/i.test(a.name)) return !color || norm(a.value) === norm(color);
+        if (/medida|talla/i.test(a.name)) return String(a.value) === String(talla);
+        return true;
+      });
+    })[0] || null;
+  };
+  var estadoDe = function (id, color, talla) {     // 'inmediata' | 'pedido' | 'agotado' | null (unknown)
+    var it = estados && estados[id]; if (!it) return null;
+    var cs = it.colors || [], c = color ? cs.filter(function (x) { return norm(x.name) === norm(color); })[0] : cs[0];
+    return c && c.sizes ? (c.sizes[talla] || null) : null;
+  };
+  var ESTADO = { inmediata: pais === 'mx' ? 'Entrega inmediata' : 'Disponible', pedido: 'Sobre pedido', agotado: 'Agotada' };
+  var dinero = function (pr) { var dec = pr.currency_minor_unit || 0; return (pr.currency_prefix || '$') + Number(pr.price / Math.pow(10, dec)).toLocaleString('es-MX') + (pr.currency_suffix || ''); };
+
+  var comprar = function (x, p) {
+    var o = opciones(p), e = elec[x.id] || (elec[x.id] = {});
+    if (e.color == null) e.color = (x.color && o.colores.filter(function (c) { return norm(c) === norm(x.color); })[0]) || o.colores[0] || null;
+    if (e.talla == null) { var mt = miTalla(); e.talla = mt && o.tallas.indexOf(mt) >= 0 ? mt : null; }
+    var box = document.createElement('div'); box.className = 'f360-fav-comprar';
+    if (o.colores.length > 1) {
+      var sel = document.createElement('select'); sel.className = 'f360-fav-color'; sel.setAttribute('aria-label', 'Color');
+      o.colores.forEach(function (c) { var op = document.createElement('option'); op.value = c; op.textContent = c; if (c === e.color) op.selected = true; sel.appendChild(op); });
+      sel.onchange = function () { e.color = sel.value; redibujar(); };
+      box.appendChild(sel);
+    }
+    var tallas = document.createElement('div'); tallas.className = 'f360-fav-tallas'; tallas.setAttribute('role', 'group');
+    tallas.setAttribute('aria-label', pais === 'mx' ? 'Talla (México)' : 'Talla');
+    o.tallas.forEach(function (t) {
+      var v = variacion(p, e.color, t), st = estadoDe(x.id, e.color, t), off = !v || st === 'agotado';
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = verTalla(t); b.disabled = off;
+      b.setAttribute('aria-pressed', String(e.talla === t)); if (st) b.title = ESTADO[st] || '';
+      if (st === 'inmediata') b.className = 'inm';
+      b.onclick = function () { e.talla = t; miTalla(t); redibujar(); };
+      tallas.appendChild(b);
+    });
+    box.appendChild(tallas);
+    var v = e.talla ? variacion(p, e.color, e.talla) : null, st = e.talla ? estadoDe(x.id, e.color, e.talla) : null;
+    var linea = document.createElement('span'); linea.className = 'f360-fav-estado' + (st === 'inmediata' ? ' inm' : '');
+    linea.textContent = !e.talla ? 'Elige tu talla' : st ? (ESTADO[st] || '') : '';
+    box.appendChild(linea);
+    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'f360-fav-bolsa';
+    btn.textContent = e.listo ? '✓ En tu bolsa' : 'Agregar a la bolsa'; btn.disabled = !v || st === 'agotado' || !!e.listo;
+    var msg = document.createElement('span'); msg.className = 'f360-fav-err'; msg.setAttribute('role', 'alert');
+    btn.onclick = function () { agregar(x, p, v, e, btn, msg); };
+    box.appendChild(btn); box.appendChild(msg);
+    function redibujar() { box.parentNode.replaceChild(comprar(x, p), box); }
+    return box;
+  };
+  var agregar = function (x, p, v, e, btn, msg) {
+    btn.disabled = true; btn.textContent = 'Agregando…'; msg.textContent = '';
+    fetch(base + 'wp-json/wc/store/v1/cart', { credentials: 'same-origin' })
+      .then(function (r) { return fetch(base + 'wp-json/wc/store/v1/cart/add-item', { method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', Nonce: r.headers.get('Nonce') || '' }, body: JSON.stringify({ id: v.id, quantity: 1 }) }); })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw new Error(j && j.message || 'No se pudo agregar.'); return j; }); })
+      .then(function () {
+        e.listo = true; btn.textContent = '✓ En tu bolsa';
+        avisar('favorite_add_to_cart', { id: x.id, vid: v.id, color: e.color });
+        setTimeout(cerrar, 600);   // the store's own "✓ Agregado a tu carrito" (Pagar ahora) takes over
+        try { if (window.jQuery) { jQuery(document.body).trigger('wc_fragment_refresh'); jQuery(document.body).trigger('added_to_cart', [{}, '', null]); } } catch (er) { /* another script's handler must not keep the panel open */ }
+      })
+      .catch(function (err) { btn.disabled = false; btn.textContent = 'Agregar a la bolsa'; msg.textContent = String(err && err.message || 'No se pudo agregar.').replace(/<[^>]*>/g, ''); });
+  };
+
+  var listar = function () {
+    var l = favs; ultimaFirma = l.map(function (x) { return x.id; }).join(',');
+    if (!l.length) { lista.innerHTML = '<p class="f360-fav-vacio">Todavía no tienes favoritos.<br>Toca ♡ en los modelos que te gusten y aquí los verás juntos.</p>'; return; }
+    var fila = function (x) {
+      var p = cache[x.id], div = document.createElement('div'); div.className = 'f360-fav-item';
+      var vivo = p && p.is_purchasable !== false;
+      var img = document.createElement('img'); img.alt = ''; img.loading = 'lazy'; var src = (p && p.images && p.images[0] && (p.images[0].thumbnail || p.images[0].src)) || x.img || ''; if (src) img.src = src;   // no photo: the beige tile, never a broken icon
+      var a = document.createElement('a'); a.href = (p && p.permalink) || x.url || '#';
+      var b = document.createElement('b'); b.textContent = (p && p.name ? p.name.replace(/&amp;/g, '&') : x.name) || 'Modelo';
+      var s = document.createElement('span');
+      if (p === null) { s.textContent = 'Ya no está disponible'; s.className = 'f360-fav-no'; a.removeAttribute('href'); }
+      else if (p) s.textContent = !vivo ? 'Por ahora no está a la venta' : dinero(p.prices || {});
+      a.appendChild(b); a.appendChild(s);
+      var quitar = document.createElement('button'); quitar.type = 'button'; quitar.className = 'f360-fav-quitar'; quitar.innerHTML = HEART;
+      quitar.setAttribute('aria-label', 'Quitar ' + b.textContent + ' de mis favoritos');
+      quitar.onclick = function () { cambiar({ id: x.id }, false); };
+      div.appendChild(img); div.appendChild(a); div.appendChild(quitar);
+      if (p && vivo && p.type === 'variable') div.appendChild(comprar(x, p));
+      return div;
+    };
+    lista.innerHTML = ''; l.forEach(function (x) { lista.appendChild(fila(x)); });
+  };
+  var cargar = function () {
+    var ids = favs.map(function (x) { return x.id; }).filter(function (id) { return !(id in cache); });
+    var listos = [];
+    if (ids.length) listos.push(fetch(base + 'wp-json/wc/store/v1/products?per_page=100&include=' + ids.join(','), { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (prods) {
+        var vistos = {}; (prods || []).forEach(function (p) { cache[p.id] = p; vistos[p.id] = 1; });
+        ids.forEach(function (id) { if (!vistos[id]) cache[id] = null; });   // deleted / hidden / not for sale here
+      }).catch(function () {}));
+    // availability per colour / size from Fuxia 360 (once per page; if it does not answer, sizes simply show no state)
+    if (estados === null) { estados = {}; listos.push(fetch(F360, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'catalog' }) })
+      .then(function (r) { return r.ok ? r.json() : { items: [] }; })
+      .then(function (c) { (c.items || []).forEach(function (it) { estados[it.woo_product_id] = it; }); }).catch(function () {})); }
+    if (listos.length) Promise.all(listos).then(function () { ultimaFirma = null; listar(); });
+  };
+  var ultimoFoco = null;
+  function abrir() { ultimoFoco = document.activeElement; panel.hidden = false; velo.hidden = false; listar(); cargar(); q('.f360-fav-x').focus(); }
+  function cerrar() { panel.hidden = true; velo.hidden = true; if (ultimoFoco && ultimoFoco.focus) ultimoFoco.focus(); }
+  q('.f360-fav-x').onclick = cerrar; velo.onclick = cerrar;
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) cerrar(); });
+  window.addEventListener('storage', function (e) { if (e.key === KEY) pintar(); });   // other tabs
+
+  var todo = function () { cabecera(); tarjetas(); ficha(); pintar(); };
+  todo();
+  // grids / carousels that appear later (filters, "Más vendidas", lazy sections)
+  var pend = false;
+  new MutationObserver(function (ms) {
+    if (ms.every(function (m) { return root.contains(m.target); })) return;   // our own panel never re-triggers the scan
+    if (pend) return; pend = true; setTimeout(function () { pend = false; cabecera(); tarjetas(); pintar(); }, 250); })
+    .observe(document.body, { childList: true, subtree: true });
+  window.F360Fav = { abrir: abrir, lista: function () { return leer(); } };
+})();
+</script>
+F360SNIP;
+  echo "\n";
+}, 99);

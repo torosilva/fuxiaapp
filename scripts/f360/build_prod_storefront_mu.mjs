@@ -6,6 +6,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const STAGING_URL = 'https://faltxpkaicwpnlqaxrdu.supabase.co/functions/v1/f360-store-reserve';
 const PROD_URL = 'https://tgzgiwfzddsghnxgkcqd.supabase.co/functions/v1/f360-store-reserve';
 const PIECES = [
+  { src: 'tools/storefront/f360-favoritos.html', out: 'f360-favoritos.php', title: 'Fuxia 360 · Favoritos (producción)',
+    what: '♡ en tarjetas, carruseles, ficha y header + "Mis favoritos" (talla, disponibilidad, agregar a la bolsa); captura anónima en Fuxia 360.',
+    head: [] },
   { src: 'tools/storefront/f360-hilo-global.html', out: 'f360-hilo.php', title: 'Fuxia 360 · Hilo (producción)',
     what: 'Botón "Hilo" en todo el sitio (asesora HiloLabs + WhatsApp + casos a la Bandeja de Fuxia 360). Reemplaza a Joinchat.',
     head: [

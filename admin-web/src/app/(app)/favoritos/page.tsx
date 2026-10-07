@@ -1,12 +1,10 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { getFavoritesReport } from '@/lib/f360';
 
 // ♡ Favoritos / Intent V1 (Mario 2026-10-06): what the store's visitors save, per model, anonymously. A report only — nothing
 // here changes the store, sends messages or reorders products (those come later, by decision). ATC is not captured by
 // Fuxia 360 yet: shown as "—", never estimated.
 export default async function Favoritos({ searchParams }: { searchParams: Promise<{ dias?: string }> }) {
-  if (process.env.NEXT_PUBLIC_F360_ENV === 'production') notFound();   // V1 lives in staging until production is approved
   const sp = await searchParams;
   const days = [7, 30, 90].includes(Number(sp.dias)) ? Number(sp.dias) : 30;
   const r = await getFavoritesReport(days);
