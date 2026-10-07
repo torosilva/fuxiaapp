@@ -1,11 +1,31 @@
-/* Centro de control — animations only (colors/layout live in the component). Respect reduced motion. */
-.cc-grid { background-image: linear-gradient(rgba(232,201,138,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(232,201,138,.06) 1px, transparent 1px);
+/* Centro de control — theme + animations (layout lives in the component). Respect reduced motion.
+   Claro is the default (Mario 2026-10-06); Oscuro is the original night look. */
+.cc-root { --cc-bg: #f6f2ec; --cc-glow1: rgba(232,201,138,.32); --cc-glow2: rgba(120,90,255,.07);
+  --cc-ink-strong: #1f1b16; --cc-ink: #2b251e; --cc-soft: #4a433a; --cc-muted: #6f665c; --cc-faint: #8a8177;
+  --cc-gold: #C49A4C; --cc-gold-text: #8c6414; --cc-violet: #6B5BD6; --cc-mint: #1f8a57; --cc-silver: #8a94a1; --cc-bronze: #B9773F;
+  --cc-warn: #c2410c; --cc-neg: #b42318; --cc-rank: #A8875A; --cc-heat: 201,160,82; --cc-hub: #fffdf9; --cc-scan: #C49A4C;
+  --cc-line: #e6dfd4; --cc-line-strong: rgba(140,100,20,.35); --cc-tint: rgba(31,27,22,.03); --cc-track: rgba(31,27,22,.07);
+  --cc-feed-on: rgba(196,154,76,.14); --cc-grid: rgba(140,100,20,.08);
+  --cc-panel-bg: rgba(255,253,249,.82); --cc-panel-shadow: 0 1px 2px rgba(31,27,22,.04), 0 28px 60px -38px rgba(31,27,22,.35);
+  --cc-glow-text: none; --cc-pill-bg: #1f1b16; --cc-pill-ink: #F7E7C4; --cc-pill-glow: 0 10px 24px -12px rgba(31,27,22,.6);
+  transition: background-color .4s ease, color .4s ease; }
+.cc-root[data-theme="dark"] { --cc-bg: #06060A; --cc-glow1: rgba(232,201,138,.14); --cc-glow2: rgba(120,90,255,.10);
+  --cc-ink-strong: #F7E7C4; --cc-ink: #EDE6DA; --cc-soft: #CFC6B8; --cc-muted: #A79F92; --cc-faint: #8E877C;
+  --cc-gold: #F3D59A; --cc-gold-text: #F3D59A; --cc-violet: #9C8CFF; --cc-mint: #6FE3A0; --cc-silver: #C9CED6; --cc-bronze: #D69A6B;
+  --cc-warn: #FFB86B; --cc-neg: #FF8F85; --cc-rank: #A8875A; --cc-heat: 243,213,154; --cc-hub: #0B0A08; --cc-scan: #ffffff;
+  --cc-line: rgba(232,201,138,.12); --cc-line-strong: rgba(232,201,138,.35); --cc-tint: rgba(255,255,255,.03); --cc-track: rgba(255,255,255,.06);
+  --cc-feed-on: rgba(232,201,138,.10); --cc-grid: rgba(232,201,138,.06);
+  --cc-panel-bg: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015));
+  --cc-panel-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 24px 60px -36px rgba(0,0,0,.9);
+  --cc-glow-text: 0 0 18px rgba(232,201,138,.28); --cc-pill-bg: #E8C98A; --cc-pill-ink: #0B0A08; --cc-pill-glow: 0 0 24px rgba(232,201,138,.4); }
+.cc-grid { background-image: linear-gradient(var(--cc-grid) 1px, transparent 1px), linear-gradient(90deg, var(--cc-grid) 1px, transparent 1px);
   background-size: 44px 44px; animation: cc-gridmove 18s linear infinite; }
 @keyframes cc-gridmove { from { background-position: 0 0, 0 0 } to { background-position: 0 44px, 44px 0 } }
-.cc-panel { background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015)); border: 1px solid rgba(232,201,138,.12); border-radius: 22px;
-  box-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 24px 60px -36px rgba(0,0,0,.9); transition: border-color .3s ease; }
-.cc-panel:hover { border-color: rgba(232,201,138,.3); }
-.cc-glow { text-shadow: 0 0 18px rgba(232,201,138,.28); }
+.cc-panel { background: var(--cc-panel-bg); border: 1px solid var(--cc-line); border-radius: 22px; box-shadow: var(--cc-panel-shadow);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15); backdrop-filter: blur(16px) saturate(1.15);
+  transition: border-color .3s ease, transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease; }
+.cc-panel:hover { border-color: var(--cc-line-strong); transform: translateY(-2px); box-shadow: var(--cc-panel-shadow), 0 0 0 1px var(--cc-line-strong); }
+.cc-glow { text-shadow: var(--cc-glow-text); }
 .cc-pulse { animation: cc-pulse 2.4s ease-out infinite; transform-origin: center; transform-box: fill-box; }
 @keyframes cc-pulse { 0% { opacity: .55; transform: scale(.6) } 80%, 100% { opacity: 0; transform: scale(2.2) } }
 .cc-flow { stroke-dasharray: 6 10; animation: cc-flow 1.6s linear infinite; }
@@ -19,7 +39,7 @@
 .cc-ring { transition: stroke-dashoffset 1.6s cubic-bezier(.2,.8,.2,1), width 1.6s cubic-bezier(.2,.8,.2,1); }
 .cc-spin { animation: cc-spin 26s linear infinite; transform-origin: center; transform-box: fill-box; }
 @keyframes cc-spin { to { transform: rotate(360deg) } }
-.cc-particle { position: absolute; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: #E8C98A; box-shadow: 0 0 12px #E8C98A;
+.cc-particle { position: absolute; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: var(--cc-gold); box-shadow: 0 0 12px var(--cc-gold);
   animation: cc-travel 3.2s linear infinite; }
 @keyframes cc-travel { 0% { left: -2%; opacity: 0 } 10% { opacity: 1 } 90% { opacity: 1 } 100% { left: 100%; opacity: 0 } }
 .cc-hot { animation: cc-hot 2.2s ease-in-out infinite; }
@@ -31,4 +51,5 @@
 @media (prefers-reduced-motion: reduce) {
   .cc-grid, .cc-pulse, .cc-flow, .cc-draw, .cc-fade, .cc-scan, .cc-spin, .cc-particle, .cc-hot, .cc-live, .cc-feedin { animation: none !important; }
   .cc-draw { stroke-dashoffset: 0; } .cc-fade { opacity: 1; } .cc-ring { transition: none; }
+  .cc-root, .cc-panel { transition: none; } .cc-panel:hover { transform: none; }
 }
