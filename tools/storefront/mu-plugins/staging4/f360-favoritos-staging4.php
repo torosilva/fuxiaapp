@@ -53,7 +53,11 @@ add_action('wp_footer', function () {
 .f360-fav-top { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid #f0e9df; }
 .f360-fav-top h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .02em; }
 .f360-fav-n { color: #83734C; font-weight: 500; }
-.f360-fav-x { border: 0; background: none; font-size: 20px; cursor: pointer; width: 40px; height: 40px; color: #242424; }
+#f360-fav-root button { box-shadow: none; outline: none; text-transform: none; letter-spacing: normal; }   /* the theme's button styles never leak in */
+#f360-fav-root button:focus-visible { outline: 2px solid #83734C !important; outline-offset: 2px; }
+.f360-fav-x { display: inline-flex !important; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0 !important; margin: 0 -8px 0 0;
+  border: 0 !important; border-radius: 50%; background: none !important; color: #242424 !important; font-size: 20px; line-height: 1; cursor: pointer; }
+.f360-fav-x:hover { background: #f5f2ec !important; }
 .f360-fav-lista { flex: 1; overflow-y: auto; padding: 8px 20px; overscroll-behavior: contain; }
 .f360-fav-item { display: grid; grid-template-columns: 76px 1fr auto; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid #f4efe7; }
 .f360-fav-item img { width: 76px; height: 76px; object-fit: cover; border-radius: 6px; background: #f5f2ec; display: block; }
@@ -61,7 +65,7 @@ add_action('wp_footer', function () {
 .f360-fav-item b { display: block; font-size: 14px; font-weight: 600; }
 .f360-fav-item span { display: block; font-size: 13px; color: #6B6B68; margin-top: 3px; }
 .f360-fav-item .f360-fav-no { color: #9b2c2c; }
-.f360-fav-quitar { border: 0; background: none; color: #B23A48; cursor: pointer; width: 40px; height: 40px; }
+.f360-fav-quitar { display: inline-flex !important; align-items: center; justify-content: center; padding: 0 !important; border: 0 !important; background: none !important; color: #B23A48 !important; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; }
 .f360-fav-quitar svg { width: 19px; height: 19px; fill: currentColor; }
 .f360-fav-vacio { padding: 40px 10px; text-align: center; color: #6B6B68; font-size: 14px; line-height: 1.6; }
 .f360-fav-item { grid-template-areas: "img info x" "img buy buy"; }
