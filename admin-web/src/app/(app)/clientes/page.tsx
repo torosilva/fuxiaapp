@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { canWrite, getCrmAccess, getMe, listAdminCustomers } from '@/lib/f360';
+import { NewCustomer } from './NewCustomer';
 
 // Clientas (CRM C4 · Mario 2026-10-05). Full personal data only for customer_pii_viewers (Carolina, Mario), enforced by the
 // database (f360_admin_customers refuses everyone else and logs every access). Others see counts only. No export button.
@@ -32,6 +33,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="font-display text-5xl text-ink">Clientas</h1>
         <span className="text-sm text-muted">{access.customers.toLocaleString('es-MX')} registradas · solo Carolina y Mario ven estos datos · cada consulta queda registrada</span>
+        <NewCustomer />
       </div>
       <form action="/clientes" className="mt-6 flex flex-wrap gap-2">
         <label className="min-w-64 flex-1"><span className="sr-only">Buscar</span>

@@ -719,3 +719,18 @@ export async function deactivateSellerAction(id: string): Promise<Result<Seller>
   if (r.ok) revalidatePath('/vendedoras');
   return r;
 }
+
+// ── Clientas: alta desde el admin (Mario 2026-10-08). f360_admin_customer_add validates, refuses anyone who is not a PII viewer,
+// never creates the same WhatsApp twice and logs the access; an existing WhatsApp just returns that customer.
+export type NewCustomer = { ok: true; created: boolean; customer_ref: string; role?: string } | { ok: false; error: string };
+export async function addCustomerAction(input: {
+  name: string; phone: string; email?: string; postalCode?: string; birthday?: string; shoeSize?: string; country?: string;
+}): Promise<Result<NewCustomer>> {
+  const [mm, dd] = (input.birthday ?? '').split('-').slice(-2).map(Number);   // <input type="date"> → only day + month are kept
+  const r = await call<NewCustomer>('f360_admin_customer_add', {
+    p_phone: input.phone, p_name: input.name, p_email: input.email?.trim() || null, p_postal_code: input.postalCode?.trim() || null,
+    p_birthday_day: dd || null, p_birthday_month: mm || null, p_shoe_size: input.shoeSize?.trim() || null, p_country: input.country || 'MX',
+  });
+  if (r.ok && r.data.ok) revalidatePath('/clientes');
+  return r;
+}
