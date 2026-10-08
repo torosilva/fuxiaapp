@@ -55,14 +55,18 @@ END $$;
 REVOKE ALL ON FUNCTION public.f360_whatsapp_claim(int, text[]) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.f360_whatsapp_claim(int, text[]) TO service_role;
 DO $$
-DECLARE card uuid := (SELECT l.id FROM public.loyalty_cards l JOIN public.customers c ON c.id = l.customer_id WHERE c.auth_user_id = 'd11a8d33-cae6-46a5-9d0f-bd2516e8712b' LIMIT 1);
-  tot int := (SELECT total_points FROM public.loyalty_cards WHERE id = card); t1 uuid; t2 uuid; m jsonb; n int;
+DECLARE card uuid;
+  who text;
+  tot int; t1 uuid; t2 uuid; m jsonb; n int;
 BEGIN
+  -- Ada's card (customer of today's Polanco sale; has the app)
+  SELECT l.id, split_part(btrim(c.name), ' ', 1), l.total_points INTO card, who, tot FROM public.offline_sales s JOIN public.customers c ON c.id = s.customer_id
+    JOIN public.loyalty_cards l ON l.customer_id = c.id WHERE s.id = '26df917b-42a3-4805-b4b1-be90b9d0f4c1';
   -- T1 · a credited store sale (Ada's) → one thanks_member: Polanco, first name, points, new total
   INSERT INTO public.transactions (loyalty_card_id, amount, points_earned, pairs_in_order, channel, ref_type, ref_id)
     VALUES (card, 2800, 100, 1, 'store', 'offline_sale', '26df917b-42a3-4805-b4b1-be90b9d0f4c1') RETURNING id INTO t1;
   SELECT variables INTO m FROM f360.whatsapp_outbox WHERE kind = 'thanks_member' AND ref_id = t1::text;
-  IF m->>'1' <> 'Polanco' OR m->>'2' <> 'Mario' OR m->>'3' <> '100' OR m->>'4' <> (tot + 100)::text THEN RAISE EXCEPTION 'T1 %', m; END IF;
+  IF m IS NULL OR m->>'1' <> 'Polanco' OR m->>'2' <> who OR m->>'3' <> '100' OR m->>'4' <> (tot + 100)::text THEN RAISE EXCEPTION 'T1 %', m; END IF;
   -- T2 · a released hold, a reversed row and a zero-point row → nothing
   INSERT INTO public.transactions (loyalty_card_id, amount, points_earned, pairs_in_order, channel, actor) VALUES (card, 1, 100, 1, 'store', '{"released_hold": "x"}') RETURNING id INTO t2;
   INSERT INTO public.transactions (loyalty_card_id, amount, points_earned, pairs_in_order, channel, reversed_at) VALUES (card, 1, 100, 1, 'web', now());
@@ -71,7 +75,7 @@ BEGIN
   IF n <> 1 THEN RAISE EXCEPTION 'T2 %', n; END IF;
   -- T3 · web credit → "en línea"
   INSERT INTO public.transactions (loyalty_card_id, wc_order_id, amount, points_earned, pairs_in_order, channel) VALUES (card, 999000021, 2800, 100, 1, 'web') RETURNING id INTO t2;
-  IF (SELECT variables->>'1' FROM f360.whatsapp_outbox WHERE ref_id = t2::text) <> 'en línea' THEN RAISE EXCEPTION 'T3'; END IF;
+  IF (SELECT variables->>'1' FROM f360.whatsapp_outbox WHERE ref_id = t2::text) IS DISTINCT FROM 'en línea' THEN RAISE EXCEPTION 'T3'; END IF;
   -- T4 · claim by kind: only 'thanks' requested → no thanks_member handed out
   IF EXISTS (SELECT 1 FROM jsonb_array_elements(public.f360_whatsapp_claim(50, ARRAY['thanks'])) x WHERE x->>'kind' = 'thanks_member') THEN RAISE EXCEPTION 'T4'; END IF;
   IF (SELECT count(*) FROM jsonb_array_elements(public.f360_whatsapp_claim(50, ARRAY['thanks_member'])) x WHERE x->>'kind' = 'thanks_member') < 2 THEN RAISE EXCEPTION 'T4b'; END IF;
