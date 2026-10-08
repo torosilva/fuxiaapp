@@ -34,6 +34,26 @@ export type Metric = { metric_key: string; label: string; definition: string; un
 export type BoardPlans = { ok: true; label: string; plans: { id: string; name: string; horizon: string; status: string; origin: string; target_label: string; note: string | null; revisions: number;
   years: { year: number; theme: string | null; currency: string; revenue_target: number | null; source: string; imported_value: number | null; source_history: { what: string; before: number | null; after: number | null; by: string; at: string }[] | null }[] }[] };
 
+// Equity earn-in tracker (f360_board_earnin). INDICATIVE only: proposed terms, never a cap table, contract or valuation.
+export type BoardDecision = { id: string; number: string; title: string; decision: string; status: string; conflict_kind: string; related_party: boolean;
+  interested: string[]; recused: string[]; i_am_recused: boolean; approval_basis: string | null; approved_by: string[]; approved_at: string | null;
+  proposed_by: string; proposed_by_me: boolean; created_at: string };
+export type EarninMilestone = { year: number; revenue_target: number; currency: string; equity_pct: number; partial_from: number; gross_margin_min: number | null };
+export type EarninTerms = { id: string; version: number; entity_label: string; initial_pct: number; cap_pct: number; founder_min_pct: number;
+  cash_commitment: number | null; cash_currency: string; revenue_definition: string; excluded_markets: string[]; proposal_ref: string | null;
+  created_by: string; created_at: string; milestones: EarninMilestone[]; decision: BoardDecision; tracking_status: string };
+export type EarninYear = EarninMilestone & { period_state: 'FUTURE' | 'IN_PROGRESS' | 'ENDED'; months_closed: number; management_target: number | null;
+  forecast: number | null; actual: number; actual_basis: 'CONSOLIDATED_MXN' | 'MXN_ONLY';
+  revenue: { by_currency: Record<string, number>; mxn_only: number; consolidated_mxn: number | null; fx_missing: string[]; status: string };
+  attainment: number | null; indicative_equity_actual: number | null; indicative_equity_forecast: number | null;
+  margin_gate: 'PENDING_DEFINITION' | 'DATA_INCOMPLETE' | 'MEASURABLE_NOT_EVALUATED' };
+export type BoardEarnin = { ok: true; label: string; terms: EarninTerms | null; pending: EarninTerms | null; years: EarninYear[];
+  totals: { initial_pct: number; cap_pct: number; founder_min_pct: number; milestones_pct: number; indicative_earned_pct: number; indicative_total_pct: number } | null;
+  statuses: { initial_equity: string; legal: string; cash: string; technology: string; margin_metric: string };
+  related_party: { member: string; i_am_interested: boolean; rule: string };
+  history: { version: number; created_at: string; created_by: string; initial_pct: number; cap_pct: number; decision_number: string; decision_status: string }[];
+  this_year: number };
+
 async function boardRpc<T>(fn: string, args: Record<string, unknown> = {}): Promise<T | BoardDenied> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc(fn, args);
@@ -54,6 +74,7 @@ export const getBoardClose = (periodId: string) => boardRpc<BoardClose>('f360_bo
 export const getBoardAccessLog = (days = 30) => boardRpc<BoardAccessLog>('f360_board_access_log', { p_days: days });
 export const getBoardMetrics = () => boardRpc<{ ok: true; metrics: Metric[] }>('f360_board_metric_catalog');
 export const getBoardPlans = () => boardRpc<BoardPlans>('f360_board_plans');
+export const getBoardEarnin = () => boardRpc<BoardEarnin>('f360_board_earnin');
 export const boardCall = (fn: string, args: Record<string, unknown>) => boardRpc<{ ok: true } & Record<string, unknown>>(fn, args);
 
 export const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];

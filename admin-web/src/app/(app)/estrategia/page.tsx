@@ -22,6 +22,7 @@ export default async function Estrategia({ searchParams }: { searchParams: Promi
       <header className="flex flex-col gap-2">
         <h1 className="font-display text-5xl text-ink">Strategy &amp; Board</h1>
         <p className="max-w-3xl text-ink-2">Base de dirección (SB0): acceso, calendario fiscal, cierre de mes, plan y registro de accesos. Nada aquí es un dato inventado: lo que falta se dice <b>DATA INCOMPLETE</b>.</p>
+        <nav className="flex flex-wrap gap-2 text-sm"><Link href="/estrategia/participacion" className="rounded-full border border-line px-3 py-1 text-ink-2 hover:border-gold/40">Participación · earn-in →</Link></nav>
       </header>
 
       <section className="grid gap-4 md:grid-cols-2">
