@@ -232,7 +232,7 @@ function ReportedFigures({ data }: { data: GrowthPlan }) {
         <div className="mt-3 grid gap-3 rounded-2xl border border-line bg-surface p-4 md:grid-cols-2">
           <label className="text-sm text-ink-2">Año<input value={f.period} onChange={(e) => setF({ ...f, period: e.target.value })} className={field} /></label>
           <label className="text-sm text-ink-2">Revenue (MXN)<input value={f.value} onChange={(e) => setF({ ...f, value: e.target.value })} inputMode="numeric" className={field} /></label>
-          <label className="text-sm text-ink-2">Qué incluye (canales, con/sin IVA, neto de devoluciones…)<input value={f.scope} onChange={(e) => setF({ ...f, scope: e.target.value })} className={field} /></label>
+          <label className="text-sm text-ink-2">Qué incluye (canales, con/sin IVA, neto de cancelaciones…)<input value={f.scope} onChange={(e) => setF({ ...f, scope: e.target.value })} className={field} /></label>
           <label className="text-sm text-ink-2">Fuente (quién / qué documento)<input value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })} className={field} /></label>
           {error && <p role="alert" className="text-sm text-danger md:col-span-2">{error}</p>}
           <div className="flex gap-3 md:col-span-2">

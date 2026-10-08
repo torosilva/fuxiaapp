@@ -4,7 +4,7 @@ import { IconBack } from '@/components/icons';
 import { getEvent } from '@/lib/f360';
 import { eventSentence, fecha, pares } from '@/lib/format';
 
-const TYPE: Record<string, string> = { RECEIPT: 'Recepción', TRANSFER: 'Traspaso', SALE: 'Venta', RETURN: 'Devolución', ADJUSTMENT: 'Ajuste' };
+const TYPE: Record<string, string> = { RECEIPT: 'Recepción', TRANSFER: 'Traspaso', SALE: 'Venta', RETURN: 'Regreso por cambio', ADJUSTMENT: 'Ajuste' };
 
 export default async function Movimiento({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

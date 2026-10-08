@@ -61,7 +61,7 @@ export default async function Venta({ params }: { params: Promise<{ id: string }
           {v.loyalty.audit.map((a, i) => <div key={i} className="flex gap-2"><dt className="w-44 shrink-0 text-muted">loyalty_audit</dt><dd className="font-mono text-ink-2">{a.result} · {a.points} · {a.at}</dd></div>)}
         </dl>
       </details>
-      <p className="mt-8 text-center text-sm text-muted">Una venta registrada no se modifica. Las devoluciones llegarán como movimientos nuevos.</p>
+      <p className="mt-8 text-center text-sm text-muted">Una venta registrada no se modifica. Si la clienta cambia su par, el cambio llega como un movimiento nuevo.</p>
     </div>
   );
 }

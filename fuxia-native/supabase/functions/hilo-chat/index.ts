@@ -10,7 +10,7 @@ const KB: { keywords: string[]; answer: string; escalate?: boolean }[] = [
   // Saludos
   {
     keywords: ['hola', 'buenas', 'buenos días', 'buenos dias', 'buenas tardes', 'buenas noches', 'hi', 'hello', 'hey'],
-    answer: '¡Hola! 💛 Soy Hilo, tu asistente de Fuxia Ballerinas. Puedo ayudarte con tallas, envíos, devoluciones, el programa de puntos Hilo y más. ¿En qué te puedo ayudar?',
+    answer: '¡Hola! 💛 Soy Hilo, tu asistente de Fuxia Ballerinas. Puedo ayudarte con tallas, envíos, cambios, el programa de puntos Hilo y más. ¿En qué te puedo ayudar?',
   },
   {
     keywords: ['gracias', 'muchas gracias', 'thanks', 'ok gracias', 'perfecto'],
@@ -32,7 +32,7 @@ const KB: { keywords: string[]; answer: string; escalate?: boolean }[] = [
   },
   {
     keywords: ['apretadas', 'cambio de talla', 'talla mayor', 'no me quedaron'],
-    answer: 'Si las acabas de recibir y te quedan apretadas, no las uses todavía. Tienes 15 días para hacer cambio por una talla mayor sin costo, siempre que estén sin uso y con caja original. Escríbenos con tu número de pedido.',
+    answer: 'Si las acabas de recibir y te quedan apretadas, no las uses todavía. Tienes 30 días para cambiarlas por una talla mayor, siempre que estén sin uso y con caja original. Escríbenos con tu número de pedido.',
   },
   {
     keywords: ['equivalencia', 'americana', 'us 5', 'us 6', 'us 7', 'us 8', 'us 9', 'us 10', 'tabla tallas'],
@@ -89,30 +89,30 @@ const KB: { keywords: string[]; answer: string; escalate?: boolean }[] = [
     answer: 'En México usamos Estafeta y DHL para envíos express. Para envíos internacionales usamos DHL Express.',
   },
 
-  // ── DEVOLUCIONES ─────────────────────────────────────────────────────────────
+  // ── CAMBIOS (no hay devoluciones de dinero; política de Carolina 2026-10-03, mismas respuestas que Hilo de la tienda) ──
   {
-    keywords: ['devolver', 'devolución', 'return', 'no me quedaron', 'regresar'],
-    answer: 'Tienes 15 días desde que recibes tu pedido para devolverlo, siempre que estén sin uso, con caja original y accesorios. El envío de devolución corre por tu cuenta excepto en el primer cambio de talla.',
+    keywords: ['devolver', 'devolución', 'return', 'no me quedaron', 'regresar', 'cambio', 'cambiar talla'],
+    answer: 'No hacemos devoluciones de dinero, pero sí cambios: por otra talla, color o modelo disponible, dentro de los 30 días siguientes a recibir tu pedido, sin uso y con su caja. Los pares con descuento directo en el precio no tienen cambio; si usaste un cupón (por ejemplo BIENVENIDA10), tu par sí tiene cambio.',
   },
   {
-    keywords: ['plazo devolución', 'días devolución', 'cuánto tiempo devolver'],
-    answer: 'Tienes 15 días naturales desde que recibes tu pedido. Después ya no aceptamos devoluciones, salvo defecto de fábrica.',
+    keywords: ['plazo devolución', 'días devolución', 'cuánto tiempo devolver', 'plazo cambio', 'días para cambio'],
+    answer: 'Tienes 30 días naturales desde que recibes tu pedido para pedir tu cambio, con el par sin uso y en su caja.',
   },
   {
-    keywords: ['quién paga envío devolución', 'guía retorno', 'envío de regreso'],
-    answer: 'El primer cambio de talla por pedido es sin costo, generamos guía. Devoluciones por preferencia personal: el envío corre por tu cuenta. Producto con defecto de fábrica: siempre gratis.',
+    keywords: ['quién paga envío devolución', 'guía retorno', 'envío de regreso', 'envío del cambio'],
+    answer: 'Es mitad y mitad: tú nos llevas o envías el par a tu tienda Fuxia más cercana y nosotros te enviamos el nuevo sin costo.',
   },
   {
     keywords: ['reembolso', 'refund', 'dinero de regreso', 'cuándo me regresan'],
-    answer: 'Una vez que recibimos tu devolución y verificamos el estado, procesamos el reembolso al método de pago original en 5 a 10 días hábiles. Te avisamos por correo.',
+    answer: 'No hacemos reembolsos ni devoluciones de dinero. Lo que sí podemos hacer es cambiar tu par por otra talla, color o modelo disponible dentro de los 30 días. Escríbenos por WhatsApp o a info@fuxiaballerinas.com con tu número de pedido.',
   },
   {
     keywords: ['cambio modelo', 'otro modelo', 'otro estilo', 'cambiar modelo'],
-    answer: 'Sí, puedes cambiar de modelo dentro de los 15 días si está sin uso. Si el modelo nuevo tiene precio diferente, ajustamos la diferencia.',
+    answer: 'Sí, puedes cambiar a otro modelo disponible dentro de los 30 días si está sin uso. Si el modelo nuevo tiene precio diferente, ajustamos la diferencia.',
   },
   {
     keywords: ['defectuoso', 'dañado', 'roto', 'calidad', 'falla', 'defecto'],
-    answer: 'Lamento que pasara 😞 Mándanos foto del defecto con tu número de pedido a hola@fuxiaballerinas.com y lo resolvemos sin costo: cambio inmediato o reembolso completo, lo que prefieras.',
+    answer: 'Lamento mucho que pasara 😞 Mándanos foto del defecto con tu número de pedido a info@fuxiaballerinas.com y lo resolvemos sin costo con un cambio del par.',
   },
 
   // ── PRODUCTO ─────────────────────────────────────────────────────────────────
@@ -182,7 +182,7 @@ const KB: { keywords: string[]; answer: string; escalate?: boolean }[] = [
   },
   {
     keywords: ['cancelar pedido', 'anular', 'cancelar mi orden'],
-    answer: 'Si tu pedido aún no salió del almacén, sí podemos cancelarlo con reembolso completo. Una vez con guía emitida ya no es posible cancelar, pero puedes recibirlo y procesarlo como devolución.',
+    answer: 'Después de haber realizado el pago, el pedido no se puede cancelar. Si la talla o el modelo no te quedan, puedes cambiarlo dentro de los 30 días.',
   },
   {
     keywords: ['modificar pedido', 'cambiar pedido', 'agregar al pedido'],
@@ -260,7 +260,7 @@ function findAnswer(message: string): { answer: string; escalate: boolean } {
     return { answer: best.answer, escalate: !!best.escalate };
   }
   return {
-    answer: 'Mmm, no estoy segura de cómo ayudarte con eso 😊 Puedes preguntarme sobre tallas, envíos, devoluciones, el programa Hilo o cuidado de tus zapatos. También escríbenos a hola@fuxiaballerinas.com',
+    answer: 'Mmm, no estoy segura de cómo ayudarte con eso 😊 Puedes preguntarme sobre tallas, envíos, cambios, el programa Hilo o cuidado de tus zapatos. También escríbenos a hola@fuxiaballerinas.com',
     escalate: false,
   };
 }

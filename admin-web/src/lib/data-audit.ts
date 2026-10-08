@@ -31,7 +31,7 @@ export const CUSTOMER_FIELDS: AuditRow[] = [
   { question: 'Modelos, color y talla comprados', status: 'parcial', source: 'Partidas de pedidos del webhook', needs: 'D-C1, D-G1' },
   { question: 'Primera / última compra, órdenes, unidades, revenue, AOV, frecuencia', status: 'no_disponible', source: 'Requiere historial completo por clienta', needs: 'D-C1, D-C3, D-C4' },
   { question: 'Loyalty: nivel y puntos', status: 'confiable', source: 'Sistema de loyalty', needs: '—' },
-  { question: 'Cancelaciones / devoluciones', status: 'parcial', source: 'Estado de transacciones de miembros', needs: 'D-C1 y política DW4' },
+  { question: 'Cancelaciones y cambios', status: 'parcial', source: 'Estado de transacciones de miembros', needs: 'D-C1 y política DW4' },
 ];
 
 export const SEGMENTS: { name: string; rule: string; status: Availability; needs: string }[] = [
