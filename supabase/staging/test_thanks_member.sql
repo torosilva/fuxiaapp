@@ -67,7 +67,7 @@ BEGIN
   INSERT INTO public.transactions (loyalty_card_id, amount, points_earned, pairs_in_order, channel, actor) VALUES (card, 1, 100, 1, 'store', '{"released_hold": "x"}') RETURNING id INTO t2;
   INSERT INTO public.transactions (loyalty_card_id, amount, points_earned, pairs_in_order, channel, reversed_at) VALUES (card, 1, 100, 1, 'web', now());
   INSERT INTO public.transactions (loyalty_card_id, amount, points_earned, pairs_in_order, channel) VALUES (card, 1, 0, 0, 'web');
-  SELECT count(*) INTO n FROM f360.whatsapp_outbox WHERE kind = 'thanks_member' AND created_at >= now();
+  SELECT count(*) INTO n FROM f360.whatsapp_outbox o JOIN public.transactions t ON t.id::text = o.ref_id WHERE o.kind = 'thanks_member' AND t.loyalty_card_id = card;
   IF n <> 1 THEN RAISE EXCEPTION 'T2 %', n; END IF;
   -- T3 · web credit → "en línea"
   INSERT INTO public.transactions (loyalty_card_id, wc_order_id, amount, points_earned, pairs_in_order, channel) VALUES (card, 999000021, 2800, 100, 1, 'web') RETURNING id INTO t2;
