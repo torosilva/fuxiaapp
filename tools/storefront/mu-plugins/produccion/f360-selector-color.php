@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Fuxia 360 · Selector de color (producción)
- * Description: Botones de Color arriba de las tallas en la ficha de producto (productos con atributo Color).
+ * Description: Botones de Color arriba de las tallas en la ficha de producto (productos con atributo Color), con el círculo de Fuxia 360.
  *              GENERADO por scripts/f360/build_prod_storefront_mu.mjs desde tools/storefront/f360-selector-color.html — no editar a mano.
  * Apagar: borrar este archivo de wp-content/mu-plugins/.
  */
@@ -46,6 +46,8 @@ add_action('wp_footer', function () {
 
     var HEX = { negro: '#1C1A17', nude: '#D8B9A0', rojo: '#9E2A2B', blanco: '#F4F1EA', camel: '#B07A4A', rosa: '#E3A6B4',
       'azul-marino': '#1F2A44', dorado: '#B8860B', plata: '#B9B9B9', cafe: '#6F4E37', taupe: '#8B7D6B', verde: '#4F6B4A', vino: '#6D1A2A' };
+    var ENDPOINT = 'https://tgzgiwfzddsghnxgkcqd.supabase.co/functions/v1/f360-store-reserve';   // PRODUCCIÓN: endpoint de staging.
+    var norm = function (x) { return String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase(); };
     var botones = box.querySelector('.f360-colores-botones');
     var nombre = box.querySelector('.f360-color-nombre');
     var $ = window.jQuery;
@@ -122,6 +124,25 @@ add_action('wp_footer', function () {
     // Con color sin talla (p. ej. un color agotado) WooCommerce dispara reset_image y Bricks regresa la galería a la foto 1.
     // Después de ese regreso se vuelve a poner la foto del color elegido.
     if ($) $(form).on('reset_image', function () { if (colorSelect.value) setTimeout(function () { cambiarFoto(colorSelect.value); }, 60); });
+
+    // the colour circle Carolina chose in Fuxia 360 (same catalog the shop search reads; one request, never blocks the page)
+    var punto = function (b, hex) {
+      var d = b.querySelector('.f360-punto');
+      if (!d) { d = document.createElement('span'); d.className = 'f360-punto'; b.insertBefore(d, b.firstChild); }
+      d.style.background = hex;
+    };
+    try {
+      fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'catalog' }) })
+        .then(function (r) { return r.json(); })
+        .then(function (cat) {
+          var id = Number(form.getAttribute('data-product_id'));
+          var it = (cat.items || []).filter(function (x) { return Number(x.woo_product_id) === id; })[0];
+          (it && it.colors || []).forEach(function (c) {
+            if (!c.hex) return;
+            Array.prototype.forEach.call(botones.children, function (b) { if (norm(b.dataset.nombre) === norm(c.name)) punto(b, c.hex); });
+          });
+        }).catch(function () {});
+    } catch (e) {}
 
     box.hidden = false;
     var inicial = colorSelect.value && botones.querySelector('[data-color="' + colorSelect.value + '"]');

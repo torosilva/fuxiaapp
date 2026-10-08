@@ -19,9 +19,9 @@ const PIECES = [
     ] },
   // Mario 2026-10-07 (clienta: "No puedo elegir el color en la página"): the merged one-product-per-model listings have a Color
   // attribute, but the theme only draws size buttons, so nobody could add them to the cart. Product pages only; a product without
-  // Color is left untouched. No Fuxia 360 endpoint: everything comes from the variations WooCommerce already prints.
+  // Color is left untouched. Colours/sizes come from the variations WooCommerce prints; the circle from Fuxia 360's catalog.
   { src: 'tools/storefront/f360-selector-color.html', out: 'f360-selector-color.php', title: 'Fuxia 360 · Selector de color (producción)',
-    what: 'Botones de Color arriba de las tallas en la ficha de producto (productos con atributo Color).', head: [], noEndpoint: true, productOnly: true },
+    what: 'Botones de Color arriba de las tallas en la ficha de producto (productos con atributo Color), con el círculo de Fuxia 360.', head: [], productOnly: true, stripNotes: true },
   { src: 'tools/storefront/f360-compra.html', out: 'f360-compra.php', title: 'Fuxia 360 · Compra (producción)',
     what: '"✓ Agregado" + checkout Fuxia + link de pago (pedido pendiente en Woo → página de pago de Woo) + "Pedido recibido" con el estado REAL del pago.',
     head: [
@@ -84,8 +84,8 @@ F360SNIP
 }
 for (const p of PIECES) {
   let html = readFileSync(p.src, 'utf8');
-  if (!p.noEndpoint && !html.includes(STAGING_URL)) throw new Error(`${p.src}: no encontré el endpoint de staging; revisa la fuente.`);
-  if (p.noEndpoint) html = html.replace(/^<!--[\s\S]*?-->\s*/, '');   // the page gets the code, not the install notes
+  if (!html.includes(STAGING_URL)) throw new Error(`${p.src}: no encontré el endpoint de staging; revisa la fuente.`);
+  if (p.stripNotes) html = html.replace(/^<!--[\s\S]*?-->\s*/, '');   // the page gets the code, not the install notes
   html = html.split(STAGING_URL).join(PROD_URL).replace(/\/\/ STAGING\b/g, '// PRODUCCIÓN').replace(/\. STAGING\./g, '. PRODUCCIÓN.')
     .replace(/^\s*STAGING: endpoint de staging\..*$/m, '  PRODUCCIÓN: generado por scripts/f360/build_prod_storefront_mu.mjs.');
   if (/faltxpkaicwpnlqaxrdu/.test(html)) throw new Error(`${p.src}: todavía apunta a staging.`);
