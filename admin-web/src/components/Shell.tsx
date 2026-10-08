@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { IconBag, IconBell, IconBoxes, IconCheck, IconClock, IconGrowth, IconHome, IconLink, IconLogout, IconMore, IconMove, IconReceipt, IconScissors, IconShoe, IconUsers } from './icons';
+import { IconBag, IconBell, IconBoxes, IconCamera, IconCheck, IconClock, IconGrowth, IconHome, IconLink, IconLogout, IconMore, IconMove, IconReceipt, IconScissors, IconShoe, IconUsers } from './icons';
 
 // Same screens and permissions as before, grouped by what the person is doing (Mario 2026-10-06: "los botones no están agrupados").
 const GROUPS = [
@@ -38,6 +38,7 @@ const GROUPS = [
     { href: '/vendedoras', label: 'Vendedoras', icon: IconUsers, live: true, admin: true },
     { href: '/homologacion', label: 'Homologación', icon: IconLink, live: true, admin: true },
     { href: '/conteo', label: 'Conteo de apertura', icon: IconCheck, live: true, admin: true },
+    { href: '/foto-app', label: 'Foto de la app', icon: IconCamera, live: true, admin: true },
   ] },
 ];
 const NAV = GROUPS.flatMap((g) => g.items);
