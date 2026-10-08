@@ -5,7 +5,7 @@ import { useState, useTransition } from 'react';
 import { addCustomerAction } from '../actions';
 
 const input = 'mt-1 block w-full rounded-xl border border-line bg-bg px-3 py-2.5 text-[16px] outline-none focus:border-gold';
-const EMPTY = { name: '', phone: '', country: 'MX', email: '', postalCode: '', birthday: '', shoeSize: '' };
+const EMPTY = { name: '', phone: '', country: 'MX', email: '', postalCode: '', birthday: '', shoeSize: '', street: '', neighborhood: '', city: '', state: '' };
 
 // "Agregar clienta" (Mario 2026-10-08): only WhatsApp + name are required, like at the counter.
 export function NewCustomer() {
@@ -52,6 +52,13 @@ export function NewCustomer() {
         <label className="text-sm text-ink-2">Código postal <span className="text-muted">(opcional)</span><input aria-label="Código postal" inputMode="numeric" value={f.postalCode} onChange={set('postalCode')} className={input} /></label>
         <label className="text-sm text-ink-2">Cumpleaños <span className="text-muted">(opcional)</span><input aria-label="Cumpleaños" type="date" value={f.birthday} onChange={set('birthday')} className={input} /></label>
         <label className="text-sm text-ink-2">Talla <span className="text-muted">(opcional)</span><input aria-label="Talla" inputMode="decimal" value={f.shoeSize} onChange={set('shoeSize')} placeholder="38" className={input} /></label>
+      </div>
+      <p className="kicker mt-5 text-muted">Dirección de envío <span className="normal-case tracking-normal">(opcional en tienda · siempre en ventas en línea)</span></p>
+      <div className="mt-2 grid gap-3 sm:grid-cols-2">
+        <label className="text-sm text-ink-2 sm:col-span-2">Calle y número<input aria-label="Calle y número" autoComplete="street-address" value={f.street} onChange={set('street')} className={input} /></label>
+        <label className="text-sm text-ink-2">Colonia<input aria-label="Colonia" value={f.neighborhood} onChange={set('neighborhood')} className={input} /></label>
+        <label className="text-sm text-ink-2">Ciudad o municipio<input aria-label="Ciudad o municipio" value={f.city} onChange={set('city')} className={input} /></label>
+        <label className="text-sm text-ink-2">Estado<input aria-label="Estado" value={f.state} onChange={set('state')} className={input} /></label>
       </div>
       {msg && (
         <p className={`mt-3 rounded-xl px-4 py-3 text-sm ${msg.ok ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger'}`}>

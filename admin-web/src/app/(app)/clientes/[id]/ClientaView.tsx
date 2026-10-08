@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { AdminCustomerDetail } from '@/lib/f360';
+import { EditContact } from './EditContact';
 
 // Ficha de clienta · Atelier (2026-10-06). Presentation only: everything comes from f360_admin_customer (page.tsx enforces
 // access); nothing here is inferred beyond counting her own purchases.
@@ -117,6 +118,8 @@ export function ClientaView({ c }: { c: AdminCustomerDetail }) {
           </div>
         </div>
       </section>
+
+      <EditContact c={c} />
 
       {/* Signals */}
       <section className="grid gap-3.5 [grid-template-columns:repeat(auto-fit,minmax(210px,1fr))]">

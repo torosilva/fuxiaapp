@@ -725,12 +725,26 @@ export async function deactivateSellerAction(id: string): Promise<Result<Seller>
 export type NewCustomer = { ok: true; created: boolean; customer_ref: string; role?: string } | { ok: false; error: string };
 export async function addCustomerAction(input: {
   name: string; phone: string; email?: string; postalCode?: string; birthday?: string; shoeSize?: string; country?: string;
+  street?: string; neighborhood?: string; city?: string; state?: string;
 }): Promise<Result<NewCustomer>> {
   const [mm, dd] = (input.birthday ?? '').split('-').slice(-2).map(Number);   // <input type="date"> → only day + month are kept
   const r = await call<NewCustomer>('f360_admin_customer_add', {
     p_phone: input.phone, p_name: input.name, p_email: input.email?.trim() || null, p_postal_code: input.postalCode?.trim() || null,
     p_birthday_day: dd || null, p_birthday_month: mm || null, p_shoe_size: input.shoeSize?.trim() || null, p_country: input.country || 'MX',
+    p_street: input.street?.trim() || null, p_neighborhood: input.neighborhood?.trim() || null, p_city: input.city?.trim() || null, p_state: input.state?.trim() || null,
   });
   if (r.ok && r.data.ok) revalidatePath('/clientes');
+  return r;
+}
+
+// Ficha: correct name / e-mail / CP / address (the WhatsApp is her identity and is not edited here).
+export async function setCustomerContactAction(id: string, input: {
+  name: string; email: string; postalCode: string; street: string; neighborhood: string; city: string; state: string;
+}): Promise<Result<{ ok: true } | { ok: false; error: string }>> {
+  const r = await call<{ ok: true } | { ok: false; error: string }>('f360_admin_customer_set_contact', {
+    p_customer: id, p_name: input.name, p_email: input.email, p_postal_code: input.postalCode,
+    p_street: input.street, p_neighborhood: input.neighborhood, p_city: input.city, p_state: input.state,
+  });
+  if (r.ok && r.data.ok) { revalidatePath(`/clientes/${id}`); revalidatePath('/clientes'); }
   return r;
 }

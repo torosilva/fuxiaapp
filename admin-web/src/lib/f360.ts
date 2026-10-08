@@ -299,7 +299,8 @@ export type AdminCustomer = { customer_ref: string; first_name: string; phone_la
   points: number; tier: 'bronze' | 'silver' | 'gold'; points_pending: number; has_card: boolean; identity_verified: boolean; privacy_consent: string;
   recent_purchases: { at: string; channel: string; product: string | null; color: string | null; size: string | null; quantity: number }[];
   name: string; phone: string; email: string | null; postal_code: string | null; country: string | null; birthday_day: number | null; birthday_month: number | null;
-  source: string; created_at: string; registered_location: string | null; consents: Record<string, string> };
+  source: string; created_at: string; registered_location: string | null; consents: Record<string, string>;
+  address: { street: string | null; neighborhood: string | null; city: string | null; state: string | null; source: string | null; updated_at: string | null } | null };
 export type AdminCustomerDetail = AdminCustomer & { purchases: AdminCustomer['recent_purchases']; consent_history: { purpose: string; status: string; source: string; version: string | null; at: string }[] };
 export const getCrmAccess = () => rpc<CrmAccess>('f360_crm_access');
 export const listAdminCustomers = (search?: string) => rpc<AdminCustomer[]>('f360_admin_customers', { p_search: search || null, p_limit: 100, p_offset: 0 });
