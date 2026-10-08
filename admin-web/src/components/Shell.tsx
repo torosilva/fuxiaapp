@@ -7,8 +7,11 @@ import { IconBag, IconBell, IconBoxes, IconCamera, IconCheck, IconClock, IconGro
 const GROUPS = [
   { label: 'Hoy', items: [
     { href: '/', label: 'Inicio', icon: IconHome, live: true },
-    { href: '/tablero', label: 'Centro de control', icon: IconGrowth, live: true, admin: true },
     { href: '/avisos', label: 'Avisos', icon: IconBell, live: true },
+  ] },
+  { label: 'Negocio en tiempo real', items: [
+    { href: '/tablero', label: 'Centro de control', icon: IconGrowth, live: true, admin: true },
+    { href: '/como-funciona', label: 'Cómo funciona', icon: IconGrowth, live: true, admin: true },
   ] },
   { label: 'Vender', items: [
     { href: '/ventas', label: 'Ventas', icon: IconReceipt, live: true, admin: true },
@@ -33,7 +36,6 @@ const GROUPS = [
     { href: '/estrategia', label: 'Strategy & Board 🔒', icon: IconGrowth, live: true, board: true },
   ] },
   { label: 'Configuración', items: [
-    { href: '/como-funciona', label: 'Cómo funciona', icon: IconGrowth, live: true, admin: true },
     { href: '/tiendas', label: 'Tiendas', icon: IconBoxes, live: true, admin: true },
     { href: '/vendedoras', label: 'Vendedoras', icon: IconUsers, live: true, admin: true },
     { href: '/homologacion', label: 'Homologación', icon: IconLink, live: true, admin: true },
