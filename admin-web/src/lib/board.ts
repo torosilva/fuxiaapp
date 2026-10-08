@@ -68,6 +68,14 @@ export async function boardNavVisible(): Promise<boolean> {
   return !error && data === true;
 }
 
+// The caller's own Board state (20261016000100): 'ok' | 'mfa_required' (member, second factor missing in this session) | 'none'.
+// Only used to decide between the MFA screen and a 404; every Board RPC still checks aal2 in the database.
+export async function boardAccessState(): Promise<'ok' | 'mfa_required' | 'none'> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('f360_board_access_state');
+  return !error && (data === 'ok' || data === 'mfa_required') ? data : 'none';
+}
+
 export const getBoardMe = () => boardRpc<BoardMe>('f360_board_me');
 export const getBoardPeriods = (year?: number) => boardRpc<BoardPeriods>('f360_board_periods', { p_year: year ?? null });
 export const getBoardClose = (periodId: string) => boardRpc<BoardClose>('f360_board_close_get', { p_period_id: periodId });

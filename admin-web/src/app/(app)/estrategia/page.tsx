@@ -33,7 +33,7 @@ export default async function Estrategia({ searchParams }: { searchParams: Promi
             <li>Año fiscal: {me.settings.fiscal_year} · {me.settings.timezone}</li>
             <li>Cierre: {me.settings.close_requires_second_member ? 'lo aprueba la otra persona del consejo' : 'cualquiera'}</li>
             <li>Decisiones: {me.settings.decision_requires_other_member ? 'las aprueba alguien distinto a quien propone' : 'cualquiera'}; con conflicto de interés, solo el miembro independiente</li>
-            <li>MFA obligatorio: {me.settings.require_aal2 ? 'sí' : 'pendiente (D2)'}</li>
+            <li>MFA obligatorio: {me.settings.require_aal2 ? 'sí (verificación en dos pasos)' : 'no'}</li>
           </ul>
         </div>
         <div className="rounded-2xl border border-line bg-surface p-5">

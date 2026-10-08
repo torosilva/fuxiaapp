@@ -7,7 +7,7 @@ CREATE FUNCTION pg_temp.as(p_uid uuid, p_sql text) RETURNS jsonb LANGUAGE plpgsq
 DECLARE r jsonb;
 BEGIN
   BEGIN
-    PERFORM set_config('request.jwt.claims', json_build_object('sub', p_uid, 'role', 'authenticated', 'aal', 'aal1')::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', p_uid, 'role', 'authenticated', 'aal', 'aal2')::text, true);  -- Board MFA (20261016000100)
     SET LOCAL ROLE authenticated;
     EXECUTE p_sql INTO r;
     RESET ROLE;

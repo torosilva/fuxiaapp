@@ -56,8 +56,8 @@ BEGIN
   PERFORM pg_temp.cap(pg_temp.o(9930000001, 'completed', 'MXN', 2800, '{"discount_total":"280","shipping_total":"150","total":"2670","line_items":[{"id":1,"product_id":100,"variation_id":101,"sku":"ZZ","quantity":1,"subtotal":"2800","subtotal_tax":"0","total":"2520","total_tax":"0"}]}'));
   m := pg_temp.ms(9930000001);
   PERFORM pg_temp.ok(m.is_paid_sale AND m.gross_merchandise_value = 2800 AND m.discounts = 280 AND m.product_net = 2520 AND m.shipping_charged = 150
-    AND m.net_product_revenue = 2520 AND m.total_collected = 2670 AND m.tax_iva = 0 AND m.iva_treatment = 'included_not_separated' AND m.product_net_before_tax IS NULL,
-    'D6 · GMV 2800 − coupon 280 = product net 2520; shipping 150 apart; total collected 2670; IVA not separated → product_net_before_tax NULL',
+    AND m.net_product_revenue = 2520 AND m.total_collected = 2670 AND m.tax_iva = 0 AND m.iva_treatment = 'tax_not_separated_by_source' AND m.tax_status = 'PENDING_ACCOUNTING_CONFIRMATION' AND m.product_net_before_tax IS NULL,
+    'D6 · GMV 2800 − coupon 280 = product net 2520; shipping 150 apart; total collected 2670; tax not separated by source → raw amounts, tax_status PENDING_ACCOUNTING_CONFIRMATION, product_net_before_tax NULL (20261016000200)',
     format('%s %s %s %s %s', m.gross_merchandise_value, m.discounts, m.net_product_revenue, m.total_collected, m.iva_treatment));
   PERFORM pg_temp.cap(pg_temp.o(9930000002, 'cancelled', 'MXN', 5000));                                    -- never paid
   PERFORM pg_temp.cap(pg_temp.o(9930000003, 'processing', 'MXN', 4000));                                   -- paid …
@@ -91,8 +91,8 @@ BEGIN
   PERFORM pg_temp.ok(t->'q8_net_product_revenue'->'consolidated_mxn'->>'status' = 'DATA_INCOMPLETE' AND t->'q8_net_product_revenue'->'consolidated_mxn'->'value' = 'null'::jsonb
     AND jsonb_array_length(t->'q8_net_product_revenue'->'consolidated_mxn'->'fx_missing') = 2,
     'TEST 15a · no approved FX → consolidated MXN = DATA_INCOMPLETE, value null, lists COP/USD 2025-01', (t->'q8_net_product_revenue'->'consolidated_mxn')::text);
-  r := pg_temp.as(op, $q$SELECT public.f360_fx_rate_propose('COP', '2025-01-01', 0.0045, 'Banxico FIX promedio mensual (prueba)')$q$); id1 := (r->>'id')::uuid;
-  r := pg_temp.as(op, $q$SELECT public.f360_fx_rate_propose('USD', '2025-01-15', 20.50, 'Banxico FIX promedio mensual (prueba)')$q$); id2 := (r->>'id')::uuid;
+  r := pg_temp.as(op, $q$SELECT public.f360_fx_rate_propose('COP', '2025-01-01', 0.0045, 'Banxico FIX promedio mensual (prueba)', 'https://www.banxico.org.mx/SieInternet/ (prueba)', '2025-02-03', 'MONTHLY_AVERAGE')$q$); id1 := (r->>'id')::uuid;
+  r := pg_temp.as(op, $q$SELECT public.f360_fx_rate_propose('USD', '2025-01-15', 20.50, 'Banxico FIX promedio mensual (prueba)', 'https://www.banxico.org.mx/SieInternet/ (prueba)', '2025-02-03', 'MONTHLY_AVERAGE')$q$); id2 := (r->>'id')::uuid;
   PERFORM pg_temp.ok(pg_temp.truth()->'q8_net_product_revenue'->'consolidated_mxn'->>'status' = 'DATA_INCOMPLETE', 'TEST 15b · a PROPOSED (not approved) rate is never used', '');
   PERFORM pg_temp.ok(pg_temp.as(op, format('SELECT public.f360_fx_rate_approve(%L)', id1)) ? 'error', 'FX: an operator cannot approve a rate', '');
   PERFORM pg_temp.as(own, format('SELECT public.f360_fx_rate_approve(%L)', id1));
@@ -105,10 +105,10 @@ BEGIN
     'TEST 15d · approved monthly FX → consolidated MXN = 7020 + 900 + 3075 = 10995 (CONVERTED), originals unchanged', (t->'q8_net_product_revenue'->'consolidated_mxn')::text);
   BEGIN UPDATE f360.fx_rates SET rate = 1 WHERE id = id1; PERFORM pg_temp.ok(false, 'FX: approved rate cannot be edited');
   EXCEPTION WHEN OTHERS THEN PERFORM pg_temp.ok(true, 'FX: approved rate cannot be edited (void + new)', SQLERRM); END;
-  r := pg_temp.as(op, $q$SELECT public.f360_fx_rate_propose('COP', '2025-01-01', 0.005, 'otra')$q$);
+  r := pg_temp.as(op, $q$SELECT public.f360_fx_rate_propose('COP', '2025-01-01', 0.005, 'otra', 'https://www.banxico.org.mx/SieInternet/ (prueba)', '2025-02-03', 'MONTHLY_AVERAGE')$q$);
   PERFORM pg_temp.ok(r ? 'error', 'FX: one live rate per currency-month', coalesce(r->>'error', ''));
-  PERFORM pg_temp.ok(pg_temp.as(op, $q$SELECT public.f360_fx_rate_propose('COP', '2099-01-01', 0.005, 'futuro')$q$) ? 'error'
-    AND pg_temp.as(sel, $q$SELECT public.f360_fx_rate_propose('COP', '2024-12-01', 0.005, 'x')$q$) ? 'error', 'FX: future month refused; seller cannot propose', '');
+  PERFORM pg_temp.ok(pg_temp.as(op, $q$SELECT public.f360_fx_rate_propose('COP', '2099-01-01', 0.005, 'futuro', 'https://www.banxico.org.mx/SieInternet/ (prueba)', '2025-02-03', 'MONTHLY_AVERAGE')$q$) ? 'error'
+    AND pg_temp.as(sel, $q$SELECT public.f360_fx_rate_propose('COP', '2024-12-01', 0.005, 'x', 'https://www.banxico.org.mx/SieInternet/ (prueba)', '2025-02-03', 'MONTHLY_AVERAGE')$q$) ? 'error', 'FX: future month refused; seller cannot propose', '');
 
   -- ═════ D3 spend upload: validation, audit, idempotency ═════
   r := pg_temp.as(own, format('SELECT public.f360_marketing_spend_upload(%L, %L, %L, %L)', 'meta', 'csv', 'mal.csv',
@@ -172,7 +172,8 @@ BEGIN
     ('00000000-0000-4000-a000-0000000c0001', 'ZZSG0L1', '[{"product_name":"Paula","color":"Negro","size":"37","quantity":2,"unit_price":"1400"}]', 2800, '2025-01-02T18:00:00Z', false),
     ('00000000-0000-4000-a000-0000000c0002', 'ZZSG0L2', '[{"product_name":"Paula","color":"Negro","size":"38","quantity":1,"unit_price":"1400"}]', 2000, '2025-01-02T19:00:00Z', false);
   r := pg_temp.as(own, $q$SELECT public.f360_legacy_store_sales_import(true)$q$);
-  PERFORM pg_temp.ok((r->>'dry_run')::boolean AND (r->>'imported')::int >= 1 AND NOT EXISTS (SELECT 1 FROM f360.legacy_store_sale_imports),
+  PERFORM pg_temp.ok((r->>'dry_run')::boolean AND (r->>'imported')::int >= 1
+    AND NOT EXISTS (SELECT 1 FROM f360.legacy_store_sale_imports WHERE sale_id IN ('00000000-0000-4000-a000-0000000c0001', '00000000-0000-4000-a000-0000000c0002')),  -- staging may already hold real registrations
     'TEST 17a · dry run reports and registers nothing', r::text);
   PERFORM pg_temp.ok(pg_temp.as(op, $q$SELECT public.f360_legacy_store_sales_import(false)$q$) ? 'error', 'legacy import: owner only', '');
   r := pg_temp.as(own, $q$SELECT public.f360_legacy_store_sales_import(false)$q$);

@@ -1,11 +1,12 @@
 -- Strategy & Board SB0 — ACCESS tests (STAGING). NEVER commits: ends with RAISE 'ENSAYO OK' (success = that message).
 -- Run inside a transaction AFTER 20261015000100..0400 + supabase/staging/sb0_board_members_staging.sql (rehearsal: prepend them).
 -- Identities are simulated with request.jwt.claims + SET LOCAL ROLE (exactly what PostgREST does with a verified JWT).
+-- Since 20261016000100 the Board requires MFA: pg_temp.as() defaults to aal = 'aal2' (aal1 is tested explicitly).
 -- Fixtures: Carolina / Mario = board_members by person_key (real staging auth ids); Adrián-like owner NOT on the allowlist
 -- (staging owner not in board_members, or a synthetic one); synthetic seller / operator / viewer / no-role users; all rolled back.
 -- Covers: 0 privileges & RPC conventions · 1 unauthorized · 2 seller · 3 generic owner · 4 Carolina · 5 Mario · 5b scope/
 -- inactive/lost-owner/MFA · 6 denied logged · 7 sensitive writes logged · PII scan · 19 seller vs aggregate intent RPCs.
-CREATE FUNCTION pg_temp.as(p_uid uuid, p_sql text, p_role text DEFAULT 'authenticated', p_aal text DEFAULT 'aal1') RETURNS jsonb LANGUAGE plpgsql AS $$
+CREATE FUNCTION pg_temp.as(p_uid uuid, p_sql text, p_role text DEFAULT 'authenticated', p_aal text DEFAULT 'aal2') RETURNS jsonb LANGUAGE plpgsql AS $$
 DECLARE r jsonb;
 BEGIN
   BEGIN
@@ -75,7 +76,8 @@ BEGIN
   IF n > 0 THEN RAISE EXCEPTION 'FAIL T0 RLS policies exist (must be deny-all)'; END IF;
   FOR k, r IN SELECT p.oid::regprocedure::text, jsonb_build_object('definer', p.prosecdef, 'cfg', p.proconfig,
         'anon', has_function_privilege('anon', p.oid, 'EXECUTE'), 'auth', has_function_privilege('authenticated', p.oid, 'EXECUTE'),
-        'gate_first', p.proname = 'f360_board_nav_visible' OR (position('f360_board.require_board_member(' IN p.prosrc) > 0
+        'gate_first', p.proname IN ('f360_board_nav_visible', 'f360_board_access_state') OR   -- caller-only hints (20261016000100), no data
+                      (position('f360_board.require_board_member(' IN p.prosrc) > 0
                       AND position('f360_board.require_board_member(' IN p.prosrc) < position('BEGIN' IN p.prosrc)))
       FROM pg_proc p JOIN pg_namespace s ON s.oid = p.pronamespace WHERE s.nspname = 'public' AND p.proname LIKE 'f360\_board\_%' LOOP
     IF NOT (r->>'definer')::boolean OR NOT (r->'cfg') @> '["search_path=pg_catalog, pg_temp"]' OR (r->>'anon')::boolean OR NOT (r->>'auth')::boolean
@@ -150,10 +152,10 @@ BEGIN
   UPDATE f360_board.board_members SET active = false WHERE auth_user_id = partial;
   IF pg_temp.as(partial, 'SELECT public.f360_board_decisions(5)') IS DISTINCT FROM f360_board.denied() THEN RAISE EXCEPTION 'FAIL T5b inactive still in'; END IF;
   UPDATE f360_board.settings SET require_aal2 = true;
-  IF pg_temp.as(car, 'SELECT public.f360_board_me()') IS DISTINCT FROM f360_board.denied() THEN RAISE EXCEPTION 'FAIL T5b aal1 passed with MFA required'; END IF;
+  IF pg_temp.as(car, 'SELECT public.f360_board_me()', 'authenticated', 'aal1') IS DISTINCT FROM f360_board.denied() THEN RAISE EXCEPTION 'FAIL T5b aal1 passed with MFA required'; END IF;
   IF NOT (pg_temp.as(car, 'SELECT public.f360_board_me()', 'authenticated', 'aal2')->>'ok')::boolean THEN RAISE EXCEPTION 'FAIL T5b aal2 refused'; END IF;
-  UPDATE f360_board.settings SET require_aal2 = false;
-  IF (SELECT count(*) FROM f360_board.settings_changes WHERE at >= t0) <> 2 THEN RAISE EXCEPTION 'FAIL T5b settings changes not audited'; END IF;
+  -- 20261016000100: MFA stays required for the Board (Mario 2026-10-08); members are simulated at aal2 by default.
+  IF (SELECT count(*) FROM f360_board.settings_changes WHERE at >= t0) <> 1 THEN RAISE EXCEPTION 'FAIL T5b settings changes not audited'; END IF;
   IF (SELECT count(*) FROM f360_board.board_member_changes WHERE auth_user_id = partial) <> 2 THEN RAISE EXCEPTION 'FAIL T5b member changes not audited'; END IF;
   RAISE NOTICE 'PASS T5b member without scope denied; member who loses owner role denied; inactive member denied; MFA flag enforces aal2; settings + membership changes audited';
 
