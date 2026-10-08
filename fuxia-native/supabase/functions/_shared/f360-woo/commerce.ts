@@ -94,10 +94,16 @@ export function orderEconomics(o: Obj, detailedRefunds?: Obj[]): Obj {
   };
 }
 
-/** Minimal Woo reads the commerce poll needs (read-only GETs). */
+/** Minimal Woo reads the commerce poll / reconciliation / history import need (read-only GETs). */
 export type CommerceWoo = {
   listOrders: (modifiedAfterGmt: string | null, page: number) => Promise<Obj[]>;
   listRefunds: (orderId: number) => Promise<Obj[]>;
+  /** S-G0: ids + modification dates only (`_fields`), so the comparison never moves customer data. */
+  listOrderStubs?: (modifiedAfterGmt: string | null, page: number) => Promise<Obj[]>;
+  /** S-G0: one full order, read only when Fuxia 360 is missing it or holds an older version. */
+  getOrder?: (orderId: number) => Promise<Obj | null>;
+  /** S-G0 history import: stubs of orders CREATED after a date (ascending id). */
+  listOrderStubsCreated?: (createdAfterGmt: string, page: number) => Promise<Obj[]>;
 };
 export function commerceWoo(cfg: { baseUrl: string; user: string; secret: string; timeoutMs?: number }): CommerceWoo {
   const base = `${cfg.baseUrl.replace(/\/+$/, '')}/wp-json/wc/v3`;
@@ -111,6 +117,11 @@ export function commerceWoo(cfg: { baseUrl: string; user: string; secret: string
     listOrders: (after, page) => get(`/orders?status=any&orderby=modified&order=asc&per_page=100&page=${page}&dates_are_gmt=true` +
       (after ? `&modified_after=${encodeURIComponent(after)}` : '')),
     listRefunds: (id) => get(`/orders/${id}/refunds?per_page=100`),
+    listOrderStubs: (after, page) => get(`/orders?status=any&orderby=modified&order=asc&per_page=100&page=${page}&dates_are_gmt=true` +
+      `&_fields=id,status,date_modified_gmt` + (after ? `&modified_after=${encodeURIComponent(after)}` : '')),
+    getOrder: async (id) => (await get(`/orders/${id}`)) as unknown as Obj,
+    listOrderStubsCreated: (after, page) => get(`/orders?status=any&orderby=id&order=asc&per_page=100&page=${page}&dates_are_gmt=true` +
+      `&_fields=id,status,date_modified_gmt,date_created_gmt&after=${encodeURIComponent(after)}`),
   };
 }
 
@@ -150,5 +161,126 @@ export async function commercePoll(rpc: Rpc, woo: CommerceWoo, targetKey: string
   } catch (e) {
     await rpc('f360_commerce_run_end', { p_run_id: begin.run_id, p_ok: false, p_stats: stats, p_error: (e as Error).message, p_cursor: null });
     return { run_id: begin.run_id, ok: false, stats, error: (e as Error).message };
+  }
+}
+
+// ── S-G0 · D2 ORDER RECONCILIATION ───────────────────────────────────────────────────────────────────────────────
+// "Woo order exists BUT Fuxia 360 order missing" → detected and recovered through the ONE capture path (key target + order id,
+// so a duplicate cannot exist). Orders after the cutover that F360 lacks are RECOVERED (first_captured_via = 'poll' →
+// capture source "woo_reconciliation_recovered"); orders F360 holds in an older version are REFRESHED; orders at or before
+// the cutover that F360 lacks are only COUNTED (they belong to the history import, never relabelled as realtime).
+export type ReconcileStats = {
+  woo_seen: number; current: number; detected_missing: number; recovered: number; detected_outdated: number; refreshed: number;
+  before_cutover_missing: number; errors: number; pages: number; mode: string; error_order_ids: number[];
+};
+type Diff = { missing: number[]; outdated: number[]; before_cutover_missing: number[]; current: number };
+
+async function fullOrderWithRefunds(woo: CommerceWoo, id: number, stub?: Obj): Promise<{ order: Obj; detailed?: Obj[] } | null> {
+  const order = woo.getOrder ? await woo.getOrder(id) : stub ?? null;
+  if (!order) return null;
+  let detailed: Obj[] | undefined;
+  if (arr(order.refunds).length) {
+    try { detailed = (await woo.listRefunds(id)).map(refundDetail); } catch { detailed = undefined; }   // header-only → PARTIAL
+  }
+  return { order, detailed };
+}
+
+export async function commerceReconcile(rpc: Rpc, woo: CommerceWoo, targetKey: string, opts: { lookbackHours?: number | null; maxPages?: number } = {}) {
+  const begin = await rpc<{ run_id: number; modified_after: string | null; orders_since_id: number | null; mode: string }>('f360_commerce_reconcile_begin',
+    { p_target_key: targetKey, p_lookback_hours: opts.lookbackHours ?? null });
+  const stats: ReconcileStats = { woo_seen: 0, current: 0, detected_missing: 0, recovered: 0, detected_outdated: 0, refreshed: 0,
+    before_cutover_missing: 0, errors: 0, pages: 0, mode: begin.mode, error_order_ids: [] };
+  const after = begin.modified_after ? new Date(begin.modified_after).toISOString().slice(0, 19) : null;
+  const list = woo.listOrderStubs ?? woo.listOrders;
+  let cursor: string | null = null;
+  try {
+    for (let page = 1; page <= (opts.maxPages ?? 20); page++) {
+      const stubs = await list(after, page);
+      stats.pages++;
+      stats.woo_seen += stubs.length;
+      if (stubs.length) {
+        const diff = await rpc<Diff>('f360_commerce_reconcile_diff', { p_target_key: targetKey,
+          p_orders: stubs.map((o) => ({ id: num(o.id), date_modified_gmt: str(o.date_modified_gmt) || null })) });
+        stats.current += diff.current; stats.detected_missing += diff.missing.length; stats.detected_outdated += diff.outdated.length;
+        stats.before_cutover_missing += diff.before_cutover_missing.length;
+        const byId = new Map(stubs.map((o) => [num(o.id), o]));
+        for (const id of [...diff.missing, ...diff.outdated]) {
+          try {
+            const full = await fullOrderWithRefunds(woo, id, woo.listOrderStubs ? undefined : byId.get(id));
+            if (!full) throw new Error('order not found in Woo');
+            const r = await rpc<{ result: string }>('f360_capture_order_economics', { p_target_key: targetKey, p_order: orderEconomics(full.order, full.detailed), p_via: 'poll' });
+            if (r.result === 'inserted') stats.recovered++;
+            else if (r.result === 'updated' || r.result === 'unchanged') stats.refreshed++;
+          } catch { stats.errors++; if (stats.error_order_ids.length < 50) stats.error_order_ids.push(id); }
+        }
+      }
+      for (const o of stubs) { const m = str(o.date_modified_gmt); if (m && (!cursor || m > cursor)) cursor = m; }
+      if (stubs.length < 100) break;
+    }
+    const ok = stats.errors === 0;
+    await rpc('f360_commerce_run_end', { p_run_id: begin.run_id, p_ok: ok, p_stats: stats, p_error: ok ? null : `${stats.errors} pedidos con error`,
+      p_cursor: ok && cursor ? `${cursor}Z` : null });
+    return { run_id: begin.run_id, ok, stats };
+  } catch (e) {
+    await rpc('f360_commerce_run_end', { p_run_id: begin.run_id, p_ok: false, p_stats: stats, p_error: (e as Error).message, p_cursor: null });
+    return { run_id: begin.run_id, ok: false, stats, error: (e as Error).message };
+  }
+}
+
+// ── S-G0 · D1 WOO ORDER HISTORY IMPORT ───────────────────────────────────────────────────────────────────────────
+// Orders CREATED in the window (default 24 months) and, when the channel has a cutover, only ids AT OR BEFORE it (later ids
+// are realtime: webhook + reconciliation). Same idempotent capture with p_via = 'backfill' → capture source
+// "woo_history_import", imported_at = first capture. An order F360 already has keeps its first source (a realtime order is
+// never relabelled as history); an older stored version is refreshed; nothing is ever duplicated. Economics + first-party
+// attribution only: no inventory, no order_shipping / PII (D-C2 open). dryRun = compare only, write nothing.
+export type HistoryStats = { woo_seen: number; in_scope: number; after_cutover_skipped: number; already_current: number; detected_missing: number; detected_outdated: number;
+  imported: number; refreshed: number; errors: number; pages: number; dry_run: boolean; error_order_ids: number[] };
+
+export async function commerceHistoryImport(rpc: Rpc, woo: CommerceWoo, targetKey: string,
+  opts: { months?: number; dryRun?: boolean; maxPages?: number; now?: Date; cutoverId?: number | null } = {}) {
+  if (!woo.listOrderStubsCreated) throw new Error('Woo adapter without history listing');
+  const months = Math.min(Math.max(opts.months ?? 24, 1), 36);
+  const from = new Date(opts.now ?? Date.now()); from.setUTCMonth(from.getUTCMonth() - months);
+  const createdAfter = from.toISOString().slice(0, 19);
+  const stats: HistoryStats = { woo_seen: 0, in_scope: 0, after_cutover_skipped: 0, already_current: 0, detected_missing: 0, detected_outdated: 0, imported: 0, refreshed: 0,
+    errors: 0, pages: 0, dry_run: !!opts.dryRun, error_order_ids: [] };
+  const run = opts.dryRun ? null : await rpc<{ run_id: number }>('f360_commerce_run_begin', { p_target_key: targetKey, p_kind: 'backfill' });
+  try {
+    for (let page = 1; page <= (opts.maxPages ?? 100); page++) {
+      const stubs = await woo.listOrderStubsCreated(createdAfter, page);
+      stats.pages++; stats.woo_seen += stubs.length;
+      if (stubs.length) {
+        const diff = await rpc<Diff & { orders_since_id: number | null }>('f360_commerce_reconcile_diff', { p_target_key: targetKey,
+          p_orders: stubs.map((o) => ({ id: num(o.id), date_modified_gmt: str(o.date_modified_gmt) || null })) });
+        const cutover = opts.cutoverId ?? diff.orders_since_id ?? null;
+        const inScope = (id: number) => cutover === null || id <= cutover;
+        const ids = stubs.map((o) => num(o.id));
+        stats.after_cutover_skipped += ids.filter((id) => !inScope(id)).length;
+        stats.in_scope += ids.filter(inScope).length;
+        // with a cutover, the diff reports pre-cutover gaps as before_cutover_missing; without one, as missing
+        const missing = [...diff.missing, ...diff.before_cutover_missing].filter(inScope);
+        const outdated = diff.outdated.filter(inScope);
+        stats.detected_missing += missing.length; stats.detected_outdated += outdated.length;
+        stats.already_current += ids.filter(inScope).length - missing.length - outdated.length;
+        if (!opts.dryRun) {
+          for (const id of [...missing, ...outdated]) {
+            try {
+              const full = await fullOrderWithRefunds(woo, id);
+              if (!full) throw new Error('order not found in Woo');
+              const r = await rpc<{ result: string }>('f360_capture_order_economics', { p_target_key: targetKey, p_order: orderEconomics(full.order, full.detailed), p_via: 'backfill' });
+              if (r.result === 'inserted') stats.imported++; else stats.refreshed++;
+            } catch { stats.errors++; if (stats.error_order_ids.length < 50) stats.error_order_ids.push(id); }
+          }
+        }
+      }
+      if (stubs.length < 100) break;
+    }
+    const ok = stats.errors === 0;
+    // p_cursor NULL: the history import never moves the reconciliation cursor
+    if (run) await rpc('f360_commerce_run_end', { p_run_id: run.run_id, p_ok: ok, p_stats: { ...stats, source: 'woo_history_import', months }, p_error: ok ? null : `${stats.errors} pedidos con error`, p_cursor: null });
+    return { run_id: run?.run_id ?? null, ok, stats, created_after: createdAfter };
+  } catch (e) {
+    if (run) await rpc('f360_commerce_run_end', { p_run_id: run.run_id, p_ok: false, p_stats: stats, p_error: (e as Error).message, p_cursor: null });
+    return { run_id: run?.run_id ?? null, ok: false, stats, error: (e as Error).message, created_after: createdAfter };
   }
 }

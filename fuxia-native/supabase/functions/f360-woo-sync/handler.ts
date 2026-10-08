@@ -6,7 +6,7 @@ import { pushContent } from '../_shared/f360-woo/content.ts';
 import { f360User, serviceRpc, type SupabaseEnv } from '../_shared/f360-woo/supabase.ts';
 import { safeEqual } from '../_shared/f360-woo/orders.ts';
 import type { WooAdapter } from '../_shared/f360-woo/types.ts';
-import { commercePoll, commerceWoo, type CommerceWoo } from '../_shared/f360-woo/commerce.ts';
+import { commerceReconcile, commerceWoo, type CommerceWoo } from '../_shared/f360-woo/commerce.ts';
 
 export type SyncEnv = SupabaseEnv & { WOO_TARGET_KEY: string; WOO_BASE_URL: string; WOO_USER: string; WOO_SECRET: string; F360_SYNC_SECRET?: string };
 export type SyncOptions = { wrapAdapter?: (a: WooAdapter) => WooAdapter; commerceWoo?: CommerceWoo };
@@ -54,12 +54,18 @@ export async function handleSync(req: Request, env: SyncEnv, opts: SyncOptions =
     // G1 Commerce Facts heartbeat (cron every 15 min, or owner/operator): captures economics of orders modified since
     // the cursor. Its success is what makes the online source fresh (STALE never depends on order activity).
     // U2: what this channel allows (production: stock / orders / visibility only when switched on)
-    const mode = await rpc('f360_channel_mode', { p_target_key: env.WOO_TARGET_KEY }) as { catalog_mode?: string; stock_sync_mode?: string } | null;
+    const mode = await rpc('f360_channel_mode', { p_target_key: env.WOO_TARGET_KEY }) as { catalog_mode?: string; stock_sync_mode?: string; orders_mode?: string | null } | null;
     const stockOn = (mode?.stock_sync_mode ?? 'on') === 'on', catalogOn = (mode?.catalog_mode ?? 'on') === 'on';
-    if (action === 'commerce_poll') {
-      if (!stockOn) return json({ skipped: 'Este canal todavía no lee pedidos (stock apagado).' });
+    // S-G0 D2: the order reconciliation follows the ORDER path (orders_mode = 'on'), not the stock push (production runs
+    // with stock off and orders on). Channels without orders_mode keep the previous rule (stock on).
+    const ordersOn = mode?.orders_mode === 'on' || (mode?.orders_mode == null && stockOn);
+    if (action === 'commerce_poll' || action === 'commerce_reconcile') {
+      if (!ordersOn) return json({ skipped: 'Este canal no manda pedidos a Fuxia 360 (pedidos apagados).' });
+      // the cron tick sends commerce_poll; an owner/operator may ask for a deeper look back ("Revisar ahora")
+      const raw = Number((body as { lookback_hours?: unknown }).lookback_hours);
+      const lookbackHours = role !== 'system' && action === 'commerce_reconcile' && Number.isInteger(raw) && raw >= 1 && raw <= 24 * 800 ? raw : null;
       const cw = opts.commerceWoo ?? commerceWoo({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET });
-      return json(await commercePoll(rpc, cw, env.WOO_TARGET_KEY, 'poll'));
+      return json(await commerceReconcile(rpc, cw, env.WOO_TARGET_KEY, { lookbackHours }));
     }
     if (action === 'reconcile') {
       if (!stockOn) return json({ error: 'Este canal no sincroniza existencias; no hay nada que conciliar.' }, 409);
