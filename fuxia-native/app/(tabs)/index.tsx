@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MotiView, MotiText } from 'moti';
 import { wcService, WCProduct } from '@/services/WooCommerceService';
+import { useAppCover } from '@/lib/appCover';
 import { ProductCard } from '@/components/ProductCard';
 
 const { width } = Dimensions.get('window');
@@ -23,16 +24,17 @@ const FuxiaDarkTheme = {
   spacing: { s: 8, m: 16, l: 24, xl: 32 }
 };
 
-// Respaldo del hero. Solo se usa si no hay ningun producto marcado como
-// "Destacado" en WooCommerce. El hero real sale del producto destacado, asi
-// que para cambiarlo NO se toca el codigo: se marca otro producto en la web.
+// Respaldo del hero: solo si no hay foto en Fuxia 360, ni producto Destacado, ni productos en la tienda (p. ej. sin internet
+// la primera vez). La portada real sale de lib/appCover — se cambia desde Fuxia 360 o la tienda, nunca tocando el codigo.
 const HERO_IMAGE_FALLBACK = 'https://fuxiaballerinas.com/wp-content/uploads/2026/06/Mafalda-estoperoles.jpg';
 const LOGO_IMAGE = require('../../assets/images/logo.png');
 
 
 export default function HomeScreen() {
   const [newArrivals, setNewArrivals] = useState<WCProduct[]>([]);
-  const [featuredProduct, setFeaturedProduct] = useState<WCProduct | null>(null);
+  const cover = useAppCover();
+  // With a Fuxia 360 photo the hero is generic (the photo may show any model); otherwise it is the store product's.
+  const featuredProduct = cover.fromF360 ? null : cover.product;
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,13 +44,8 @@ export default function HomeScreen() {
   const loadHomeData = async () => {
     try {
       setLoading(true);
-      const [data, featuredList] = await Promise.all([
-        wcService.getProducts({ per_page: 6, orderby: 'date' }),
-        // El hero lo manda WooCommerce: producto marcado como "Destacado".
-        wcService.getProducts({ featured: 'true', per_page: 1 }),
-      ]);
+      const data = await wcService.getProducts({ per_page: 6, orderby: 'date' });
       setNewArrivals(data);
-      setFeaturedProduct(featuredList[0] ?? null);
     } catch (error) {
       console.error('Error loading home data:', error);
     } finally {
@@ -56,9 +53,8 @@ export default function HomeScreen() {
     }
   };
 
-  // Todo el hero se resuelve desde el producto destacado; si no hay ninguno,
-  // cae a valores neutros para que nunca se vea roto.
-  const heroImageUri = featuredProduct?.images?.[0]?.src ?? HERO_IMAGE_FALLBACK;
+  // Hero: Fuxia 360 photo → Destacado → newest product; neutral values so it never looks broken.
+  const heroImageUri = cover.uri ?? HERO_IMAGE_FALLBACK;
   const heroTitle = featuredProduct?.name ?? 'Nueva\nColección';
   const heroEyebrow = (featuredProduct?.categories?.[0]?.name ?? 'Destacado').toUpperCase();
 
