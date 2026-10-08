@@ -19,3 +19,4 @@ yarn-error.*
 # P2.3B: SiteGround staging credentials (never commit)
 tools/siteground-staging.env
 clave
+tools/qa/ultimo-resultado.json

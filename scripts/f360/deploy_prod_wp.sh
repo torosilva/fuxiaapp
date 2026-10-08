@@ -27,4 +27,11 @@ done
 code=$(curl -sL -o /dev/null -w '%{http_code}' "https://fuxiaballerinas.com/?nc=$TS")   # / redirects to /mx/ by country
 echo "Página de inicio después de instalar: http $code"
 [ "$code" = "200" ] || { echo "ATENCIÓN: la tienda no respondió 200. Rollback: borrar o restaurar desde ~/f360-backups/prod-mu/$TS/" >&2; exit 3; }
+# Mario 2026-10-07: a deploy is only "listo" when a customer can actually buy. Buy-as-a-customer test on every product
+# (computer + phone, every colour, cart, checkout page; never pays).
+echo "Probando la tienda como clienta (todos los productos, computadora y celular)…"
+if ! node tools/qa/tienda-como-clienta.mjs; then
+  echo "ATENCIÓN: la prueba como clienta FALLÓ (arriba qué producto y qué). Rollback: borrar o restaurar desde ~/f360-backups/prod-mu/$TS/" >&2
+  exit 4
+fi
 echo "LISTO. Respaldo y rollback: ~/f360-backups/prod-mu/$TS/"
