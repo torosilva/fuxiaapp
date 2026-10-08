@@ -17,7 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
+      # the schedule lives on main (GitHub only schedules from the default branch); the test lives with the work on fuxia-360
       - uses: actions/checkout@v4
+        with:
+          ref: fuxia-360
       - uses: actions/setup-node@v4
         with:
           node-version: 22
