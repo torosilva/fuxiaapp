@@ -1,0 +1,40 @@
+# Fuxia 360 · "Comprar como clienta" cada hora (Mario 2026-10-07: durante 7 horas nadie pudo elegir color en los productos
+# unidos y nadie lo vio). Abre TODOS los productos visibles de fuxiaballerinas.com en computadora y celular, elige cada color y
+# una talla, revisa que "Añadir al carrito" funcione, agrega uno al carrito y llega a la página de pago. Nunca paga ni crea pedidos.
+# Si algo falla, el workflow queda en rojo y GitHub manda correo; el detalle queda en el artefacto "resultado".
+# Prueba local: node tools/qa/tienda-como-clienta.mjs
+
+name: Tienda como clienta
+
+on:
+  schedule:
+    # cada hora de 7:20 a 23:20 hora de CDMX (13:20–05:20 UTC); minuto 20 para no chocar con el top of the hour
+    - cron: '20 13-23,0-5 * * *'
+  workflow_dispatch:
+
+jobs:
+  comprar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      # the schedule lives on main (GitHub only schedules from the default branch); the test lives with the work on fuxia-360
+      - uses: actions/checkout@v4
+        with:
+          ref: fuxia-360
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Playwright
+        working-directory: admin-web
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Comprar como clienta (sin pagar)
+        run: node tools/qa/tienda-como-clienta.mjs
+      - name: resultado
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultado
+          path: tools/qa/ultimo-resultado.json
+          if-no-files-found: ignore
