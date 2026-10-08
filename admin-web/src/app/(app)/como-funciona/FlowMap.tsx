@@ -1,30 +1,35 @@
 'use client';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 // "Cómo funciona" (Mario 2026-10-08): the zoom-out of the video (tools/video/historia, "Todo el negocio, conectado") as a live
 // map. Gold dots travel along the real data paths; every node opens its module. Two layouts: wide (side by side) and phone
 // (stacked). Coordinates are in each layout's viewBox; the HTML nodes sit on top at the same positions, in percent.
+// Each node also shows one live number (computed on the server from the same RPCs as Centro de control, Inicio, Bandeja
+// and Avisos); the page refreshes itself every minute.
 
 type Pt = { x: number; y: number };
 type Node = { id: string; href: string; title: string; sub: string; side: 'in' | 'out'; wide: Pt; phone: Pt };
 
 const NODES: Node[] = [
-  { id: 'online', href: '/sobre-pedido', title: 'Tienda en línea', sub: 'Cada pedido pagado descuenta su par', side: 'in', wide: { x: 150, y: 110 }, phone: { x: 105, y: 80 } },
-  { id: 'tiendas', href: '/ventas', title: 'Tiendas', sub: 'Ventas de las vendedoras, con puntos', side: 'in', wide: { x: 150, y: 260 }, phone: { x: 295, y: 80 } },
-  { id: 'hilo', href: '/bandeja', title: 'Hilo', sub: 'Lo que piden las clientas por chat', side: 'in', wide: { x: 150, y: 410 }, phone: { x: 105, y: 210 } },
-  { id: 'taller', href: '/recibir', title: 'Taller', sub: 'Lo que llega entra a Bodega', side: 'in', wide: { x: 150, y: 560 }, phone: { x: 295, y: 210 } },
-  { id: 'inventario', href: '/inventario', title: 'Inventario', sub: 'Qué hay y dónde, por talla', side: 'out', wide: { x: 1050, y: 110 }, phone: { x: 105, y: 740 } },
-  { id: 'clientas', href: '/clientes', title: 'Clientas', sub: 'Ficha, compras, dirección y monedas', side: 'out', wide: { x: 1050, y: 260 }, phone: { x: 295, y: 740 } },
-  { id: 'apartados', href: '/apartados', title: 'Apartados', sub: 'Pares guardados para clientas Gold', side: 'out', wide: { x: 1050, y: 410 }, phone: { x: 105, y: 870 } },
-  { id: 'growth', href: '/growth', title: 'Crecer', sub: 'Demanda, favoritos y ventas', side: 'out', wide: { x: 1050, y: 560 }, phone: { x: 295, y: 870 } },
+  { id: 'online', href: '/sobre-pedido', title: 'Tienda en línea', sub: 'Cada pedido pagado descuenta su par', side: 'in', wide: { x: 150, y: 110 }, phone: { x: 105, y: 85 } },
+  { id: 'tiendas', href: '/ventas', title: 'Tiendas', sub: 'Ventas de las vendedoras, con puntos', side: 'in', wide: { x: 150, y: 260 }, phone: { x: 295, y: 85 } },
+  { id: 'hilo', href: '/bandeja', title: 'Hilo', sub: 'Lo que piden las clientas por chat', side: 'in', wide: { x: 150, y: 410 }, phone: { x: 105, y: 235 } },
+  { id: 'taller', href: '/recibir', title: 'Taller', sub: 'Lo que llega entra a Bodega', side: 'in', wide: { x: 150, y: 560 }, phone: { x: 295, y: 235 } },
+  { id: 'inventario', href: '/inventario', title: 'Inventario', sub: 'Qué hay y dónde, por talla', side: 'out', wide: { x: 1050, y: 110 }, phone: { x: 105, y: 765 } },
+  { id: 'clientas', href: '/clientes', title: 'Clientas', sub: 'Ficha, compras, dirección y monedas', side: 'out', wide: { x: 1050, y: 260 }, phone: { x: 295, y: 765 } },
+  { id: 'apartados', href: '/apartados', title: 'Apartados', sub: 'Pares guardados para clientas Gold', side: 'out', wide: { x: 1050, y: 410 }, phone: { x: 105, y: 915 } },
+  { id: 'growth', href: '/growth', title: 'Crecer', sub: 'Demanda, favoritos y ventas', side: 'out', wide: { x: 1050, y: 560 }, phone: { x: 295, y: 915 } },
 ];
 
 const LAYOUTS = {
   wide: { w: 1200, h: 680, hub: { x: 600, y: 335 }, r: 78, card: 240, avisos: { x: 600, y: 600 } },
-  phone: { w: 400, h: 960, hub: { x: 200, y: 475 }, r: 66, card: 172, avisos: { x: 200, y: 618 } },
+  phone: { w: 400, h: 1010, hub: { x: 200, y: 500 }, r: 66, card: 172, avisos: { x: 200, y: 645 } },
 };
 type Layout = keyof typeof LAYOUTS;
+
+export type FlowStats = { nodes: Record<string, string | null>; hub: string | null; avisos: number | null; at: string };
 
 function edge(n: Node, l: Layout): string {
   const L = LAYOUTS[l], p = n[l], half = L.card / 2, { hub, r } = L;
@@ -35,12 +40,12 @@ function edge(n: Node, l: Layout): string {
   }
   // phone: sources above the hub, results below it
   return n.side === 'in'
-    ? `M${p.x} ${p.y + 46} C ${p.x} ${p.y + 160}, ${hub.x} ${hub.y - r - 120}, ${hub.x} ${hub.y - r}`
-    : `M${hub.x + (p.x < hub.x ? -0.6 : 0.6) * r} ${hub.y + 0.8 * r} C ${p.x} ${hub.y + r + 70}, ${p.x} ${p.y - 120}, ${p.x} ${p.y - 46}`;
+    ? `M${p.x} ${p.y + 40} C ${p.x} ${p.y + 160}, ${hub.x} ${hub.y - r - 120}, ${hub.x} ${hub.y - r}`
+    : `M${hub.x + (p.x < hub.x ? -0.6 : 0.6) * r} ${hub.y + 0.8 * r} C ${p.x} ${hub.y + r + 70}, ${p.x} ${p.y - 120}, ${p.x} ${p.y - 40}`;
 }
 
 // Inventario → Tienda en línea: the store shows Fuxia 360's stock (pushed every minute).
-const STOCK_ARC = { wide: 'M1050 66 C 1050 -6, 150 -6, 150 66', phone: 'M19 740 C -4 560, -4 260, 19 80' };
+const STOCK_ARC = { wide: 'M1050 66 C 1050 -6, 150 -6, 150 66', phone: 'M19 765 C -4 580, -4 270, 19 85' };
 const avisosEdge = (l: Layout) => { const { hub, r, avisos } = LAYOUTS[l]; return `M${hub.x} ${hub.y + r} L${avisos.x} ${avisos.y - 20}`; };
 
 const pct = (v: number, of: number) => `${(v / of) * 100}%`;
@@ -54,7 +59,7 @@ function Dots({ d, dur, color, count = 2, r = 3.6 }: { d: string; dur: number; c
   ))}</>;
 }
 
-function FlowLayout({ layout, active, setActive }: { layout: Layout; active: string | null; setActive: (id: string | null) => void }) {
+function FlowLayout({ layout, active, setActive, stats }: { layout: Layout; active: string | null; setActive: (id: string | null) => void; stats: FlowStats }) {
   const L = LAYOUTS[layout];
   const svg = useRef<SVGSVGElement>(null);
   useEffect(() => {
@@ -90,7 +95,8 @@ function FlowLayout({ layout, active, setActive }: { layout: Layout; active: str
           className="flow-node absolute -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[#E8C98A]/30 bg-[#1B1712] px-3 py-2.5 text-center shadow-[0_18px_40px_-22px_rgba(0,0,0,.9)] transition hover:border-[#E8C98A] hover:bg-[#241E16] md:px-4 md:py-3.5"
           style={{ left: pct(n[layout].x, L.w), top: pct(n[layout].y, L.h), width: pct(L.card, L.w), opacity: dim(n.id) === 1 ? 1 : 0.55 }}>
           <span className="kicker block text-[10px] text-[#F7E7C4] md:text-[11px]">{n.title}</span>
-          <span className="mt-1 block text-[11px] leading-snug text-[#B8AE9F] md:text-[12.5px]">{n.sub}</span>
+          <span className="mt-1 hidden text-[12.5px] leading-snug text-[#B8AE9F] md:block">{n.sub}</span>
+          {stats.nodes[n.id] && <span className="tabular mt-1.5 block text-[12px] font-semibold text-[#E8C98A] md:text-[13.5px]" data-testid={`flow-stat-${n.id}`}>{stats.nodes[n.id]}</span>}
         </Link>
       ))}
 
@@ -99,12 +105,13 @@ function FlowLayout({ layout, active, setActive }: { layout: Layout; active: str
         style={{ left: pct(L.hub.x, L.w), top: pct(L.hub.y, L.h), width: pct(L.r * 2, L.w), aspectRatio: '1' }}>
         <span className="font-display text-[22px] leading-none text-[#F7E7C4] md:text-[30px]">Fuxia <span className="text-[#E8C98A]">360</span></span>
         <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.2em] text-[#8E877C] md:text-[10px]">Centro de control</span>
+        {stats.hub && <span className="tabular mt-1 text-[11px] font-semibold text-[#E8C98A] md:text-[13px]" data-testid="flow-stat-hub">{stats.hub}</span>}
       </Link>
 
       <Link href="/avisos" onMouseEnter={() => setActive('avisos')} onMouseLeave={() => setActive(null)}
         className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#FF8A4C]/50 bg-[#1B1712] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#FFB48A] transition hover:border-[#FF8A4C]"
         style={{ left: pct(LAYOUTS[layout].avisos.x, L.w), top: pct(LAYOUTS[layout].avisos.y, L.h) }}>
-        Avisos
+        Avisos{!!stats.avisos && <span className="ml-2 rounded-full bg-[#FF8A4C] px-1.5 py-px text-[10px] text-[#1A0F06]" data-testid="flow-stat-avisos">{stats.avisos}</span>}
       </Link>
 
       {layout === 'wide' && (
@@ -117,12 +124,17 @@ function FlowLayout({ layout, active, setActive }: { layout: Layout; active: str
   );
 }
 
-export function FlowMap() {
+export function FlowMap({ stats }: { stats: FlowStats }) {
   const [active, setActive] = useState<string | null>(null);
+  const router = useRouter();
+  useEffect(() => { const t = setInterval(() => router.refresh(), 60_000); return () => clearInterval(t); }, [router]);
   return (
-    <div className="overflow-hidden rounded-[28px] bg-[#100E0B] px-3 pb-6 pt-8 md:px-8 md:pb-10 md:pt-12">
-      <div className="mx-auto hidden max-w-[1100px] md:block"><FlowLayout layout="wide" active={active} setActive={setActive} /></div>
-      <div className="mx-auto max-w-[420px] md:hidden"><FlowLayout layout="phone" active={active} setActive={setActive} /></div>
+    <div className="overflow-hidden rounded-[28px] bg-[#100E0B] px-3 pb-6 pt-6 md:px-8 md:pb-10 md:pt-8">
+      <p className="mb-4 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8E877C] md:mb-6">
+        <span className="size-1.5 animate-pulse rounded-full bg-[#7FD69B] motion-reduce:animate-none" />En vivo · hoy · actualizado {stats.at}
+      </p>
+      <div className="mx-auto hidden max-w-[1100px] md:block"><FlowLayout layout="wide" active={active} setActive={setActive} stats={stats} /></div>
+      <div className="mx-auto max-w-[420px] md:hidden"><FlowLayout layout="phone" active={active} setActive={setActive} stats={stats} /></div>
     </div>
   );
 }
