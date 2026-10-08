@@ -67,3 +67,8 @@ a.atelier-card:hover, .atelier-card.lift:hover { transform: translateY(-2px); bo
 .tier-silver { background: linear-gradient(90deg, #cfd4db, #eef0f3); color: var(--ink); }
 .tier-bronze { background: linear-gradient(90deg, #d9a77c, #f1d9c2); color: var(--ink); }
 @media (prefers-reduced-motion: reduce) { .atelier-card { transition: none; } a.atelier-card:hover, .atelier-card.lift:hover { transform: none; } }
+
+/* Cómo funciona: the hub breathes. Still for people who ask for less motion. */
+.hub-ring { animation: hub-ring 3.2s ease-in-out infinite; }
+@keyframes hub-ring { 0%, 100% { transform: scale(1); opacity: .9; } 50% { transform: scale(1.08); opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .hub-ring { animation: none; } }

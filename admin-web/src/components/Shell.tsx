@@ -30,6 +30,7 @@ const GROUPS = [
     { href: '/growth', label: 'Growth', icon: IconGrowth, live: true, admin: true },
   ] },
   { label: 'Configuración', items: [
+    { href: '/como-funciona', label: 'Cómo funciona', icon: IconGrowth, live: true, admin: true },
     { href: '/tiendas', label: 'Tiendas', icon: IconBoxes, live: true, admin: true },
     { href: '/vendedoras', label: 'Vendedoras', icon: IconUsers, live: true, admin: true },
     { href: '/homologacion', label: 'Homologación', icon: IconLink, live: true, admin: true },

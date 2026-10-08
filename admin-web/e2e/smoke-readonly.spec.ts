@@ -4,9 +4,10 @@ import { expect, test } from '@playwright/test';
 const EMAIL = 'carolina.demo@staging.invalid';
 const PASSWORD = process.env.STAGING_DEMO_CAROLINA_PASSWORD ?? '';
 const PAGES = ['/', '/productos', '/inventario', '/inventario?vista=historial', '/transferencias', '/transferencias?vista=en-camino',
-  '/transferencias?vista=recibidas', '/transferencias?vista=diferencias', '/mover', '/recibir', '/ventas', '/ventas?canal=store', '/monedas', '/avisos', '/growth', '/growth?vista=plan', '/growth?vista=commerce', '/clientes', '/mas', '/pedidos', '/produccion'];
+  '/transferencias?vista=recibidas', '/transferencias?vista=diferencias', '/mover', '/recibir', '/ventas', '/ventas?canal=store', '/monedas', '/avisos', '/growth', '/growth?vista=plan', '/growth?vista=commerce', '/clientes', '/mas', '/como-funciona', '/pedidos', '/produccion'];
 
 test('every screen renders (read-only)', async ({ page }) => {
+  await page.addInitScript(() => sessionStorage.setItem('f360-staging-notice', '1')); // the staging notice covers the login
   await page.goto('/login');
   await page.getByLabel('Correo').fill(EMAIL);
   await page.getByLabel('Contraseña').fill(PASSWORD);
