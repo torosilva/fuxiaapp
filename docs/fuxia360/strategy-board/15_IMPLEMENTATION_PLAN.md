@@ -26,7 +26,7 @@ Fixtures nuevos necesarios: miembro A (Carolina sintética), miembro B (Mario si
 | D4 | Definición de Net Revenue (precio cobrado vs ÷1.16 IVA); hoy IVA no está separado en ninguna fuente | Decidir antes de SB1 |
 | D5 | Aprobaciones: ¿una o ambas firmas? Regla de conflicto (inversión de Mario la aprueba Carolina) | Recomendado: doble para cierre, budget, plan, gates con override, capital, cap table |
 | D6 | Año fiscal = calendario; zona `America/Mexico_City` | Confirmar |
-| D7 | Entidades legales (MX/CO) y si Cali se modela como ubicación F360 | Necesario para dimensión company/country |
+| D7 | Entidades legales (MX/CO). ~~Si Cali se modela como ubicación F360~~ → **decidido 2026-10-08: Cali = casa matriz (la opera la suegra de Mario), NO ubicación ni canal de Fuxia 360** | Falta solo: entidades legales |
 | D8 | Relación `growth_plans`/`growth_scenarios` (B4) ↔ Plan 5 años / Scenario Lab | Recomendado: Plan aprobado es fuente; `growth_plans` del año en curso se deriva (o se lee) — una sola editable |
 | D9 | Bucket privado y firma de URLs: política Storage con función definer (A) vs Route Handler con service role (B) | Recomendado A |
 | D10 | Ventas legacy (`offline_sales` no-RPC, canales legacy) → ¿se cargan como `historical_sales` por Carolina? | Recomendado sí, por el flujo existente "Ventas pasadas" |

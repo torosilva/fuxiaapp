@@ -28,7 +28,7 @@ Ejemplo de ventana a 2026-10-08: oct-2026 (provisional) … mar-2028.
 
 **No inventar canales.** Hallazgos:
 
-- **Cali (Colombia)** no existe en `f360.locations`; solo como `public.channels` legacy ("Cali"). Tampoco Monterrey, Guadalajara, Contreras (legacy `public.channels`, con ventas legacy en `offline_sales`). El forecast no tendrá esas tiendas como dimensión hasta que existan como ubicación F360 (Track C) — mientras tanto, si Mario quiere forecast de Colombia retail, se modela como **escenario** "nueva tienda/país" (`04_SCENARIO_LAB.md`).
+- **Cali (Colombia)** — **Decidido (Mario 2026-10-08):** para este ejercicio Cali es **solo la casa matriz** (Colombia), operada por su suegra. **No** es ubicación de Fuxia 360 ni canal de venta del cockpit/forecast; no se crea en `f360.locations` ni se pronostica como tienda. Las ventas legacy del canal "Cali" quedan fuera de los actuals de Fuxia 360. La relación con la casa matriz (p. ej. pares pedidos a Colombia) se trata como origen/proveedor, no como canal. Contexto: no existe en `f360.locations`; solo como `public.channels` legacy ("Cali"). Tampoco Monterrey, Guadalajara, Contreras (legacy `public.channels`, con ventas legacy en `offline_sales`). El forecast no tendrá esas tiendas como dimensión hasta que existan como ubicación F360 (Track C) — mientras tanto, si Mario quiere forecast de Colombia retail, se modela como **escenario** "nueva tienda/país" (`04_SCENARIO_LAB.md`).
 - Accesorios/apparel no existen como categoría: solo vía escenario "nueva categoría".
 
 Granularidad mínima: mes × market × channel × location (si store) × category. Los niveles superiores son sumas **dentro de una moneda**.
