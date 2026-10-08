@@ -8,7 +8,8 @@ import { alertNow } from '@/lib/notifications';
 // Customer-side reservations are only offered by builds pointing at a database with Fuxia 360 (staging for now).
 export const F360_RESERVE = process.env.EXPO_PUBLIC_F360_RESERVE === '1';
 
-export type CatalogItem = { variant_id: string; product_name: string; color: string; color_hex: string | null; size: string; sku: string; price: number | null; available: number; reserved: number };
+export type CatalogItem = { variant_id: string; product_name: string; color: string; color_hex: string | null; size: string; sku: string; price: number | null; available: number; reserved: number;
+  product_id?: string; category?: string | null; image?: string | null };
 export type ShiftReservation = {
   id: string; variant_id: string; product: string; color: string; color_hex: string | null; size: string; sku: string;
   customer: string; phone_last4: string; channel: 'app' | 'web' | 'tienda';
@@ -41,6 +42,41 @@ export const newSaleKey = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/
 });
 export const recordSale = (key: string, lines: { variant_id: string; quantity: number }[], payment: 'cash' | 'card' | 'transfer' | 'other', customerQr?: string | null) =>
   call<SaleResult>('f360_record_store_sale', { p_token: token(), p_idempotency_key: key, p_lines: lines, p_payment_method: payment, p_customer_qr: customerQr || null });
+
+// ── Counter flow (CRM C2): find or register the customer, then sell with her linked. The seller only ever gets the
+// masked card (first name, last 4 digits, size, points); points are credited now or held until she logs in to the app.
+export type MaskedCustomer = { customer_ref: string; first_name: string; phone_last4: string; shoe_size: string | null;
+  points: number; tier: string; has_card: boolean; points_pending: number };
+type CrmAnswer = { ok: boolean; error?: string; found?: boolean; created?: boolean; customer?: MaskedCustomer };
+async function crm(fn: string, args: Record<string, unknown>) {
+  const r = await call<CrmAnswer>(fn, { p_token: token(), ...args });
+  if (!r.ok) throw new Error(r.error ?? 'No se pudo completar.');
+  return r;
+}
+export const findCustomer = (phone: string) => crm('f360_shift_customer_find', { p_phone: phone });
+export const customerByCard = (card: string) => crm('f360_shift_customer_by_card', { p_card_token: card });
+export const registerCustomer = (c: { phone: string; name: string; email?: string; size?: string; birthdayDay?: number | null; birthdayMonth?: number | null }) =>
+  crm('f360_shift_customer_register', { p_phone: c.phone, p_name: c.name, p_email: c.email ?? '', p_shoe_size: c.size || null,
+    p_birthday_day: c.birthdayDay ?? null, p_birthday_month: c.birthdayMonth ?? null });
+export type SaleForResult = SaleResult & { sale_id: string; points_state?: 'credited' | 'held' | 'none'; customer?: MaskedCustomer };
+export const recordSaleFor = (key: string, lines: { variant_id: string; quantity: number }[], payment: 'cash' | 'card' | 'transfer' | 'other',
+  reference: string | null, customerRef: string | null) =>
+  call<SaleForResult>('f360_record_store_sale_for', { p_token: token(), p_idempotency_key: key, p_lines: lines, p_payment_method: payment,
+    p_payment_reference: reference || null, p_customer_ref: customerRef });
+
+// Public product photos (same bucket the store and the admin use).
+export const photoUrl = (path?: string | null) => path ? `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-images/${path}` : null;
+
+// The thank-you WhatsApp, sent from the store's phone until the automatic template is approved.
+// Until one link that detects the phone exists (e.g. fuxiaballerinas.com/app), the message carries both stores.
+const IOS_APP = 'https://apps.apple.com/mx/app/fuxia-ballerinas/id6764388920';
+const ANDROID_APP = 'https://play.google.com/store/apps/details?id=com.fuxiaballerinas.loyalty';
+export function thanksWhatsApp(phone10: string, name: string, store: string, points: number) {
+  const text = `¡Muchas gracias por tu compra en Fuxia ${store.replace(/^Tienda\s+/i, '')}, ${name}! ` +
+    (points > 0 ? `Tienes ${points} puntos Fuxia esperándote: descarga la app y entra con este número para recibirlos.` : 'Descarga la app del Club Fuxia.') +
+    `\n\niPhone: ${IOS_APP}\nAndroid: ${ANDROID_APP}`;
+  return `https://wa.me/52${phone10}?text=${encodeURIComponent(text)}`;
+}
 
 // Customer
 export const storeAvailability = (wooVariationId: number) =>
