@@ -28,3 +28,22 @@ export function orderShipping(o: Record<string, unknown>): OrderShipping {
     street: str(ship.address_1), neighborhood: str(ship.address_2), city: str(ship.city), state, postal_code: str(ship.postcode), country,
   };
 }
+
+// CRM C8 (online = store): what f360_web_order_loyalty needs to register a new buyer and HOLD her points. The phone is the
+// BILLING phone first (the same one woocommerce-webhook matches on), so both webhooks always look for the same person.
+export type OrderLoyalty = { id: number; status: string; total: string | null; name: string | null; phone: string | null; email: string | null;
+  country: string | null; line_items: { sku: string | null; name: string | null; quantity: number; total: string | null; product_id: number | null }[];
+  address: { street: string | null; neighborhood: string | null; city: string | null; state: string | null; postal_code: string | null } };
+
+export function orderLoyalty(o: Record<string, unknown>): OrderLoyalty {
+  const s = orderShipping(o);
+  const b = (o.billing ?? {}) as Record<string, unknown>;
+  const items = (o.line_items as Record<string, unknown>[] | undefined) ?? [];
+  return {
+    id: s.id, status: s.status, total: str(o.total), name: s.name, phone: str(b.phone) ?? s.phone, email: s.email,
+    country: str(b.country)?.toUpperCase() ?? s.country,
+    line_items: items.map((li) => ({ sku: str(li.sku), name: str(li.name), quantity: Number(li.quantity ?? 0),
+      total: li.total === undefined || li.total === null ? null : String(li.total), product_id: li.product_id ? Number(li.product_id) : null })),
+    address: { street: s.street, neighborhood: s.neighborhood, city: s.city, state: s.state, postal_code: s.postal_code },
+  };
+}

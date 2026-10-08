@@ -114,7 +114,8 @@ test('webhook: inventory ingest receives ONLY the minimal order; commerce captur
   const realFetch = globalThis.fetch;
   globalThis.fetch = (async (url: string, init: RequestInit) => {
     const fn = String(url).split('/rpc/')[1]; const args = JSON.parse(String(init.body)); calls.push({ fn, args });
-    const body = fn === 'f360_ingest_woo_order' ? { result: 'applied' } : fn === 'f360_capture_order_shipping' ? { result: 'saved' } : { result: 'inserted', refunds: 1 };
+    const body = fn === 'f360_ingest_woo_order' ? { result: 'applied' } : fn === 'f360_capture_order_shipping' ? { result: 'saved' }
+      : fn === 'f360_web_order_loyalty' ? { result: 'registered' } : { result: 'inserted', refunds: 1 };
     return new Response(JSON.stringify(body), { status: 200 });
   }) as typeof fetch;
   t.after(() => { globalThis.fetch = realFetch; });
@@ -122,8 +123,11 @@ test('webhook: inventory ingest receives ONLY the minimal order; commerce captur
   const res = await handleOrders(req(body), env, { commerceWoo: { listOrders: async () => [], listRefunds: async () => [{ id: 900, amount: '500', line_items: [] }] } });
   const out = await res.json();
   assert.equal(res.status, 200); assert.equal(out.result, 'applied'); assert.equal(out.commerce, 'inserted');
-  assert.deepEqual(calls.map((c) => c.fn), ['f360_ingest_woo_order', 'f360_capture_order_economics', 'f360_capture_order_shipping']);
-  assert.equal(out.shipping, 'saved');
+  assert.deepEqual(calls.map((c) => c.fn), ['f360_ingest_woo_order', 'f360_capture_order_economics', 'f360_capture_order_shipping', 'f360_web_order_loyalty']);
+  assert.equal(out.shipping, 'saved'); assert.equal(out.loyalty, 'registered');
+  const loy = calls[3].args.p_order as Record<string, any>;
+  assert.equal(loy.phone, '5512345678'); assert.equal(loy.total, '2720'); assert.equal(loy.line_items[0].quantity, 1);
+  assert.ok(!JSON.stringify(loy).includes('MP-SECRET') && !JSON.stringify(loy).includes('201.1.2.3'));
   const ingest = JSON.stringify(calls[0].args.p_order);
   assert.ok(!ingest.includes('2720') && !ingest.includes('utm'), 'inventory payload unchanged (no money, no attribution)');
   const cap = calls[1].args as Record<string, any>;

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Fuxia 360 · the ONLY way this repo deploys the store-facing functions to PRODUCTION (tgzg…), approved by Mario as a permission rule.
-# Usage: scripts/f360/deploy_prod_function.sh f360-store-reserve | f360-hilo-intake | f360-woo-orders
+# Usage: scripts/f360/deploy_prod_function.sh f360-store-reserve | f360-hilo-intake | f360-woo-orders | f360-whatsapp
+#   · f360-whatsapp (Mario 2026-10-08): thank-you WhatsApp sender; F360_THANKS_SID=HX… scripts/f360/deploy_prod_function.sh f360-whatsapp
+#     once Meta approves the template fuxia_gracias_compra (without it, the function sends nothing).
 #   · whitelist only (never the app's own functions: hilo-chat, whatsapp-otp, woocommerce-*, …);
 #   · the function must be committed with no local changes;
 #   · f360-store-reserve: F360_RESERVE_ORIGINS = fuxiaballerinas.com only, F360_STOREFRONT_TARGET = woo_production. The Woo key
@@ -15,13 +17,17 @@
 set -euo pipefail
 PROD_REF="tgzgiwfzddsghnxgkcqd"
 FN="${1:-}"
-case "$FN" in f360-store-reserve|f360-hilo-intake|f360-woo-orders) ;; *) echo "ABORT: solo f360-store-reserve, f360-hilo-intake o f360-woo-orders" >&2; exit 1;; esac
+case "$FN" in f360-store-reserve|f360-hilo-intake|f360-woo-orders|f360-whatsapp) ;; *) echo "ABORT: solo f360-store-reserve, f360-hilo-intake, f360-woo-orders o f360-whatsapp" >&2; exit 1;; esac
 cd "$(dirname "$0")/../.."
 git diff --quiet HEAD -- "fuxia-native/supabase/functions/$FN" || { echo "ABORT: $FN tiene cambios sin commitear." >&2; exit 1; }
 [ -z "$(git ls-files --others --exclude-standard "fuxia-native/supabase/functions/$FN")" ] || { echo "ABORT: $FN tiene archivos sin commitear." >&2; exit 1; }
 TMP="$(mktemp)"; chmod 600 "$TMP"; trap 'rm -f "$TMP"' EXIT
 if [ "$FN" = "f360-store-reserve" ]; then
   printf 'F360_RESERVE_ORIGINS=https://fuxiaballerinas.com,https://www.fuxiaballerinas.com\nF360_STOREFRONT_TARGET=woo_production\n' > "$TMP"
+elif [ "$FN" = "f360-whatsapp" ]; then
+  # Twilio keys are already project secrets (whatsapp-otp). The approved template SID is set ONLY when given
+  # (F360_THANKS_SID=HX… after Meta approves fuxia_gracias_compra); without it the function sends nothing.
+  [ -n "${F360_THANKS_SID:-}" ] && printf 'TWILIO_THANKS_CONTENT_SID=%s\n' "$F360_THANKS_SID" > "$TMP"
 elif [ "$FN" = "f360-woo-orders" ]; then
   SECRET_FILE="$HOME/.fuxia-woo-orders.secret"
   if [ ! -s "$SECRET_FILE" ]; then ( umask 077; openssl rand -hex 32 > "$SECRET_FILE" ); echo "Secreto nuevo generado en $SECRET_FILE"; fi
@@ -31,8 +37,10 @@ else
   if [ ! -s "$SECRET_FILE" ]; then ( umask 077; openssl rand -hex 32 > "$SECRET_FILE" ); echo "Secreto nuevo generado en $SECRET_FILE"; fi
   printf 'F360_HILO_SECRET=%s\n' "$(tr -d '\n' < "$SECRET_FILE")" > "$TMP"
 fi
-( cd fuxia-native && supabase secrets set --env-file "$TMP" --project-ref "$PROD_REF" >/dev/null )
-echo "Secretos de $FN puestos en producción ($(cut -d= -f1 "$TMP" | tr '\n' ' '))."
+if [ -s "$TMP" ]; then
+  ( cd fuxia-native && supabase secrets set --env-file "$TMP" --project-ref "$PROD_REF" >/dev/null )
+  echo "Secretos de $FN puestos en producción ($(cut -d= -f1 "$TMP" | tr '\n' ' '))."
+fi
 ( cd fuxia-native && supabase functions deploy "$FN" --no-verify-jwt --project-ref "$PROD_REF" 2>&1 | grep -E "Deployed|Error" )
 URL="https://$PROD_REF.supabase.co/functions/v1/$FN"
 if [ "$FN" = "f360-store-reserve" ]; then
@@ -46,6 +54,11 @@ elif [ "$FN" = "f360-woo-orders" ]; then
   ping=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$URL" -H 'Content-Type: application/x-www-form-urlencoded' -d 'webhook_id=0')
   echo "Ping de Woo (debe 200): $ping"
   [ "$ping" = "200" ] || { echo "ATENCIÓN: respuesta inesperada al ping" >&2; exit 2; }
+elif [ "$FN" = "f360-whatsapp" ]; then
+  # takes no input: a call only delivers what the database already queued (or answers 'sin plantilla aprobada')
+  out=$(curl -s -w ' %{http_code}' -X POST "$URL" -H 'Content-Type: application/json' -d '{}')
+  echo "Envío de pendientes (debe 200): $out"
+  [ "${out##* }" = "200" ] || { echo "ATENCIÓN: respuesta inesperada" >&2; exit 2; }
 else
   bad=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$URL" -H 'Content-Type: application/json' -d '{}')
   echo "Sin secreto (debe rechazar 401/403): $bad"

@@ -5,7 +5,7 @@
 import { minimizeOrder, verifyWooSignature } from '../_shared/f360-woo/orders.ts';
 import { commerceWoo, orderEconomics, refundDetail, type CommerceWoo } from '../_shared/f360-woo/commerce.ts';
 import { serviceRpc, type SupabaseEnv } from '../_shared/f360-woo/supabase.ts';
-import { orderShipping } from '../_shared/f360-woo/shipping.ts';
+import { orderLoyalty, orderShipping } from '../_shared/f360-woo/shipping.ts';
 
 export type OrdersEnv = SupabaseEnv & { WOO_TARGET_KEY: string; WOO_WEBHOOK_SECRET: string; WOO_BASE_URL?: string; WOO_USER?: string; WOO_SECRET?: string };
 export type OrdersOptions = { afterApplied?: () => Promise<unknown>; commerceWoo?: CommerceWoo | null };
@@ -50,7 +50,13 @@ export async function handleOrders(req: Request, env: OrdersEnv, opts: OrdersOpt
     try {
       shipping = (await rpc<{ result: string }>('f360_capture_order_shipping', { p_target_key: env.WOO_TARGET_KEY, p_order: orderShipping(order) })).result;
     } catch (e) { shipping = 'error'; console.error(`[f360-woo-orders] shipping capture failed order=${order.id}: ${(e as Error).message}`); }
-    return json({ ...result, commerce: commerce.result, shipping });
+    // CRM C8 (online = store): a buyer who is not a customer yet is registered and her points are HELD until she logs in
+    // (the database also cancels them if the order is cancelled/refunded first). Best effort, like shipping.
+    let loyalty = 'skipped';
+    try {
+      loyalty = (await rpc<{ result: string }>('f360_web_order_loyalty', { p_target_key: env.WOO_TARGET_KEY, p_order: orderLoyalty(order) })).result;
+    } catch (e) { loyalty = 'error'; console.error(`[f360-woo-orders] loyalty step failed order=${order.id}: ${(e as Error).message}`); }
+    return json({ ...result, commerce: commerce.result, shipping, loyalty });
   } catch (e) {
     // 5xx → Woo retries the delivery later; the database side is atomic, so a retry is always safe.
     return json({ error: (e as Error).message }, 500);
