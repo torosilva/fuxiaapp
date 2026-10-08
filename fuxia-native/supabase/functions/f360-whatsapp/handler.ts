@@ -2,7 +2,8 @@
 // fuxia_gracias_compra (TWILIO_THANKS_CONTENT_SID). Called by the database (pg_net kick when a message is queued + a 1-minute
 // pg_cron tick). It takes no input: the database decides WHO gets WHAT (f360_whatsapp_claim, which also guarantees one
 // sender per message) and this function only delivers and reports back (f360_whatsapp_result). Without the template SID
-// configured it sends nothing (messages wait, and expire after 3 days), so nothing goes out before Meta approves the template.
+// configured it sends nothing. It also asks Twilio whether Meta has APPROVED the template (Content API approval status) and
+// sends nothing until it is — messages simply wait (expiring after 3 days), so nobody has to watch for the approval.
 export type WhatsAppEnv = { SUPABASE_URL: string; SUPABASE_SERVICE_ROLE_KEY: string; TWILIO_ACCOUNT_SID: string; TWILIO_AUTH_TOKEN: string;
   TWILIO_WHATSAPP_FROM: string; TWILIO_THANKS_CONTENT_SID: string };
 type Msg = { id: string; kind: string; phone: string; variables: Record<string, string> };
@@ -27,6 +28,9 @@ export async function handleWhatsApp(req: Request, env: WhatsAppEnv, fetchImpl: 
     if (!r.ok) throw new Error((data as { message?: string } | null)?.message ?? `${fn} falló`);
     return data as T;
   };
+  const auth0 = `Basic ${btoa(`${env.TWILIO_ACCOUNT_SID}:${env.TWILIO_AUTH_TOKEN}`)}`;
+  const status = await templateStatus(env.TWILIO_THANKS_CONTENT_SID, auth0, fetchImpl);
+  if (status !== 'approved') return json({ ok: true, skipped: `plantilla ${status}` });
   const from = env.TWILIO_WHATSAPP_FROM.startsWith('whatsapp:') ? env.TWILIO_WHATSAPP_FROM : `whatsapp:${env.TWILIO_WHATSAPP_FROM}`;
   const auth = `Basic ${btoa(`${env.TWILIO_ACCOUNT_SID}:${env.TWILIO_AUTH_TOKEN}`)}`;
   const msgs = await rpc<Msg[]>('f360_whatsapp_claim', { p_limit: 20 });
@@ -46,4 +50,14 @@ export async function handleWhatsApp(req: Request, env: WhatsAppEnv, fetchImpl: 
     }
   }
   return json({ ok: true, claimed: msgs.length, sent, failed });
+}
+
+// WhatsApp approval status of a Content template ('approved', 'pending', 'rejected', 'unsubmitted', … or 'desconocido').
+export async function templateStatus(sid: string, auth: string, fetchImpl: typeof fetch = fetch): Promise<string> {
+  try {
+    const r = await fetchImpl(`https://content.twilio.com/v1/Content/${sid}/ApprovalRequests`, { headers: { Authorization: auth } });
+    if (!r.ok) return 'desconocido';
+    const b = await r.json() as { whatsapp?: { status?: string } };
+    return String(b.whatsapp?.status ?? 'desconocido').toLowerCase();
+  } catch { return 'desconocido'; }
 }

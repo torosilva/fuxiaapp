@@ -6,10 +6,11 @@ const env = { SUPABASE_URL: 'http://db', SUPABASE_SERVICE_ROLE_KEY: 'k', TWILIO_
   TWILIO_WHATSAPP_FROM: '+5215500000000', TWILIO_THANKS_CONTENT_SID: 'HX7c' };
 const post = () => new Request('http://x', { method: 'POST', body: '{}' });
 
-function fake(twilio: (body: URLSearchParams) => Response) {
+function fake(twilio: (body: URLSearchParams) => Response, approval = 'approved') {
   const calls: { url: string; body: string }[] = [];
   const f = (async (url: string, init: RequestInit) => {
-    calls.push({ url: String(url), body: String(init.body) });
+    if (String(url).includes('content.twilio.com')) return new Response(JSON.stringify({ whatsapp: { status: approval } }), { status: 200 });
+    calls.push({ url: String(url), body: String(init?.body) });
     if (String(url).endsWith('/rpc/f360_whatsapp_claim')) {
       return new Response(JSON.stringify([{ id: 'm1', kind: 'thanks', phone: '+528110240698', variables: { 1: 'Polanco', 2: 'Mariana', 3: '100' } },
         { id: 'm2', kind: 'thanks', phone: '+573001234567', variables: { 1: 'en línea', 2: 'Ana', 3: '200' } }]), { status: 200 });
@@ -45,4 +46,10 @@ test('without the approved template SID nothing is claimed or sent', async () =>
   const { f, calls } = fake(() => new Response('{}'));
   const out = await (await handleWhatsApp(post(), { ...env, TWILIO_THANKS_CONTENT_SID: '' }, f)).json();
   assert.equal(out.skipped, 'sin plantilla aprobada'); assert.equal(calls.length, 0);
+});
+
+test('while Meta has not approved the template, nothing is claimed or sent (messages wait)', async () => {
+  const { f, calls } = fake(() => new Response('{}'), 'pending');
+  const out = await (await handleWhatsApp(post(), env, f)).json();
+  assert.equal(out.skipped, 'plantilla pending'); assert.equal(calls.length, 0);
 });
