@@ -33,7 +33,7 @@ const ease = (x) => x < 0 ? 0 : x > 1 ? 1 : 1 - Math.pow(1 - x, 3);
 const back = (x) => { x = Math.max(0, Math.min(1, x)); const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
 const at = (top, left, w) => ({ s: { top: top + 'px', left: left + 'px', width: w ? w + 'px' : undefined } });
 const CAPS = []; const cap = (tin, tout, text) => CAPS.push([tin, tout, el(text, { cls: 'cap' }, tin, tout, 'none')]);
-const CHAPS = [[6, 20, '01', 'El taller'], [20, 32, '02', 'Nuestras tiendas'], [32, 64, '03', 'Comprar en línea'], [64, 95, '04', 'Fuxia 360 por dentro'], [95, 110, '05', 'Más ventas']];
+const CHAPS = [[6, 19.4, '01', 'El taller'], [19.4, 32, '02', 'Nuestras tiendas'], [32, 64, '03', 'Comprar en línea'], [64, 78, '04', 'Club Fuxia: la app'], [78, 109, '05', 'Fuxia 360 por dentro'], [109, 124, '06', 'Más ventas']];
 // image sequences (recordings): window.SEQ = { tienda: [[t, url]…], admin: [[t, url]…] }
 const SEQS = [];
 function seq(name, css, tin, tout, srcFrom, rate = 1, fx = 'pop') { const d = el('<img style="width:100%;display:block">', css, tin, tout, fx); SEQS.push({ name, d, tin, tout, srcFrom, rate }); return d; }
@@ -53,18 +53,39 @@ async function render(t) {
   const ch = CHAPS.find((c) => t >= c[0] && t < c[1]); const chap = document.getElementById('chap');
   chap.style.opacity = ch ? Math.min(1, (t - ch[0]) / .5, (ch[1] - t) / .4) : 0; if (ch) { chap.children[1].textContent = ch[2]; chap.children[2].textContent = ch[3]; }
   document.getElementById('tag').style.opacity = chap.style.opacity;
+  const dark = t >= M0 && t < M1; chap.style.color = dark ? '#f5efe3' : ''; document.getElementById('tag').style.color = dark ? '#B8966E' : '';
   const waits = [];
   for (const s of SEQS) { if (t < s.tin - .1 || t > s.tout + .6) continue; const list = (window.SEQ || {})[s.name]; if (!list) continue;
     const img = s.d.firstChild, url = frameAt(list, s.srcFrom + Math.max(0, t - s.tin) * s.rate); if (img.getAttribute('src') !== url) { img.src = url; waits.push(img.decode().catch(() => {})); } }
   await Promise.all(waits);
 }
 
-// ===== 00 · cover with chapter index (0–6)
-el(logo(900, '#857652'), at(250, 160), .2, 5.6, 'up');
-el('Comodidad artesanal con carácter propio', { s: { top: '470px', left: '160px', fontSize: '40px', fontWeight: 300, color: '#4a433a' } }, .8, 5.6);
-el('DEMO · 2 MINUTOS', { s: { top: '820px', left: '160px', fontSize: '20px', fontWeight: 700, letterSpacing: '.3em', color: '#83734C' } }, 1.2, 5.6);
-CHAPS.forEach((c, i) => el(`<div style="width:520px;padding:18px 24px;border:2px solid #e3d6bd;border-radius:14px;background:#fff"><b style="color:#83734C;font-size:18px;letter-spacing:.2em">${c[2]}</b><div style="font-size:26px;font-weight:500;margin-top:4px">${c[3]}</div></div>`,
-  at(250 + i * 118, 1220), 1 + i * .25, 5.6, 'right'));
+// ===== 00 · cover (0–6.2): a premium shoe brand, not a presentation. Brand story v3 (2026-10-06).
+// Three real catalogue shots (no workshop/hands photos exist yet): A detail of a gold Paula under a dark skirt → B macro of the
+// hand-cut leather (Mafalda láser azul) → C silver/green Paula on a wooden floor, which dissolves into the workshop's cream.
+// On screen only FUXIA BALLERINAS + (secondary) "Comodidad artesanal con carácter propio."; "Esta es nuestra historia" is voice only.
+// Voice note 1 at 0.5 s: "Fuxia Ballerinas" 0.5–2.1 · "comodidad … propio" 2.3–4.0 · "Esta es nuestra historia" 4.3–5.2
+const F360_PHOTOS = 'https://faltxpkaicwpnlqaxrdu.supabase.co/storage/v1/object/public/product-images/f360/';
+el('<div style="width:1920px;height:1080px;background:#111"></div>', at(0, 0), -1, 6.2, 'none');
+// a shot = blurred full-bleed copy + the sharp photo (1080 tall, feathered sides) with a slow camera move
+const shot = (path, tin, tout, z0, z1, ox, oy, dx = 0) => {
+  const d = el(`<div style="position:relative;width:1920px;height:1080px;overflow:hidden">
+      <img src="${F360_PHOTOS + path}" style="position:absolute;inset:-60px;width:2040px;height:1200px;object-fit:cover;filter:blur(38px) brightness(.45)">
+      <div class="ph" style="position:absolute;left:420px;top:0;width:1080px;height:1080px;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent)">
+        <img src="${F360_PHOTOS + path}" style="width:100%;height:100%;object-fit:cover;transform-origin:${ox}% ${oy}%"></div>
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,rgba(17,17,17,.15) 0%,rgba(17,17,17,.55) 70%,rgba(17,17,17,.8) 100%)"></div></div>`,
+    at(0, 0), tin, tout, 'none');
+  const img = d.querySelector('.ph img');
+  E.at(-1).extra = (t) => { const k = Math.max(0, Math.min(1, (t - tin) / (tout - tin + .5))); img.style.transform = `translateX(${dx * k}px) scale(${z0 + (z1 - z0) * k})`; return ''; };
+};
+shot('PAULA/DORADO-CON-OCRE/2f3fee6c-54c9-40e3-9ff6-8c0122bdef29.jpg', -.4, 2.1, 1.02, 1.14, 55, 80);          // A: detail
+shot('MAFALDA-LASER/AZUL/3e886cd4-7cc1-43cc-bb1a-cace84cf9c5f.jpg', 1.75, 3.95, 2.3, 2.6, 38, 80, -40);       // B: texture (macro on the perforations)
+shot('PAULA/PLATA-CON-VERDE/81f137fb-ab86-423c-9d8d-588ec6f2dd9c.jpg', 3.6, 6.2, 1.04, 1.16, 60, 75);         // C: wood floor → workshop
+// title: the brand, as she says it; secondary line as she says it; both leave before the dissolve
+el(`<div style="filter:drop-shadow(0 2px 18px rgba(0,0,0,.65))">${logo(820, '#f5efe3')}</div>`, at(395, 550), .75, 5.25, 'none', (t) => `translateY(${(1 - ease((t - .75) / 1.2)) * 14}px)`);
+el('Comodidad artesanal con carácter propio', { s: { top: '585px', left: '0', right: '0', textAlign: 'center', fontSize: '34px', fontWeight: 300, letterSpacing: '.06em', color: '#e8dccb', textShadow: '0 2px 14px rgba(0,0,0,.8)' } }, 2.3, 5.25, 'none');
+// dissolve into the workshop's cream (#f6efe4), so 01 starts from the same colour
+el('<div style="width:1920px;height:1080px;background:#f6efe4"></div>', at(0, 0), 5.55, 6.6, 'none');
 
 // ===== 01 · the workshop (6–20): artisans by hand
 const W0 = 6.2, W1 = 19.4;
@@ -94,11 +115,23 @@ const shoe = el(`<svg width="520" height="220" viewBox="0 0 520 220"><path id="z
 E[E.length - 1].extra = (t) => { const k = ease((t - W0 - 4) / 5); shoe.querySelector('#zap').style.strokeDashoffset = 1400 * (1 - k);
   shoe.querySelector('#zap').style.fill = k >= 1 ? '#f1d9c0' : 'none'; shoe.querySelector('#mono').style.opacity = ease((t - W0 - 9) / .6); return ''; };
 el(leafSvg(70, '#B8966E'), at(400, 1700), W0 + 1, W1, 'none', (t) => `translateY(${Math.sin(t * 2) * 14}px) rotate(${Math.sin(t * 1.4) * 10}deg)`);
-cap(W0 + 1, W0 + 6.2, 'Cada par empieza en el taller, en manos de artesanos.');
-cap(W0 + 6.6, W1, 'Cortar, coser y dar forma: comodidad artesanal con carácter propio.');
+// Brand story v3 (2026-10-06): animations above unchanged. Voice note 2 starts at "Cada par…" ("El taller." trimmed; clip at
+// 6.9 s): cortan ≈10.6 (artisan A cutting) · cosen ≈11.5 (artisan B sewing) · hecho a mano ≈15.2 · carácter ≈16.9.
+// On screen only two discreet words, one after the other (no full captions), then the finished product closes the segment.
+const kicker = (text, tin, tout) => el(text, { s: { top: '968px', left: '0', right: '0', textAlign: 'center', fontSize: '22px', fontWeight: 600, letterSpacing: '.42em', color: '#83734C' } }, tin, tout, 'up');
+kicker('HECHO A MANO', W0 + 1.2, W0 + 9.7);
+kicker('CON CARÁCTER PROPIO', W0 + 10.2, W1);
+// finished pairs (real catalogue photo, 3500 px): the workshop's result, and the bridge to the stores
+const done = el(`<div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#f6efe4"><img src="${F360_PHOTOS}BALLERINAS-RESORTE-TACHES/TAUPE/33eee4ed-98ac-4cbd-9e31-31e59222b0b7.jpg" style="width:100%;height:100%;object-fit:cover">
+    <div style="position:absolute;left:0;right:0;bottom:0;height:300px;background:linear-gradient(rgba(246,239,228,0),rgba(246,239,228,.96) 70%)"></div></div>`,
+  at(0, 0), W0 + 11.1, W1, 'none');
+E.at(-1).extra = (t) => { done.querySelector('img').style.transform = `scale(${1.1 - .08 * ease((t - W0 - 11.1) / 2.4)}) rotate(${-2 + 2 * ease((t - W0 - 11.1) / 2.4)}deg)`; return ''; };
+kicker('CON CARÁCTER PROPIO', W0 + 11.1, W1);   // stays legible over the photo (drawn after it)
 
-// ===== 02 · our stores (20–32): a Polanco-style boutique
-const B0 = 20.2, B1 = 31.4;
+// ===== 02 · our stores (19.4–32): the boutique is Cali, casa matriz y tienda. 2026-10-08: Carolina re-recorded block 2 with Cali —
+// voice v3 at 19.3 ("Desde Cali" 19.5 · "tienda" 22.6 · Polanco 23.3 · San Jerónimo 24.0 · Amsterdam 24.9 · La Noria 25.5 ·
+// "misma red" 28.2 · "esté donde esté" 32.25), so the boutique enters with her first word.
+const B0 = 19.4, B1 = 23.6;   // boutique beat (presence); the network beat follows until 32.2
 el(`<svg width="1920" height="1080" viewBox="0 0 1920 1080">
   <rect width="1920" height="1080" fill="#eef1f2"/>
   <rect x="0" y="880" width="1920" height="200" fill="#d6d1c8"/><rect x="0" y="870" width="1920" height="14" fill="#c5bfb3"/>
@@ -112,49 +145,236 @@ el(`<svg width="1920" height="1080" viewBox="0 0 1920 1080">
   <circle cx="300" cy="820" r="70" fill="#3e6b47"/><rect x="280" y="830" width="40" height="60" fill="#7c5236"/>
   <circle cx="1620" cy="820" r="70" fill="#3e6b47"/><rect x="1600" y="830" width="40" height="60" fill="#7c5236"/>
 </svg>`, at(0, 0), B0, B1, 'none');
-el(logo(620, '#B8966E'), at(180, 650), B0 + .3, B1, 'pop');
+el(logo(520, '#B8966E'), at(165, 700), B0 + .3, B1, 'pop');
 [[460, 450], [690, 450], [1060, 450], [1290, 450]].forEach((p, i) => el(`<div style="width:190px;height:190px;border-radius:50%;overflow:hidden;border:6px solid #fff;box-shadow:0 10px 24px rgba(0,0,0,.15)"><img src="${IMGS[i]}" style="width:100%;height:100%;object-fit:cover"></div>`,
   at(p[1], p[0]), B0 + .8 + i * .25, B1, 'pop'));
-cap(B0 + 1, B0 + 5.6, 'Nuestras tiendas: Polanco, San Jerónimo y Amsterdam, en la Ciudad de México.');
-cap(B0 + 6, B1, 'Cada tienda también es bodega: lo que hay en tienda se vende en línea.');
+kicker('CALI · CASA MATRIZ Y TIENDA', B0 + .3, B1);
 // customer walking in
 el(`<svg width="140" height="300" viewBox="0 0 140 300"><circle cx="70" cy="45" r="34" fill="#e9c4a2"/><path d="M36 40 Q40 0 72 4 Q110 8 104 46 Q98 22 70 22 Q45 24 36 40Z" fill="#1d1d1b"/><path d="M30 100 Q70 80 110 100 L120 210 L20 210Z" fill="#e8b4a6"/><rect x="40" y="210" width="20" height="80" fill="#e9c4a2"/><rect x="80" y="210" width="20" height="80" fill="#e9c4a2"/><rect x="104" y="140" width="40" height="46" rx="6" fill="#B8966E"/></svg>`,
   at(600, -160), B0 + 2, B1, 'none', (t) => `translateX(${ease((t - B0 - 2) / 6) * 1080}px) translateY(${Math.abs(Math.sin(t * 7)) * -6}px)`);
 // sparkle
 for (let i = 0; i < 6; i++) el('<div style="font-size:40px">✨</div>', at(380 + (i % 3) * 120, 420 + Math.floor(i / 3) * 620 + (i % 2) * 40), B0 + 1.5 + i * .4, B1, 'pop', (t) => `scale(${0.7 + Math.abs(Math.sin(t * 2 + i)) * .5})`);
 
-// ===== 03 · shopping online (32–64): the real store on a phone + the step on the right
-const T0 = 32.2;
-el('<div style="width:470px;height:960px;border-radius:70px;background:#1d1d1b;box-shadow:0 40px 80px rgba(0,0,0,.25)"></div>', at(60, 380), T0, 63.6, 'pop');
-const phone = seq('tienda', { s: { top: '96px', left: '420px', width: '390px', borderRadius: '44px', overflow: 'hidden' } }, T0, 63.6, 0, 1, 'pop');
-// segments of the store recording: [video start, source second, title, sub]
-const TS = [[T0, 27, 'Encuentra su modelo', 'Buscador, filtros por color y talla mexicana.'], [T0 + 5.3, 50, 'Entrega Inmediata', 'En Zona Metropolitana, desde cualquier tienda.'], [T0 + 10.6, 60.5, 'Hilo responde', 'Su talla y modelos recomendados, a cualquier hora.'],
-  [T0 + 16.4, 70, 'Agregar y pagar', 'Confirmación clara y checkout de Fuxia.'], [T0 + 21.7, 88, 'Pagar como quiera', 'Tarjeta, cuenta de Mercado Pago o sin tarjeta.'], [T0 + 27, 109, '¡Pedido confirmado!', 'Próximos pasos, WhatsApp y puntos Club Fuxia.']];
-TS.forEach((s, i) => { const end = i + 1 < TS.length ? TS[i + 1][0] : 63.6;
-  el(`${s[2]}<small>${s[3]}</small>`, { cls: 'step', s: { top: '380px' } }, s[0] + .1, end - .2, 'right');
-  el(`<div style="font-size:22px;font-weight:700;letter-spacing:.3em;color:#83734C">PASO ${i + 1} DE ${TS.length}</div>`, { s: { top: '320px', left: '1010px' } }, s[0] + .1, end - .2, 'right'); });
-// the phone plays each segment from its own source second
-SEQS.pop(); TS.forEach((s, i) => { const end = i + 1 < TS.length ? TS[i + 1][0] : 63.6; SEQS.push({ name: 'tienda', d: phone, tin: s[0], tout: end, srcFrom: s[1], rate: 1 }); });
+// ---- 02b · one network (23.3–32.2), brand story v3 (2026-10-06). No "bodega", no system diagram, no "se vende en línea"
+// (not live in production yet). Cards appear as Carolina names them (voice v3, see 02); then they flow into FUXIA → CLIENTA on
+// "todas forman parte de una misma red"; closes on a phone (Instagram), placed exactly where segment 03's phone starts.
+const N0 = 23.3, N1 = 30.7, HUBC = [960, 585], CLI = [960, 830];
+el('<div style="width:1920px;height:1080px;background:#f6efe4"></div>', at(0, 0), N0, 32.2, 'none');
+// Cali first — casa matriz and also a store; already named over the boutique, so its card is there when the network opens.
+// Five cards: 280 wide every 320, centred.
+const STORES = [['CALI', 23.3, 'CASA MATRIZ · TIENDA'], ['POLANCO', 23.4], ['SAN JERÓNIMO', 24.06], ['AMSTERDAM', 24.9], ['LA NORIA', 25.52]];
+const SX = (i) => 180 + i * 320, SC = (i) => SX(i) + 140;   // card left / centre
+const storeIcon = '<svg width="54" height="46" viewBox="0 0 54 46"><path d="M4 16 L50 16 L46 6 L8 6 Z" fill="none" stroke="#B8966E" stroke-width="2.5" stroke-linejoin="round"/><path d="M8 16 V42 H46 V16" fill="none" stroke="#B8966E" stroke-width="2.5"/><rect x="22" y="26" width="10" height="16" fill="none" stroke="#B8966E" stroke-width="2.5"/></svg>';
+STORES.forEach((st, i) => el(`<div style="width:280px;height:170px;border-radius:22px;background:#fffdf9;border:${st[2] ? '2.5px solid #B8966E' : '1.5px solid rgba(184,150,110,.55)'};box-shadow:0 18px 40px rgba(29,29,27,.07);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${st[2] ? 10 : 14}px">
+    ${storeIcon}<div style="font-size:22px;font-weight:600;letter-spacing:.2em;color:#1d1d1b">${st[0]}</div>${st[2] ? `<div style="font-size:13px;font-weight:600;letter-spacing:.22em;color:#B8966E">${st[2]}</div>` : ''}</div>`,
+  at(220, SX(i)), st[1] - .1, N1, 'up'));
+const net2 = el(`<svg width="1920" height="1080" viewBox="0 0 1920 1080">
+  ${STORES.map((st, i) => `<path class="ln" d="M${SC(i)} 392 C ${SC(i)} 500, ${HUBC[0]} 470, ${HUBC[0]} 505" fill="none" stroke="#B8966E" stroke-width="2.5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>`).join('')}
+  <path class="ln" d="M${HUBC[0]} 665 L${CLI[0]} 760" fill="none" stroke="#B8966E" stroke-width="2.5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+  ${STORES.map(() => '<circle class="pu" r="7" fill="#B8966E" opacity="0"/>').join('')}<circle class="pu" r="7" fill="#B8966E" opacity="0"/></svg>`, at(0, 0), 26.8, N1, 'none');
+{ const o = E.at(-1); o.extra = (t) => { const ls = net2.querySelectorAll('.ln'), ps = net2.querySelectorAll('.pu');
+  ls.forEach((l, i) => { l.style.strokeDashoffset = 1 - ease((t - (i < STORES.length ? 26.9 + i * .12 : 27.9)) / .7); });
+  ps.forEach((c, i) => { const len = ls[i].getTotalLength(), u = ((t - 28.2 - i * .25) * .55) % 1; if (t < 28.2 + i * .25) { c.setAttribute('opacity', 0); return; }
+    const pt = ls[i].getPointAtLength(len * u); c.setAttribute('cx', pt.x); c.setAttribute('cy', pt.y); c.setAttribute('opacity', Math.sin(u * Math.PI)); }); return ''; }; }
+el(`<div style="width:160px;height:160px;border-radius:50%;background:#1d1d1b;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 12px rgba(184,150,110,.15),0 20px 40px rgba(29,29,27,.18)">${leafSvg(64, '#B8966E')}</div>`,
+  at(HUBC[1] - 80, HUBC[0] - 80), 27.3, N1, 'pop', (t) => `scale(${1 + Math.sin(t * 3) * .02})`);
+el('FUXIA', { s: { top: (HUBC[1] - 18) + 'px', left: (HUBC[0] + 110) + 'px', fontSize: '24px', fontWeight: 600, letterSpacing: '.34em', color: '#83734C' } }, 27.5, N1, 'left');
+el(`<div style="width:120px;height:120px;border-radius:50%;background:#fffdf9;border:1.5px solid rgba(184,150,110,.55);display:flex;align-items:center;justify-content:center">
+    <svg width="54" height="60" viewBox="0 0 54 60"><circle cx="27" cy="16" r="11" fill="none" stroke="#83734C" stroke-width="2.5"/><path d="M6 58 C 8 36, 46 36, 48 58" fill="none" stroke="#83734C" stroke-width="2.5"/></svg></div>`,
+  at(CLI[1] - 60, CLI[0] - 60), 28.1, N1, 'pop');
+el('CLIENTA', { s: { top: (CLI[1] - 14) + 'px', left: (CLI[0] + 90) + 'px', fontSize: '24px', fontWeight: 600, letterSpacing: '.34em', color: '#83734C' } }, 28.3, N1, 'left');
+// close: she finds Fuxia on her phone (Instagram-style post), at segment 03's phone frame (top 60, left 380, 470×960)
+el(`<div style="width:470px;height:960px;border-radius:70px;background:#1d1d1b;box-shadow:0 40px 80px rgba(0,0,0,.25);padding:36px 40px">
+  <div style="width:390px;height:888px;border-radius:44px;background:#fff;overflow:hidden;font-family:Montserrat,sans-serif">
+    <div style="display:flex;align-items:center;gap:12px;padding:70px 18px 14px">
+      <div style="width:46px;height:46px;border-radius:50%;padding:3px;background:linear-gradient(45deg,#f9ce34,#ee2a7b,#6228d7)"><div style="width:100%;height:100%;border-radius:50%;background:#1d1d1b;display:flex;align-items:center;justify-content:center">${leafSvg(22, '#B8966E')}</div></div>
+      <b style="font-size:16px;color:#1d1d1b">fuxiaballerinas</b></div>
+    <img src="${F360_PHOTOS}BALLERINAS-RESORTE-TACHES/TAUPE/33eee4ed-98ac-4cbd-9e31-31e59222b0b7.jpg" style="width:390px;height:390px;object-fit:cover">
+    <div style="padding:14px 18px;font-size:26px;letter-spacing:10px">♡ ◯ ➤</div>
+    <div style="padding:0 18px;font-size:15px;color:#1d1d1b;line-height:1.5"><b>fuxiaballerinas</b> Comodidad artesanal con carácter propio.</div></div></div>`,
+  at(60, 380), 30.5, 32.25, 'up');
 
-// ===== 04 · Fuxia 360 inside (64–95): the real admin, framed
-const A0 = 64.2;
-const frame = el('<div style="width:1540px;height:722px;border-radius:22px;background:#fff;box-shadow:0 40px 90px rgba(0,0,0,.18)"></div>', at(150, 190), A0, 94.6, 'pop');
-const adm = seq('admin', { s: { top: '150px', left: '190px', width: '1540px', borderRadius: '22px', overflow: 'hidden' } }, A0, 94.6, 0, 1, 'pop');
-const AS = [[A0, 16, 'Productos: fotos, colores, tallas y precios por país.'], [A0 + 5, 28.5, 'Ficha del modelo: se carga una vez y se publica en la tienda en línea.'], [A0 + 10, 41.5, 'Cuántos pares hay de cada talla, y en qué tienda.'],
-  [A0 + 15, 61, 'Inventario de todas las tiendas y la bodega, en tiempo real.'], [A0 + 20, 90.5, 'Centro de control: lo que requiere atención hoy.'], [A0 + 25, 105.5, 'Bandeja de clientas: lo que piden a Hilo, “a la medida” y links de pago.']];
-SEQS.pop(); AS.forEach((s, i) => { const end = i + 1 < AS.length ? AS[i + 1][0] : 94.6; SEQS.push({ name: 'admin', d: adm, tin: s[0], tout: end, srcFrom: s[1], rate: 1 }); cap(s[0] + .2, end - .1, s[2]); });
+// ===== 03 · shopping online (32.2–64.2), brand story v3 (2026-10-06): one purchase as a story, not an ecommerce tutorial.
+// DESCUBRE → ELIGE → RESUELVE DUDAS → COMPRA → PAGA → CONFIRMADO → WHATSAPP + PUNTOS. The phone alternates the real store
+// recording (staging4) with Instagram and micro-animations; the right side holds ONE short idea per beat. Delivery promise:
+// only the in-stock one, because the variant shown (Botas Largas Café 24) is in stock. Payment methods are written, not spoken.
+// Voice = note 4 in pieces (32.6 / 41.6 / 48.0 / 56.4 / 59.6); "desde cualquier tienda", "Todo muy claro" and "pagar como
+// quiera…" are cut. Recording annotation banners (top of each frame) are covered by a white status bar.
+const T0 = 32.2, T1 = 63.8;
+el('<div style="width:470px;height:960px;border-radius:70px;background:#1d1d1b;box-shadow:0 40px 80px rgba(0,0,0,.25)"></div>', at(60, 380), T0, T1, 'none');
+const phone = seq('tienda', { s: { top: '96px', left: '420px', width: '390px', borderRadius: '44px', overflow: 'hidden' } }, 34.4, T1, 42, 1, 'none');
+// phone beats from the real recording: [video start, source second, rate]
+const PB = [[34.4, 42.5, .9], [36.6, 48, .6], [38.9, 51.2, .5], [41.2, 58, 1.3], [47.6, 70.5, 1.6], [51.6, 81.9, .8], [53.4, 92.5, .5], [56.0, 107.1, .5]];
+SEQS.pop(); PB.forEach((b, i) => SEQS.push({ name: 'tienda', d: phone, tin: b[0], tout: i + 1 < PB.length ? PB[i + 1][0] : T1, srcFrom: b[1], rate: b[2] }));
+el('<div style="width:390px;height:100px;background:#fff;border-radius:44px 44px 0 0"></div>', at(96, 420), 34.4, T1, 'none');
+// thank-you page: keep only "¡Gracias! … #4114 está confirmado" + the 3 steps; hide the recording's test e-mail and its order
+// summary (a different test order) below it
+el('<div style="width:390px;height:386px;background:#fff;border-radius:0 0 44px 44px"></div>', at(598, 420), 56.0, T1, 'none');
+// DESCUBRE: the Instagram post (continues segment 02's closing phone), then a soft tap
+const insta = el(`<div style="width:390px;height:888px;border-radius:44px;background:#fff;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:12px;padding:70px 18px 14px">
+      <div style="width:46px;height:46px;border-radius:50%;padding:3px;background:linear-gradient(45deg,#f9ce34,#ee2a7b,#6228d7)"><div style="width:100%;height:100%;border-radius:50%;background:#1d1d1b;display:flex;align-items:center;justify-content:center">${leafSvg(22, '#B8966E')}</div></div>
+      <b style="font-size:16px;color:#1d1d1b">fuxiaballerinas</b></div>
+    <img src="${F360_PHOTOS}BALLERINAS-RESORTE-TACHES/TAUPE/33eee4ed-98ac-4cbd-9e31-31e59222b0b7.jpg" style="width:390px;height:390px;object-fit:cover">
+    <div style="padding:14px 18px;font-size:26px;letter-spacing:10px">♡ ◯ ➤</div>
+    <div style="padding:0 18px;font-size:15px;color:#1d1d1b;line-height:1.5"><b>fuxiaballerinas</b> Comodidad artesanal con carácter propio.</div>
+    <div style="margin:18px;padding:12px;border-radius:10px;background:#efefef;text-align:center;font-size:15px;font-weight:600">Ver tienda</div></div>`,
+  at(96, 420), 31.7, 34.6, 'none');   // enters under segment 02's closing phone (same post), never before
+el('<div style="width:64px;height:64px;border-radius:50%;background:rgba(29,29,27,.18);border:3px solid rgba(29,29,27,.35)"></div>', at(806, 583), 33.7, 34.4, 'pop');
+// right side: one idea per beat
+const BEAT = (word, sub, tin, tout) => {
+  el(`<div style="font-size:22px;font-weight:700;letter-spacing:.34em;color:#83734C">${word}</div>`, { s: { top: '360px', left: '1010px' } }, tin, tout, 'right');
+  if (sub) el(sub, { cls: 'step', s: { top: '410px', fontSize: '50px' } }, tin + .15, tout, 'right');
+};
+BEAT('DESCUBRE', null, 32.4, 34.5);
+BEAT('ELIGE', null, 34.6, 38.8);
+BEAT('ELIGE', 'Entrega inmediata<small>en Zona Metropolitana · Café, talla 24 MX</small>', 38.9, 41.1);
+BEAT('RESUELVE DUDAS', null, 41.2, 47.5);
+BEAT('COMPRA', null, 47.6, 51.5);
+BEAT('PAGA', 'Sencillo y seguro.<small>Tarjeta · Mercado Pago · Pago sin tarjeta</small>', 51.6, 55.9);
+BEAT('CONFIRMADO', null, 56.0, 59.5);
+// micro-animations: product moment while she chooses (real colours of the model), a check burst, WhatsApp, points
+el(`<div style="display:flex;gap:18px">${[['Café', '#6B4226'], ['Negro', '#1d1d1b']].map((c) => `<div style="display:flex;align-items:center;gap:10px;padding:12px 20px;border-radius:30px;background:#fff;border:1.5px solid rgba(184,150,110,.5);font-size:20px"><i style="width:22px;height:22px;border-radius:50%;background:${c[1]};display:inline-block"></i>${c[0]}</div>`).join('')}
+  <div style="padding:12px 20px;border-radius:30px;background:#1d1d1b;color:#fff;font-size:20px;font-weight:600">24 MX</div></div>`, { s: { top: '600px', left: '1010px' } }, 35.4, 38.8, 'up');
+el('<div style="width:120px;height:120px;border-radius:50%;background:#2f6b3a;color:#fff;font-size:64px;line-height:120px;text-align:center;box-shadow:0 0 0 18px rgba(47,107,58,.12)">✓</div>', at(560, 1010), 56.3, 59.5, 'pop');
+el(`<div style="width:370px;display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:18px;background:rgba(245,245,245,.98);box-shadow:0 18px 40px rgba(0,0,0,.25);font-family:Montserrat,sans-serif">
+    <div style="width:40px;height:40px;border-radius:10px;background:#25D366;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px">✆</div>
+    <div><div style="font-size:14px;font-weight:700;color:#1d1d1b">WhatsApp · Fuxia Ballerinas</div><div style="font-size:15px;color:#333">¡Gracias por tu compra! 💛</div></div></div>`,
+  at(120, 430), 59.8, T1, 'none', (t) => `translateY(${(1 - back((t - 59.8) / .6)) * -140}px)`);
+BEAT('WHATSAPP', null, 59.7, 61.3);
+el(`<div style="display:flex;align-items:center;gap:16px;padding:18px 26px;border-radius:24px;background:#0D0D0D;color:#fff;box-shadow:0 20px 50px rgba(0,0,0,.3)">
+    <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#CD7F32,#e8c39e);display:flex;align-items:center;justify-content:center">${leafSvg(28, '#0D0D0D')}</div>
+    <div><div style="font-size:30px;font-weight:700">+100 puntos</div><div style="font-size:16px;color:#cfc6b8">Club Fuxia · se acumulan solos</div></div></div>`,
+  at(560, 1010), 61.4, T1, 'pop');
+BEAT('PUNTOS', null, 61.4, T1);
 
-// ===== 05 · more sales (95–110)
-const M0 = 95.2;
-el('Más ventas, sin perder ninguna', { cls: 'big', s: { top: '170px', fontSize: '74px' } }, M0, 109.4);
-[['🛵', 'Las tiendas son bodega', 'Entrega Inmediata en Zona Metropolitana'], ['🧵', 'Ninguna venta se pierde', 'Sin existencia: a la medida en 10 días hábiles'], ['💳', 'Pagar es fácil', 'Tarjeta, Mercado Pago, sin tarjeta o link por WhatsApp']]
-  .forEach((c, i) => el(`<div class="card3"><i>${c[0]}</i><b>${c[1]}</b><span>${c[2]}</span></div>`, at(400, 150 + i * 560), M0 + .8 + i * .7, 109.4, 'pop'));
-cap(M0 + 3, 109.4, 'Fuxia 360 conecta tiendas, bodega, tienda en línea, Hilo y clientas.');
+// ===== 04 · Club Fuxia, the loyalty app (64–78)
+const L0 = 64.2, L1 = 77.6, BZ = '#CD7F32';
+// bronze glow behind the phone
+el(`<div style="width:900px;height:900px;border-radius:50%;background:radial-gradient(circle,rgba(205,127,50,.28) 0%,transparent 65%)"></div>`, at(80, 140), L0, L1, 'none', (t) => `scale(${1 + Math.sin(t * 1.5) * .06})`);
+el('<div style="width:470px;height:960px;border-radius:70px;background:#1d1d1b;box-shadow:0 40px 80px rgba(0,0,0,.25)"></div>', at(60, 380), L0, L1, 'pop');
+const scr = (html, tin, tout, fx = 'none', extra) => el(`<div style="width:390px;height:888px;border-radius:44px;overflow:hidden;background:#0D0D0D;color:#fff;padding:60px 30px;position:relative">${html}</div>`, at(96, 420), tin, tout, fx, extra);
+// fake-but-QR-looking code
+const qr = (() => { let r = 7, c = ''; const n = 25, q = 8; const fin = (x, y) => `<rect x="${x}" y="${y}" width="7" height="7" fill="#000"/><rect x="${x + 1}" y="${y + 1}" width="5" height="5" fill="#fff"/><rect x="${x + 2}" y="${y + 2}" width="3" height="3" fill="#000"/>`;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { r = (r * 9301 + 49297) % 233280; const inF = (x < 8 && y < 8) || (x > 16 && y < 8) || (x < 8 && y > 16); if (!inF && r / 233280 > .52) c += `<rect x="${x}" y="${y}" width="1" height="1" fill="#000"/>`; }
+  return `<svg width="230" height="230" viewBox="-1 -1 27 27" style="background:#fff;border-radius:14px">${c}${fin(0, 0)}${fin(18, 0)}${fin(0, 18)}</svg>`; })();
+// state 1 · the card with QR; the seller scans it
+scr(`<div style="font-size:13px;font-weight:700;letter-spacing:.25em;color:${BZ}">MI TARJETA</div><div style="font-size:30px;font-weight:600;margin:6px 0 26px">Lealtad Fuxia</div>
+  <div style="border-radius:24px;padding:26px;background:linear-gradient(135deg,#2a2018,#120e0b);border:1px solid rgba(205,127,50,.4);text-align:center">
+   <div style="display:flex;justify-content:space-between;font-size:15px;color:#cfc6b8"><span>Club Fuxia</span><b style="color:${BZ}">BRONCE</b></div>
+   <div style="margin:22px auto;position:relative;width:230px">${qr}<div class="beam" style="position:absolute;left:-10px;right:-10px;height:4px;background:#3ddc84;box-shadow:0 0 18px #3ddc84;top:0"></div></div>
+   <div style="font-size:44px;font-weight:700">200 <span style="font-size:18px;color:#cfc6b8">pts</span></div></div>
+  <div style="margin-top:22px;font-size:16px;color:#cfc6b8;text-align:center">Muéstrala en tienda</div>`, L0 + .2, L0 + 8.6, 'pop');
+{ const o = E.at(-1); o.extra = (t) => { const b = o.d.querySelector('.beam'); if (b) { b.style.top = (115 + Math.sin((t - L0) * 3.2) * 112) + 'px'; b.style.opacity = t > L0 + 6.4 && t < L0 + 7.6 ? 1 : 0; } return ''; }; }
+// state 2 · celebration: +100, counter ticks, tier up
+const cel = scr(`<div style="text-align:center;padding-top:70px"><div style="font-size:14px;font-weight:700;letter-spacing:.2em;color:${BZ}">PUNTOS AGREGADOS<br>A TU TARJETA</div>
+  <div class="plus" style="font-size:120px;font-weight:700;margin:30px 0 0;color:#fff">+100</div>
+  <div style="font-size:20px;color:#cfc6b8">Ahora tienes <b class="cnt" style="color:#fff">200</b> puntos</div>
+  <div style="margin:50px 10px 0;height:14px;border-radius:7px;background:rgba(255,255,255,.1);overflow:hidden"><div class="bar" style="height:100%;width:66%;background:linear-gradient(90deg,${BZ},#e8c39e)"></div></div>
+  <div style="position:relative;height:20px;margin:12px 10px 0;font-size:14px;color:#cfc6b8"><span style="position:absolute;left:0">Bronce</span><span style="position:absolute;left:33%;transform:translateX(-50%)">Plata · 300</span><span style="position:absolute;right:0">Oro · 900</span></div>
+  <div class="lvl" style="margin-top:46px;display:inline-block;padding:14px 26px;border-radius:30px;background:linear-gradient(90deg,#c9ced6,#f2f4f7);color:#1d1d1b;font-weight:700;font-size:20px;opacity:0">🎉 ¡Subiste a nivel Plata!</div></div>`, L0 + 8.5, L0 + 10.0, 'pop');
+{ const o = E.at(-1); o.extra = (t) => { const k = ease((t - L0 - 8.9) / .7); cel.querySelector('.cnt').textContent = Math.round(200 + 100 * k);
+  cel.querySelector('.bar').style.width = (22.2 + 11.1 * k) + '%'; const l = cel.querySelector('.lvl'); l.style.opacity = ease((t - L0 - 9.3) / .4); l.style.transform = `scale(${.6 + .4 * back((t - L0 - 9.3) / .5)})`;
+  cel.querySelector('.plus').style.transform = `scale(${.4 + .6 * back((t - L0 - 8.6) / .6)})`; return ''; }; }
+for (let i = 0; i < 26; i++) el(`<div style="width:${10 + i % 3 * 4}px;height:${16 + i % 4 * 3}px;border-radius:3px;background:${[BZ, '#e8c39e', '#3ddc84', '#B8966E', '#f2f4f7'][i % 5]}"></div>`, at(80, 440 + (i * 53) % 340), L0 + 8.7, L0 + 10.0, 'none',
+  (t) => { const u = Math.max(0, t - L0 - 8.7); return `translate(${Math.sin(i * 7 + u * 3) * 40}px,${u * (160 + i % 5 * 40)}px) rotate(${u * (200 + i * 30)}deg)`; });
+// state 3 · everything in her pocket, with a push arriving
+const tile = (ic, tx) => `<div style="border-radius:20px;padding:20px 16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)"><div style="font-size:34px">${ic}</div><div style="font-size:17px;font-weight:600;margin-top:10px">${tx}</div></div>`;
+scr(`<div style="font-size:13px;font-weight:700;letter-spacing:.25em;color:${BZ};margin-top:70px">HOLA</div><div style="font-size:30px;font-weight:600;margin:6px 0 24px">Tu Fuxia</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">${tile('🛍️', 'Tienda')}${tile('🤍', 'Favoritos')}${tile('🧾', 'Mis compras')}${tile('🚚', 'Seguimiento')}${tile('💬', 'Hilo')}${tile('⭐', 'Mi tarjeta')}</div>
+  <div style="margin-top:22px;border-radius:18px;padding:18px;background:rgba(205,127,50,.12);font-size:16px"><b>Pedido en camino</b><div style="color:#cfc6b8;margin-top:4px">Llega hoy · Zona Metropolitana</div></div>`, L0 + 9.9, L1, 'pop');
+el(`<div style="width:370px;display:flex;gap:14px;align-items:center;padding:16px 18px;border-radius:20px;background:rgba(245,239,227,.97);color:#1d1d1b;box-shadow:0 18px 40px rgba(0,0,0,.35)">
+  <div style="width:42px;height:42px;border-radius:10px;background:#0D0D0D;display:flex;align-items:center;justify-content:center">${leafSvg(26, BZ)}</div>
+  <div><div style="font-size:15px;font-weight:700">Fuxia Ballerinas · ahora</div><div style="font-size:16px">¡Ganaste 100 puntos! 🎉</div></div></div>`, at(120, 430), L0 + 11.0, L1 - .4, 'none',
+  (t) => `translateY(${(1 - back((t - L0 - 11.0) / .6)) * -140}px)`);
+// steps on the right
+// brand story v3 (2026-10-06): timed to Carolina's app note (64.3 / 68.8 / 72.9); the points rule is microcopy, not voice
+const LS = [[L0, 'Su tarjeta, en el celular', ''],
+  [L0 + 8.5, '+100 puntos', 'por cada par.'],
+  [L0 + 9.9, 'Todo en un mismo lugar', '']];
+LS.forEach((s, i) => { const end = i + 1 < LS.length ? LS[i + 1][0] : L1;
+  el(`${s[1]}<small>${s[2]}</small>`, { cls: 'step', s: { top: '380px' } }, s[0] + .1, end - .2, 'right');
+  el(`<div style="font-size:22px;font-weight:700;letter-spacing:.3em;color:${BZ}">CLUB FUXIA</div>`, { s: { top: '320px', left: '1010px' } }, s[0] + .1, end - .2, 'right'); });
 
-// ===== 06 · closing slogan (110–118)
-const C0 = 110.2;
-['DISEÑAR.', 'HACER.', 'ENTREGAR.'].forEach((w, i) => el(w, { s: { top: (240 + i * 130) + 'px', left: '170px', fontSize: '110px', fontWeight: 300, letterSpacing: '.04em', color: i === 2 ? '#B8966E' : '#1d1d1b' } }, C0 + i * .45, 0, 'left'));
-el('Comodidad artesanal con carácter propio · México · Colombia', { s: { top: '680px', left: '172px', fontSize: '30px', color: '#6B6B68' } }, C0 + 1.8, 0);
-el(logo(560, '#857652'), at(860, 172), C0 + 2.4, 0, 'up');
-window.DUR = 118;
+// ===== 05 · Fuxia 360 (78.2–109.2), brand story v3 (2026-10-06): operational intelligence, not a software demo.
+// Short "glimpses" of the real admin (cropped: no test banner, no demo captions, no test figures, no test customers),
+// one idea at a time, then a conceptual zoom out: taller / tiendas / bodega → FUXIA 360 → ecommerce → clientas ↕ Hilo.
+// Voice = note 5 in pieces (78.5 / 81.6 / 86.8 / 90.9 / 95.0); the closing idea ("…hablar el mismo idioma…") is on screen
+// until it is recorded.
+const ADM = 'file:///private/tmp/claude-501/-Users-bullsilva-Documents-GitHub-fuxiaapp/a259581c-e21e-4531-bd52-78a7ec484809/scratchpad/rec/fr/';
+el('<div style="width:1920px;height:1080px;background:#f6efe4"></div>', at(0, 0), 78.0, 109.2, 'none');
+// intro: Fuxia 360 behind everything
+el('<div style="font-size:22px;font-weight:700;letter-spacing:.42em;color:#83734C;text-align:center">DETRÁS DE TODO</div>', { s: { top: '400px', left: '0', right: '0' } }, 78.4, 82.5, 'up');
+el('Fuxia <span style="color:#B8966E;font-weight:500">360</span>', { s: { top: '450px', left: '0', right: '0', textAlign: 'center', fontSize: '120px', fontWeight: 300, color: '#1d1d1b', letterSpacing: '.02em' } }, 78.6, 82.5, 'up');
+// a glimpse = word (+ short line) above a cropped, slowly zooming piece of the real admin
+const glimpse = (word, line, file, cx, cy, cw, ch, scale, tin, tout) => {
+  el(`<div style="font-size:22px;font-weight:700;letter-spacing:.42em;color:#83734C;text-align:center">${word}</div>${line ? `<div style="margin-top:14px;font-size:30px;font-weight:300;color:#4a433a;text-align:center">${line}</div>` : ''}`,
+    { s: { top: '150px', left: '0', right: '0' } }, tin, tout, 'up');
+  const w = Math.round(cw * scale), h = Math.round(ch * scale);
+  const card = el(`<div style="width:${w}px;height:${h}px;border-radius:24px;overflow:hidden;background:#fff;box-shadow:0 30px 70px rgba(29,29,27,.14);border:1.5px solid rgba(184,150,110,.35)">
+      <div class="gz" style="width:${w}px;height:${h}px;overflow:hidden"><img src="${ADM}${file}" style="display:block;width:${1920 * scale}px;margin-left:${-cx * scale}px;margin-top:${-cy * scale}px"></div></div>`,
+    { s: { top: Math.round(600 - h / 2 + 40) + 'px', left: Math.round(960 - w / 2) + 'px' } }, tin + .1, tout, 'up');
+  const gz = card.querySelector('.gz'); const o = E.at(-1), f = o.extra;
+  o.extra = (t) => { gz.style.transform = `scale(${1 + .05 * Math.max(0, Math.min(1, (t - tin) / (tout - tin)))})`; return f ? f(t) : ''; };
+};
+glimpse('PRODUCTOS', 'Cada modelo, en un mismo lugar.', '001022.000.jpg', 420, 555, 1410, 207, 1.15, 82.5, 84.0);
+glimpse('VARIANTES', null, '001035.000.jpg', 420, 150, 900, 250, 1.45, 84.0, 86.3);
+glimpse('INVENTARIO POR UBICACIÓN', 'Qué tenemos y dónde está.', '001061.000.jpg', 420, 285, 1410, 470, 1.0, 86.3, 92.4);
+glimpse('CENTRO DE CONTROL', null, '001090.480.jpg', 430, 145, 1390, 225, 1.1, 92.4, 94.2);
+glimpse('BANDEJA · DEMANDA · PEDIDOS', null, '001105.480.jpg', 450, 95, 1340, 290, 1.1, 94.2, 96.4);
+// zoom out: the whole business, connected
+const Z0 = 96.4, Z1 = 109.2, ZH = [960, 560];
+const ZN = [['TALLER', 420, 330, 'L'], ['TIENDAS', 420, 560, 'L'], ['BODEGA', 420, 790, 'L'], ['ECOMMERCE', 1500, 420, 'R'], ['CLIENTAS', 1500, 650, 'R'], ['HILO', 1500, 880, 'R']];
+const zn = el(`<svg width="1920" height="1080" viewBox="0 0 1920 1080">
+  ${ZN.slice(0, 3).map((n) => `<path class="zl" d="M${n[1] + 150} ${n[2]} C ${n[1] + 330} ${n[2]}, ${ZH[0] - 220} ${ZH[1]}, ${ZH[0] - 92} ${ZH[1]}" fill="none" stroke="#B8966E" stroke-width="2.5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>`).join('')}
+  ${ZN.slice(3, 5).map((n) => `<path class="zl" d="M${ZH[0] + 92} ${ZH[1]} C ${ZH[0] + 220} ${ZH[1]}, ${n[1] - 330} ${n[2]}, ${n[1] - 150} ${n[2]}" fill="none" stroke="#B8966E" stroke-width="2.5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>`).join('')}
+  <path class="zl" d="M1500 695 L1500 835" fill="none" stroke="#B8966E" stroke-width="2.5" stroke-dasharray="1" pathLength="1" stroke-dashoffset="1"/>
+  ${[0, 1, 2, 3, 4, 5].map(() => '<circle class="zp" r="6" fill="#B8966E" opacity="0"/>').join('')}</svg>`, at(0, 0), Z0 + .3, Z1, 'none');
+{ const o = E.at(-1); o.extra = (t) => { const ls = zn.querySelectorAll('.zl'), ps = zn.querySelectorAll('.zp');
+  ls.forEach((l, i) => { l.style.strokeDashoffset = 1 - ease((t - Z0 - .5 - i * .15) / .7); });
+  ps.forEach((c, i) => { if (t < Z0 + 1.8) return; const len = ls[i].getTotalLength(), u = ((t - Z0 - 1.8) * .5 + i * .17) % 1;
+    const pt = ls[i].getPointAtLength(len * (i === 5 ? Math.abs(Math.sin(u * Math.PI)) : u)); c.setAttribute('cx', pt.x); c.setAttribute('cy', pt.y); c.setAttribute('opacity', i === 5 ? .9 : Math.sin(u * Math.PI)); }); return ''; }; }
+ZN.forEach((n, i) => el(`<div style="width:300px;padding:22px 0;border-radius:20px;background:#fffdf9;border:1.5px solid rgba(184,150,110,.55);box-shadow:0 16px 36px rgba(29,29,27,.07);text-align:center;font-size:22px;font-weight:600;letter-spacing:.26em;color:#1d1d1b">${n[0]}</div>`,
+  at(n[2] - 38, n[1] - 150), Z0 + (i < 3 ? .1 + i * .12 : .9 + (i - 3) * .15), Z1, 'up'));
+el(`<div style="width:184px;height:184px;border-radius:50%;background:#1d1d1b;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;box-shadow:0 0 0 14px rgba(184,150,110,.14),0 24px 50px rgba(29,29,27,.2)">
+    ${leafSvg(56, '#B8966E')}<div style="font-size:20px;font-weight:600;letter-spacing:.12em;margin-top:8px">FUXIA 360</div></div>`, at(ZH[1] - 92, ZH[0] - 92), Z0 + .5, Z1, 'pop', (t) => `scale(${1 + Math.sin(t * 3) * .02})`);
+el('Todo el negocio, conectado.', { s: { top: '150px', left: '0', right: '0', textAlign: 'center', fontSize: '52px', fontWeight: 300, color: '#1d1d1b' } }, Z0 + 1.6, Z1, 'up');
+
+// ===== 06 · more sales (109–124)
+const M0 = 109.2;
+const M1 = 123.4, HUB = [700, 565];
+// dark, live backdrop like the cover
+el('<div style="width:1920px;height:1080px;background:#1d1d1b"></div>', at(0, 0), M0 - .3, M1, 'none');
+[[-100, 500, 900, '#B8966E', .45], [1300, -200, 900, '#83734C', .4]].forEach((b, i) =>
+  el(`<div style="width:${b[2]}px;height:${b[2]}px;border-radius:50%;background:radial-gradient(circle,${b[3]} 0%,transparent 65%);opacity:${b[4]}"></div>`, at(b[1], b[0]), M0, M1, 'none',
+    (t) => `translate(${Math.sin(t * .8 + i * 2) * 120}px,${Math.cos(t * .6 + i) * 80}px)`));
+el('Más ventas, sin perder <span style="color:#B8966E;font-weight:500">ninguna.</span>', { s: { top: '130px', left: '0', right: '0', textAlign: 'center', fontSize: '66px', fontWeight: 300, color: '#fff' } }, M0 + .2, M1, 'up');
+// (direction pass 2026-10-06: the hub network here repeated segment 05's zoom out → removed)
+// live feed of what it means, popping in on the right
+[['🛵', 'Toda la red vende', 'Entrega Inmediata en Zona Metropolitana'], ['🧵', 'Ninguna venta se pierde', 'Sin existencia: a la medida en 10 días hábiles'],
+ ['💳', 'Pagar es fácil', 'Tarjeta, Mercado Pago, sin tarjeta o link por WhatsApp'], ['⭐', 'Clientas que vuelven', 'Club Fuxia en cada compra']]
+  .forEach((c, i) => el(`<div style="width:540px;display:flex;gap:20px;align-items:center;padding:22px 26px;border-radius:22px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);box-shadow:0 20px 50px rgba(0,0,0,.35);color:#fff">
+    <div style="font-size:44px">${c[0]}</div><div style="flex:1"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:25px">${c[1]}</b></div><div style="font-size:18px;color:#cfc6b8;margin-top:6px">${c[2]}</div></div></div>`,
+    at(300 + i * 150, 690), M0 + 1.2 + i * 1.1, M1, 'up', (t) => `translateY(${Math.sin(t * 1.4 + i) * 5}px)`));
+// (direction pass: captions that repeated her voice word for word removed)
+
+// ===== 07 · closing (124.2–132), brand story v3 (2026-10-06): back to the brand, now with the relationship with her.
+// DISEÑAR. FABRICAR. CONECTAR. CRECER. over three real shots (woman wearing Fuxia → handmade detail → finished pair),
+// then the last memory is FUXIA BALLERINAS. Voice = note 7 cut: "Diseñar. Fabricar." (125.35) + "Fuxia Ballerinas" (129.55);
+// her "entregar" is not used (CONECTAR / CRECER are on screen only until recorded). ENDORSE = optional "Powered by Fuxia 360".
+const C0 = 124.2, ENDORSE = false;
+el('<div style="width:1920px;height:1080px;background:#f6efe4"></div>', at(0, 0), C0 - .2, 132.5, 'none');
+[['MAFALDA-TACHES/TAUPE/590b03f0-210c-4cea-8701-a65b967fddac.jpg', C0, 126.3, 50, 30], ['BALLERINAS-RESORTE-TACHES/VERDE/4c7f95c3-7a7f-434f-b997-8970ed068496.jpg', 126.1, 128.0, 50, 50],
+ ['CUCARRON/VINO/3d723a60-0053-435e-ab14-7b54868ad32c.jpg', 127.8, 129.6, 50, 50]].forEach((ph) => {
+  const d = el(`<div style="width:960px;height:1080px;overflow:hidden"><img src="${F360_PHOTOS}${ph[0]}" style="width:100%;height:100%;object-fit:cover;object-position:${ph[3]}% ${ph[4]}%"></div>`, at(0, 960), ph[1], ph[2], 'none');
+  const o = E.at(-1); o.extra = (t) => { d.firstChild.style.transform = `scale(${1.04 + .06 * Math.max(0, Math.min(1, (t - ph[1]) / (ph[2] - ph[1] + .5)))})`; return ''; };
+});
+[['DISEÑAR.', 124.4], ['FABRICAR.', 126.6], ['CONECTAR.', 127.75], ['CRECER.', 128.65]].forEach((w, i) =>
+  el(w[0], { s: { top: (230 + i * 140) + 'px', left: '150px', fontSize: '104px', fontWeight: 300, letterSpacing: '.04em', color: i === 3 ? '#B8966E' : '#1d1d1b' } }, w[1], 129.6, 'left'));
+// end card: the brand is the last memory
+el('<div style="width:1920px;height:1080px;background:#f6efe4"></div>', at(0, 0), 129.4, 132.5, 'none');
+el(logo(980, '#857652'), at(400, 470), 129.55, 132.5, 'up');
+el('Comodidad artesanal con carácter propio', { s: { top: '620px', left: '0', right: '0', textAlign: 'center', fontSize: '34px', fontWeight: 300, letterSpacing: '.06em', color: '#6B6B68' } }, 130.1, 132.5, 'up');
+if (ENDORSE) el('Powered by Fuxia 360', { s: { top: '1000px', left: '0', right: '0', textAlign: 'center', fontSize: '16px', fontWeight: 600, letterSpacing: '.3em', color: '#a89a82', textTransform: 'uppercase' } }, 130.6, 132.5, 'none');
+window.DUR = 132;
 </script></body></html>
