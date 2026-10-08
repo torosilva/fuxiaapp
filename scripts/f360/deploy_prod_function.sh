@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Fuxia 360 · the ONLY way this repo deploys the store-facing functions to PRODUCTION (tgzg…), approved by Mario as a permission rule.
 # Usage: scripts/f360/deploy_prod_function.sh f360-store-reserve | f360-hilo-intake | f360-woo-orders | f360-whatsapp
-#   · f360-whatsapp (Mario 2026-10-08): thank-you WhatsApp sender; F360_THANKS_SID=HX… scripts/f360/deploy_prod_function.sh f360-whatsapp
+#   · f360-whatsapp (Mario 2026-10-08): thank-you WhatsApp sender; F360_THANKS_SID='HXcard,HXplain' F360_THANKS_MEMBER_SID=HX… scripts/f360/deploy_prod_function.sh f360-whatsapp
+#     (comma list = order of preference; the first template Meta has approved is used)
 #     once Meta approves the template fuxia_gracias_compra (without it, the function sends nothing).
 #   · whitelist only (never the app's own functions: hilo-chat, whatsapp-otp, woocommerce-*, …);
 #   · the function must be committed with no local changes;
@@ -27,7 +28,8 @@ if [ "$FN" = "f360-store-reserve" ]; then
 elif [ "$FN" = "f360-whatsapp" ]; then
   # Twilio keys are already project secrets (whatsapp-otp). The approved template SID is set ONLY when given
   # (F360_THANKS_SID=HX… after Meta approves fuxia_gracias_compra); without it the function sends nothing.
-  [ -n "${F360_THANKS_SID:-}" ] && printf 'TWILIO_THANKS_CONTENT_SID=%s\n' "$F360_THANKS_SID" > "$TMP"
+  [ -n "${F360_THANKS_SID:-}" ] && printf 'TWILIO_THANKS_CONTENT_SID=%s\n' "$F360_THANKS_SID" >> "$TMP"
+  [ -n "${F360_THANKS_MEMBER_SID:-}" ] && printf 'TWILIO_THANKS_MEMBER_CONTENT_SID=%s\n' "$F360_THANKS_MEMBER_SID" >> "$TMP"
 elif [ "$FN" = "f360-woo-orders" ]; then
   SECRET_FILE="$HOME/.fuxia-woo-orders.secret"
   if [ ! -s "$SECRET_FILE" ]; then ( umask 077; openssl rand -hex 32 > "$SECRET_FILE" ); echo "Secreto nuevo generado en $SECRET_FILE"; fi
