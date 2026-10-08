@@ -9,7 +9,10 @@ BEGIN;
 DO $$
 DECLARE uid uuid; polanco uuid := '36f4cd87-eae2-403d-9dfb-9cb0d58b79a9';
 BEGIN
-  SELECT id INTO uid FROM auth.users WHERE phone IN ('525513667060', '5215513667060') ORDER BY created_at LIMIT 1;
+  -- the app logs in by WhatsApp code: the phone lives on public.customers (+52…), linked to the account by auth_user_id
+  SELECT auth_user_id INTO uid FROM public.customers
+    WHERE regexp_replace(phone, '\D', '', 'g') IN ('525513667060', '5215513667060') AND auth_user_id IS NOT NULL
+    ORDER BY created_at LIMIT 1;
   IF uid IS NULL THEN RAISE EXCEPTION 'Reyna todavía no tiene cuenta: que inicie sesión una vez en la app con su teléfono.'; END IF;
   -- act as Mario Silva (owner) so the owner-only RPCs run with their own checks and audit
   PERFORM set_config('request.jwt.claims', json_build_object('sub', 'd11a8d33-cae6-46a5-9d0f-bd2516e8712b', 'role', 'authenticated')::text, true);
