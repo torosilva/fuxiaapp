@@ -694,3 +694,28 @@ export async function saveKnowledgeAction(productId: string, fields: Record<stri
   if (r.ok) revalidatePath(`/productos/${productId}`);
   return r;
 }
+
+// ── Vendedoras (owner): add with name + WhatsApp + store + PIN; change store, reset PIN, deactivate. The database
+// validates and audits everything; the PIN is hashed there and never comes back.
+export type Seller = { id: string; name: string; phone_last4: string; status: 'pendiente' | 'activa' | 'inactiva';
+  location: { id: string; name: string }; activated_at: string | null; created_at: string; locked: boolean };
+export async function addSellerAction(input: { name: string; phone: string; locationId: string; pin: string }): Promise<Result<Seller>> {
+  const r = await call<Seller>('f360_admin_seller_add', { p_name: input.name, p_phone: input.phone, p_location_id: input.locationId, p_pin: input.pin });
+  if (r.ok) revalidatePath('/vendedoras');
+  return r;
+}
+export async function setSellerStoreAction(id: string, locationId: string): Promise<Result<Seller>> {
+  const r = await call<Seller>('f360_admin_seller_set_store', { p_seller_id: id, p_location_id: locationId });
+  if (r.ok) revalidatePath('/vendedoras');
+  return r;
+}
+export async function resetSellerPinAction(id: string, pin: string): Promise<Result<Seller>> {
+  const r = await call<Seller>('f360_admin_seller_reset_pin', { p_seller_id: id, p_pin: pin });
+  if (r.ok) revalidatePath('/vendedoras');
+  return r;
+}
+export async function deactivateSellerAction(id: string): Promise<Result<Seller>> {
+  const r = await call<Seller>('f360_admin_seller_deactivate', { p_seller_id: id });
+  if (r.ok) revalidatePath('/vendedoras');
+  return r;
+}

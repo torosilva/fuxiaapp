@@ -8,6 +8,7 @@ const ITEMS = [
   { href: '/homologacion', label: 'Homologación Woo', icon: IconLink, live: true, admin: true },
   { href: '/conteo', label: 'Conteo de apertura', icon: IconCheck, live: true, admin: true },
   { href: '/tiendas', label: 'Tiendas y ubicaciones', icon: IconBoxes, live: true, admin: true },
+  { href: '/vendedoras', label: 'Vendedoras', icon: IconUsers, live: true, admin: true },
   { href: '/apartados', label: 'Apartados Gold', icon: IconClock, live: true, admin: true },
   { href: '/monedas', label: 'Monedas', icon: IconReceipt, live: true, admin: true },
   { href: '/bandeja', label: 'Bandeja de clientas', icon: IconUsers, live: true },

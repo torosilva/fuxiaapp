@@ -31,6 +31,7 @@ const GROUPS = [
   ] },
   { label: 'Configuración', items: [
     { href: '/tiendas', label: 'Tiendas', icon: IconBoxes, live: true, admin: true },
+    { href: '/vendedoras', label: 'Vendedoras', icon: IconUsers, live: true, admin: true },
     { href: '/homologacion', label: 'Homologación', icon: IconLink, live: true, admin: true },
     { href: '/conteo', label: 'Conteo de apertura', icon: IconCheck, live: true, admin: true },
   ] },
