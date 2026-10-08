@@ -41,7 +41,7 @@ const STATUS_LABEL_ES: Record<WCOrderStatus, string> = {
   'on-hold': 'En espera',
   completed: 'Entregado',
   cancelled: 'Cancelado',
-  refunded: 'Reembolsado',
+  refunded: 'Cancelado',
   failed: 'Falló',
 };
 

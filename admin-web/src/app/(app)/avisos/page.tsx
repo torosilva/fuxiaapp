@@ -6,7 +6,7 @@ import { ReconcileButton, ResolveIssue } from './AvisosClient';
 
 const KIND: Record<string, string> = {
   oversell: 'Venta sin existencia', unknown_sku: 'Artículo no reconocido', sku_mismatch: 'SKU no coincide', stock_drift: 'Existencias distintas',
-  push_failed: 'No se pudo actualizar la tienda', cancel_after_sale: 'Cancelación después de venta', refund_after_sale: 'Reembolso después de venta',
+  push_failed: 'No se pudo actualizar la tienda', cancel_after_sale: 'Cancelación después de venta', refund_after_sale: 'Pago anulado en WooCommerce después de venta',
   webhook_rejected: 'Aviso rechazado',
 };
 const RESULT: Record<string, string> = {
@@ -15,7 +15,7 @@ const RESULT: Record<string, string> = {
 };
 const STATUS: Record<string, string> = {
   pending: 'pendiente de pago', 'on-hold': 'en espera', processing: 'pagado', completed: 'completado', cancelled: 'cancelado',
-  refunded: 'reembolsado', failed: 'pago fallido',
+  refunded: 'pago anulado', failed: 'pago fallido',
 };
 const resultLabel = (result: string, status: string | null) =>
   result === 'not_paid' && status && ['cancelled', 'refunded', 'failed'].includes(status) ? 'sin cambio de inventario (ver avisos)' : RESULT[result] ?? result;

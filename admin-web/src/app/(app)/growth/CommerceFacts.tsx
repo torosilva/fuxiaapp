@@ -6,7 +6,7 @@ import { fecha } from '@/lib/format';
 const ORIGIN: Record<string, string> = { storefront: 'Tienda en línea', manual_admin: 'Pedido manual', api_integration: 'Integración / API', physical_store: 'Tienda física', unknown: 'Desconocido' };
 // Fuxia works with EXCHANGES (cambios), not refunds: refund states only appear if Woo technically sends one, as an exception.
 const STATE: Record<string, string> = { never_paid: 'Nunca pagado', paid: 'Pagado', paid_cancelled: 'Pagado → cancelado (excepción, por revisar)',
-  paid_refunded_partial: 'Reembolso en Woo (excepción técnica)', paid_refunded_full: 'Reembolso en Woo (excepción técnica)' };
+  paid_refunded_partial: 'Pago anulado en Woo (excepción técnica)', paid_refunded_full: 'Pago anulado en Woo (excepción técnica)' };
 const money = (n: number | null, currency: string) =>
   n === null ? '—' : new Intl.NumberFormat('es-MX', { style: 'currency', currency, maximumFractionDigits: currency === 'COP' ? 0 : 2 }).format(n);
 
