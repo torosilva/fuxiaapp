@@ -40,6 +40,12 @@ if [ "$FN" = "f360-store-reserve" ]; then
   good=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$URL" -H 'Origin: https://fuxiaballerinas.com' -H 'Content-Type: application/json' -d '{"action":"scarcity","woo_variation_id":1}')
   echo "Otro dominio (debe rechazar 403): $bad · fuxiaballerinas.com (debe 200): $good"
   [ "$bad" = "403" ] && [ "$good" = "200" ] || { echo "ATENCIÓN: respuesta inesperada" >&2; exit 2; }
+elif [ "$FN" = "f360-woo-orders" ]; then
+  # Woo's own ping (no signature, no topic): proves it is up without JWT and does NOT open a "webhook_rejected" aviso,
+  # which an unsigned '{}' would (deploys of 2026-10-08 09:10 and 11:24 did exactly that).
+  ping=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$URL" -H 'Content-Type: application/x-www-form-urlencoded' -d 'webhook_id=0')
+  echo "Ping de Woo (debe 200): $ping"
+  [ "$ping" = "200" ] || { echo "ATENCIÓN: respuesta inesperada al ping" >&2; exit 2; }
 else
   bad=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$URL" -H 'Content-Type: application/json' -d '{}')
   echo "Sin secreto (debe rechazar 401/403): $bad"
