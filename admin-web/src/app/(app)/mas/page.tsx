@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { IconBag, IconBell, IconBoxes, IconCheck, IconClock, IconGrowth, IconLink, IconMove, IconReceipt, IconScissors, IconUsers } from '@/components/icons';
+import { boardNavVisible } from '@/lib/board';
 import { canWrite, getMe } from '@/lib/f360';
 
 const ITEMS = [
@@ -20,7 +21,7 @@ const ITEMS = [
 ];
 
 export default async function Mas() {
-  const me = await getMe();
+  const [me, board] = await Promise.all([getMe(), boardNavVisible().catch(() => false)]);
   return (
     <div>
       <h1 className="font-display text-5xl text-ink">Más</h1>
@@ -28,6 +29,11 @@ export default async function Mas() {
         <Link href="/avisos" className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5">
           <IconBell className="size-6 text-gold-strong" /><span className="flex-1 text-lg text-ink">Avisos de sincronización</span>
         </Link>
+        {board && (
+          <Link href="/estrategia" className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5">
+            <IconGrowth className="size-6 text-gold-strong" /><span className="flex-1 text-lg text-ink">Strategy &amp; Board 🔒</span>
+          </Link>
+        )}
         {ITEMS.filter((i) => !('admin' in i) || canWrite(me.role)).map(({ href, label, icon: Icon, live }) => (
           <Link key={href} href={href} className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5">
             <Icon className="size-6 text-muted" /><span className="flex-1 text-lg text-ink">{label}</span>{!live && <span className="text-sm text-muted">Próximamente</span>}

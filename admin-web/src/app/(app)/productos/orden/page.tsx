@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { canWrite, getMe, getStoreOrder } from '@/lib/f360';
 import { publisherAvailable } from '@/lib/env-guard';
 import { STORE_KEY } from '@/lib/store';
@@ -7,7 +8,9 @@ import { StoreOrderPanel } from './StoreOrderPanel';
 // "Orden en la tienda" (Mario 2026-10-06): which models the shop shows first. Destacados first (in the order chosen here),
 // then the rest by units sold (last 60 days, every channel, plus the old store's own sales), then the newest.
 export default async function OrdenTienda() {
-  const [me, order] = await Promise.all([getMe(), getStoreOrder()]);
+  const me = await getMe();
+  if (!canWrite(me.role)) redirect('/productos'); // D13: owner/operator only (enforced by f360_store_order)
+  const order = await getStoreOrder();
   const storeName = STORE_KEY === 'woo_production' ? 'fuxiaballerinas.com' : 'la tienda de pruebas';
   return (
     <div>

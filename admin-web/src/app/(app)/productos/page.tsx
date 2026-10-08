@@ -55,7 +55,7 @@ export default async function Productos({ searchParams }: { searchParams: Promis
       </header>
 
       <nav className="flex flex-wrap gap-2 text-sm" aria-label="Más de productos">
-        <Link href="/productos/orden" className="rounded-full border border-line px-4 py-2 text-ink-2 hover:border-gold/40" data-testid="link-store-order">⭐ Orden en la tienda</Link>
+        {canWrite(me.role) && <Link href="/productos/orden" className="rounded-full border border-line px-4 py-2 text-ink-2 hover:border-gold/40" data-testid="link-store-order">⭐ Orden en la tienda</Link>}
         <Link href="/bandeja" className="rounded-full border border-line px-4 py-2 text-ink-2 hover:border-gold/40">Bandeja de clientas</Link>
         <Link href="/sobre-pedido" className="rounded-full border border-line px-4 py-2 text-ink-2 hover:border-gold/40">Pedidos en línea</Link>
       </nav>

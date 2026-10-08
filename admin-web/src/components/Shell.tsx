@@ -29,6 +29,9 @@ const GROUPS = [
   { label: 'Crecer', items: [
     { href: '/growth', label: 'Growth', icon: IconGrowth, live: true, admin: true },
   ] },
+  { label: 'Dirección', items: [
+    { href: '/estrategia', label: 'Strategy & Board 🔒', icon: IconGrowth, live: true, board: true },
+  ] },
   { label: 'Configuración', items: [
     { href: '/como-funciona', label: 'Cómo funciona', icon: IconGrowth, live: true, admin: true },
     { href: '/tiendas', label: 'Tiendas', icon: IconBoxes, live: true, admin: true },
@@ -42,7 +45,7 @@ const BOTTOM = ['/', '/tablero', '/productos'].map((h) => NAV.find((n) => n.href
 
 const isActive = (path: string, href: string) => (href === '/' ? path === '/' : path.startsWith(href));
 
-export function Shell({ name, role, env, alerts = 0, signOut, children }: { name: string; role: string; env?: string; alerts?: number; signOut: () => Promise<void>; children: React.ReactNode }) {
+export function Shell({ name, role, env, alerts = 0, board = false, signOut, children }: { name: string; role: string; env?: string; alerts?: number; board?: boolean; signOut: () => Promise<void>; children: React.ReactNode }) {
   const path = usePathname();
   return (
     <div className="min-h-dvh lg:flex">
@@ -54,7 +57,7 @@ export function Shell({ name, role, env, alerts = 0, signOut, children }: { name
           <div className="mt-1 text-[11px] text-[#8E877C]">by HiloLabs.ai</div>
         </Link>
         <nav className="flex flex-1 flex-col gap-5">
-          {GROUPS.map((g) => ({ ...g, items: g.items.filter((n) => !('admin' in n) || role === 'owner' || role === 'operator') })).filter((g) => g.items.length > 0).map((g) => (
+          {GROUPS.map((g) => ({ ...g, items: g.items.filter((n) => ('board' in n ? board : !('admin' in n) || role === 'owner' || role === 'operator')) })).filter((g) => g.items.length > 0).map((g) => (
             <div key={g.label} className="flex flex-col gap-0.5">
               <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.26em] text-[#8E877C]">{g.label}</div>
               {g.items.map(({ href, label, icon: Icon, live }) => (
