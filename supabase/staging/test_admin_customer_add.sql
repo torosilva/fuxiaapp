@@ -67,7 +67,7 @@ BEGIN
   SELECT * INTO c FROM public.customers WHERE id = (j->>'customer_ref')::uuid;
   IF c.phone <> '+525599990042' OR c.name <> 'Prueba Clienta' OR c.email IS NOT NULL OR c.source <> 'admin' OR c.role <> 'customer'
      OR c.postal_code <> '66250' OR c.shoe_size <> '38' OR c.birthday_month <> 10 OR c.registered_by <> 'd11a8d33-cae6-46a5-9d0f-bd2516e8712b' THEN RAISE EXCEPTION 'T2 row %', to_jsonb(c); END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.loyalty_cards WHERE customer_id = c.id AND qr_code LIKE 'FX1-%') THEN RAISE EXCEPTION 'T2 card'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.loyalty_cards WHERE customer_id = c.id AND qr_code LIKE 'FX-%' AND length(qr_code) > 20) THEN RAISE EXCEPTION 'T2 card'; END IF;
   IF NOT EXISTS (SELECT 1 FROM f360.customer_consent_events WHERE customer_id = c.id AND source = 'admin' AND status = 'requested') THEN RAISE EXCEPTION 'T2 consent'; END IF;
   -- T3 · same WhatsApp written differently → the same customer, nothing overwritten, no second card
   k := public.f360_admin_customer_add('+52 (55) 9999-0042', 'Otro Nombre', 'otro@correo.com');
