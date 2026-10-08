@@ -14,7 +14,7 @@ import { MotiView } from 'moti';
 import { Store, ShoppingBag, Delete, ArrowLeft } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
-import { F360_SELLER_SESSION } from '@/lib/sellerSession';
+import { F360_SELLER_SESSION, myF360Role } from '@/lib/sellerSession';
 import SellerShiftLogin from '@/components/SellerShiftLogin';
 
 const LAST_CHANNEL_KEY = '@vendedora_last_channel';
@@ -31,8 +31,21 @@ interface Channel {
 // is started and verified by the server (S0.2); otherwise the legacy PIN screen remains (production, until rollout).
 export default function VendedoraEntry() {
   const [state, setState] = useState<'loading' | 'no-session' | 'ok'>('loading');
-  useEffect(() => { supabase.auth.getSession().then(({ data }) => setState(data.session ? 'ok' : 'no-session')); }, []);
+  // 2026-10-08: Fuxia 360 is in production. A person with a Fuxia 360 role (seller / operator / owner) sells through
+  // the Fuxia 360 shift (her store's real stock); everyone else keeps the legacy screen. Owners/operators can still
+  // open the legacy screen for stores not yet in Fuxia 360.
+  const [f360Role, setF360Role] = useState<string | null>(null);
+  const [legacy, setLegacy] = useState(false);
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (data.session) setF360Role(await myF360Role());
+      setState(data.session ? 'ok' : 'no-session');
+    });
+  }, []);
   if (state === 'loading') return <SafeAreaView style={styles.container}><ActivityIndicator color="#B8860B" /></SafeAreaView>;
+  // No account: the legacy PIN screen, exactly as the published app (other stores' sellers have no account yet).
+  // Fuxia 360 sellers (e.g. Polanco) log in first and enter from their Perfil.
+  if (state === 'no-session' && !F360_SELLER_SESSION) return <VendedoraLoginScreen />;
   if (state === 'no-session') {
     return (
       <SafeAreaView style={styles.container}>
@@ -45,7 +58,19 @@ export default function VendedoraEntry() {
       </SafeAreaView>
     );
   }
-  if (F360_SELLER_SESSION) return <SafeAreaView style={styles.container}><SellerShiftLogin /></SafeAreaView>;
+  const f360 = F360_SELLER_SESSION || f360Role === 'seller' || f360Role === 'operator' || f360Role === 'owner';
+  if (f360 && !legacy) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <SellerShiftLogin />
+        {f360Role !== 'seller' && (
+          <TouchableOpacity onPress={() => setLegacy(true)} style={{ padding: 20, alignItems: 'center' }}>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>Usar el modo anterior (tiendas fuera de Fuxia 360)</Text>
+          </TouchableOpacity>
+        )}
+      </SafeAreaView>
+    );
+  }
   return <VendedoraLoginScreen />;
 }
 

@@ -77,8 +77,15 @@ export default function WelcomeScreen() {
           <Text style={styles.btnSecondaryText}>Ya tengo cuenta · Iniciar sesión</Text>
         </TouchableOpacity>
 
-        {/* Seller mode requires the seller's own account (S0.0A-A2 / S0.2): no anonymous "Soy vendedora" entry. */}
-        <Text style={styles.btnStaffText}>¿Eres vendedora? Inicia sesión con tu cuenta y entra desde tu Perfil.</Text>
+        {/* 2026-10-08: the legacy "Soy vendedora" entry stays while the other stores' sellers have no Fuxia 360 account
+            (compatibility window, PASE A11). Fuxia 360 sellers log in with their own account and enter from their Perfil. */}
+        <TouchableOpacity
+          style={styles.btnStaff}
+          onPress={() => router.push('/vendedora' as any)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.btnStaffText}>Soy vendedora</Text>
+        </TouchableOpacity>
       </MotiView>
     </View>
   );

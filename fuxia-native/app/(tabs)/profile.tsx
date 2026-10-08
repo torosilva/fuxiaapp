@@ -47,7 +47,7 @@ export default function ProfileScreen() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   // S0.2: seller mode is granted by the Fuxia 360 role (server-side), not by customers.role
   const [canSell, setCanSell] = useState(false);
-  useEffect(() => { if (F360_SELLER_SESSION) myF360Role().then((r) => setCanSell(r === 'seller' || r === 'operator' || r === 'owner')); }, []);
+  useEffect(() => { myF360Role().then((r) => setCanSell(r === 'seller' || r === 'operator' || r === 'owner')); }, []);
   const [avatarVersion, setAvatarVersion] = useState(0);
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
   const [country, setCountryState] = useState<CountryCode>('MX');
@@ -353,7 +353,7 @@ export default function ProfileScreen() {
             <Text style={[styles.accessSub, { color: theme.muted }]}>Código de tienda</Text>
           </TouchableOpacity>
 
-          {(F360_SELLER_SESSION ? canSell : ((customer as any).role === 'staff' || (customer as any).role === 'admin')) && (
+          {(canSell || (!F360_SELLER_SESSION && ((customer as any).role === 'staff' || (customer as any).role === 'admin'))) && (
             <TouchableOpacity
               style={[styles.accessCard, { backgroundColor: theme.soft, borderColor: theme.border }]}
               onPress={() => router.push('/vendedora' as any)}

@@ -42,6 +42,7 @@ export async function registerPushToken(customerId: string): Promise<string | nu
       importance: Notifications.AndroidImportance.DEFAULT,
       vibrationPattern: [0, 250, 250, 250],
     });
+    await ensureApartadosChannel();
   }
 
   const projectId =
@@ -71,4 +72,38 @@ export async function registerPushToken(customerId: string): Promise<string | nu
   } catch {
     return null;
   }
+}
+
+// Fuxia 360 · Apartado Gold: a loud channel for "separa este par" notices (server push and in-app alerts use it).
+async function ensureApartadosChannel() {
+  if (!Notifications || Platform.OS !== 'android') return;
+  await Notifications.setNotificationChannelAsync('apartados', {
+    name: 'Apartados Fuxia Gold',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 400, 200, 400],
+    sound: 'default',
+  });
+}
+
+/** Local alert while the seller has the app open (works without server push / Firebase). */
+export async function alertNow(title: string, body: string, data: Record<string, unknown> = {}) {
+  if (!Notifications) return;
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted' && (await Notifications.requestPermissionsAsync()).status !== 'granted') return;
+    await ensureApartadosChannel();
+    await Notifications.scheduleNotificationAsync({
+      content: { title, body, data, sound: 'default' },
+      trigger: Platform.OS === 'android' ? { channelId: 'apartados' } as any : null,
+    });
+  } catch {
+    // alerts are best-effort; the list on screen is the source of truth
+  }
+}
+
+/** Tap on a notice → callback with its data (e.g. open "Apartados"). Returns the unsubscribe function. */
+export function onNoticeTap(cb: (data: Record<string, unknown>) => void): () => void {
+  if (!Notifications) return () => {};
+  const sub = Notifications.addNotificationResponseReceivedListener((r) => cb((r.notification.request.content.data ?? {}) as Record<string, unknown>));
+  return () => sub.remove();
 }

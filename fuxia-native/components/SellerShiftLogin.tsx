@@ -33,8 +33,12 @@ export default function SellerShiftLogin() {
     const r = await startShift(selected.id, next);
     setBusy(false); setPin('');
     if (!r.ok) { setError(r.error); return; }
-    if (r.shift.location.ledger_authority !== 'legacy' || !r.shift.location.legacy_channel_id) {
-      // New-ledger sales (Track C · C3) are not enabled yet; never fall back to another location.
+    if (r.shift.location.ledger_authority === 'f360') {
+      // The store's stock lives in Fuxia 360 (e.g. Tienda Polanco): sale, inventory and Gold reservations from there.
+      router.replace('/vendedora/tienda' as any);
+      return;
+    }
+    if (!r.shift.location.legacy_channel_id) {
       setError('Turno iniciado, pero la venta en esta ubicación todavía no está habilitada.');
       return;
     }
