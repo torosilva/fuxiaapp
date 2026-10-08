@@ -44,10 +44,28 @@ add_action('wp_footer', function () {
     try { variations = JSON.parse(form.getAttribute('data-product_variations') || '[]') || []; } catch (e) { variations = []; }
     if (!Array.isArray(variations)) variations = [];      // (más de 30 variaciones: Woo las carga por AJAX; entonces no se tachan tallas)
 
-    var HEX = { negro: '#1C1A17', nude: '#D8B9A0', rojo: '#9E2A2B', blanco: '#F4F1EA', camel: '#B07A4A', rosa: '#E3A6B4',
-      'azul-marino': '#1F2A44', dorado: '#B8860B', plata: '#B9B9B9', cafe: '#6F4E37', taupe: '#8B7D6B', verde: '#4F6B4A', vino: '#6D1A2A' };
+    // A circle from the very first paint (Mario 2026-10-07: the page showed colours without circle while loading):
+    //  1) the exact circles Fuxia 360 sent last time this browser saw the product (saved below), else
+    //  2) the same palette the admin uses to suggest circles (exact name, first colour of "X con Y", longest prefix).
+    // Then Fuxia 360's catalog (Carolina's "Cambiar circulito") replaces them as soon as it answers.
+    var PALETA = { negro: '#1C1A17', negra: '#1C1A17', blanco: '#F4F1EA', nude: '#D8B9A0', camel: '#B07A4A', rojo: '#9E2A2B', rosa: '#E3A6B4',
+      'azul marino': '#1F2A44', azul: '#2B4C7E', dorado: '#B8860B', dorada: '#C9A94E', plata: '#B9B9B9', plateado: '#BFC1C2', cafe: '#6B4226',
+      chocolate: '#4B2E20', taupe: '#8B7D6B', topo: '#8B7D6B', vino: '#6D1A2A', verde: '#4A6B3A', 'verde aceituna': '#6B6B2A', talco: '#E8DCD0',
+      beige: '#D9C3A5', bambi: '#C49A6C', caramelo: '#A8662F', miel: '#C68E3F', ocre: '#C08A2E', leopardo: '#B8864B', denim: '#4A6A8A',
+      gris: '#8E8E8E', plomo: '#6E7378', bronce: '#8C6A3F', champagne: '#E3D3B0', terracota: '#B4583A' };
     var ENDPOINT = 'https://tgzgiwfzddsghnxgkcqd.supabase.co/functions/v1/f360-store-reserve';   // PRODUCCIÓN: endpoint de staging.
     var norm = function (x) { return String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase(); };
+    var sugerido = function (nombre) {
+      var t = norm(nombre);
+      if (PALETA[t]) return PALETA[t];
+      var primero = t.split(/\s+(?:con|y)\s+/)[0];
+      if (PALETA[primero]) return PALETA[primero];
+      var largo = Object.keys(PALETA).filter(function (k) { return t.indexOf(k + ' ') === 0; }).sort(function (a, b) { return b.length - a.length; })[0];
+      return largo ? PALETA[largo] : null;
+    };
+    var CLAVE = 'f360-circulos-' + form.getAttribute('data-product_id');
+    var previo = {};
+    try { previo = JSON.parse(localStorage.getItem(CLAVE) || '{}') || {}; } catch (e) { previo = {}; }
     var botones = box.querySelector('.f360-colores-botones');
     var nombre = box.querySelector('.f360-color-nombre');
     var $ = window.jQuery;
@@ -107,7 +125,7 @@ add_action('wp_footer', function () {
       if (!o.value) return;
       var b = document.createElement('button');
       b.type = 'button'; b.className = 'f360-color'; b.dataset.color = o.value; b.dataset.nombre = o.text;
-      var hex = HEX[o.value];
+      var hex = previo[norm(o.text)] || sugerido(o.text);
       b.innerHTML = (hex ? '<span class="f360-punto" style="background:' + hex + '"></span>' : '') + '<span></span>';
       b.lastChild.textContent = o.text;
       b.addEventListener('click', function () { elegir(b); });
@@ -137,10 +155,13 @@ add_action('wp_footer', function () {
         .then(function (cat) {
           var id = Number(form.getAttribute('data-product_id'));
           var it = (cat.items || []).filter(function (x) { return Number(x.woo_product_id) === id; })[0];
+          var guardar = {};
           (it && it.colors || []).forEach(function (c) {
             if (!c.hex) return;
+            guardar[norm(c.name)] = c.hex;
             Array.prototype.forEach.call(botones.children, function (b) { if (norm(b.dataset.nombre) === norm(c.name)) punto(b, c.hex); });
           });
+          try { if (it) localStorage.setItem(CLAVE, JSON.stringify(guardar)); } catch (e) {}
         }).catch(function () {});
     } catch (e) {}
 
