@@ -1,15 +1,72 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, StatusBar, Image, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
+import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { wcService } from '@/services/WooCommerceService';
 
 const LOGO_ICON = require('../../assets/images/logo-icon.png');
 const LOGO_WORDMARK = require('../../assets/images/logo-wordmark.png');
 
+// The welcome photo comes from the store, like the Home hero: the product marked
+// "Destacado" in WooCommerce, or the newest product if none is. Changing it never
+// needs a new app build. The last photo is remembered so it shows instantly next time;
+// with no photo at all the screen stays the plain black welcome.
+const WELCOME_PHOTO_KEY = 'welcomePhotoUri';
+
+function useWelcomePhoto() {
+  const [uri, setUri] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    AsyncStorage.getItem(WELCOME_PHOTO_KEY)
+      .then((cached) => { if (alive && cached) setUri((u) => u ?? cached); })
+      .catch(() => {});
+    (async () => {
+      try {
+        const featured = await wcService.getProducts({ featured: 'true', per_page: 1 });
+        const product = featured[0] ?? (await wcService.getProducts({ orderby: 'date', order: 'desc', per_page: 1 }))[0];
+        const src = product?.images?.[0]?.src;
+        if (!src || !alive) return;
+        setUri(src);
+        AsyncStorage.setItem(WELCOME_PHOTO_KEY, src).catch(() => {});
+      } catch { /* offline: keep the cached photo or the plain screen */ }
+    })();
+    return () => { alive = false; };
+  }, []);
+  return uri;
+}
+
 export default function WelcomeScreen() {
+  const photoUri = useWelcomePhoto();
+  const [photoReady, setPhotoReady] = useState(false);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
+
+      {photoUri && (
+        <MotiView
+          pointerEvents="none"
+          style={StyleSheet.absoluteFill}
+          animate={{ opacity: photoReady ? 1 : 0 }}
+          transition={{ type: 'timing', duration: 900 }}
+        >
+          <Image
+            source={{ uri: photoUri }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+            onLoad={() => setPhotoReady(true)}
+            onError={() => setPhotoReady(false)}
+          />
+          {/* Keeps the logo and buttons readable over any photo. */}
+          <LinearGradient
+            colors={['rgba(13,13,13,0.5)', 'rgba(13,13,13,0.45)', 'rgba(13,13,13,0.75)', 'rgba(13,13,13,0.95)']}
+            locations={[0, 0.35, 0.7, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+        </MotiView>
+      )}
 
       <View style={styles.center}>
         {/* Icon: entrance spring, then gentle breathing float forever */}
