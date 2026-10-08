@@ -114,7 +114,7 @@ test('webhook: inventory ingest receives ONLY the minimal order; commerce captur
   const realFetch = globalThis.fetch;
   globalThis.fetch = (async (url: string, init: RequestInit) => {
     const fn = String(url).split('/rpc/')[1]; const args = JSON.parse(String(init.body)); calls.push({ fn, args });
-    const body = fn === 'f360_ingest_woo_order' ? { result: 'applied' } : { result: 'inserted', refunds: 1 };
+    const body = fn === 'f360_ingest_woo_order' ? { result: 'applied' } : fn === 'f360_capture_order_shipping' ? { result: 'saved' } : { result: 'inserted', refunds: 1 };
     return new Response(JSON.stringify(body), { status: 200 });
   }) as typeof fetch;
   t.after(() => { globalThis.fetch = realFetch; });
@@ -122,7 +122,8 @@ test('webhook: inventory ingest receives ONLY the minimal order; commerce captur
   const res = await handleOrders(req(body), env, { commerceWoo: { listOrders: async () => [], listRefunds: async () => [{ id: 900, amount: '500', line_items: [] }] } });
   const out = await res.json();
   assert.equal(res.status, 200); assert.equal(out.result, 'applied'); assert.equal(out.commerce, 'inserted');
-  assert.deepEqual(calls.map((c) => c.fn), ['f360_ingest_woo_order', 'f360_capture_order_economics']);
+  assert.deepEqual(calls.map((c) => c.fn), ['f360_ingest_woo_order', 'f360_capture_order_economics', 'f360_capture_order_shipping']);
+  assert.equal(out.shipping, 'saved');
   const ingest = JSON.stringify(calls[0].args.p_order);
   assert.ok(!ingest.includes('2720') && !ingest.includes('utm'), 'inventory payload unchanged (no money, no attribution)');
   const cap = calls[1].args as Record<string, any>;
@@ -139,4 +140,30 @@ test('webhook: a commerce capture failure answers 5xx so Woo retries (the invent
   t.after(() => { globalThis.fetch = realFetch; });
   const res = await handleOrders(req(JSON.stringify({ ...fullOrder(), refunds: [] })), env, { commerceWoo: null });
   assert.equal(res.status, 500);
+});
+
+test('webhook: shipping capture keeps ONLY where it ships (no payment, IP, notes); a failure there does not fail the webhook', async (t) => {
+  const calls: { fn: string; args: Record<string, unknown> }[] = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async (url: string, init: RequestInit) => {
+    const fn = String(url).split('/rpc/')[1]; calls.push({ fn, args: JSON.parse(String(init.body)) });
+    if (fn === 'f360_capture_order_shipping') return new Response(JSON.stringify({ message: 'boom' }), { status: 500 });
+    return new Response(JSON.stringify(fn === 'f360_ingest_woo_order' ? { result: 'applied' } : { result: 'inserted' }), { status: 200 });
+  }) as typeof fetch;
+  t.after(() => { globalThis.fetch = realFetch; });
+  const order = { ...fullOrder(), refunds: [], shipping: { first_name: 'Ana', last_name: 'Pérez', address_1: 'Bosques 405', address_2: 'Col. Del Valle', city: 'San Pedro', state: 'NL', postcode: '66250', country: 'MX' } };
+  const res = await handleOrders(req(JSON.stringify(order)), env, { commerceWoo: null });
+  const out = await res.json();
+  assert.equal(res.status, 200); assert.equal(out.shipping, 'error');
+  const ship = calls.find((c) => c.fn === 'f360_capture_order_shipping')!.args.p_order as Record<string, unknown>;
+  assert.deepEqual(ship, { id: 501, status: 'completed', created_at: '2026-08-01T10:00:00Z', name: 'Ana Pérez', phone: '5512345678', email: 'ana@example.com',
+    street: 'Bosques 405', neighborhood: 'Col. Del Valle', city: 'San Pedro', state: 'Nuevo León', postal_code: '66250', country: 'MX' });
+  const raw = JSON.stringify(ship);
+  assert.ok(!raw.includes('MP-SECRET') && !raw.includes('201.1.2.3') && !raw.includes('portero') && !raw.includes('SECRETKEY'));
+});
+
+test('shipping: billing address is the fallback when the order has no shipping address (never mixed)', async () => {
+  const { orderShipping } = await import('../shipping.ts');
+  const s = orderShipping({ id: 7, status: 'processing', billing: { first_name: 'Eva', address_1: 'Calle 1', city: 'CDMX', state: 'CX', postcode: '01000', country: 'MX', phone: '5511112222' }, shipping: { first_name: 'Eva' } });
+  assert.equal(s.street, 'Calle 1'); assert.equal(s.state, 'Ciudad de México'); assert.equal(s.postal_code, '01000'); assert.equal(s.created_at, null);
 });

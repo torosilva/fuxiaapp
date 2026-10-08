@@ -1,9 +1,11 @@
 // f360-woo-orders — Woo order webhooks for Fuxia 360-managed products. SEPARATE from `woocommerce-webhook`
 // (loyalty), which is not touched. Own HMAC secret. Idempotent and order-safe (the database decides; see
-// public.f360_ingest_woo_order). Customer data is dropped before anything is stored.
+// public.f360_ingest_woo_order). Inventory and economics never receive customer data; only the shipping step (CRM C7) keeps
+// where a PAID order ships (name, WhatsApp, e-mail, address), best effort, after stock is done.
 import { minimizeOrder, verifyWooSignature } from '../_shared/f360-woo/orders.ts';
 import { commerceWoo, orderEconomics, refundDetail, type CommerceWoo } from '../_shared/f360-woo/commerce.ts';
 import { serviceRpc, type SupabaseEnv } from '../_shared/f360-woo/supabase.ts';
+import { orderShipping } from '../_shared/f360-woo/shipping.ts';
 
 export type OrdersEnv = SupabaseEnv & { WOO_TARGET_KEY: string; WOO_WEBHOOK_SECRET: string; WOO_BASE_URL?: string; WOO_USER?: string; WOO_SECRET?: string };
 export type OrdersOptions = { afterApplied?: () => Promise<unknown>; commerceWoo?: CommerceWoo | null };
@@ -43,7 +45,12 @@ export async function handleOrders(req: Request, env: OrdersEnv, opts: OrdersOpt
       try { detailed = (await woo.listRefunds(Number(order.id))).map(refundDetail); } catch { detailed = undefined; }
     }
     const commerce = await rpc<{ result: string }>('f360_capture_order_economics', { p_target_key: env.WOO_TARGET_KEY, p_order: orderEconomics(order, detailed), p_via: 'webhook' });
-    return json({ ...result, commerce: commerce.result });
+    // CRM C7: where it ships → the customer's ficha. Best effort: a failure here must never make Woo retry or block stock.
+    let shipping = 'skipped';
+    try {
+      shipping = (await rpc<{ result: string }>('f360_capture_order_shipping', { p_target_key: env.WOO_TARGET_KEY, p_order: orderShipping(order) })).result;
+    } catch (e) { shipping = 'error'; console.error(`[f360-woo-orders] shipping capture failed order=${order.id}: ${(e as Error).message}`); }
+    return json({ ...result, commerce: commerce.result, shipping });
   } catch (e) {
     // 5xx → Woo retries the delivery later; the database side is atomic, so a retry is always safe.
     return json({ error: (e as Error).message }, 500);
