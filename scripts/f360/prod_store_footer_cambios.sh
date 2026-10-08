@@ -22,7 +22,13 @@ $walk = function ($v) use (&$walk, $from, $to, &$n) {
 };
 $new = $walk($s);
 if ($n !== 1) { echo "ABORT: encontrado $n veces (se esperaba 1); no se cambió nada", PHP_EOL; exit(1); }
-update_post_meta(38, $k, wp_slash($new)); echo "Menú cambiado: Cambios y devoluciones → Cambios (/cambios/)", PHP_EOL;
+update_post_meta(38, $k, wp_slash($new)); wp_cache_delete(38, "post_meta");
+// Bricks protects Code elements: saved outside its editor by someone without code permission, the old code is put back
+// silently (2026-10-08 18:53 this script said "cambiado" and nothing changed). Read it back before claiming success.
+if (strpos(wp_json_encode(get_post_meta(38, $k, true)), "devoluciones") !== false) {
+  echo "NO SE GUARDÓ: Bricks regresó el bloque de código. Cámbialo en wp-admin → Bricks → Plantillas → Footer → Editar con Bricks.", PHP_EOL; exit(1);
+}
+echo "Menú cambiado: Cambios y devoluciones → Cambios (/cambios/)", PHP_EOL;
 '"'"' \
   && wp sg purge'
 echo "Comprobación pública:"
