@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { IconBag, IconBell, IconBoxes, IconCheck, IconClock, IconGrowth, IconLink, IconMove, IconReceipt, IconScissors, IconUsers } from '@/components/icons';
+import { IconBag, IconBell, IconBoxes, IconCamera, IconCheck, IconClock, IconGrowth, IconLink, IconMove, IconReceipt, IconScissors, IconUsers } from '@/components/icons';
 import { boardNavVisible } from '@/lib/board';
 import { canWrite, getMe } from '@/lib/f360';
 
@@ -13,6 +13,7 @@ const ITEMS = [
   { href: '/vendedoras', label: 'Vendedoras', icon: IconUsers, live: true, admin: true },
   { href: '/apartados', label: 'Apartados Gold', icon: IconClock, live: true, admin: true },
   { href: '/monedas', label: 'Monedas', icon: IconReceipt, live: true, admin: true },
+  { href: '/foto-app', label: 'Foto de la app', icon: IconCamera, live: true },
   { href: '/bandeja', label: 'Bandeja de clientas', icon: IconUsers, live: true },
   { href: '/clientes', label: 'Clientes', icon: IconUsers, live: true, admin: true },
   { href: '/growth', label: 'Growth', icon: IconGrowth, live: true, admin: true },
