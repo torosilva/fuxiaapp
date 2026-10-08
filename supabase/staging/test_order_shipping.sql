@@ -125,7 +125,7 @@ BEGIN
   SELECT * INTO c FROM public.customers WHERE id = cid;
   IF r->>'result' <> 'linked' OR c.address_street <> 'Nueva 2' OR c.postal_code <> '64000' OR (SELECT count(*) FROM f360.order_shipping WHERE customer_id = cid) <> 2 THEN RAISE EXCEPTION 'T4 % %', r, to_jsonb(c); END IF;
   -- T5 · Carolina corrects it in the admin → a re-delivery of an OLDER order does not overwrite her correction
-  PERFORM public.f360_admin_customer_set_contact(cid, 'Prueba Envío', NULL, '64010', 'Corregida 3', NULL, 'Monterrey', 'Nuevo León');
+  PERFORM public.f360_admin_customer_set_contact(cid, 'Prueba Envío', 'prueba.envio@example.com', '64010', 'Corregida 3', NULL, 'Monterrey', 'Nuevo León');
   r := public.f360_capture_order_shipping('woo_production', o);
   IF (SELECT address_street FROM public.customers WHERE id = cid) <> 'Corregida 3' THEN RAISE EXCEPTION 'T5'; END IF;
   -- T6 · match by e-mail when the phone is unusable; a staff phone is never matched
