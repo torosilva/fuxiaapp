@@ -38,7 +38,7 @@ add_action('wp_head', function () {
 #fx-app-btn{display:none!important}
 @media (max-width:900px){
   .brxe-product-title{font-size:24px!important;line-height:1.25!important;color:#1d1a16!important;font-weight:500!important}
-  .brxe-product-title + .brxe-product-price,.brxe-product-title + .brxe-product-price .price{font-size:22px!important;color:#1d1a16!important;font-weight:700!important}
+  .f360-fc-top .brxe-product-price,.brxe-product-title + .brxe-product-price,.brxe-product-title + .brxe-product-price .price{font-size:22px!important;color:#1d1a16!important;font-weight:700!important}
   .brxe-product-content,.brxe-product-content p,.brxe-product-short-description p{font-size:16px!important;line-height:1.6!important;color:#3d3730!important}
   .fuxia-talla,.f360-colores-botones button,.f360-colores-botones a{min-height:48px!important;min-width:48px!important;font-size:16px!important}
   .fuxia-guia-link{display:inline-block;padding:10px 0;font-size:15px!important}
@@ -228,11 +228,14 @@ add_action('wp_footer', function () {
     // name + price above the photos (the real nodes move, so Woo keeps updating them)
     var gal = document.querySelector('.brxe-product-gallery');
     var h1 = document.querySelector('h1.brxe-product-title');
-    var price = h1 && h1.nextElementSibling && h1.nextElementSibling.classList.contains('brxe-product-price') ? h1.nextElementSibling : null;
+    // the price is the first price block next to the name (some models have a rating block in between)
+    var hermanos = h1 ? [].slice.call(h1.parentNode.children) : [];
+    var price = hermanos.filter(function (e) { return e.classList.contains('brxe-product-price'); })[0] || null;
+    var rating = hermanos.filter(function (e) { return e.classList.contains('brxe-product-rating'); })[0] || null;
     if (gal && h1) {
       var top = document.createElement('div'); top.className = 'f360-fc-top';
       gal.parentNode.insertBefore(top, gal);
-      top.appendChild(h1); if (price) top.appendChild(price);
+      top.appendChild(h1); if (price) top.appendChild(price); if (rating) top.appendChild(rating);
     }
     // gallery: counter + arrows on Woo's own slider
     var g = document.querySelector('.woocommerce-product-gallery');
