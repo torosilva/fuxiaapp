@@ -11,6 +11,11 @@
  *                at the bottom with model, colour, size, price and "Agregar al carrito". The bar has NO purchase logic: it mirrors
  *                Woo's own button (missing colour / size / unavailable) and clicks it, so price, stock and validation stay Woo's.
  *                It shows only while Woo's button is off screen.
+ *              Paso 2 (same date, phones ≤ 900 px only, the approved mockup): name + price ABOVE the photos; no breadcrumb and no
+ *              thumbnail strip; ‹ › arrows and a "1 / 8" counter on Woo's own slider; big pill colours and a 6-column size grid
+ *              with "¿Cuál es mi talla?" (no size conversion: the bar repeats the number on the tapped button); no quantity box; dark full-width buy button; three
+ *              trust tiles; description and "Envíos y cambios" in closed sections; the WhatsApp size help as a card. The delivery promise is NOT here: production Woo
+ *              has no real stock and f360-storefront is not deployed there yet, so a promise would be a guess.
  * Apagar: borrar este archivo de wp-content/mu-plugins/.
  */
 if (!defined('ABSPATH')) exit;
@@ -52,6 +57,61 @@ add_action('wp_head', function () {
   .f360-fc-pulso{animation:f360fcp 1.2s ease 1;border-radius:8px}
   @keyframes f360fcp{0%,100%{box-shadow:0 0 0 0 rgba(156,122,69,0)}30%{box-shadow:0 0 0 6px rgba(156,122,69,.45)}}
 }
+@media (max-width:900px){
+  /* Paso 2 · the page in the order and look of the approved mockup */
+  main#brx-content > .brxe-section:first-child > .brxe-container,main#brx-content #brxe-ifvsvi{margin-top:6px!important}
+  .f360-fc-top{padding:6px 16px 14px}
+  .f360-fc-top .brxe-product-title{margin:0!important;font-family:'Montserrat',system-ui,sans-serif!important;font-size:23px!important;font-weight:600!important;line-height:1.25!important}
+  .f360-fc-top .brxe-product-price,.f360-fc-top .brxe-product-price *{font-family:'Montserrat',system-ui,sans-serif!important;font-size:21px!important;font-weight:700!important;color:#1d1a16!important}
+  .f360-fc-top .brxe-product-price{margin:4px 0 0!important}
+  nav.fuxia-breadcrumb{display:none!important}
+  .brxe-product-gallery .flex-control-thumbs{display:none!important}
+  .woocommerce-product-gallery{position:relative}
+  .f360-fc-cnt{position:absolute;right:12px;bottom:12px;z-index:5;background:rgba(17,17,17,.72);color:#fff;font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;pointer-events:none}
+  .f360-fc-arr{position:absolute;top:50%;z-index:5;width:44px;height:44px;margin-top:-22px;border:0;border-radius:50%;background:rgba(255,255,255,.9);color:#1d1a16;font-size:26px;line-height:42px;text-align:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.15);padding:0}
+  .f360-fc-arr.prev{left:10px}.f360-fc-arr.next{right:10px}
+  /* colour */
+  .f360-colores{margin:18px 0 6px!important}
+  .f360-colores-header{justify-content:flex-start!important;gap:6px;margin-bottom:10px!important}
+  .f360-colores-header span:first-child{text-transform:none!important;letter-spacing:0!important;font-size:16px!important;color:#1d1a16}
+  .f360-colores-header span:first-child::after{content:':'}
+  .f360-color-nombre{font-size:16px!important;color:#6b6257!important}
+  .f360-color{height:48px!important;padding:0 16px!important;border-radius:999px!important;border:1.5px solid #d9d1c4!important;font-size:15px!important;color:#1d1a16!important}
+  .f360-color.selected{border:2px solid #1d1a16!important;color:#1d1a16!important;box-shadow:inset 0 0 0 1px #1d1a16}
+  .f360-color .f360-punto{width:22px!important;height:22px!important}
+  /* size */
+  .fuxia-tallas{margin:18px 0 0!important}
+  .fuxia-tallas-header{margin-bottom:10px!important}
+  .fuxia-tallas-header > span{text-transform:none!important;letter-spacing:0!important;font-size:16px!important;font-weight:600!important;color:#1d1a16}
+  .f360-fc-cual{font-size:15px;color:#8a6a35;text-decoration:underline;text-underline-offset:3px;background:none;border:0;padding:8px 0;cursor:pointer;font-family:inherit}
+  .fuxia-tallas-botones{display:grid!important;grid-template-columns:repeat(6,1fr);gap:8px!important;margin-bottom:0!important}
+  .fuxia-talla{width:auto!important;height:52px!important;min-width:0!important;border:1.5px solid #d9d1c4!important;border-radius:12px!important;font-size:17px!important;font-weight:600!important;color:#1d1a16!important;background:#fff!important}
+  .fuxia-tallas-botones .fuxia-talla.selected{background:#1d1a16!important;color:#fff!important;border:1.5px solid #1d1a16!important}
+  .fuxia-talla.agotada,.fuxia-talla[disabled]{border-style:dashed!important;color:#b0a79a!important}
+  .fuxia-guia-link{display:none!important}
+  /* buy */
+  form.variations_form .quantity,form.cart .quantity{display:none!important}
+  .single_add_to_cart_button{width:100%!important;height:56px!important;border-radius:14px!important;background:#1d1a16!important;color:#fff!important;font-size:16px!important;letter-spacing:.04em!important;margin-top:16px!important}
+  #fx-trust{display:none!important}
+  .f360-fc-trust{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 0}
+  .f360-fc-trust div{background:#f6f2ea;border-radius:12px;padding:10px 6px;text-align:center;font-size:13px;line-height:1.3;color:#1d1a16}
+  .f360-fc-trust span{display:block;font-size:18px;margin-bottom:2px}
+  /* details */
+  .f360-fc-acc{margin:18px 0 0;border-top:1px solid #ece6db}
+  .f360-fc-acc details{border-bottom:1px solid #ece6db}
+  .f360-fc-acc summary{list-style:none;display:flex;justify-content:space-between;align-items:center;padding:16px 0;font-size:16px;font-weight:600;color:#1d1a16;cursor:pointer}
+  .f360-fc-acc summary::-webkit-details-marker{display:none}
+  .f360-fc-acc summary::after{content:'+';font-size:22px;font-weight:400;color:#6b6257}
+  .f360-fc-acc details[open] summary::after{content:'\2212'}
+  .f360-fc-acc .f360-fc-acc-body{padding:0 0 16px;font-size:16px;line-height:1.6;color:#3d3730}
+  .f360-fc-acc .f360-fc-acc-body p{margin:0 0 8px}
+  /* help */
+  .joinchat__woo-btn__wrapper.f360-fc-help{margin:16px 0 8px!important}
+  .f360-fc-help .joinchat__woo-btn{display:flex!important;align-items:center;gap:10px;width:100%;background:#f6f2ea!important;color:#1d1a16!important;border-radius:14px!important;padding:14px!important;font-size:14px!important;line-height:1.35;text-align:left;box-shadow:none!important}
+  .f360-fc-help .joinchat__woo-btn::before,.f360-fc-help .joinchat__woo-btn::after{display:none!important}
+  .f360-fc-help b{display:block;font-size:15px}
+  .f360-fc-help .f360-fc-wa{margin-left:auto;background:#25D366;color:#fff;font-weight:700;border-radius:999px;padding:9px 14px;white-space:nowrap}
+}
 @media (prefers-reduced-motion:reduce){.f360-fc{transition:none}}
 F360CSS;
   echo "</style>\n";
@@ -63,8 +123,10 @@ add_action('wp_footer', function () {
 <script>
 /* Fuxia 360 · ficha en celular, paso 1 (mu-plugin f360-ficha-celular.php): barra fija "Agregar al carrito". */
 (function () {
+  var form = null;
   function init() {
-    var form = document.querySelector('form.variations_form') || document.querySelector('form.cart');
+    form = document.querySelector('form.variations_form') || document.querySelector('form.cart');
+    try { paso2(); } catch (e) { /* layout tweaks never block buying */ }
     var real = form && form.querySelector('.single_add_to_cart_button');
     if (!real || !('IntersectionObserver' in window)) return;
     var mexico = !/^\/co\//.test(location.pathname);
@@ -88,9 +150,9 @@ add_action('wp_footer', function () {
       var f = falta(), noDisp = real.classList.contains('wc-variation-is-unavailable');
       var c = sel('color'), m = sel('medida'), partes = [];
       if (c && c.value) partes.push(texto(c));
-      if (m && m.value) {                             // the size as the page's own size buttons show it (MX = cm on /mx/)
+      if (m && m.value) {                             // exactly the number on the size button the customer tapped
         var tb = document.querySelector('.fuxia-talla[data-co="' + m.value + '"]');
-        partes.push('Talla ' + (mexico && tb && tb.getAttribute('data-cm') ? tb.getAttribute('data-cm') : texto(m)));
+        partes.push('Talla ' + (tb ? tb.textContent.trim() : texto(m)));
       }
       bar.querySelector('.f360-fc-det').textContent = partes.length ? partes.join(' · ') : nombre;
       bar.querySelector('.f360-fc-precio').textContent = precio;
@@ -128,6 +190,77 @@ add_action('wp_footer', function () {
       html.classList.toggle('f360-fc-visible', ver && window.matchMedia('(max-width: 900px)').matches);
       html.style.setProperty('--f360-fc-h', bar.offsetHeight + 'px');
     }, { threshold: 0 }).observe(real);
+  }
+
+  // ── Paso 2 (phones only) ──
+  function paso2() {
+    if (!window.matchMedia('(max-width: 900px)').matches) return;
+    var mexico = !/^\/co\//.test(location.pathname);   // only for the trust tiles (6 MSI is Mexico's)
+    // name + price above the photos (the real nodes move, so Woo keeps updating them)
+    var gal = document.querySelector('.brxe-product-gallery');
+    var h1 = document.querySelector('h1.brxe-product-title');
+    var price = h1 && h1.nextElementSibling && h1.nextElementSibling.classList.contains('brxe-product-price') ? h1.nextElementSibling : null;
+    if (gal && h1) {
+      var top = document.createElement('div'); top.className = 'f360-fc-top';
+      gal.parentNode.insertBefore(top, gal);
+      top.appendChild(h1); if (price) top.appendChild(price);
+    }
+    // gallery: counter + arrows on Woo's own slider
+    var g = document.querySelector('.woocommerce-product-gallery');
+    var slides = g ? g.querySelectorAll('.woocommerce-product-gallery__image') : [];
+    if (g && slides.length > 1) {
+      var cnt = document.createElement('span'); cnt.className = 'f360-fc-cnt'; g.appendChild(cnt);
+      var mk = function (cls, txt, label, dir) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'f360-fc-arr ' + cls; b.textContent = txt; b.setAttribute('aria-label', label);
+        b.addEventListener('click', function () {
+          var fs = window.jQuery && window.jQuery(g).data('flexslider');
+          if (fs) fs.flexAnimate(fs.getTarget(dir), true);
+        });
+        g.appendChild(b);
+      };
+      mk('prev', '\u2039', 'Foto anterior', 'prev'); mk('next', '\u203A', 'Foto siguiente', 'next');
+      var pinta = function () {
+        var i = 0; slides.forEach(function (s, k) { if (s.classList.contains('flex-active-slide')) i = k; });
+        cnt.textContent = (i + 1) + ' / ' + slides.length;
+      };
+      pinta();
+      if (window.MutationObserver) slides.forEach(function (s) { new MutationObserver(pinta).observe(s, { attributes: true, attributeFilter: ['class'] }); });
+    }
+    // "¿Cuál es mi talla?" next to the size label (opens the size guide window)
+    var guia = document.querySelector('a.fuxia-guia-link'), th = document.querySelector('.fuxia-tallas-header');
+    if (guia && th) {
+      var cual = document.createElement('button'); cual.type = 'button'; cual.className = 'f360-fc-cual'; cual.textContent = '¿Cuál es mi talla?';
+      cual.addEventListener('click', function () { guia.click(); });
+      var sis = th.querySelector('.fuxia-sistema');
+      if (sis && sis.offsetParent) th.parentNode.insertBefore(cual, th.nextSibling); else th.appendChild(cual);
+    }
+    // after the buy button: three trust tiles, then the details in closed sections, then the WhatsApp help
+    var bloque = form && (form.closest('.brxe-product-add-to-cart') || form);
+    if (bloque) {
+      var trust = document.createElement('div'); trust.className = 'f360-fc-trust';
+      trust.innerHTML = mexico
+        ? '<div><span>\uD83D\uDE9A</span>Envío gratis</div><div><span>\uD83D\uDCB3</span>6 meses sin intereses</div><div><span>\u21BA</span>Cambios en 30 días</div>'
+        : '<div><span>\uD83D\uDE9A</span>Envío gratis</div><div><span>\uD83D\uDD12</span>Pago seguro</div><div><span>\u21BA</span>Cambios en 30 días</div>';
+      var acc = document.createElement('div'); acc.className = 'f360-fc-acc';
+      var sec = function (titulo, nodo) {
+        var d = document.createElement('details'), sm = document.createElement('summary'), body = document.createElement('div');
+        sm.textContent = titulo; body.className = 'f360-fc-acc-body'; body.appendChild(nodo); d.appendChild(sm); d.appendChild(body); acc.appendChild(d);
+      };
+      var desc = document.querySelector('.brxe-product-content');
+      if (desc && desc.textContent.trim()) sec('Cómo es este zapato', desc);
+      var pol = document.createElement('div');
+      pol.innerHTML = '<p><b>Envío gratis</b> en México y Colombia.</p><p><b>Cambios en 30 días</b> por otra talla, color o modelo, sin uso y con su caja. No hacemos devoluciones ni reembolsos.</p><p>Los pares con descuento directo en el precio no tienen cambio; si usaste un cupón, sí.</p>';
+      sec('Envíos y cambios', pol);
+      var despues = bloque.nextSibling;
+      bloque.parentNode.insertBefore(trust, despues);
+      bloque.parentNode.insertBefore(acc, despues);
+      var wa = document.querySelector('.joinchat__woo-btn__wrapper'), wb = wa && wa.querySelector('.joinchat__woo-btn');
+      if (wa && wb) {
+        wa.classList.add('f360-fc-help');
+        wb.innerHTML = '<span><b>¿Dudas con tu talla?</b>Te contestamos por WhatsApp</span><span class="f360-fc-wa">Escríbenos</span>';
+        bloque.parentNode.insertBefore(wa, despues);
+      }
+    }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
