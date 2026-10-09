@@ -95,15 +95,20 @@ export function useAuth() {
       return;
     }
 
-    const { data: customer } = await supabase
+    const fetchCustomer = () => supabase
       .from('customers')
       .select('id, phone, name, email, avatar_url, country, role, referral_code, wc_customer_id, auth_user_id')
       .eq('phone', phone)
       .single();
+    let { data: customer } = await fetchCustomer();
 
-    // El vínculo customer ↔ auth_user_id lo hace la edge function whatsapp-otp
-    // con service role al verificar (bajo RLS el cliente no puede enlazar una
-    // fila aún sin auth_user_id). No intentarlo aquí.
+    // El vínculo customer ↔ auth_user_id lo hace la edge function whatsapp-otp al verificar. Red de seguridad (2026-10-09,
+    // caso Reyna): si su perfil ya existe (p. ej. una vendedora dada de alta en Fuxia 360) pero no quedó ligado, el
+    // servidor lo liga con el número ya comprobado por el código de WhatsApp — así no la manda a "crear perfil".
+    if (!customer) {
+      const { data: linked } = await supabase.rpc('f360_link_my_account');
+      if ((linked as { result?: string } | null)?.result === 'linked') ({ data: customer } = await fetchCustomer());
+    }
 
     // Retro-crédito: acreditar compras web que llegaron antes del registro.
     fetch(`${SUPABASE_URL}/functions/v1/link-orders`, {
