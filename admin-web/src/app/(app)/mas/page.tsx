@@ -4,7 +4,7 @@ import { boardNavVisible } from '@/lib/board';
 import { canWrite, getMe } from '@/lib/f360';
 
 const ITEMS = [
-  { href: '/como-funciona', label: 'Cómo funciona', icon: IconGrowth, live: true, admin: true },
+  { href: '/como-funciona', label: 'Mapa del negocio', icon: IconGrowth, live: true, admin: true },
   { href: '/transferencias', label: 'Transferencias', icon: IconMove, live: true },
   { href: '/ventas', label: 'Ventas', icon: IconReceipt, live: true, admin: true },
   { href: '/homologacion', label: 'Homologación Woo', icon: IconLink, live: true, admin: true },
