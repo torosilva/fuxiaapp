@@ -69,7 +69,7 @@ add_action('wp_head', function () {
   .f360-fc-top > .f360-fc-line{flex:0 0 auto}
   .f360-fc-top > .f360-fc-rate{flex:0 0 100%;text-align:left}
   .f360-fc-top .brxe-product-price{white-space:nowrap}
-  .woocommerce-product-gallery > .f360-fav-pdp{position:absolute!important;top:12px;right:12px;z-index:6;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.9)!important;display:flex!important;align-items:center;justify-content:center;margin:0!important}
+  .woocommerce-product-gallery > .f360-fav-btn.f360-fav-pdp{position:absolute!important;top:12px!important;right:12px!important;left:auto!important;z-index:6;width:42px!important;height:42px!important;border-radius:50%!important;background:rgba(255,255,255,.92)!important;display:flex!important;align-items:center;justify-content:center;margin:0!important;box-shadow:0 2px 8px rgba(0,0,0,.12)}
   .f360-fc-top .brxe-product-title{margin:0!important;font-family:'Montserrat',system-ui,sans-serif!important;font-size:18px!important;font-weight:600!important;line-height:1.3!important}
   .f360-fc-top .brxe-product-price,.f360-fc-top .brxe-product-price *{font-family:'Montserrat',system-ui,sans-serif!important;font-size:18px!important;font-weight:700!important;color:#1d1a16!important}
   .f360-fc-top .brxe-product-price{margin:0!important}
