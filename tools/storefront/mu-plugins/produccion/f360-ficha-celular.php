@@ -12,7 +12,7 @@
  *                Woo's own button (missing colour / size / unavailable) and clicks it, so price, stock and validation stay Woo's.
  *                It shows only while Woo's button is off screen.
  *              Paso 2 (same date, phones ≤ 900 px only, the approved mockup): name + price ABOVE the photos; no breadcrumb and no
- *              thumbnail strip; dots and a "1 / 8" counter on Woo's own slider (swipe); big pill colours and a 6-column size grid
+ *              thumbnail strip; dots and a "1 / 8" counter on Woo's own slider (swipe); the first colour comes pre-chosen; big pill colours and a 6-column size grid
  *              with "¿Cuál es mi talla?" (no size conversion: the bar repeats the number on the tapped button); no quantity box; the bottom bar is THE buy button (always visible, "Camel · 24 · $2,800"; Woo's button is hidden and clicked by it); three
  *              trust tiles; description and "Envíos y cambios" in closed sections; the WhatsApp size help as a card. The delivery promise is NOT here: production Woo
  *              has no real stock and f360-storefront is not deployed there yet, so a promise would be a guess.
@@ -255,6 +255,14 @@ add_action('wp_footer', function () {
       pinta();
       if (window.MutationObserver) slides.forEach(function (s) { new MutationObserver(pinta).observe(s, { attributes: true, attributeFilter: ['class'] }); });
     }
+    // like the mockup, the page opens with a colour already chosen (the first one), so she only picks her size
+    var tries = 0, preelige = function () {
+      var cs = form && form.querySelector('select[name="attribute_pa_color"]'), b = document.querySelector('.f360-colores-botones .f360-color');
+      if (cs && cs.value) return;
+      if (cs && b) { b.click(); return; }
+      if (++tries < 30) setTimeout(preelige, 100);
+    };
+    preelige();
     // "Talla: 24" — the number of the tapped button, next to the label
     var tlab = document.querySelector('.fuxia-tallas-header > span');
     if (tlab && form) {
@@ -330,7 +338,10 @@ add_action('wp_footer', function () {
             var pr = (colorSel && !color) ? null : P[String(vid(color, b.getAttribute('data-co')))];
             b.classList.toggle('f360-fc-mto', !!pr && pr.case !== 'in_stock');
           });
-          var pr = m && m.value ? P[String(vid(color, m.value))] : null;
+          // the variation Woo resolved (also for models with > 30 combinations, whose list Woo loads on demand)
+          var vInput = form.querySelector('input.variation_id, input[name="variation_id"]');
+          var chosen = vInput && Number(vInput.value) > 0 ? vInput.value : (m && m.value ? vid(color, m.value) : null);
+          var pr = m && m.value && chosen ? P[String(chosen)] : null;
           if (!pr || !pr.headline) { box.hidden = true; return; }
           box.className = 'f360-fc-prom ' + (pr.case || '');
           box.textContent = (pr.case === 'in_stock' ? '\u2713 ' : '') + pr.headline;
