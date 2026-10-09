@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Fuxia 360 · the ONLY way this repo deploys the store-facing functions to PRODUCTION (tgzg…), approved by Mario as a permission rule.
-# Usage: scripts/f360/deploy_prod_function.sh f360-store-reserve | f360-hilo-intake | f360-woo-orders | f360-whatsapp
+# Usage: scripts/f360/deploy_prod_function.sh f360-store-reserve | f360-storefront | f360-hilo-intake | f360-woo-orders | f360-whatsapp
 #   · f360-whatsapp (Mario 2026-10-08): thank-you WhatsApp sender; F360_THANKS_SID='HXcard,HXplain' F360_THANKS_MEMBER_SID=HX… scripts/f360/deploy_prod_function.sh f360-whatsapp
 #     (comma list = order of preference; the first template Meta has approved is used)
 #     once Meta approves the template fuxia_gracias_compra (without it, the function sends nothing).
@@ -18,12 +18,14 @@
 set -euo pipefail
 PROD_REF="tgzgiwfzddsghnxgkcqd"
 FN="${1:-}"
-case "$FN" in f360-store-reserve|f360-hilo-intake|f360-woo-orders|f360-whatsapp) ;; *) echo "ABORT: solo f360-store-reserve, f360-hilo-intake, f360-woo-orders o f360-whatsapp" >&2; exit 1;; esac
+case "$FN" in f360-store-reserve|f360-storefront|f360-hilo-intake|f360-woo-orders|f360-whatsapp) ;; *) echo "ABORT: solo f360-store-reserve, f360-storefront, f360-hilo-intake, f360-woo-orders o f360-whatsapp" >&2; exit 1;; esac
 cd "$(dirname "$0")/../.."
 git diff --quiet HEAD -- "fuxia-native/supabase/functions/$FN" || { echo "ABORT: $FN tiene cambios sin commitear." >&2; exit 1; }
 [ -z "$(git ls-files --others --exclude-standard "fuxia-native/supabase/functions/$FN")" ] || { echo "ABORT: $FN tiene archivos sin commitear." >&2; exit 1; }
 TMP="$(mktemp)"; chmod 600 "$TMP"; trap 'rm -f "$TMP"' EXIT
-if [ "$FN" = "f360-store-reserve" ]; then
+if [ "$FN" = "f360-storefront" ]; then
+  : # uses the secrets f360-store-reserve already set (F360_RESERVE_ORIGINS = fuxiaballerinas.com, F360_STOREFRONT_TARGET = woo_production)
+elif [ "$FN" = "f360-store-reserve" ]; then
   printf 'F360_RESERVE_ORIGINS=https://fuxiaballerinas.com,https://www.fuxiaballerinas.com\nF360_STOREFRONT_TARGET=woo_production\n' > "$TMP"
 elif [ "$FN" = "f360-whatsapp" ]; then
   # Twilio keys are already project secrets (whatsapp-otp). The approved template SID is set ONLY when given
@@ -50,6 +52,11 @@ if [ "$FN" = "f360-store-reserve" ]; then
   good=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$URL" -H 'Origin: https://fuxiaballerinas.com' -H 'Content-Type: application/json' -d '{"action":"scarcity","woo_variation_id":1}')
   echo "Otro dominio (debe rechazar 403): $bad · fuxiaballerinas.com (debe 200): $good"
   [ "$bad" = "403" ] && [ "$good" = "200" ] || { echo "ATENCIÓN: respuesta inesperada" >&2; exit 2; }
+elif [ "$FN" = "f360-storefront" ]; then
+  bad=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$URL" -H 'Origin: https://evil.example' -H 'Content-Type: application/json' -d '{"action":"pdp","woo_product_id":5269,"market":"MX"}')
+  good=$(curl -s -X POST "$URL" -H 'Origin: https://fuxiaballerinas.com' -H 'Content-Type: application/json' -d '{"action":"pdp","woo_product_id":5269,"market":"MX"}')
+  echo "Otro dominio (debe rechazar 403): $bad · fuxiaballerinas.com (Nina Classic Strap): $(printf '%s' "$good" | head -c 160)"
+  [ "$bad" = "403" ] && printf '%s' "$good" | grep -q '"variations":{"' || { echo "ATENCIÓN: respuesta inesperada" >&2; exit 2; }
 elif [ "$FN" = "f360-woo-orders" ]; then
   # Woo's own ping (no signature, no topic): proves it is up without JWT and does NOT open a "webhook_rejected" aviso,
   # which an unsigned '{}' would (deploys of 2026-10-08 09:10 and 11:24 did exactly that).

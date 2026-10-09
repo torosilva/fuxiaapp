@@ -39,7 +39,7 @@ async function revisarProducto(ctx, p, etiqueta) {
   try {
     const res = await page.goto(`${MX}/producto/${p.slug}/`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     if (!res || res.status() !== 200) { fallas.push(`la página respondió ${res && res.status()}`); return fallas; }
-    await page.waitForSelector('form.variations_form, form.cart', { timeout: 30000 });
+    await page.waitForSelector('form.variations_form, form.cart', { state: 'attached', timeout: 30000 });   // phones: the form has no visible button (the bar buys)
     const info = await page.evaluate(() => {
       const f = document.querySelector('form.variations_form');
       const colorSel = f && f.querySelector('select[name="attribute_pa_color"]');
@@ -89,7 +89,7 @@ async function flujoCarrito(browser, p) {
   const fallas = [];
   try {
     await page.goto(`${MX}/producto/${p.slug}/`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.waitForSelector('form.variations_form', { timeout: 30000 });
+    await page.waitForSelector('form.variations_form', { state: 'attached', timeout: 30000 });   // on phones the form has no visible button (the bar buys)
     const c = await page.$('.f360-color'); if (c) await c.click();
     const t = await page.$('.fuxia-talla:not([disabled]):not(.agotada)'); if (t) await t.click();
     await page.waitForFunction(() => { const b = document.querySelector('.single_add_to_cart_button'); return b && !b.classList.contains('disabled'); }, null, { timeout: 15000 });

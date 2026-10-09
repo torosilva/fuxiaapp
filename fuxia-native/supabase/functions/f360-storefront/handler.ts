@@ -3,6 +3,7 @@
 // Actions (POST JSON):
 //   promise   {woo_product_id, market}                     → { market, product_key, variations: {<woo_variation_id>: promise}, trust }
 //   notify_me {woo_product_id, woo_variation_id, market, phone, name?, consent: true, page_url?, website? (honeypot)}
+//   pdp       {woo_product_id, market}                     → { market, variations: {<woo_variation_id>: promise}, knowledge } (product page, read-only)
 //   promise_lines {woo_variation_ids: number[], market} → { market, lines: {<woo_variation_id>: promise} }   (checkout, Pedido recibido)
 //   review_sync {review: {woo_review_id, woo_product_id, rating, status, media_count, woo_verified, reviewed_at, claims}}  (server key only, CRO-3B1)
 // Server-to-server callers (Hilo, the WordPress server) send header x-f360-key = SERVER_KEY instead of a browser Origin: they may read
@@ -85,6 +86,18 @@ export async function handleStorefront(req: Request, env: StorefrontEnv, fetchIm
     if (hit && Date.now() - hit.at < PROMISE_TTL_MS) return json(hit.data);
     const r = await rpc('f360_storefront_promise', { p_target_key: env.TARGET_KEY, p_woo_product_id: product, p_market: market });
     if (!r.ok) return json({ variations: {}, trust: [] });                      // fail closed: the page keeps its own state
+    promiseCache.set(key, { at: Date.now(), data: r.data });
+    return json(r.data);
+  }
+
+  // product page on phones (f360-ficha-celular.php): every size's promise + Carolina's validated knowledge. Read-only; works while
+  // the channel is inactive (f360_storefront_pdp does not require it).
+  if (body.action === 'pdp') {
+    const key = `pdp:${product}:${market}`;
+    const hit = promiseCache.get(key);
+    if (hit && Date.now() - hit.at < PROMISE_TTL_MS) return json(hit.data);
+    const r = await rpc('f360_storefront_pdp', { p_target_key: env.TARGET_KEY, p_woo_product_id: product, p_market: market });
+    if (!r.ok) return json({ variations: {}, knowledge: null });                 // fail closed: the page just shows no promise
     promiseCache.set(key, { at: Date.now(), data: r.data });
     return json(r.data);
   }

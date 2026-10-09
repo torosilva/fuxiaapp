@@ -16,6 +16,9 @@
  *              with "¿Cuál es mi talla?" (no size conversion: the bar repeats the number on the tapped button); no quantity box; the bottom bar is THE buy button (always visible, "Camel · 24 · $2,800"; Woo's button is hidden and clicked by it); three
  *              trust tiles; description and "Envíos y cambios" in closed sections; the WhatsApp size help as a card. The delivery promise is NOT here: production Woo
  *              has no real stock and f360-storefront is not deployed there yet, so a promise would be a guess.
+ *              Promise + knowledge (Mario: "sí instala lo de entrega inmediata"): the chosen size's delivery promise from Fuxia 360
+ *              (real inventory; rule texts from f360.delivery_promise_rules), sizes that are made to order drawn dashed, fit advice and
+ *              "Materiales y cuidados" from Carolina's validated product knowledge — via f360-storefront action pdp (read-only).
  * Apagar: borrar este archivo de wp-content/mu-plugins/.
  */
 if (!defined('ABSPATH')) exit;
@@ -115,6 +118,16 @@ add_action('wp_head', function () {
   .f360-fc-acc details[open] summary::after{content:'\2212'}
   .f360-fc-acc .f360-fc-acc-body{padding:0 0 16px;font-size:16px;line-height:1.6;color:#3d3730}
   .f360-fc-acc .f360-fc-acc-body p{margin:0 0 8px}
+  /* delivery promise of the chosen size + Carolina's knowledge (Fuxia 360, f360-storefront action pdp) */
+  .f360-fc-prom{margin:14px 0 0;border-radius:12px;padding:12px 14px;font-size:16px;font-weight:600;line-height:1.35}
+  .f360-fc-prom.in_stock{background:#e6f0e8;color:#235236}
+  .f360-fc-prom.made_to_order{background:#f6efe2;color:#6b4f22}
+  .f360-fc-prom.unavailable{background:#eeeae4;color:#5c554c}
+  .f360-fc-prom small{display:block;font-weight:500;font-size:14px;margin-top:2px}
+  .fuxia-tallas-botones .fuxia-talla.f360-fc-mto:not(.selected){border-style:dashed!important;color:#9a9083!important}
+  .f360-fc-acc dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 14px}
+  .f360-fc-acc dt{color:#6b6257}
+  .f360-fc-acc dd{margin:0;color:#1d1a16}
   /* help */
   .joinchat__woo-btn__wrapper.f360-fc-help{margin:16px 0 8px!important}
   .f360-fc-help .joinchat__woo-btn{display:flex!important;align-items:center;gap:10px;width:100%;background:#f6f2ea!important;color:#1d1a16!important;border-radius:14px!important;padding:14px!important;font-size:14px!important;line-height:1.35;text-align:left;box-shadow:none!important}
@@ -273,6 +286,7 @@ add_action('wp_footer', function () {
       var pol = document.createElement('div');
       pol.innerHTML = '<p><b>Envío gratis</b> en México y Colombia.</p><p><b>Cambios en 30 días</b> por otra talla, color o modelo, sin uso y con su caja. No hacemos devoluciones ni reembolsos.</p><p>Los pares con descuento directo en el precio no tienen cambio; si usaste un cupón, sí.</p>';
       sec('Envíos y cambios', pol);
+      pdp(acc);
       var despues = bloque.nextSibling;
       bloque.parentNode.insertBefore(trust, despues);
       bloque.parentNode.insertBefore(acc, despues);
@@ -283,6 +297,66 @@ add_action('wp_footer', function () {
         bloque.parentNode.insertBefore(wa, despues);
       }
     }
+  }
+
+  // Fuxia 360: promise per size (real inventory: Bodega + stores − Gold holds) and Carolina's validated knowledge. Read-only.
+  function pdp(acc) {
+    var pidAttr = form && Number(form.getAttribute('data-product_id'));
+    if (!pidAttr) return;
+    var market = /^\/co\//.test(location.pathname) ? 'CO' : 'MX';
+    var vars = []; try { vars = JSON.parse(form.getAttribute('data-product_variations') || '[]') || []; } catch (e) { vars = []; }
+    fetch('https://tgzgiwfzddsghnxgkcqd.supabase.co/functions/v1/f360-storefront', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'pdp', woo_product_id: pidAttr, market: market }) })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        var P = d.variations || {}, k = d.knowledge;
+        // promise box under the sizes
+        var botones = document.querySelector('.fuxia-tallas-botones');
+        var box = document.createElement('div'); box.className = 'f360-fc-prom'; box.hidden = true;
+        if (botones) botones.parentNode.insertBefore(box, botones.nextSibling);
+        var colorSel = form.querySelector('select[name="attribute_pa_color"]'), m = form.querySelector('select[name="attribute_pa_medida"]');
+        var vid = function (color, size) {
+          for (var i = 0; i < vars.length; i++) { var a = vars[i].attributes || {};
+            if ((!colorSel || a.attribute_pa_color === color || a.attribute_pa_color === '') && String(a.attribute_pa_medida) === String(size)) return vars[i].variation_id; }
+          return null;
+        };
+        var pinta = function () {
+          var color = colorSel ? colorSel.value : '';
+          document.querySelectorAll('.fuxia-talla').forEach(function (b) {
+            var pr = (colorSel && !color) ? null : P[String(vid(color, b.getAttribute('data-co')))];
+            b.classList.toggle('f360-fc-mto', !!pr && pr.case !== 'in_stock');
+          });
+          var pr = m && m.value ? P[String(vid(color, m.value))] : null;
+          if (!pr || !pr.headline) { box.hidden = true; return; }
+          box.className = 'f360-fc-prom ' + (pr.case || '');
+          box.textContent = (pr.case === 'in_stock' ? '\u2713 ' : '') + pr.headline;
+          if (pr.detail) { var sm = document.createElement('small'); sm.textContent = pr.detail; box.appendChild(sm); }
+          box.hidden = false;
+        };
+        form.addEventListener('change', function () { setTimeout(pinta, 0); });
+        document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('.fuxia-talla, .f360-color')) setTimeout(pinta, 30); });
+        if (window.jQuery) window.jQuery(form).on('woocommerce_variation_has_changed reset_data found_variation', function () { setTimeout(pinta, 0); });
+        pinta();
+        // knowledge: fit advice at the top of "Cómo es este zapato"; materials + care in their own section
+        if (!k || !acc) return;
+        var esc = function (t) { var x = document.createElement('span'); x.textContent = String(t); return x.innerHTML; };
+        var first = acc.querySelector('details .f360-fc-acc-body');
+        var fit = [k.fit && k.fit.advice, k.fit && k.fit.between_sizes, k.last ? 'Horma: ' + k.last : ''].filter(Boolean);
+        if (first && fit.length) { var fp = document.createElement('p'); fp.innerHTML = '<b>' + esc(fit.join(' ')) + '</b>'; first.insertBefore(fp, first.firstChild); }
+        var rows = [], mt = k.materials || {};
+        if (mt.upper) rows.push(['Exterior', mt.upper]); if (mt.lining) rows.push(['Forro', mt.lining]); if (mt.sole) rows.push(['Suela', mt.sole]);
+        if (k.toe) rows.push(['Punta', k.toe]); if (k.heel_height_cm != null) rows.push(['Tacón', k.heel_height_cm + ' cm']);
+        if (!rows.length && !k.care) return;
+        var d2 = document.createElement('details'), s2 = document.createElement('summary'), b2 = document.createElement('div');
+        s2.textContent = 'Materiales y cuidados'; b2.className = 'f360-fc-acc-body';
+        b2.innerHTML = (rows.length ? '<dl>' + rows.map(function (r) { return '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>'; }).join('') + '</dl>' : '')
+          + (k.care ? '<p style="margin-top:10px">' + esc(k.care) + '</p>' : '');
+        d2.appendChild(s2); d2.appendChild(b2);
+        var after = acc.querySelector('details');
+        acc.insertBefore(d2, after ? after.nextSibling : acc.firstChild);
+      })
+      .catch(function () { /* no promise shown; buying is unaffected */ });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
