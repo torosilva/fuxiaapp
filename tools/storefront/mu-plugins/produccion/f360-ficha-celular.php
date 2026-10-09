@@ -400,9 +400,8 @@ add_action('wp_footer', function () {
         body.innerHTML = rs.map(function (r) {
           var txt = (function () { var x = document.createElement('div'); x.innerHTML = r.review || ''; return x.textContent.trim(); })();
           var n = Math.max(0, Math.min(5, Math.round(Number(r.rating) || 0)));
-          var fecha = r.date_created ? new Date(r.date_created).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
           return '<div class="f360-fc-rev"><div class="st">' + '\u2605'.repeat(n) + '\u2606'.repeat(5 - n) + '</div>' + (txt ? '<p>' + esc(txt) + '</p>' : '')
-            + '<div class="who">' + esc(String(r.reviewer || '').split(' ')[0]) + (fecha ? ' · ' + esc(fecha) : '') + '</div></div>';
+            + '<div class="who">' + esc(String(r.reviewer || '').split(' ')[0]) + '</div></div>';   // no date: merged reviews carry the merge date
         }).join('');
         d.appendChild(sm); d.appendChild(body);
         var envios = [].slice.call(acc.querySelectorAll('summary')).filter(function (x) { return x.textContent === 'Envíos y cambios'; })[0];
