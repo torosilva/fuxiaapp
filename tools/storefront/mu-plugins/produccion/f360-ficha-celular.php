@@ -81,7 +81,7 @@ add_action('wp_head', function () {
   .woocommerce-product-gallery{position:relative}
   /* every photo whole, in the same frame (photos come portrait, square and landscape; the slider cropped them) */
   .woocommerce-product-gallery .flex-viewport{height:auto!important}
-  .woocommerce-product-gallery__image{aspect-ratio:4/5;background:#fff;display:flex!important;align-items:center;justify-content:center;overflow:hidden}
+  .woocommerce-product-gallery__image{aspect-ratio:var(--f360-fc-ratio,4/5);background:#fff;display:flex!important;align-items:center;justify-content:center;overflow:hidden}
   .woocommerce-product-gallery__image a{display:flex;width:100%;height:100%;align-items:center;justify-content:center}
   .woocommerce-product-gallery__image img{width:100%!important;height:100%!important;max-height:none!important;object-fit:contain!important}
   /* side margins for everything under the photo */
@@ -258,6 +258,10 @@ add_action('wp_footer', function () {
     // gallery: counter + arrows on Woo's own slider
     var g = document.querySelector('.woocommerce-product-gallery');
     var slides = g ? g.querySelectorAll('.woocommerce-product-gallery__image') : [];
+    // the frame takes the first photo's shape (it fills the screen with no white bands; the others fit inside it)
+    var im0 = slides[0] && slides[0].querySelector('img');
+    var w0 = im0 && Number(im0.getAttribute('data-large_image_width')), h0 = im0 && Number(im0.getAttribute('data-large_image_height'));
+    if (g && w0 > 0 && h0 > 0) g.style.setProperty('--f360-fc-ratio', String(Math.max(0.66, Math.min(1.25, w0 / h0))));
     if (g && slides.length > 1) {
       var cnt = document.createElement('span'); cnt.className = 'f360-fc-cnt'; g.appendChild(cnt);
       var ir_a = function (dir) { var fs = window.jQuery && window.jQuery(g).data('flexslider'); if (fs) fs.flexAnimate(typeof dir === 'number' ? dir : fs.getTarget(dir), true); };
