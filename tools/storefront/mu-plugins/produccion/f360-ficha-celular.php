@@ -64,10 +64,15 @@ add_action('wp_head', function () {
 @media (max-width:900px){
   /* Paso 2 · the page in the order and look of the approved mockup */
   main#brx-content > .brxe-section:first-child > .brxe-container,main#brx-content #brxe-ifvsvi{margin-top:6px!important}
-  .f360-fc-top{padding:10px 16px 4px}
-  .f360-fc-top .brxe-product-title{margin:0!important;font-family:'Montserrat',system-ui,sans-serif!important;font-size:20px!important;font-weight:600!important;line-height:1.25!important}
-  .f360-fc-top .brxe-product-price,.f360-fc-top .brxe-product-price *{font-family:'Montserrat',system-ui,sans-serif!important;font-size:19px!important;font-weight:700!important;color:#1d1a16!important}
-  .f360-fc-top .brxe-product-price{margin:4px 0 0!important}
+  .f360-fc-top{padding:12px 16px 4px;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;column-gap:14px;row-gap:2px}
+  .f360-fc-top > .brxe-product-title{flex:1 1 0;min-width:0;display:block!important}
+  .f360-fc-top > .f360-fc-line{flex:0 0 auto}
+  .f360-fc-top > .f360-fc-rate{flex:0 0 100%;text-align:left}
+  .f360-fc-top .brxe-product-price{white-space:nowrap}
+  .woocommerce-product-gallery > .f360-fav-pdp{position:absolute!important;top:12px;right:12px;z-index:6;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.9)!important;display:flex!important;align-items:center;justify-content:center;margin:0!important}
+  .f360-fc-top .brxe-product-title{margin:0!important;font-family:'Montserrat',system-ui,sans-serif!important;font-size:18px!important;font-weight:600!important;line-height:1.3!important}
+  .f360-fc-top .brxe-product-price,.f360-fc-top .brxe-product-price *{font-family:'Montserrat',system-ui,sans-serif!important;font-size:18px!important;font-weight:700!important;color:#1d1a16!important}
+  .f360-fc-top .brxe-product-price{margin:0!important}
   nav.fuxia-breadcrumb{display:none!important}
   .brxe-product-gallery .flex-control-thumbs,.brx-product-gallery-thumbnail-slider{display:none!important}
   #reviews,.f360-fc-top .brxe-product-rating{display:none!important}   /* phones: reviews live in the price line + their own section */
@@ -285,6 +290,12 @@ add_action('wp_footer', function () {
       pinta();
       if (window.MutationObserver) slides.forEach(function (s) { new MutationObserver(pinta).observe(s, { attributes: true, attributeFilter: ['class'] }); });
     }
+    // the favourites heart goes to the photo's corner (like axelarigato.mx), so name and price share one line
+    var corazon = function () {
+      var hb = h1 && h1.querySelector('.f360-fav-pdp'), gg = document.querySelector('.woocommerce-product-gallery');
+      if (hb && gg) { gg.appendChild(hb); return true; } return false;
+    };
+    if (!corazon()) { var ct = 0, iv = setInterval(function () { if (corazon() || ++ct > 30) clearInterval(iv); }, 150); }
     // name + price go UNDER the photos (Mario 2026-10-09: "como Axel, que el título y el precio queden abajo")
     if (top && gal) {
       gal.parentNode.insertBefore(top, gal.nextSibling);   // the gallery block already holds the photos and their dots
@@ -433,7 +444,7 @@ add_action('wp_footer', function () {
           var chip = document.createElement('button'); chip.type = 'button'; chip.className = 'f360-fc-rate';
           chip.innerHTML = '<b>\u2605 ' + avg.toFixed(1) + '</b> · ' + rs.length + (rs.length === 1 ? ' opinión' : ' opiniones');
           chip.addEventListener('click', function () { d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
-          line.appendChild(chip);
+          line.parentNode.appendChild(chip);              // own row, under "name · price"
         }
       }).catch(function () {});
   }
