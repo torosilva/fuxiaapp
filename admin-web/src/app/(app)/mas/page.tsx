@@ -11,7 +11,7 @@ const ITEMS = [
   { href: '/conteo', label: 'Conteo de apertura', icon: IconCheck, live: true, admin: true },
   { href: '/tiendas', label: 'Tiendas y ubicaciones', icon: IconBoxes, live: true, admin: true },
   { href: '/vendedoras', label: 'Vendedoras', icon: IconUsers, live: true, admin: true },
-  { href: '/apartados', label: 'Apartados Gold', icon: IconClock, live: true, admin: true },
+  { href: '/apartados', label: 'Apartados', icon: IconClock, live: true, admin: true },
   { href: '/monedas', label: 'Monedas', icon: IconReceipt, live: true, admin: true },
   { href: '/foto-app', label: 'Foto de la app', icon: IconCamera, live: true },
   { href: '/bandeja', label: 'Bandeja de clientas', icon: IconUsers, live: true },

@@ -78,7 +78,7 @@ export async function registerPushToken(customerId: string): Promise<string | nu
 async function ensureApartadosChannel() {
   if (!Notifications || Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync('apartados', {
-    name: 'Apartados Fuxia Gold',
+    name: 'Apartados',
     importance: Notifications.AndroidImportance.MAX,
     vibrationPattern: [0, 400, 200, 400],
     sound: 'default',

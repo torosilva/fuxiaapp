@@ -11,6 +11,11 @@ const env = {
   WOO_USER: Deno.env.get('WOO_USER') ?? '',
   WOO_SECRET: Deno.env.get('WOO_SECRET') ?? '',
   TARGET_KEY: Deno.env.get('F360_STOREFRONT_TARGET') ?? '',   // the store this project serves (same secret as f360-storefront)
+  // the app's WhatsApp login template (project secrets set for whatsapp-otp): "Tu código … {{1}}"
+  TWILIO_ACCOUNT_SID: Deno.env.get('TWILIO_ACCOUNT_SID') ?? '',
+  TWILIO_AUTH_TOKEN: Deno.env.get('TWILIO_AUTH_TOKEN') ?? '',
+  TWILIO_WHATSAPP_FROM: Deno.env.get('TWILIO_WHATSAPP_FROM') ?? '',
+  TWILIO_CONTENT_SID: Deno.env.get('TWILIO_CONTENT_SID') ?? '',
 };
 
 Deno.serve((req) => handleReserve(req, env));

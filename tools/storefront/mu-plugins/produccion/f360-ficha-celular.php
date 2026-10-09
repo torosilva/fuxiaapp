@@ -20,6 +20,8 @@
  *              Promise + knowledge (Mario: "sí instala lo de entrega inmediata"): the chosen size's delivery promise from Fuxia 360
  *              (real inventory; rule texts from f360.delivery_promise_rules), sizes that are made to order drawn dashed, fit advice and
  *              "Materiales y cuidados" from Carolina's validated product knowledge — via f360-storefront action pdp (read-only).
+ *              "¿Prefieres probártelas?" (Mario 2026-10-09, option B): when the chosen size is free in a Mexico store, ANY customer
+ *              holds it 3 hours — name + WhatsApp → one-time code by WhatsApp → hold (f360-store-reserve; rules in Fuxia 360).
  * Apagar: borrar este archivo de wp-content/mu-plugins/.
  */
 if (!defined('ABSPATH')) exit;
@@ -161,6 +163,23 @@ add_action('wp_head', function () {
   .f360-fc-help b{display:block;font-size:15px}
   .f360-fc-help .f360-fc-wa{margin-left:auto;background:#25D366;color:#fff;font-weight:700;border-radius:999px;padding:9px 14px;white-space:nowrap}
 }
+/* "¿Prefieres probártelas?" — hold 3 hours in a store (any customer, WhatsApp code) — phones and computers */
+.f360-ap{margin:14px 0 0;border:1px solid #e6dccd;border-radius:14px;padding:14px;background:#fffdf9;font-size:16px;line-height:1.45;color:#1d1a16}
+.f360-ap[hidden],.f360-ap [hidden]{display:none!important}
+.f360-ap-t{margin:0;font-weight:600}
+.f360-ap-t span{font-weight:500;color:#6b6257}
+.f360-ap-b{margin-top:10px;width:100%;min-height:48px;padding:0 16px!important;text-align:center!important;display:block;border-radius:12px;border:1.5px solid #1d1a16;background:#fff;color:#1d1a16;font:inherit;font-weight:700;cursor:pointer}
+.f360-ap-b.dark{background:#1d1a16;color:#fff}
+.f360-ap-b:disabled{opacity:.5;cursor:default}
+.f360-ap label{display:block;margin-top:10px;font-size:14px;color:#6b6257}
+.f360-ap input,.f360-ap select{display:block;width:100%;box-sizing:border-box;margin-top:4px;min-height:48px;border:1.5px solid #d9d1c4;border-radius:10px;padding:0 12px;font:inherit;font-size:17px;color:#1d1a16;background:#fff}
+.f360-ap input.cod{letter-spacing:.4em;text-align:center;font-weight:700}
+.f360-ap-m{margin:10px 0 0;font-size:15px}
+.f360-ap-m.err{color:#a3392b}
+.f360-ap-ok{margin:0;font-weight:600;color:#235236}
+.f360-ap-otro{background:none;border:0;padding:8px 0 0;color:#8a6a35;text-decoration:underline;font:inherit;font-size:14px;cursor:pointer}
+.f360-ap-priv{margin:8px 0 0;font-size:12px;color:#8a8276}
+.f360-ap-priv a{color:inherit}
 @media (prefers-reduced-motion:reduce){.f360-fc{transition:none}}
 F360CSS;
   echo "</style>\n";
@@ -176,6 +195,7 @@ add_action('wp_footer', function () {
   function init() {
     form = document.querySelector('form.variations_form') || document.querySelector('form.cart');
     try { paso2(); } catch (e) { /* layout tweaks never block buying */ }
+    try { apartado(); } catch (e) { /* the hold never blocks buying */ }
     var real = form && form.querySelector('.single_add_to_cart_button');
     if (!real || !('IntersectionObserver' in window)) return;
     var mexico = !/^\/co\//.test(location.pathname);
@@ -477,6 +497,77 @@ add_action('wp_footer', function () {
     var alCambiar = function () { var c = cs.value; if (!c) return; if (cache[c]) mover(cache[c]); else buscar(c, 0); };
     $(cs).on('change', function () { setTimeout(alCambiar, 50); });
     if (cs.value) alCambiar();
+  }
+
+  // "¿Prefieres probártelas?" — any customer holds a pair 3 hours in a store (Mario 2026-10-09). Mexico stores only. The phone is
+  // proven by a one-time WhatsApp code; every rule (2 pairs, 3 hours, free pair) is checked by Fuxia 360.
+  function apartado() {
+    if (!form || /^\/co\//.test(location.pathname)) return;
+    var API = 'https://tgzgiwfzddsghnxgkcqd.supabase.co/functions/v1/f360-store-reserve';
+    var api = function (b) {
+      return fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j && j.error || 'No se pudo completar.'); return j; }); });
+    };
+    var botones = document.querySelector('.fuxia-tallas-botones'); if (!botones) return;
+    var box = document.createElement('div'); box.className = 'f360-ap'; box.hidden = true;
+    box.innerHTML = '<p class="f360-ap-t">¿Prefieres probártelas? <span>Hay de tu talla en <b class="t"></b>.</span></p>'
+      + '<button type="button" class="f360-ap-b ab">Apártalas 3 horas</button>'
+      + '<div class="p1" hidden><label>Tu nombre<input class="nm" autocomplete="name" maxlength="80"></label>'
+      + '<label>Tu WhatsApp<input class="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="55 1234 5678"></label>'
+      + '<button type="button" class="f360-ap-b dark env">Mándame el código por WhatsApp</button>'
+      + '<p class="f360-ap-priv">Al apartar aceptas nuestro <a href="/privacy-policy/" target="_blank" rel="noopener">aviso de privacidad</a>.</p></div>'
+      + '<div class="p2" hidden><p class="f360-ap-m hola"></p><label>Código de 6 números<input class="cod" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></label>'
+      + '<label class="tl" hidden>Tienda<select class="ti"></select></label>'
+      + '<button type="button" class="f360-ap-b dark apa">Apartar</button><button type="button" class="f360-ap-otro">Mandar otro código</button></div>'
+      + '<p class="f360-ap-ok" hidden></p><p class="f360-ap-m msg" role="status"></p>';
+    botones.parentNode.insertBefore(box, botones.nextSibling);
+    var q = function (c) { return box.querySelector(c); }, stores = [], variation = 0, phone = '';
+    var msg = function (t, err) { var m = q('.msg'); m.textContent = t || ''; m.classList.toggle('err', !!err); };
+    var reset = function () { box.hidden = true; q('.p1').hidden = true; q('.p2').hidden = true; q('.ab').hidden = false; q('.f360-ap-ok').hidden = true; msg(''); };
+    var revisar = function () {
+      var vi = form.querySelector('input.variation_id, input[name="variation_id"]'), v = vi ? Number(vi.value) : 0;
+      if (!v) { reset(); return; }
+      if (v === variation) return;
+      variation = v; reset();
+      api({ action: 'availability', woo_variation_id: v }).then(function (j) {
+        if (v !== variation) return;
+        stores = j.stores || []; if (!stores.length) return;
+        q('.t').textContent = stores.map(function (x) { return x.name; }).join(' · ');
+        var sel = q('.ti'); sel.innerHTML = '';
+        stores.forEach(function (x) { var o = document.createElement('option'); o.value = x.location_id; o.textContent = x.name; sel.appendChild(o); });
+        q('.tl').hidden = stores.length < 2;
+        box.hidden = false;
+      }).catch(function () {});
+    };
+    if (window.jQuery) window.jQuery(form).on('found_variation reset_data hide_variation woocommerce_variation_has_changed', function () { setTimeout(revisar, 0); });
+    form.addEventListener('change', function () { setTimeout(revisar, 50); });
+    q('.ab').addEventListener('click', function () { q('.ab').hidden = true; q('.p1').hidden = false; q('.nm').focus(); });
+    var enviar = function () {
+      phone = q('.tel').value;
+      if (q('.nm').value.trim().length < 2) { msg('Escribe tu nombre.', true); return; }
+      var b = q('.env'); b.disabled = true; msg('Mandando el código…');
+      api({ action: 'send_code', phone: phone }).then(function (j) {
+        q('.p1').hidden = true; q('.p2').hidden = false;
+        var d = String(phone).replace(/\D/g, '');
+        q('.hola').textContent = j.test ? 'Modo prueba: tu código es ' + j.test_code + '.' : 'Te mandamos un código por WhatsApp al ' + d.slice(-10, -4).replace(/(\d{2})(\d{4})/, '$1 $2') + ' ' + d.slice(-4) + '.';
+        msg(''); q('.cod').focus();
+      }).catch(function (e) { msg(e.message, true); }).then(function () { b.disabled = false; });
+    };
+    q('.env').addEventListener('click', enviar);
+    q('.f360-ap-otro').addEventListener('click', function () { q('.p2').hidden = true; q('.p1').hidden = false; msg(''); });
+    q('.apa').addEventListener('click', function () {
+      var b = q('.apa'); b.disabled = true; msg('Apartando…');
+      api({ action: 'reserve', phone: phone, code: q('.cod').value.trim(), name: q('.nm').value, woo_variation_id: variation,
+            location_id: q('.ti').value || (stores[0] && stores[0].location_id) })
+        .then(function (j) {
+          var hasta = new Date(j.reservation.expires_at).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
+          q('.p2').hidden = true; msg('');
+          var ok = q('.f360-ap-ok'); ok.hidden = false;
+          ok.textContent = '\u2713 ¡Listo' + (j.first_name ? ', ' + j.first_name : '') + '! Te las apartamos en ' + j.reservation.store + ' hasta las ' + hasta
+            + ' (3 horas). En la tienda da tu nombre o tu teléfono.';
+        }).catch(function (e) { msg(e.message, true); }).then(function () { b.disabled = false; });
+    });
+    revisar();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

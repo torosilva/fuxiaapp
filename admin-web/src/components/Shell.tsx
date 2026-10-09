@@ -16,7 +16,7 @@ const GROUPS = [
   ] },
   { label: 'Vender', items: [
     { href: '/ventas', label: 'Ventas', icon: IconReceipt, live: true, admin: true },
-    { href: '/apartados', label: 'Apartados Gold', icon: IconClock, live: true, admin: true },
+    { href: '/apartados', label: 'Apartados', icon: IconClock, live: true, admin: true },
     { href: '/pedidos', label: 'Pedidos', icon: IconBag, live: false },
     { href: '/produccion', label: 'Producción', icon: IconScissors, live: false },
   ] },

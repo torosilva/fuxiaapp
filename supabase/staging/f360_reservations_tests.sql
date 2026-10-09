@@ -47,13 +47,14 @@ BEGIN
   r := pg_temp.as(NULL, format($q$SELECT public.f360_reserve(%L, %L)$q$, loc, v), 'anon');
   PERFORM pg_temp.ok(r ? 'error', 'anonymous visitors cannot reserve', r::text);
 
-  -- Gold only, max 2 pairs open
+  -- any customer (Mario 2026-10-09, migration 20261020000200), max 2 pairs open
   r := pg_temp.as(c2, format($q$SELECT public.f360_reserve(%L, %L)$q$, loc, v));
-  PERFORM pg_temp.ok(r->>'error' LIKE '%beneficio Fuxia Gold%', 'a non-Gold customer cannot reserve', r::text);
+  PERFORM pg_temp.ok(r ? 'id' AND NOT r ? 'error', 'a non-Gold customer can reserve too', r::text);
+  DELETE FROM f360.reservations WHERE id = (r->>'id')::uuid;   -- test only: leave the fixture as it was for the rest of the suite
   r := pg_temp.as(c1, format($q$SELECT public.f360_reserve(%L, %L)$q$, loc, v));
   res1 := (r->>'id')::uuid;
-  PERFORM pg_temp.ok(res1 IS NOT NULL AND (r->>'expires_at')::timestamptz BETWEEN now() + interval '119 minutes' AND clock_timestamp() + interval '121 minutes',
-    'Gold customer reserves Negro 36 for 2 hours', r::text);
+  PERFORM pg_temp.ok(res1 IS NOT NULL AND (r->>'expires_at')::timestamptz BETWEEN now() + interval '179 minutes' AND clock_timestamp() + interval '181 minutes',
+    'customer reserves Negro 36 for 3 hours', r::text);
   res2 := (pg_temp.as(c1, format($q$SELECT public.f360_reserve(%L, %L)$q$, loc, v))->>'id')::uuid;
   r := pg_temp.as(NULL, format($q$SELECT public.f360_store_availability(%L)$q$, v), 'anon');
   PERFORM pg_temp.ok(res2 IS NOT NULL AND jsonb_array_length(r->'stores') = 0, 'both pairs of 36 reserved → no longer "entrega inmediata"', r::text);
@@ -88,7 +89,7 @@ BEGIN
   PERFORM pg_temp.ok(jsonb_array_length(r) = 2, 'the customer sees her reservations', r::text);
   UPDATE f360.reservations SET expires_at = clock_timestamp() - interval '1 second' WHERE status = 'activa' AND location_id = loc;
   r := pg_temp.as(NULL, format($q$SELECT public.f360_store_availability(%L)$q$, v), 'anon');
-  PERFORM pg_temp.ok(jsonb_array_length(r->'stores') = 1, 'after 2 hours the pair is free again even before the job runs', r::text);
+  PERFORM pg_temp.ok(jsonb_array_length(r->'stores') = 1, 'after the hold expires the pair is free again even before the job runs', r::text);
   PERFORM f360.expire_reservations();
   PERFORM pg_temp.ok((SELECT status FROM f360.reservations WHERE id IN (res1, res2) AND status <> 'vendida') = 'vencida',
     'the job marks it "vencida" (nothing else happens: Gold has no penalty)', '');

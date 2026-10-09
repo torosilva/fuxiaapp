@@ -1,11 +1,20 @@
-// f360-store-reserve — public endpoint for the store's product page: "Entrega inmediata" + "Apártalo 2 horas" (Fuxia Gold).
-// Actions (POST JSON): availability {woo_variation_id} · send_code {phone} · reserve {phone, code, woo_variation_id, location_id}
+// f360-store-reserve — public endpoint for the store's product page: "Entrega inmediata" + "Apártalas 3 horas" (any customer,
+// Mario 2026-10-09; the phone is proven by a one-time code sent by WhatsApp).
+// Actions (POST JSON): availability {woo_variation_id} · send_code {phone, country?} · reserve {phone, code, name?, woo_variation_id, location_id, country?}
 // · scarcity {woo_variation_id} (CRO-5a) · catalog {} (shop page filters) · favorite {event, market, anon_id, woo_product_id, woo_variation_id?, color?} (♡, anonymous) · a_la_medida {phone, name, color, size?, store_size?, foot_cm?, note?, woo_product_id, product_name, country} (Hilo chat).
-// STAGING / testing: only TEST_PHONES can reserve, with TEST_CODE (no WhatsApp is sent). Every rule (Gold, 2 pairs,
-// 2 hours, free pair) is enforced again in the database. CORS limited to ALLOWED_ORIGINS. Runtime-agnostic (Deno / Node).
+// Codes are created, hashed, rate-limited and checked in the database (f360_reserve_code_issue / f360_reserve_with_code); this
+// function only sends them by WhatsApp (same Twilio template as the app's login code). TEST_PHONES (staging only) get the code back
+// in the answer instead of a WhatsApp. Every rule (2 pairs, 3 hours, free pair) is enforced in the database. CORS limited to
+// ALLOWED_ORIGINS. Runtime-agnostic (Deno / Node).
 // · pay_link {phone, name, email, items:[{id, quantity}], coupons?, address?, country} (checkout rescue: Woo order + Woo's payment page).
 export type ReserveEnv = { SUPABASE_URL: string; SUPABASE_SERVICE_ROLE_KEY: string; ALLOWED_ORIGINS: string; TEST_PHONES: string; TEST_CODE: string;
-  WOO_BASE_URL?: string; WOO_USER?: string; WOO_SECRET?: string; TARGET_KEY?: string };   // TARGET_KEY: from configuration, never the browser
+  WOO_BASE_URL?: string; WOO_USER?: string; WOO_SECRET?: string; TARGET_KEY?: string;   // TARGET_KEY: from configuration, never the browser
+  TWILIO_ACCOUNT_SID?: string; TWILIO_AUTH_TOKEN?: string; TWILIO_WHATSAPP_FROM?: string; TWILIO_CONTENT_SID?: string };
+
+/** Mexican mobiles on WhatsApp need the "1" after +52 (same rule as the app's whatsapp-otp). */
+export function whatsappNumber(phone: string): string {
+  return phone.startsWith('+52') && !phone.startsWith('+521') && phone.length === 13 ? '+521' + phone.slice(3) : phone;
+}
 
 export function normalizePhone(raw: unknown): string | null {
   const s = String(raw ?? '').trim();
@@ -20,12 +29,6 @@ export function normalizePhone(raw: unknown): string | null {
 /** A legacy service-role key is a JWT (apikey + Bearer); a new secret key (sb_secret_…) goes ONLY as apikey — it is not a JWT. */
 export function serviceHeaders(key: string): Record<string, string> {
   return key.split('.').length === 3 ? { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' } : { apikey: key, 'Content-Type': 'application/json' };
-}
-
-function safeEqual(a: string, b: string) {
-  if (a.length !== b.length) return false;
-  let x = 0; for (let i = 0; i < a.length; i++) x |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return x === 0;
 }
 
 let catalogCache: { at: number; data: unknown } | null = null;
@@ -181,22 +184,40 @@ export async function handleReserve(req: Request, env: ReserveEnv, fetchImpl: ty
   }
 
   if (body.action === 'send_code') {
-    const g = await rpc<{ exists: boolean; gold: boolean; first_name?: string }>('f360_gold_check', { p_phone: phone });
-    if (!g.ok) return json({ error: g.error }, 400);
-    if (!g.data.exists) return json({ error: 'No encontramos una cuenta Fuxia con ese teléfono.' }, 404);
-    if (!g.data.gold) return json({ error: 'El apartado de 2 horas es un beneficio Fuxia Gold.' }, 403);
-    if (!testPhones.has(phone)) return json({ error: 'Por ahora el apartado en línea está en pruebas.' }, 403);
-    return json({ sent: true, first_name: g.data.first_name ?? null, test: true });    // test phones: fixed TEST_CODE, nothing is sent
+    const country = String(body.country ?? '').toUpperCase() === 'CO' ? 'CO' : 'MX';
+    const issued = await rpc<{ ok: boolean; error?: string; phone?: string; code?: string }>('f360_reserve_code_issue', { p_phone: phone, p_country: country });
+    if (!issued.ok) return json({ error: 'No pudimos mandar el código. Intenta de nuevo.' }, 400);
+    if (!issued.data.ok || !issued.data.code) return json({ error: issued.data.error ?? 'No pudimos mandar el código.' }, 429);
+    if (testPhones.has(phone)) return json({ sent: true, test: true, test_code: issued.data.code });   // staging test phones only
+    if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.TWILIO_WHATSAPP_FROM || !env.TWILIO_CONTENT_SID) {
+      return json({ error: 'Por ahora no pudimos mandar el código. Escríbenos por WhatsApp.' }, 503);
+    }
+    const tw = await fetchImpl(`https://api.twilio.com/2010-04-01/Accounts/${env.TWILIO_ACCOUNT_SID}/Messages.json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Authorization: `Basic ${btoa(`${env.TWILIO_ACCOUNT_SID}:${env.TWILIO_AUTH_TOKEN}`)}` },
+      body: new URLSearchParams({ From: env.TWILIO_WHATSAPP_FROM, To: `whatsapp:${whatsappNumber(issued.data.phone ?? phone)}`,
+        ContentSid: env.TWILIO_CONTENT_SID, ContentVariables: JSON.stringify({ '1': issued.data.code }) }),
+    });
+    if (!tw.ok) {
+      console.error('f360-store-reserve twilio', tw.status, (await tw.text().catch(() => '')).slice(0, 200));
+      return json({ error: 'No pudimos mandar el WhatsApp. Revisa tu número.' }, 502);
+    }
+    return json({ sent: true });
   }
 
   if (body.action === 'reserve') {
-    if (!testPhones.has(phone) || !env.TEST_CODE || !safeEqual(String(body.code ?? '').trim(), env.TEST_CODE)) return json({ error: 'Código incorrecto.' }, 401);
+    if (!/^[0-9]{6}$/.test(String(body.code ?? '').trim())) return json({ error: 'Escribe el código de 6 números.' }, 400);
     if (!Number.isInteger(variation) || variation <= 0) return json({ error: 'Talla no válida.' }, 400);
     const a = await rpc<{ variant_id: string | null }>('f360_store_availability', { p_woo_variation_id: variation });
     if (!a.ok || !a.data.variant_id) return json({ error: 'Esa talla no se puede apartar.' }, 400);
-    const r = await rpc<{ id: string; store: string; variant: string; expires_at: string }>('f360_reserve_for_phone',
-      { p_phone: phone, p_location_id: String(body.location_id ?? ''), p_variant_id: a.data.variant_id });
-    return r.ok ? json({ reservation: r.data }) : json({ error: r.error }, 400);
+    const name = String(body.name ?? '').replace(/[<>]/g, '').trim().slice(0, 80);
+    const r = await rpc<{ ok: boolean; error?: string; created?: boolean; first_name?: string; reservation?: { id: string; store: string; variant: string; expires_at: string } }>(
+      'f360_reserve_with_code', { p_phone: phone, p_code: String(body.code).trim(), p_name: name, p_location_id: String(body.location_id ?? ''),
+        p_variant_id: a.data.variant_id, p_country: String(body.country ?? '').toUpperCase() === 'CO' ? 'CO' : 'MX' });
+    if (!r.ok) return json({ error: r.error }, 400);                    // e.g. "Ya no hay ese par disponible en …", "Ya tienes 2 pares apartados…"
+    if (!r.data.ok) return json({ error: r.data.error ?? 'No se pudo apartar.' }, 400);
+    return json({ reservation: r.data.reservation, first_name: r.data.first_name ?? null, created: !!r.data.created });
   }
+
   return json({ error: 'Acción no válida.' }, 400);
 }

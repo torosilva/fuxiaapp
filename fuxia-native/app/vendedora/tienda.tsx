@@ -41,7 +41,7 @@ export default function TiendaF360() {
         </View>
 
         <TouchableOpacity style={[s.card, pending > 0 && s.cardAlert]} onPress={() => router.push('/vendedora/apartados' as any)} activeOpacity={0.85} accessibilityLabel="Apartados">
-          <View style={s.row}><Bookmark size={16} color="#B8860B" /><Text style={s.cardLabel}>Apartados Fuxia Gold</Text></View>
+          <View style={s.row}><Bookmark size={16} color="#B8860B" /><Text style={s.cardLabel}>Apartados</Text></View>
           <Text style={s.cardValue}>{list === null ? '…' : active.length}</Text>
           <Text style={s.cardSub}>{pending > 0 ? `${pending} por separar · toca para verlos` : active.length ? 'Todos separados' : 'Ninguno por ahora'}</Text>
         </TouchableOpacity>
@@ -55,7 +55,7 @@ export default function TiendaF360() {
           <Package size={20} color="#B8860B" />
           <Text style={s.secondaryText}>Inventario de la tienda</Text>
         </TouchableOpacity>
-        <Text style={s.note}>Te avisamos aquí cuando una clienta Gold aparte un par en esta tienda.</Text>
+        <Text style={s.note}>Te avisamos aquí cuando una clienta aparte un par en esta tienda.</Text>
       </View>
     </SafeAreaView>
   );

@@ -1,5 +1,5 @@
 // Fuxia 360 · store operations from the app: the seller's shift catalog, sale and Gold reservations ("apartados"), and
-// the customer's "Entrega inmediata" / "Apartar 2 horas". Every rule (price, stock, reservations, Gold, 2 pairs, 2 hours)
+// the customer's "Entrega inmediata" / "Apartar 3 horas". Every rule (price, stock, reservations, 2 pairs, 3 hours)
 // is enforced by the server; the app only sends ids and quantities. The shift token comes from lib/sellerSession.
 import { supabase } from '@/lib/supabase';
 import { currentShift } from '@/lib/sellerSession';
@@ -101,7 +101,7 @@ export async function refreshReservations() {
   const active = list.filter((r) => r.status === 'activa');
   if (seen) {
     for (const r of active) if (!seen.has(r.id)) {
-      alertNow('Apartado Fuxia Gold', `Separa ${r.product} ${r.color} ${r.size} para ${r.customer} · hasta las ${hora(r.expires_at)}`, { type: 'f360_reservation', reservation_id: r.id });
+      alertNow('Apartado', `Separa ${r.product} ${r.color} ${r.size} para ${r.customer} · hasta las ${hora(r.expires_at)}`, { type: 'f360_reservation', reservation_id: r.id });
     }
   }
   seen = new Set(list.map((r) => r.id));

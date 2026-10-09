@@ -28,22 +28,36 @@ test('availability returns store names only', async () => {
   assert.deepEqual(await r.json(), { stores: [{ location_id: 'l', name: 'Tienda Polanco' }] });
   assert.equal(r.headers.get('Access-Control-Allow-Origin'), ORIGIN);
 });
-test('send_code: unknown / not Gold / not a test phone are refused; Gold test phone ok (nothing sent)', async () => {
-  assert.equal((await handleReserve(post({ action: 'send_code', phone: '+15550100099' }), env, fakeFetch({ f360_gold_check: { exists: false, gold: false } }))).status, 404);
-  assert.equal((await handleReserve(post({ action: 'send_code', phone: '+15550100099' }), env, fakeFetch({ f360_gold_check: { exists: true, gold: false } }))).status, 403);
-  const real = await handleReserve(post({ action: 'send_code', phone: '5512345678' }), env, fakeFetch({ f360_gold_check: { exists: true, gold: true } }));
-  assert.equal(real.status, 403); assert.match((await real.json()).error, /en pruebas/);
-  const ok = await handleReserve(post({ action: 'send_code', phone: '+15550100099' }), env, fakeFetch({ f360_gold_check: { exists: true, gold: true, first_name: 'Ana' } }));
-  assert.deepEqual(await ok.json(), { sent: true, first_name: 'Ana', test: true });
+test('send_code: the database issues the code; test phones get it back; real phones get a WhatsApp', async () => {
+  const calls: { fn: string; args: any }[] = [];
+  const t = await handleReserve(post({ action: 'send_code', phone: '+15550100099' }), env, fakeFetch({ f360_reserve_code_issue: { ok: true, phone: '+15550100099', code: '123456' } }, calls));
+  assert.deepEqual(await t.json(), { sent: true, test: true, test_code: '123456' });
+  assert.deepEqual(calls[0], { fn: 'f360_reserve_code_issue', args: { p_phone: '+15550100099', p_country: 'MX' } });
+  const limited = await handleReserve(post({ action: 'send_code', phone: '5512345678' }), env, fakeFetch({ f360_reserve_code_issue: { ok: false, error: 'Ya te mandamos 3 códigos.' } }));
+  assert.equal(limited.status, 429);
+  const noTwilio = await handleReserve(post({ action: 'send_code', phone: '5512345678' }), env, fakeFetch({ f360_reserve_code_issue: { ok: true, phone: '+525512345678', code: '654321' } }));
+  assert.equal(noTwilio.status, 503);                                  // never pretends it sent something
+  const sent: { url: string; body: string }[] = [];
+  const twEnv = { ...env, TWILIO_ACCOUNT_SID: 'AC1', TWILIO_AUTH_TOKEN: 'tok', TWILIO_WHATSAPP_FROM: 'whatsapp:+1000', TWILIO_CONTENT_SID: 'HX1' };
+  const ff = (async (url: string, init: RequestInit) => {
+    if (String(url).includes('twilio')) { sent.push({ url: String(url), body: String(init.body) }); return new Response('{}', { status: 201 }); }
+    return new Response(JSON.stringify({ ok: true, phone: '+525512345678', code: '654321' }), { status: 200 });
+  }) as unknown as typeof fetch;
+  const real = await handleReserve(post({ action: 'send_code', phone: '55 1234 5678' }), twEnv, ff);
+  assert.deepEqual(await real.json(), { sent: true });
+  assert.ok(sent[0].body.includes('whatsapp%3A%2B5215512345678') && sent[0].body.includes('654321') && sent[0].body.includes('HX1'));
 });
-test('reserve: wrong code refused before touching the database; right code reserves', async () => {
-  const calls: { fn: string; args: unknown }[] = [];
-  const bad = await handleReserve(post({ action: 'reserve', phone: '+15550100099', code: '000000', woo_variation_id: 315, location_id: 'l' }), env, fakeFetch({}, calls));
-  assert.equal(bad.status, 401); assert.equal(calls.length, 0);
-  const ok = await handleReserve(post({ action: 'reserve', phone: '+15550100099', code: '246810', woo_variation_id: 315, location_id: 'l' }), env,
-    fakeFetch({ f360_store_availability: { variant_id: 'v315', stores: [] }, f360_reserve_for_phone: { id: 'r', store: 'Tienda Polanco', variant: 'X', expires_at: 't' } }, calls));
-  assert.equal(ok.status, 200);
-  assert.deepEqual(calls.at(-1), { fn: 'f360_reserve_for_phone', args: { p_phone: '+15550100099', p_location_id: 'l', p_variant_id: 'v315' } });
+test('reserve: the code goes to the database; its answer is passed on', async () => {
+  const calls: { fn: string; args: any }[] = [];
+  const bad = await handleReserve(post({ action: 'reserve', phone: '+15550100099', code: '12', woo_variation_id: 315, location_id: 'l' }), env, fakeFetch({}, calls));
+  assert.equal(bad.status, 400); assert.equal(calls.length, 0);
+  const ok = await handleReserve(post({ action: 'reserve', phone: '55 1234 5678', code: '654321', name: 'Ana <b>', woo_variation_id: 315, location_id: 'l' }), env,
+    fakeFetch({ f360_store_availability: { variant_id: 'v315', stores: [] }, f360_reserve_with_code: { ok: true, created: true, first_name: 'Ana', reservation: { id: 'r', store: 'Tienda Polanco', variant: 'X', expires_at: 't' } } }, calls));
+  assert.deepEqual(await ok.json(), { reservation: { id: 'r', store: 'Tienda Polanco', variant: 'X', expires_at: 't' }, first_name: 'Ana', created: true });
+  assert.deepEqual(calls.at(-1), { fn: 'f360_reserve_with_code', args: { p_phone: '+525512345678', p_code: '654321', p_name: 'Ana b', p_location_id: 'l', p_variant_id: 'v315', p_country: 'MX' } });
+  const wrong = await handleReserve(post({ action: 'reserve', phone: '55 1234 5678', code: '000000', woo_variation_id: 315, location_id: 'l' }), env,
+    fakeFetch({ f360_store_availability: { variant_id: 'v315', stores: [] }, f360_reserve_with_code: { ok: false, error: 'El código no es correcto.' } }));
+  assert.equal(wrong.status, 400); assert.deepEqual(await wrong.json(), { error: 'El código no es correcto.' });
 });
 test('a la medida: any phone leaves a request (validated); honeypot ignored', async () => {
   const calls: { fn: string; args: any }[] = [];

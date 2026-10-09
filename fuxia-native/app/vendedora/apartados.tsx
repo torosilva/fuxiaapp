@@ -1,4 +1,4 @@
-// Fuxia 360 · Apartados Fuxia Gold of the seller's shift store: what to separate, for whom, until when; "Ya lo separé";
+// Fuxia 360 · Apartados (any customer, 3 hours) of the seller's shift store: what to separate, for whom, until when; "Ya lo separé";
 // "Vender a <clienta>" opens the sale with that pair (scanning her card closes the reservation as sold).
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -38,7 +38,7 @@ export default function Apartados() {
     <SafeAreaView style={s.container}>
       <View style={s.top}>
         <TouchableOpacity onPress={() => router.back()} style={s.back} accessibilityLabel="Regresar"><ArrowLeft size={20} color="#fff" /></TouchableOpacity>
-        <Text style={s.title}>Apartados Fuxia Gold</Text>
+        <Text style={s.title}>Apartados</Text>
       </View>
       <ScrollView contentContainerStyle={s.body} refreshControl={<RefreshControl refreshing={false} onRefresh={load} tintColor="#B8860B" />}>
         {list === null && <ActivityIndicator color="#B8860B" style={{ marginTop: 40 }} />}
@@ -71,7 +71,7 @@ export default function Apartados() {
             <Text style={s.closedState}>{ESTADO[r.status] ?? 'Venció'}</Text>
           </View>
         ))}
-        <Text style={s.help}>El par apartado no se puede vender a otra persona ni mandar a otra tienda. Si la clienta no llega en 2 horas, se libera solo.</Text>
+        <Text style={s.help}>El par apartado no se puede vender a otra persona ni mandar a otra tienda. Si la clienta no llega en 3 horas, se libera solo.</Text>
       </ScrollView>
     </SafeAreaView>
   );
