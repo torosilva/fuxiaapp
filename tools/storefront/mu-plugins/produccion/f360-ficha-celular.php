@@ -12,7 +12,7 @@
  *                at the bottom with model, colour, size, price and "Agregar al carrito". The bar has NO purchase logic: it mirrors
  *                Woo's own button (missing colour / size / unavailable) and clicks it, so price, stock and validation stay Woo's.
  *                It shows only while Woo's button is off screen.
- *              Paso 2 (same date, phones ≤ 900 px only, the approved mockup): name + price ABOVE the photos; no breadcrumb and no
+ *              Paso 2 (same date, phones ≤ 900 px only, the approved mockup): name + price UNDER the photos (as axelarigato.mx); no breadcrumb and no
  *              thumbnail strip; dots (tappable), ‹ › arrows and a "1 / 8" counter on Woo's own slider (also swipe); the first colour comes pre-chosen; big pill colours and a 6-column size grid
  *              with "¿Cuál es mi talla?" (no size conversion: the bar repeats the number on the tapped button); no quantity box; a big black in-page "Agregar al carrito" (like axelarigato.mx) and the bottom bar ("Camel · 24 · $2,800") while that button is off screen; three
  *              trust tiles; description and "Envíos y cambios" in closed sections; the WhatsApp size help as a card. The delivery promise is NOT here: production Woo
@@ -64,9 +64,9 @@ add_action('wp_head', function () {
 @media (max-width:900px){
   /* Paso 2 · the page in the order and look of the approved mockup */
   main#brx-content > .brxe-section:first-child > .brxe-container,main#brx-content #brxe-ifvsvi{margin-top:6px!important}
-  .f360-fc-top{padding:6px 16px 14px}
-  .f360-fc-top .brxe-product-title{margin:0!important;font-family:'Montserrat',system-ui,sans-serif!important;font-size:23px!important;font-weight:600!important;line-height:1.25!important}
-  .f360-fc-top .brxe-product-price,.f360-fc-top .brxe-product-price *{font-family:'Montserrat',system-ui,sans-serif!important;font-size:21px!important;font-weight:700!important;color:#1d1a16!important}
+  .f360-fc-top{padding:10px 16px 4px}
+  .f360-fc-top .brxe-product-title{margin:0!important;font-family:'Montserrat',system-ui,sans-serif!important;font-size:20px!important;font-weight:600!important;line-height:1.25!important}
+  .f360-fc-top .brxe-product-price,.f360-fc-top .brxe-product-price *{font-family:'Montserrat',system-ui,sans-serif!important;font-size:19px!important;font-weight:700!important;color:#1d1a16!important}
   .f360-fc-top .brxe-product-price{margin:4px 0 0!important}
   nav.fuxia-breadcrumb{display:none!important}
   .brxe-product-gallery .flex-control-thumbs,.brx-product-gallery-thumbnail-slider{display:none!important}
@@ -81,7 +81,7 @@ add_action('wp_head', function () {
   .woocommerce-product-gallery{position:relative}
   /* every photo whole, in the same frame (photos come portrait, square and landscape; the slider cropped them) */
   .woocommerce-product-gallery .flex-viewport{height:auto!important}
-  .woocommerce-product-gallery__image{aspect-ratio:4/5;background:#f4f1ec;display:flex!important;align-items:center;justify-content:center;overflow:hidden}
+  .woocommerce-product-gallery__image{aspect-ratio:4/5;background:#fff;display:flex!important;align-items:center;justify-content:center;overflow:hidden}
   .woocommerce-product-gallery__image a{display:flex;width:100%;height:100%;align-items:center;justify-content:center}
   .woocommerce-product-gallery__image img{width:100%!important;height:100%!important;max-height:none!important;object-fit:contain!important}
   /* side margins for everything under the photo */
@@ -247,8 +247,9 @@ add_action('wp_footer', function () {
     var hermanos = h1 ? [].slice.call(h1.parentNode.children) : [];
     var price = hermanos.filter(function (e) { return e.classList.contains('brxe-product-price'); })[0] || null;
     var rating = hermanos.filter(function (e) { return e.classList.contains('brxe-product-rating'); })[0] || null;
+    var top = null;
     if (gal && h1) {
-      var top = document.createElement('div'); top.className = 'f360-fc-top';
+      top = document.createElement('div'); top.className = 'f360-fc-top';
       gal.parentNode.insertBefore(top, gal);
       top.appendChild(h1);
       if (price) { var line = document.createElement('div'); line.className = 'f360-fc-line'; top.appendChild(line); line.appendChild(price); }
@@ -279,6 +280,10 @@ add_action('wp_footer', function () {
       };
       pinta();
       if (window.MutationObserver) slides.forEach(function (s) { new MutationObserver(pinta).observe(s, { attributes: true, attributeFilter: ['class'] }); });
+    }
+    // name + price go UNDER the photos (Mario 2026-10-09: "como Axel, que el título y el precio queden abajo")
+    if (top && gal) {
+      gal.parentNode.insertBefore(top, gal.nextSibling);   // the gallery block already holds the photos and their dots
     }
     // like the mockup, the page opens with a colour already chosen (the first one), so she only picks her size
     var tries = 0, preelige = function () {
