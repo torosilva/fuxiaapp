@@ -87,11 +87,15 @@ INSERT INTO f360.weekly_plan (week_id, starts_on, ends_on, label, title, focus, 
  ('s13','2026-12-22','2026-12-28','22–28 dic','Post-navidad','Tarjeta digital y venta a lista propia. Cambios de talla.',8,true),
  ('s14','2026-12-29','2026-12-31','29–31 dic','Cierre','Cerrar números. Qué funcionó de verdad para el plan de Q1.',2,true);
 
--- Who is calling: the weekly person whose WhatsApp is the caller's (customers row linked to the auth user).
+-- Who is calling: the weekly person whose WhatsApp is the caller's — through the customers row linked to the auth user, or
+-- (the agency, who is not a customer) through the WhatsApp sign-in itself: whatsapp-otp creates the account as
+-- <phone digits>@fuxia.app, so the last 10 digits of that address are the WhatsApp that received the code.
 CREATE FUNCTION f360.weekly_actor() RETURNS f360.weekly_people LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
   SELECT p.* FROM f360.weekly_people p
   WHERE p.active AND p.phone IS NOT NULL AND auth.uid() IS NOT NULL
-    AND EXISTS (SELECT 1 FROM public.customers c WHERE c.auth_user_id = auth.uid() AND f360.normalize_phone(c.phone) = p.phone)
+    AND (EXISTS (SELECT 1 FROM public.customers c WHERE c.auth_user_id = auth.uid() AND f360.normalize_phone(c.phone) = p.phone)
+      OR EXISTS (SELECT 1 FROM auth.users u WHERE u.id = auth.uid() AND u.email ~ '^[0-9]{10,15}@fuxia\.app$'
+                 AND right(split_part(u.email, '@', 1), 10) = right(p.phone, 10)))
   LIMIT 1
 $$;
 REVOKE ALL ON FUNCTION f360.weekly_actor() FROM PUBLIC, anon, authenticated;

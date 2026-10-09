@@ -88,11 +88,15 @@ INSERT INTO f360.weekly_plan (week_id, starts_on, ends_on, label, title, focus, 
  ('s13','2026-12-22','2026-12-28','22–28 dic','Post-navidad','Tarjeta digital y venta a lista propia. Cambios de talla.',8,true),
  ('s14','2026-12-29','2026-12-31','29–31 dic','Cierre','Cerrar números. Qué funcionó de verdad para el plan de Q1.',2,true);
 
--- Who is calling: the weekly person whose WhatsApp is the caller's (customers row linked to the auth user).
+-- Who is calling: the weekly person whose WhatsApp is the caller's — through the customers row linked to the auth user, or
+-- (the agency, who is not a customer) through the WhatsApp sign-in itself: whatsapp-otp creates the account as
+-- <phone digits>@fuxia.app, so the last 10 digits of that address are the WhatsApp that received the code.
 CREATE FUNCTION f360.weekly_actor() RETURNS f360.weekly_people LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
   SELECT p.* FROM f360.weekly_people p
   WHERE p.active AND p.phone IS NOT NULL AND auth.uid() IS NOT NULL
-    AND EXISTS (SELECT 1 FROM public.customers c WHERE c.auth_user_id = auth.uid() AND f360.normalize_phone(c.phone) = p.phone)
+    AND (EXISTS (SELECT 1 FROM public.customers c WHERE c.auth_user_id = auth.uid() AND f360.normalize_phone(c.phone) = p.phone)
+      OR EXISTS (SELECT 1 FROM auth.users u WHERE u.id = auth.uid() AND u.email ~ '^[0-9]{10,15}@fuxia\.app$'
+                 AND right(split_part(u.email, '@', 1), 10) = right(p.phone, 10)))
   LIMIT 1
 $$;
 REVOKE ALL ON FUNCTION f360.weekly_actor() FROM PUBLIC, anon, authenticated;
@@ -214,6 +218,7 @@ REVOKE ALL ON FUNCTION public.f360_weekly_me(), public.f360_weekly_board(text), 
   public.f360_weekly_metrics_save(text, jsonb, text), public.f360_weekly_person_set(text, text, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.f360_weekly_me(), public.f360_weekly_board(text), public.f360_weekly_card_save(text, text, text, jsonb, text),
   public.f360_weekly_metrics_save(text, jsonb, text), public.f360_weekly_person_set(text, text, text) TO authenticated, service_role;
+
 DO $$
 DECLARE mario uuid := (SELECT auth_user_id FROM f360_board.board_members WHERE person_key = 'MARIO'); caro uuid := (SELECT auth_user_id FROM f360_board.board_members WHERE person_key = 'CAROLINA');
   b jsonb; seller uuid := (SELECT auth_user_id FROM f360.user_roles WHERE role = 'seller' LIMIT 1); anyone uuid := gen_random_uuid();
@@ -246,6 +251,14 @@ BEGIN
     b := public.f360_weekly_board('s02');
     IF NOT EXISTS (SELECT 1 FROM jsonb_array_elements(b->'cards') c WHERE c->>'person_key' = 'MARIO' AND (c->>'mine')::boolean AND c->>'status' = 'si') THEN RAISE EXCEPTION 'W3 card %', b->'cards'; END IF;
   END IF;
+  -- W5 agency (no customers row, no role): recognized by its WhatsApp sign-in email, sees the board, saves only its card
+  INSERT INTO auth.users (id, email, aud, role) VALUES ('00000000-0000-4000-8000-0000000a9e1c', '5215599990077@fuxia.app', 'authenticated', 'authenticated');
+  UPDATE f360.weekly_people SET phone = '+525599990077' WHERE person_key = 'AGENCIA';
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', '00000000-0000-4000-8000-0000000a9e1c', 'role', 'authenticated')::text, true);
+  IF public.f360_weekly_me()->>'person_key' <> 'AGENCIA' OR (public.f360_weekly_me()->>'team')::boolean THEN RAISE EXCEPTION 'W5 me %', public.f360_weekly_me(); END IF;
+  PERFORM public.f360_weekly_card_save('s02', 'Arreglar checkout', 'Hecho a medias', '{}', 'parcial');
+  BEGIN PERFORM public.f360_weekly_metrics_save('s02', '{}', 'x'); RAISE EXCEPTION 'W5 agency metrics allowed'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN PERFORM public.f360_list_sales(NULL, NULL, NULL, NULL, NULL, 10); RAISE EXCEPTION 'W5 agency reads sales'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   -- W4 history append-only
   BEGIN DELETE FROM f360.weekly_changes; RAISE EXCEPTION 'W4 delete allowed'; EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'W4%' THEN RAISE; END IF; END;
   RAISE NOTICE 'ENSAYO OK';
