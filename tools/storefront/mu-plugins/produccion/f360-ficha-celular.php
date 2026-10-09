@@ -3,7 +3,8 @@
  * Plugin Name: Fuxia 360 · Ficha de producto en celular, paso 1 (producción)
  * Description: Mario 2026-10-09 ("mejoremos el UX de producto sobre todo en móvil… la gran mayoría son señoras"; propuesta
  *              https://claude.ai/artifact/D1SHyjvk21R5sQUBJ6RFYR, decisiones 1–3 aprobadas). Product pages only:
- *              · the reviews block (CusRev #reviews + Woo's star line) is hidden while the product has fewer than 3 reviews;
+ *              · the reviews block is hidden while the product has no reviews (from the first real review it shows; on phones as
+ *                "★ 5.0 · 2 opiniones" next to the price + "Lo que dicen nuestras clientas");
  *              · the "Precios en MXN / COP / USD" selector is hidden: the price is already the visitor's country's (/mx/, /co/);
  *              · "Descarga la app" does not float over the product page;
  *              · the button reads "Agregar al carrito";
@@ -30,7 +31,7 @@ add_filter('woocommerce_product_single_add_to_cart_text', function () { return '
 add_action('wp_head', function () {
   if (is_admin() || isset($_GET['bricks']) || !function_exists('is_product') || !is_product()) return;
   $product = wc_get_product(get_queried_object_id());
-  $few_reviews = !$product || (int) $product->get_review_count() < 3;
+  $few_reviews = !$product || (int) $product->get_review_count() < 1;   // Mario 2026-10-09: show real reviews from the first one
   echo "<style id=\"f360-ficha-celular\">\n";
   if ($few_reviews) echo "#reviews,.woocommerce-product-rating,.cr-all-reviews-shortcode{display:none!important}\n";
   echo <<<'F360CSS'
@@ -68,7 +69,15 @@ add_action('wp_head', function () {
   .f360-fc-top .brxe-product-price,.f360-fc-top .brxe-product-price *{font-family:'Montserrat',system-ui,sans-serif!important;font-size:21px!important;font-weight:700!important;color:#1d1a16!important}
   .f360-fc-top .brxe-product-price{margin:4px 0 0!important}
   nav.fuxia-breadcrumb{display:none!important}
-  .brxe-product-gallery .flex-control-thumbs{display:none!important}
+  .brxe-product-gallery .flex-control-thumbs,.brx-product-gallery-thumbnail-slider{display:none!important}
+  #reviews,.f360-fc-top .brxe-product-rating{display:none!important}   /* phones: reviews live in the price line + their own section */
+  .f360-fc-line{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .f360-fc-rate{font-size:14px;color:#6b6257;background:none;border:0;padding:4px 0;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .f360-fc-rate b{color:#b8902f}
+  .f360-fc-rev{padding:12px 0;border-top:1px solid #f0ebe2}
+  .f360-fc-rev:first-child{border-top:0;padding-top:0}
+  .f360-fc-rev .st{color:#b8902f;letter-spacing:1px}
+  .f360-fc-rev .who{font-size:13px;color:#8a8276;margin-top:4px}
   .woocommerce-product-gallery{position:relative}
   .f360-fc-cnt{position:absolute;right:12px;bottom:12px;z-index:5;background:rgba(17,17,17,.72);color:#fff;font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;pointer-events:none}
   .f360-fc-dots{display:flex;gap:6px;justify-content:center;padding:12px 0 2px}
@@ -180,7 +189,7 @@ add_action('wp_footer', function () {
       bar.querySelector('.f360-fc-det').textContent = partes.length ? partes.join(' · ') : nombre;
       bar.querySelector('.f360-fc-precio').textContent = precio;
       btn.classList.toggle('no', !f && noDisp);
-      btn.textContent = f === 'color' ? 'Elige tu color' : f === 'talla' ? 'Elige tu talla' : f ? 'Elige una opción' : noDisp ? 'No disponible' : 'Agregar al carrito';
+      btn.textContent = !f && noDisp ? 'No disponible' : 'Agregar al carrito';   // as in the mockup; a missing size is pointed out on tap
     };
     var ir = function (cual) {
       var dest = cual === 'color' ? document.querySelector('.f360-colores') : document.querySelector('.fuxia-tallas');
@@ -235,7 +244,9 @@ add_action('wp_footer', function () {
     if (gal && h1) {
       var top = document.createElement('div'); top.className = 'f360-fc-top';
       gal.parentNode.insertBefore(top, gal);
-      top.appendChild(h1); if (price) top.appendChild(price); if (rating) top.appendChild(rating);
+      top.appendChild(h1);
+      if (price) { var line = document.createElement('div'); line.className = 'f360-fc-line'; top.appendChild(line); line.appendChild(price); }
+      if (rating) top.appendChild(rating);
     }
     // gallery: counter + arrows on Woo's own slider
     var g = document.querySelector('.woocommerce-product-gallery');
@@ -298,6 +309,8 @@ add_action('wp_footer', function () {
       pol.innerHTML = '<p><b>Envío gratis</b> en México y Colombia.</p><p><b>Cambios en 30 días</b> por otra talla, color o modelo, sin uso y con su caja. No hacemos devoluciones ni reembolsos.</p><p>Los pares con descuento directo en el precio no tienen cambio; si usaste un cupón, sí.</p>';
       sec('Envíos y cambios', pol);
       pdp(acc);
+      opiniones(acc);
+      fotoColor();
       var despues = bloque.nextSibling;
       bloque.parentNode.insertBefore(trust, despues);
       bloque.parentNode.insertBefore(acc, despues);
@@ -371,6 +384,67 @@ add_action('wp_footer', function () {
         acc.insertBefore(d2, after ? after.nextSibling : acc.firstChild);
       })
       .catch(function () { /* no promise shown; buying is unaffected */ });
+  }
+
+  // Real reviews (Woo Store API): "★ 5.0 · 2 opiniones" next to the price and "Lo que dicen nuestras clientas (2)".
+  function opiniones(acc) {
+    var pid = form && Number(form.getAttribute('data-product_id')); if (!pid || !acc) return;
+    var esc = function (t) { var x = document.createElement('span'); x.textContent = String(t == null ? '' : t); return x.innerHTML; };
+    fetch('/wp-json/wc/store/v1/products/reviews?product_id=' + pid + '&per_page=20&orderby=date_gmt&order=desc')
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rs) {
+        if (!Array.isArray(rs) || !rs.length) return;
+        var avg = rs.reduce(function (a, r) { return a + (Number(r.rating) || 0); }, 0) / rs.length;
+        var d = document.createElement('details'), sm = document.createElement('summary'), body = document.createElement('div');
+        sm.textContent = 'Lo que dicen nuestras clientas (' + rs.length + ')'; body.className = 'f360-fc-acc-body';
+        body.innerHTML = rs.map(function (r) {
+          var txt = (function () { var x = document.createElement('div'); x.innerHTML = r.review || ''; return x.textContent.trim(); })();
+          var n = Math.max(0, Math.min(5, Math.round(Number(r.rating) || 0)));
+          var fecha = r.date_created ? new Date(r.date_created).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+          return '<div class="f360-fc-rev"><div class="st">' + '\u2605'.repeat(n) + '\u2606'.repeat(5 - n) + '</div>' + (txt ? '<p>' + esc(txt) + '</p>' : '')
+            + '<div class="who">' + esc(String(r.reviewer || '').split(' ')[0]) + (fecha ? ' · ' + esc(fecha) : '') + '</div></div>';
+        }).join('');
+        d.appendChild(sm); d.appendChild(body);
+        var envios = [].slice.call(acc.querySelectorAll('summary')).filter(function (x) { return x.textContent === 'Envíos y cambios'; })[0];
+        acc.insertBefore(d, envios ? envios.parentNode.nextSibling : null);
+        var line = document.querySelector('.f360-fc-line');
+        if (line) {
+          var chip = document.createElement('button'); chip.type = 'button'; chip.className = 'f360-fc-rate';
+          chip.innerHTML = '<b>\u2605 ' + avg.toFixed(1) + '</b> · ' + rs.length + (rs.length === 1 ? ' opinión' : ' opiniones');
+          chip.addEventListener('click', function () { d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+          line.appendChild(chip);
+        }
+      }).catch(function () {});
+  }
+
+  // Colour → its photo, also on models with > 30 combinations (Woo then sends no variation list to the page): ask Woo for one
+  // variation of that colour and move the gallery to its image.
+  function fotoColor() {
+    if (!form || form.getAttribute('data-product_variations') !== 'false' || !window.jQuery) return;
+    var $ = window.jQuery, cs = form.querySelector('select[name="attribute_pa_color"]'); if (!cs) return;
+    var cache = {}, pid = form.getAttribute('data-product_id');
+    var url = (window.wc_add_to_cart_variation_params && window.wc_add_to_cart_variation_params.wc_ajax_url || '/?wc-ajax=%%endpoint%%').toString().replace('%%endpoint%%', 'get_variation');
+    var tallas = [].slice.call(document.querySelectorAll('.fuxia-talla')).map(function (b) { return b.getAttribute('data-co'); });
+    var mover = function (src) {
+      document.querySelectorAll('.woocommerce-product-gallery').forEach(function (g) {
+        var fs = $(g).data('flexslider'); if (!fs || !fs.slides) return;
+        for (var i = 0; i < fs.slides.length; i++) {
+          var img = fs.slides[i].querySelector('img');
+          if (img && (img.getAttribute('data-large_image') === src || img.getAttribute('src') === src)) { if (fs.currentSlide !== i) fs.flexAnimate(i, true); break; }
+        }
+      });
+    };
+    var buscar = function (color, k) {
+      if (k >= tallas.length) return;
+      var data = { product_id: pid, attribute_pa_color: color, attribute_pa_medida: tallas[k] };
+      $.post(url, data).done(function (v) {
+        if (v && v.image && v.image.full_src) { cache[color] = v.image.full_src; if (cs.value === color) mover(cache[color]); }
+        else buscar(color, k + 1);
+      }).fail(function () { buscar(color, k + 1); });
+    };
+    var alCambiar = function () { var c = cs.value; if (!c) return; if (cache[c]) mover(cache[c]); else buscar(c, 0); };
+    $(cs).on('change', function () { setTimeout(alCambiar, 50); });
+    if (cs.value) alCambiar();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
