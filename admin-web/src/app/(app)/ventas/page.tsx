@@ -71,8 +71,10 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<S
             <tbody className="divide-y divide-line">
               {data.items.map((v) => (
                 <tr key={v.id} className="hover:bg-surface-2" data-testid="sale-row">
-                  <td className="px-4 py-3"><Link href={`/ventas/${v.id}`} className="text-ink underline-offset-2 hover:underline">{fecha(v.occurred_at)}</Link></td>
-                  <td className="px-3 py-3 text-ink-2">{v.location ?? '—'}</td>
+                  <td className="px-4 py-3">{v.source === 'woo' || v.source === 'remote'
+                    ? <span className="text-ink">{fecha(v.occurred_at)}</span>
+                    : <Link href={`/ventas/${v.id}`} className="text-ink underline-offset-2 hover:underline">{fecha(v.occurred_at)}</Link>}</td>
+                  <td className="px-3 py-3 text-ink-2">{v.location ?? (v.channel === 'online' ? 'En línea' : '—')}</td>
                   <td className="px-3 py-3 text-ink-2">{v.seller}</td>
                   <td className="px-3 py-3">{v.customer ?? <span className="text-muted">Sin identificar</span>}</td>
                   <td className="tabular px-3 py-3 text-right">{v.pairs}</td>
