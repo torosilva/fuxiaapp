@@ -1,0 +1,1 @@
+-- Rollback of 20261019000100_f360_remote_sales.sql: restore the previous commerce_orders view (supabase/rollbacks/20261019000100_commerce_orders_before.sql), then drop f360.remote_sales / f360.sale_channel_overrides ONLY with Mario's OK (they hold sales).
