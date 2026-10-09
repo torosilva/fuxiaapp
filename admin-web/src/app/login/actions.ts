@@ -15,11 +15,16 @@ function normalizePhone(raw: string): string | null {
   return null;
 }
 
-// After any login: only accounts with a Fuxia 360 role may stay signed in.
+// After any login: only accounts with a Fuxia 360 role may stay signed in — or a person of the weekly board (the agency),
+// who keeps a session that only /pendientes accepts (every other RPC refuses an account without a role).
 async function requireF360Role(): Promise<string | null> {
   const supabase = await createClient();
   const { error } = await supabase.rpc('f360_me');
   if (error) {
+    if (error.code === '42501') {
+      const { data: weekly } = await supabase.rpc('f360_weekly_me');
+      if (weekly?.ok) return null;
+    }
     await supabase.auth.signOut();
     return error.code === '42501' ? 'Esta cuenta no tiene acceso a Fuxia 360. Pídele acceso a Mario.' : 'No pudimos verificar tu acceso. Intenta de nuevo.';
   }

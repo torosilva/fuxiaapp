@@ -12,6 +12,7 @@ const GROUPS = [
   { label: 'Negocio en tiempo real', items: [
     { href: '/tablero', label: 'Centro de control', icon: IconGrowth, live: true, admin: true },
     { href: '/como-funciona', label: 'Mapa del negocio', icon: IconGrowth, live: true, admin: true },
+    { href: '/pendientes', label: 'Pendientes de la semana', icon: IconCheck, live: true, admin: true },
   ] },
   { label: 'Vender', items: [
     { href: '/ventas', label: 'Ventas', icon: IconReceipt, live: true, admin: true },
