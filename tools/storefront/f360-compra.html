@@ -215,7 +215,8 @@ html.f360-gracias-on .woocommerce-customer-details .woocommerce-column { width: 
         ag.querySelector('.f360-ag-nombre').textContent = String(it.name || '').replace(/&amp;/g, '&');
         var det = (it.variation || []).map(function (a) {
           var n = String(a.attribute || ''), val = String(a.value || '');
-          if (/medida|talla/i.test(n)) return mexico && /^(3[5-9]|40)$/.test(val) ? 'Talla MX ' + (Number(val) - 13) : 'Talla ' + val;
+          // the number on the size button she tapped (Mario 2026-10-09: "24 es 24" — no conversion)
+          if (/medida|talla/i.test(n)) { var tb = document.querySelector('.fuxia-talla[data-co="' + val + '"]'); return 'Talla ' + (tb ? tb.textContent.trim() : val); }
           return val;
         });
         if (it.quantity > 1) det.push(it.quantity + ' pares');

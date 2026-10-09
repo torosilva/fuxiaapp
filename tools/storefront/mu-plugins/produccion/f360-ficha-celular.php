@@ -12,8 +12,8 @@
  *                Woo's own button (missing colour / size / unavailable) and clicks it, so price, stock and validation stay Woo's.
  *                It shows only while Woo's button is off screen.
  *              Paso 2 (same date, phones ≤ 900 px only, the approved mockup): name + price ABOVE the photos; no breadcrumb and no
- *              thumbnail strip; ‹ › arrows and a "1 / 8" counter on Woo's own slider; big pill colours and a 6-column size grid
- *              with "¿Cuál es mi talla?" (no size conversion: the bar repeats the number on the tapped button); no quantity box; dark full-width buy button; three
+ *              thumbnail strip; dots and a "1 / 8" counter on Woo's own slider (swipe); big pill colours and a 6-column size grid
+ *              with "¿Cuál es mi talla?" (no size conversion: the bar repeats the number on the tapped button); no quantity box; the bottom bar is THE buy button (always visible, "Camel · 24 · $2,800"; Woo's button is hidden and clicked by it); three
  *              trust tiles; description and "Envíos y cambios" in closed sections; the WhatsApp size help as a card. The delivery promise is NOT here: production Woo
  *              has no real stock and f360-storefront is not deployed there yet, so a promise would be a guess.
  * Apagar: borrar este archivo de wp-content/mu-plugins/.
@@ -68,8 +68,9 @@ add_action('wp_head', function () {
   .brxe-product-gallery .flex-control-thumbs{display:none!important}
   .woocommerce-product-gallery{position:relative}
   .f360-fc-cnt{position:absolute;right:12px;bottom:12px;z-index:5;background:rgba(17,17,17,.72);color:#fff;font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;pointer-events:none}
-  .f360-fc-arr{position:absolute;top:50%;z-index:5;width:44px;height:44px;margin-top:-22px;border:0;border-radius:50%;background:rgba(255,255,255,.9);color:#1d1a16;font-size:26px;line-height:42px;text-align:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.15);padding:0}
-  .f360-fc-arr.prev{left:10px}.f360-fc-arr.next{right:10px}
+  .f360-fc-dots{display:flex;gap:6px;justify-content:center;padding:12px 0 2px}
+  .f360-fc-dots i{width:8px;height:8px;border-radius:50%;background:#d6cec1}
+  .f360-fc-dots i.on{width:22px;border-radius:4px;background:#1d1a16}
   /* colour */
   .f360-colores{margin:18px 0 6px!important}
   .f360-colores-header{justify-content:flex-start!important;gap:6px;margin-bottom:10px!important}
@@ -79,6 +80,13 @@ add_action('wp_head', function () {
   .f360-color{height:48px!important;padding:0 16px!important;border-radius:999px!important;border:1.5px solid #d9d1c4!important;font-size:15px!important;color:#1d1a16!important}
   .f360-color.selected{border:2px solid #1d1a16!important;color:#1d1a16!important;box-shadow:inset 0 0 0 1px #1d1a16}
   .f360-color .f360-punto{width:22px!important;height:22px!important}
+  /* colours with their Fuxia 360 circle: just the circle, like the mockup (a colour without one keeps its name) */
+  .f360-colores-botones{gap:12px!important}
+  .f360-colores-botones .f360-color:has(.f360-punto[style*="background"]){width:58px!important;height:58px!important;padding:3px!important;border-radius:50%!important;font-size:0!important;gap:0!important;border:0!important;box-shadow:0 0 0 1.5px #d9d1c4!important;background:#fff!important}
+  .f360-colores-botones .f360-color:has(.f360-punto[style*="background"]) .f360-punto{width:100%!important;height:100%!important;border:0!important}
+  .f360-colores-botones .f360-color.selected:has(.f360-punto[style*="background"]){box-shadow:0 0 0 3px #1d1a16!important}
+  .f360-color-nombre{font-weight:500!important}
+  .f360-fc-tsel{font-weight:500;color:#6b6257;margin-left:4px}
   /* size */
   .fuxia-tallas{margin:18px 0 0!important}
   .fuxia-tallas-header{margin-bottom:10px!important}
@@ -91,7 +99,9 @@ add_action('wp_head', function () {
   .fuxia-guia-link{display:none!important}
   /* buy */
   form.variations_form .quantity,form.cart .quantity{display:none!important}
-  .single_add_to_cart_button{width:100%!important;height:56px!important;border-radius:14px!important;background:#1d1a16!important;color:#fff!important;font-size:16px!important;letter-spacing:.04em!important;margin-top:16px!important}
+  /* the buy button is the bar at the bottom (always visible); Woo's own button stays in the form, hidden, and the bar clicks it */
+  form.variations_form .single_add_to_cart_button,form.cart .single_add_to_cart_button{display:none!important}
+  .woocommerce-variation-add-to-cart{margin:0!important}
   #fx-trust{display:none!important}
   .f360-fc-trust{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 0}
   .f360-fc-trust div{background:#f6f2ea;border-radius:12px;padding:10px 6px;text-align:center;font-size:13px;line-height:1.3;color:#1d1a16}
@@ -152,7 +162,7 @@ add_action('wp_footer', function () {
       if (c && c.value) partes.push(texto(c));
       if (m && m.value) {                             // exactly the number on the size button the customer tapped
         var tb = document.querySelector('.fuxia-talla[data-co="' + m.value + '"]');
-        partes.push('Talla ' + (tb ? tb.textContent.trim() : texto(m)));
+        partes.push(tb ? tb.textContent.trim() : texto(m));
       }
       bar.querySelector('.f360-fc-det').textContent = partes.length ? partes.join(' · ') : nombre;
       bar.querySelector('.f360-fc-precio').textContent = precio;
@@ -182,6 +192,12 @@ add_action('wp_footer', function () {
     if (window.MutationObserver) new MutationObserver(estado).observe(real, { attributes: true, attributeFilter: ['class', 'disabled'] });
     form.addEventListener('change', function () { setTimeout(estado, 0); });
     estado();
+    if (window.matchMedia('(max-width: 900px)').matches) {      // phones: the bar IS the buy button, always there
+      bar.classList.add('on'); bar.setAttribute('aria-hidden', 'false'); html.classList.add('f360-fc-visible');
+      html.style.setProperty('--f360-fc-h', bar.offsetHeight + 'px');
+      document.body.style.paddingBottom = (bar.offsetHeight + 8) + 'px';
+      return;
+    }
     var visible = false;
     new IntersectionObserver(function (es) {
       var ver = !es[0].isIntersecting;
@@ -210,21 +226,27 @@ add_action('wp_footer', function () {
     var slides = g ? g.querySelectorAll('.woocommerce-product-gallery__image') : [];
     if (g && slides.length > 1) {
       var cnt = document.createElement('span'); cnt.className = 'f360-fc-cnt'; g.appendChild(cnt);
-      var mk = function (cls, txt, label, dir) {
-        var b = document.createElement('button'); b.type = 'button'; b.className = 'f360-fc-arr ' + cls; b.textContent = txt; b.setAttribute('aria-label', label);
-        b.addEventListener('click', function () {
-          var fs = window.jQuery && window.jQuery(g).data('flexslider');
-          if (fs) fs.flexAnimate(fs.getTarget(dir), true);
-        });
-        g.appendChild(b);
-      };
-      mk('prev', '\u2039', 'Foto anterior', 'prev'); mk('next', '\u203A', 'Foto siguiente', 'next');
+      var dots = document.createElement('div'); dots.className = 'f360-fc-dots';
+      var nd = Math.min(slides.length, 6);
+      for (var k = 0; k < nd; k++) dots.appendChild(document.createElement('i'));
+      g.parentNode.insertBefore(dots, g.nextSibling);
       var pinta = function () {
         var i = 0; slides.forEach(function (s, k) { if (s.classList.contains('flex-active-slide')) i = k; });
         cnt.textContent = (i + 1) + ' / ' + slides.length;
+        var on = Math.min(i, nd - 1);
+        [].forEach.call(dots.children, function (d, k) { d.classList.toggle('on', k === on); });
       };
       pinta();
       if (window.MutationObserver) slides.forEach(function (s) { new MutationObserver(pinta).observe(s, { attributes: true, attributeFilter: ['class'] }); });
+    }
+    // "Talla: 24" — the number of the tapped button, next to the label
+    var tlab = document.querySelector('.fuxia-tallas-header > span');
+    if (tlab && form) {
+      var tsel = document.createElement('span'); tsel.className = 'f360-fc-tsel'; tlab.appendChild(tsel);
+      var pon = function () { var b = document.querySelector('.fuxia-talla.selected'); tsel.textContent = b ? b.textContent.trim() : ''; tlab.firstChild.nodeValue = b ? 'Talla:' : 'Talla'; };
+      document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('.fuxia-talla')) setTimeout(pon, 0); });
+      if (window.jQuery) window.jQuery(form).on('reset_data', function () { setTimeout(pon, 0); });
+      pon();
     }
     // "¿Cuál es mi talla?" next to the size label (opens the size guide window)
     var guia = document.querySelector('a.fuxia-guia-link'), th = document.querySelector('.fuxia-tallas-header');

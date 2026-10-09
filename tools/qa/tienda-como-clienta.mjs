@@ -93,7 +93,9 @@ async function flujoCarrito(browser, p) {
     const c = await page.$('.f360-color'); if (c) await c.click();
     const t = await page.$('.fuxia-talla:not([disabled]):not(.agotada)'); if (t) await t.click();
     await page.waitForFunction(() => { const b = document.querySelector('.single_add_to_cart_button'); return b && !b.classList.contains('disabled'); }, null, { timeout: 15000 });
-    await page.click('.single_add_to_cart_button');
+    // on phones the buy button is the fixed bar (f360-ficha-celular.php); it clicks Woo's own button
+    const barra = await page.$('.f360-fc-btn');
+    if (barra && await barra.isVisible()) await barra.click(); else await page.click('.single_add_to_cart_button');
     await page.waitForTimeout(4000);
     const enCarrito = await page.evaluate(async (base) => {
       const r = await fetch(`${base}/wp-json/wc/store/v1/cart`, { credentials: 'include' });
