@@ -14,7 +14,7 @@
  *                It shows only while Woo's button is off screen.
  *              Paso 2 (same date, phones ≤ 900 px only, the approved mockup): name + price ABOVE the photos; no breadcrumb and no
  *              thumbnail strip; dots (tappable), ‹ › arrows and a "1 / 8" counter on Woo's own slider (also swipe); the first colour comes pre-chosen; big pill colours and a 6-column size grid
- *              with "¿Cuál es mi talla?" (no size conversion: the bar repeats the number on the tapped button); no quantity box; the bottom bar is THE buy button (always visible, "Camel · 24 · $2,800"; Woo's button is hidden and clicked by it); three
+ *              with "¿Cuál es mi talla?" (no size conversion: the bar repeats the number on the tapped button); no quantity box; a big black in-page "Agregar al carrito" (like axelarigato.mx) and the bottom bar ("Camel · 24 · $2,800") while that button is off screen; three
  *              trust tiles; description and "Envíos y cambios" in closed sections; the WhatsApp size help as a card. The delivery promise is NOT here: production Woo
  *              has no real stock and f360-storefront is not deployed there yet, so a promise would be a guess.
  *              Promise + knowledge (Mario: "sí instala lo de entrega inmediata"): the chosen size's delivery promise from Fuxia 360
@@ -79,6 +79,14 @@ add_action('wp_head', function () {
   .f360-fc-rev .st{color:#b8902f;letter-spacing:1px}
   .f360-fc-rev .who{font-size:13px;color:#8a8276;margin-top:4px}
   .woocommerce-product-gallery{position:relative}
+  /* every photo whole, in the same frame (photos come portrait, square and landscape; the slider cropped them) */
+  .woocommerce-product-gallery .flex-viewport{height:auto!important}
+  .woocommerce-product-gallery__image{aspect-ratio:4/5;background:#f4f1ec;display:flex!important;align-items:center;justify-content:center;overflow:hidden}
+  .woocommerce-product-gallery__image a{display:flex;width:100%;height:100%;align-items:center;justify-content:center}
+  .woocommerce-product-gallery__image img{width:100%!important;height:100%!important;max-height:none!important;object-fit:contain!important}
+  /* side margins for everything under the photo */
+  main#brx-content #brxe-uzixno{padding-left:16px!important;padding-right:16px!important;box-sizing:border-box}
+  .f360-fc-dots{padding:12px 16px 2px}
   .f360-fc-cnt{position:absolute;right:12px;bottom:12px;z-index:5;background:rgba(17,17,17,.72);color:#fff;font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;pointer-events:none}
   .f360-fc-dots{display:flex;gap:6px;justify-content:center;padding:12px 0 2px}
   .f360-fc-dots i{width:8px;height:8px;border-radius:50%;background:#d6cec1}
@@ -116,8 +124,8 @@ add_action('wp_head', function () {
   /* buy */
   form.variations_form .quantity,form.cart .quantity{display:none!important}
   /* the buy button is the bar at the bottom (always visible); Woo's own button stays in the form, hidden, and the bar clicks it */
-  form.variations_form .single_add_to_cart_button,form.cart .single_add_to_cart_button{display:none!important}
-  .woocommerce-variation-add-to-cart{margin:0!important}
+  form.variations_form .single_add_to_cart_button,form.cart .single_add_to_cart_button{display:block!important;width:100%!important;height:56px!important;margin:16px 0 0!important;border-radius:14px!important;background:#1d1a16!important;color:#fff!important;font-size:16px!important;font-weight:700!important;letter-spacing:.04em!important}
+  .woocommerce-variation-add-to-cart{display:block!important;margin:0!important}
   #fx-trust{display:none!important}
   .f360-fc-trust{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 0}
   .f360-fc-trust div{background:#f6f2ea;border-radius:12px;padding:10px 6px;text-align:center;font-size:13px;line-height:1.3;color:#1d1a16}
@@ -218,12 +226,6 @@ add_action('wp_footer', function () {
     if (window.MutationObserver) new MutationObserver(estado).observe(real, { attributes: true, attributeFilter: ['class', 'disabled'] });
     form.addEventListener('change', function () { setTimeout(estado, 0); });
     estado();
-    if (window.matchMedia('(max-width: 900px)').matches) {      // phones: the bar IS the buy button, always there
-      bar.classList.add('on'); bar.setAttribute('aria-hidden', 'false'); html.classList.add('f360-fc-visible');
-      html.style.setProperty('--f360-fc-h', bar.offsetHeight + 'px');
-      document.body.style.paddingBottom = (bar.offsetHeight + 8) + 'px';
-      return;
-    }
     var visible = false;
     new IntersectionObserver(function (es) {
       var ver = !es[0].isIntersecting;
