@@ -13,7 +13,7 @@
  *                Woo's own button (missing colour / size / unavailable) and clicks it, so price, stock and validation stay Woo's.
  *                It shows only while Woo's button is off screen.
  *              Paso 2 (same date, phones ≤ 900 px only, the approved mockup): name + price ABOVE the photos; no breadcrumb and no
- *              thumbnail strip; dots and a "1 / 8" counter on Woo's own slider (swipe); the first colour comes pre-chosen; big pill colours and a 6-column size grid
+ *              thumbnail strip; dots (tappable), ‹ › arrows and a "1 / 8" counter on Woo's own slider (also swipe); the first colour comes pre-chosen; big pill colours and a 6-column size grid
  *              with "¿Cuál es mi talla?" (no size conversion: the bar repeats the number on the tapped button); no quantity box; the bottom bar is THE buy button (always visible, "Camel · 24 · $2,800"; Woo's button is hidden and clicked by it); three
  *              trust tiles; description and "Envíos y cambios" in closed sections; the WhatsApp size help as a card. The delivery promise is NOT here: production Woo
  *              has no real stock and f360-storefront is not deployed there yet, so a promise would be a guess.
@@ -101,7 +101,11 @@ add_action('wp_head', function () {
   .f360-fc-tsel{font-weight:500;color:#6b6257;margin-left:4px}
   /* size */
   .fuxia-tallas{margin:18px 0 0!important}
-  .fuxia-tallas-header{margin-bottom:10px!important}
+  .fuxia-tallas-header{margin-bottom:10px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px;flex-wrap:nowrap}
+  .fuxia-tallas-header .fuxia-sistema{display:none!important}
+  .f360-fc-arr{position:absolute;top:50%;z-index:5;width:40px;height:40px;margin-top:-20px;border:0;border-radius:50%;background:rgba(255,255,255,.85);color:#1d1a16;font-size:24px;line-height:38px;text-align:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.12);padding:0}
+  .f360-fc-arr.prev{left:10px}.f360-fc-arr.next{right:10px}
+  .f360-fc-dots i{cursor:pointer;padding:0}
   .fuxia-tallas-header > span{text-transform:none!important;letter-spacing:0!important;font-size:16px!important;font-weight:600!important;color:#1d1a16}
   .f360-fc-cual{font-size:15px;color:#8a6a35;text-decoration:underline;text-underline-offset:3px;background:none;border:0;padding:8px 0;cursor:pointer;font-family:inherit}
   .fuxia-tallas-botones{display:grid!important;grid-template-columns:repeat(6,1fr);gap:8px!important;margin-bottom:0!important}
@@ -253,9 +257,17 @@ add_action('wp_footer', function () {
     var slides = g ? g.querySelectorAll('.woocommerce-product-gallery__image') : [];
     if (g && slides.length > 1) {
       var cnt = document.createElement('span'); cnt.className = 'f360-fc-cnt'; g.appendChild(cnt);
+      var ir_a = function (dir) { var fs = window.jQuery && window.jQuery(g).data('flexslider'); if (fs) fs.flexAnimate(typeof dir === 'number' ? dir : fs.getTarget(dir), true); };
+      [['prev', '\u2039', 'Foto anterior'], ['next', '\u203A', 'Foto siguiente']].forEach(function (a) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'f360-fc-arr ' + a[0]; b.textContent = a[1]; b.setAttribute('aria-label', a[2]);
+        b.addEventListener('click', function () { ir_a(a[0]); }); g.appendChild(b);
+      });
       var dots = document.createElement('div'); dots.className = 'f360-fc-dots';
       var nd = Math.min(slides.length, 6);
-      for (var k = 0; k < nd; k++) dots.appendChild(document.createElement('i'));
+      for (var k = 0; k < nd; k++) (function (k) {
+        var i = document.createElement('i'); i.setAttribute('role', 'button'); i.setAttribute('aria-label', 'Foto ' + (k + 1));
+        i.addEventListener('click', function () { ir_a(k === nd - 1 && slides.length > nd ? slides.length - 1 : k); }); dots.appendChild(i);
+      })(k);
       g.parentNode.insertBefore(dots, g.nextSibling);
       var pinta = function () {
         var i = 0; slides.forEach(function (s, k) { if (s.classList.contains('flex-active-slide')) i = k; });
@@ -288,8 +300,7 @@ add_action('wp_footer', function () {
     if (guia && th) {
       var cual = document.createElement('button'); cual.type = 'button'; cual.className = 'f360-fc-cual'; cual.textContent = '¿Cuál es mi talla?';
       cual.addEventListener('click', function () { guia.click(); });
-      var sis = th.querySelector('.fuxia-sistema');
-      if (sis && sis.offsetParent) th.parentNode.insertBefore(cual, th.nextSibling); else th.appendChild(cual);
+      th.appendChild(cual);                                    // same line as "Talla", like the mockup
     }
     // after the buy button: three trust tiles, then the details in closed sections, then the WhatsApp help
     var bloque = form && (form.closest('.brxe-product-add-to-cart') || form);
