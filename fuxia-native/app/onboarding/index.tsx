@@ -1,44 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, StatusBar, Image, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { MotiView } from 'moti';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useAppCover } from '@/lib/appCover';
 
 const LOGO_ICON = require('../../assets/images/logo-icon.png');
 const LOGO_WORDMARK = require('../../assets/images/logo-wordmark.png');
 
 export default function WelcomeScreen() {
-  // Same cover as the Home hero (Fuxia 360 → Destacado → newest product); plain black welcome while there is none.
-  const photoUri = useAppCover().uri;
-  const [photoReady, setPhotoReady] = useState(false);
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-
-      {photoUri && (
-        <MotiView
-          pointerEvents="none"
-          style={StyleSheet.absoluteFill}
-          animate={{ opacity: photoReady ? 1 : 0 }}
-          transition={{ type: 'timing', duration: 900 }}
-        >
-          <Image
-            source={{ uri: photoUri }}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
-            onLoad={() => setPhotoReady(true)}
-            onError={() => setPhotoReady(false)}
-          />
-          {/* Keeps the logo and buttons readable over any photo. */}
-          <LinearGradient
-            colors={['rgba(13,13,13,0.5)', 'rgba(13,13,13,0.45)', 'rgba(13,13,13,0.75)', 'rgba(13,13,13,0.95)']}
-            locations={[0, 0.35, 0.7, 1]}
-            style={StyleSheet.absoluteFill}
-          />
-        </MotiView>
-      )}
 
       <View style={styles.center}>
         {/* Icon: entrance spring, then gentle breathing float forever */}
