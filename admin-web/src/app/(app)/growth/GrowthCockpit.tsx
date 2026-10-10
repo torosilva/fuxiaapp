@@ -9,6 +9,11 @@ const STATUS: Record<KpiStatus, { label: string; cls: string }> = {
   NOT_CONFIGURED: { label: 'NO CONFIGURADO', cls: 'bg-surface-2 text-muted' },
   STALE: { label: 'DESACTUALIZADO', cls: 'bg-danger-soft text-danger' },
 };
+const PAY: Record<string, string> = {
+  'woo-mercado-pago-custom': 'Mercado Pago (tarjeta)', 'woo-mercado-pago-basic': 'Mercado Pago (checkout)', 'woo-mercado-pago-pix': 'Mercado Pago',
+  'ppcp-card-button-gateway': 'PayPal · tarjeta', 'ppcp-gateway': 'PayPal', epayco: 'ePayco', f360_prueba: 'Prueba Fuxia 360', 'sin método': 'Sin método (abandonado antes de elegir)',
+};
+const payName = (m: string) => PAY[m] ?? m;
 const CONF: Record<string, string> = { ALTA: 'bg-success-soft text-success', MEDIA: 'bg-gold-soft text-gold-strong', BAJA: 'bg-surface-2 text-ink-2', 'SIN DATOS': 'bg-surface-2 text-muted' };
 
 const money = (v: number | null | undefined, cur?: string) =>
@@ -78,7 +83,7 @@ function Market({ m }: { m: MarketBlock }) {
             <thead className="text-left text-[11px] uppercase tracking-wider text-muted"><tr><th className="py-1">Método</th><th className="text-right">Pedidos</th><th className="text-right">Pagados</th><th className="text-right">Sin pago</th></tr></thead>
             <tbody className="divide-y divide-line">
               {m.checkout.by_payment.map((p) => (
-                <tr key={p.method}><td className="py-1.5 text-ink-2">{p.method}</td><td className="tabular text-right">{p.created}</td><td className="tabular text-right">{p.paid}</td>
+                <tr key={p.method}><td className="py-1.5 text-ink-2">{payName(p.method)}</td><td className="tabular text-right">{p.created}</td><td className="tabular text-right">{p.paid}</td>
                   <td className={`tabular text-right ${p.created > 0 && p.never_paid / p.created >= 0.3 ? 'font-semibold text-danger' : ''}`}>{p.never_paid}{p.created > 0 ? ` (${Math.round((p.never_paid / p.created) * 100)}%)` : ''}</td></tr>
               ))}
               {m.checkout.by_payment.length === 0 && <tr><td colSpan={4} className="py-2 text-muted">Sin pedidos en el periodo.</td></tr>}
@@ -156,7 +161,7 @@ export function GrowthCockpit({ data, market }: { data: Cockpit; market: string 
               <p className="mt-1.5 font-semibold text-ink">{f.title}</p>
               <p className="text-sm text-ink-2">{f.evidence}</p>
               {f.detail && f.detail.length > 0 && (
-                <p className="mt-1 text-xs text-ink-2">{f.detail.filter((x) => x.never_paid > 0).map((x) => `${x.method}: ${x.never_paid} de ${x.created} sin pago`).join(' · ')}</p>
+                <p className="mt-1 text-xs text-ink-2">{f.detail.filter((x) => x.never_paid > 0).map((x) => `${payName(x.method)}: ${x.never_paid} de ${x.created} sin pago`).join(' · ')}</p>
               )}
               <p className="mt-1 text-[11px] text-muted">Fuente: {f.source}</p>
             </li>
