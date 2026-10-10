@@ -7,6 +7,7 @@ import { f360User, serviceRpc, type SupabaseEnv } from '../_shared/f360-woo/supa
 import { safeEqual } from '../_shared/f360-woo/orders.ts';
 import type { WooAdapter } from '../_shared/f360-woo/types.ts';
 import { commerceReconcile, commerceWoo, type CommerceWoo } from '../_shared/f360-woo/commerce.ts';
+import { orderEvidence } from '../_shared/f360-woo/evidence.ts';
 
 export type SyncEnv = SupabaseEnv & { WOO_TARGET_KEY: string; WOO_BASE_URL: string; WOO_USER: string; WOO_SECRET: string; F360_SYNC_SECRET?: string };
 export type SyncOptions = { wrapAdapter?: (a: WooAdapter) => WooAdapter; commerceWoo?: CommerceWoo };
@@ -21,18 +22,45 @@ export function syncAdapter(env: SyncEnv, opts: SyncOptions = {}) {
 export async function handleSync(req: Request, env: SyncEnv, opts: SyncOptions = {}): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'Método no permitido.' }, 405);
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
-  let who = 'Sistema'; let role = 'system';
+  let who = 'Sistema'; let role = 'system'; let uid: string | null = null;
   if (!(env.F360_SYNC_SECRET && token && safeEqual(token, env.F360_SYNC_SECRET))) {
     const u = await f360User(env, token);
     if (!u) return json({ error: 'Tu sesión no es válida.' }, 401);
     if (u.role !== 'owner' && u.role !== 'operator') return json({ error: 'Tu cuenta no tiene permiso para esta acción.' }, 403);
-    who = u.display_name; role = u.role;
+    who = u.display_name; role = u.role; uid = u.id;
   }
   let action = 'push'; let body: { action?: string; woo_product_id?: number; product_ids?: string[] } = {};
   try { body = (await req.json()) as typeof body; action = String(body.action ?? 'push'); } catch { /* default */ }
   const rpc = serviceRpc(env);
   const woo = syncAdapter(env, opts);
   try {
+    // Conciliación de Ventas: READ-ONLY evidence of one order for Carolina / Mario (customer_pii_viewers). The viewer check runs
+    // with the caller's own token BEFORE anything is read from WooCommerce; only GETs are made; the minimal snapshot is stored
+    // by the database (service role), the customer data and masked gateway notes are returned for display only.
+    if (action === 'order_evidence') {
+      if (!uid) return json({ error: 'Solo una persona autorizada puede consultar evidencia.' }, 403);
+      const okView = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/f360_rec_can_view`, { method: 'POST',
+        headers: { apikey: env.SUPABASE_ANON_KEY ?? '', Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: '{}' });
+      if (!okView.ok) return json({ error: 'Solo Carolina y Mario pueden consultar la evidencia de los pedidos.' }, 403);
+      const orderId = Number((body as { woo_order_id?: unknown }).woo_order_id);
+      const targetKey = String((body as { target_key?: unknown }).target_key ?? '');
+      if (!Number.isInteger(orderId) || orderId <= 0) return json({ error: 'Falta el número de pedido.' }, 400);
+      if (targetKey !== env.WOO_TARGET_KEY) return json({ error: 'Ese pedido es de otra tienda.' }, 409);
+      const cw = opts.commerceWoo ?? commerceWoo({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET });
+      if (!cw.getOrder || !cw.listOrderNotes) return json({ error: 'Lectura de pedidos no disponible.' }, 501);
+      let order: Record<string, unknown> | null;
+      try { order = await cw.getOrder(orderId) as Record<string, unknown> | null; }
+      catch (e) { if (/HTTP 404/.test((e as Error).message)) order = null; else throw e; }
+      if (!order) {
+        // the absence itself is evidence (recorded, never "fixed")
+        const saved = await rpc('f360_rec_evidence_record', { p_actor: uid, p_target_key: targetKey, p_order: orderId,
+          p_ev: { woo_status: 'no_existe', gateway_result: 'order_missing', signals: [] } });
+        return json({ evidence: saved, display: { customer: { name: null, email: null }, payment_method_title: null, gateway_notes: [] }, missing: true });
+      }
+      const ev = orderEvidence(order, await cw.listOrderNotes(orderId));
+      const saved = await rpc('f360_rec_evidence_record', { p_actor: uid, p_target_key: targetKey, p_order: orderId, p_ev: ev.stored });
+      return json({ evidence: saved, display: ev.display });
+    }
     // Fuxia 360 content → the current store's products (owners only, one store product per call; the DB refuses production)
     // Store links of some products (owners): old per-colour product → new single product, for the redirect list.
     if (action === 'permalinks') {

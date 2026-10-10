@@ -104,6 +104,8 @@ export type CommerceWoo = {
   getOrder?: (orderId: number) => Promise<Obj | null>;
   /** S-G0 history import: stubs of orders CREATED after a date (ascending id). */
   listOrderStubsCreated?: (createdAfterGmt: string, page: number) => Promise<Obj[]>;
+  /** Conciliación: order notes (gateway messages) of one order, read for a verified viewer and never stored as text. */
+  listOrderNotes?: (orderId: number) => Promise<Obj[]>;
 };
 export function commerceWoo(cfg: { baseUrl: string; user: string; secret: string; timeoutMs?: number }): CommerceWoo {
   const base = `${cfg.baseUrl.replace(/\/+$/, '')}/wp-json/wc/v3`;
@@ -122,6 +124,7 @@ export function commerceWoo(cfg: { baseUrl: string; user: string; secret: string
     getOrder: async (id) => (await get(`/orders/${id}`)) as unknown as Obj,
     listOrderStubsCreated: (after, page) => get(`/orders?status=any&orderby=id&order=asc&per_page=100&page=${page}&dates_are_gmt=true` +
       `&_fields=id,status,date_modified_gmt,date_created_gmt&after=${encodeURIComponent(after)}`),
+    listOrderNotes: (id) => get(`/orders/${id}/notes?type=any`),
   };
 }
 
