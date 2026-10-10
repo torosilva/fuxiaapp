@@ -57,5 +57,6 @@ Después de rotar: borrar o archivar las transcripciones locales que contienen l
 
 ## 6. Estado al 2026-10-10 21:35 UTC
 - **Rotados y verificados:** `F360_SYNC_SECRET`, `WOO_WEBHOOK_SECRET` (detalle en `ISOLATION_DIAGNOSIS_2026-10-10.md`, "Ejecución").
-- **Pendientes:** `F360_HILO_SECRET` (coordinar con Adrián) · revisar si sigue vigente la contraseña de `~/.fuxia-db-url` (Mario) · revocar el token personal de Supabase en el panel (ya no sirve).
+- **Pendientes:** revisar si sigue vigente la contraseña de `~/.fuxia-db-url` (Mario) · revocar el token personal de Supabase en el panel (ya no sirve).
+- **`F360_HILO_SECRET`: ROTADO** ~21:40 UTC, con Mario (que tiene acceso a Railway; no hizo falta Adrián). La clave nueva viajó por el portapapeles, que después se limpió; nunca se imprimió. Mario la pegó en Railway (`F360_INTAKE_SECRET`) y Claude actualizó Supabase. Verificado: clave nueva aceptada (400 "falta conversation_id", no escribe nada) y vieja rechazada (401). **De punta a punta:** el caso de prueba de Mario en el chat de la tienda llegó a la bandeja (`customer_cases`, `hilo_web`, 21:44 UTC). Valor anterior borrado.
 - **Dato personal expuesto en esta sesión** (no es credencial): el correo de una clienta del pedido #3151, por un filtro de metadatos demasiado amplio. Está solo en la transcripción local y en la conversación.
