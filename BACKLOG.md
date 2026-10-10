@@ -239,6 +239,17 @@ Tiles "Seguimiento", "Regalar", "Pagos" están sin destino. Solo "Mis Compras" f
 - Ocultarlos hasta tener spec
 - Reemplazarlos por links útiles
 
+### #60 Fuxia Academy — parking lot (P3, NO implementar todavía)
+
+Registrada por Mario el 2026-10-10 como iniciativa futura; fuera del sprint S-G1 (Growth War Room). Alcance a diseñar cuando se priorice:
+
+- Cursos, lecciones y evaluaciones; progreso por persona.
+- Certificados PDF con QR verificable.
+- Certificaciones por rol (vendedora, encargada, etc.).
+- Elegibilidad de incentivos ligada a certificaciones, **siempre con aprobación humana** (nunca automática).
+
+Sin tablas, rutas ni infraestructura hasta que se apruebe un sprint propio.
+
 ---
 
 ## 🚫 Blocked / Wait
