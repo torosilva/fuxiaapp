@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { Cockpit, Kpi, KpiStatus, MarketBlock } from '@/lib/growth-cockpit';
+import { payName, type Cockpit, type Kpi, type KpiStatus, type MarketBlock } from '@/lib/growth-cockpit';
 
 // S-G1 Growth War Room. Every number says where it comes from; a missing input is shown as such, never as 0.
 const MARKET_NAME: Record<string, string> = { MX: 'México', CO: 'Colombia', ROW: 'Resto del mundo', TODOS: 'Todos' };
@@ -9,11 +9,6 @@ const STATUS: Record<KpiStatus, { label: string; cls: string }> = {
   NOT_CONFIGURED: { label: 'NO CONFIGURADO', cls: 'bg-surface-2 text-muted' },
   STALE: { label: 'DESACTUALIZADO', cls: 'bg-danger-soft text-danger' },
 };
-const PAY: Record<string, string> = {
-  'woo-mercado-pago-custom': 'Mercado Pago (tarjeta)', 'woo-mercado-pago-basic': 'Mercado Pago (checkout)', 'woo-mercado-pago-pix': 'Mercado Pago',
-  'ppcp-card-button-gateway': 'PayPal · tarjeta', 'ppcp-gateway': 'PayPal', epayco: 'ePayco', f360_prueba: 'Prueba Fuxia 360', 'sin método': 'Sin método (abandonado antes de elegir)',
-};
-const payName = (m: string) => PAY[m] ?? m;
 const CONF: Record<string, string> = { ALTA: 'bg-success-soft text-success', MEDIA: 'bg-gold-soft text-gold-strong', BAJA: 'bg-surface-2 text-ink-2', 'SIN DATOS': 'bg-surface-2 text-muted' };
 
 const money = (v: number | null | undefined, cur?: string) =>

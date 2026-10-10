@@ -23,3 +23,10 @@ export type Cockpit = {
 };
 
 export const getGrowthCockpit = (from: string | null, to: string | null) => rpc<Cockpit>('f360_growth_cockpit', { p_from: from, p_to: to });
+
+// Woo payment method ids → names people recognise (War Room and Conciliación).
+const PAY: Record<string, string> = {
+  'woo-mercado-pago-custom': 'Mercado Pago (tarjeta)', 'woo-mercado-pago-basic': 'Mercado Pago (checkout)', 'woo-mercado-pago-pix': 'Mercado Pago',
+  'ppcp-card-button-gateway': 'PayPal · tarjeta', 'ppcp-gateway': 'PayPal', epayco: 'ePayco', f360_prueba: 'Prueba Fuxia 360', 'sin método': 'Sin método (abandonado antes de elegir)',
+};
+export const payName = (m: string) => PAY[m] ?? m;
