@@ -41,7 +41,7 @@ BEGIN
   IF (SELECT sum((m->>'orders')::int) FROM jsonb_array_elements(d->'by_market') m) <> (SELECT count(*) FROM f360.commerce_woo_orders) THEN RAISE EXCEPTION 'R3 summary'; END IF;
   -- R4 flags separate "no se concretó" from real financial discrepancies, each with its reason
   d := public.f360_rec_case(tgt, 5351);
-  IF NOT d->'flags' @> '[{"code":"PAGO_Y_CANCELADO","kind":"financiera"}]' OR d->>'rec_state' <> 'pendiente_discrepancia' THEN RAISE EXCEPTION 'R4 5351 %', d->'flags'; END IF;
+  IF NOT d->'flags' @> '[{"code":"PAGO_Y_CANCELADO","kind":"financiera"}]' OR (d->'decision' = 'null'::jsonb AND d->>'rec_state' <> 'pendiente_discrepancia') THEN RAISE EXCEPTION 'R4 5351 %', d->'flags'; END IF;
   IF NOT public.f360_rec_case(tgt, 3654)->'flags' @> '[{"code":"POSIBLE_PRUEBA"}]' THEN RAISE EXCEPTION 'R4 3654'; END IF;
   d := public.f360_rec_case(tgt, 3097);
   IF NOT d->'flags' @> '[{"code":"NO_CONCRETADO","kind":"no_concretado"},{"code":"REINTENTO_PAGADO"}]' OR d->>'financial_state' <> 'SIN_COBRO'
@@ -71,7 +71,7 @@ BEGIN
   -- R7 a human "venta confirmada" needs evidence and NEVER turns into a verified charge; facts and Growth metrics untouched
   BEGIN PERFORM public.f360_rec_decide(tgt, 5351, 'venta_confirmada'); RAISE EXCEPTION 'R7 without evidence';
   EXCEPTION WHEN check_violation THEN NULL; END;
-  d := public.f360_rec_decide(tgt, 5351, 'venta_confirmada', NULL, (e->>'id')::bigint);
+  d := public.f360_rec_decide(tgt, 5351, 'venta_confirmada', 'prueba R7: confirmación humana', (e->>'id')::bigint);
   IF d->>'rec_state' <> 'conflicto' OR d->>'conflict' IS NULL OR d->>'financial_state' = 'COBRO_CON_TRANSACCION' THEN RAISE EXCEPTION 'R7 %', d; END IF;
   first_id := (d->>'id')::bigint;
   -- R8 correcting a decision needs a reason; the new one supersedes, history keeps both
@@ -80,7 +80,7 @@ BEGIN
   d := public.f360_rec_decide(tgt, 5351, 'requiere_investigacion', 'Mercado Pago dice aprobado; pedir a Carolina el estado de cuenta');
   IF (d->>'supersedes')::bigint <> first_id OR d->>'rec_state' <> 'en_investigacion' THEN RAISE EXCEPTION 'R8 %', d; END IF;
   d := public.f360_rec_case(tgt, 5351);
-  IF jsonb_array_length(d->'decision_history') <> 2 OR d->'decision'->>'decision' <> 'requiere_investigacion' OR d->'decision'->>'by' <> 'Mario' THEN RAISE EXCEPTION 'R8 history'; END IF;
+  IF jsonb_array_length(d->'decision_history') <> 2 + (SELECT count(*) FROM f360.sales_rec_decisions x WHERE x.target_id = tgt AND x.woo_order_id = 5351 AND x.id < first_id) OR d->'decision'->>'decision' <> 'requiere_investigacion' OR d->'decision'->>'by' <> 'Mario' THEN RAISE EXCEPTION 'R8 history'; END IF;
   -- R9 duplicado needs the other order + reason; prueba needs a reason; invalid decision refused
   BEGIN PERFORM public.f360_rec_decide(tgt, 999001, 'duplicado', 'mismo pedido dos veces'); RAISE EXCEPTION 'R9 dup without original'; EXCEPTION WHEN check_violation THEN NULL; END;
   BEGIN PERFORM public.f360_rec_decide(tgt, 999001, 'duplicado', 'mismo pedido dos veces', NULL, 999001); RAISE EXCEPTION 'R9 dup of itself'; EXCEPTION WHEN check_violation THEN NULL; END;
@@ -88,7 +88,7 @@ BEGIN
   BEGIN PERFORM public.f360_rec_decide(tgt, 3654, 'cobrada'); RAISE EXCEPTION 'R9 bad decision'; EXCEPTION WHEN check_violation THEN NULL; END;
   d := public.f360_rec_decide(tgt, 999001, 'duplicado', 'La clienta pagó dos veces el mismo carrito', NULL, paid_src);
   IF d->>'conflict' IS NULL THEN RAISE EXCEPTION 'R9 paid duplicate without refund must show conflict %', d; END IF;
-  d := public.f360_rec_decide(tgt, 3654, 'prueba', 'Pedido de prueba del equipo (método f360_prueba)');
+  d := public.f360_rec_decide(tgt, 3654, 'prueba', 'Pedido de prueba del equipo (método f360_prueba)');   -- may supersede an example review
   -- R10 exclusion is a separate action with reason, append-only, reversible by a new record; NOT applied to metrics yet
   BEGIN PERFORM public.f360_rec_set_analytics(tgt, 3654, true, 'x'); RAISE EXCEPTION 'R10 short reason'; EXCEPTION WHEN check_violation THEN NULL; END;
   PERFORM public.f360_rec_set_analytics(tgt, 3654, true, 'Pedido de prueba, no es venta');
@@ -107,7 +107,7 @@ BEGIN
   IF (SELECT md5(string_agg(o::text, '|' ORDER BY woo_order_id)) FROM f360.commerce_woo_orders o WHERE target_id = tgt) <> facts_before THEN RAISE EXCEPTION 'R12 facts changed'; END IF;
   IF public.f360_growth_cockpit('2026-06-01', '2026-10-10') - 'generated_at' <> cockpit_before THEN RAISE EXCEPTION 'R12 Growth metrics changed'; END IF;
   -- R13 a review is flagged again when the source changes after it
-  d := public.f360_rec_decide(tgt, 4115, 'no_se_concreto');
+  d := public.f360_rec_decide(tgt, 4115, 'no_se_concreto', 'prueba R13: no se pagó');
   UPDATE f360.commerce_woo_orders SET woo_status = 'cancelled' WHERE target_id = tgt AND woo_order_id = 4115;
   IF public.f360_rec_case(tgt, 4115)->>'rec_state' <> 'cambio_despues' THEN RAISE EXCEPTION 'R13'; END IF;
   -- R14 no personal or card data columns in the reconciliation tables
@@ -117,7 +117,7 @@ BEGIN
   e2 := public.f360_rec_evidence_record(mario, 'woo_staging4', 4114, '{"woo_status":"no_existe","gateway_result":"order_missing"}');
   d := public.f360_rec_case(tgt, 4114);
   IF d->>'financial_state' <> 'NO_EXISTE_EN_WOO' OR NOT d->'flags' @> '[{"code":"NO_EXISTE_EN_WOO","kind":"financiera"}]' THEN RAISE EXCEPTION 'R15 %', d->'flags'; END IF;
-  d := public.f360_rec_decide(tgt, 4114, 'venta_confirmada', NULL, (e2->>'id')::bigint);
+  d := public.f360_rec_decide(tgt, 4114, 'venta_confirmada', 'prueba R15: confirmación humana', (e2->>'id')::bigint);
   IF d->>'rec_state' <> 'conflicto' THEN RAISE EXCEPTION 'R15 conflict %', d; END IF;
   RAISE NOTICE 'ENSAYO OK';
 END $$;

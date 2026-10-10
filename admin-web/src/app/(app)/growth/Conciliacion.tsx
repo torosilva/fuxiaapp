@@ -62,7 +62,7 @@ function Filters({ s, f }: { s: RecSummary; f: RecFilters }) {
       <label className="text-xs text-muted">Método de pago<select name="metodo" defaultValue={f.metodo ?? ''} className={field}><option value="">Todos</option>{s.methods.map((x) => <option key={x} value={x}>{x === 'sin_metodo' ? 'Sin método' : payName(x)}</option>)}</select></label>
       <label className="text-xs text-muted">Marca<select name="marca" defaultValue={f.marca ?? ''} className={field}><option value="">Todas</option><option value="financiera">Cualquier discrepancia financiera</option>
         {Object.entries(FLAG_NAME).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-      <label className="text-xs text-muted">Conciliación<select name="conciliacion" defaultValue={f.conciliacion ?? 'pendientes'} className={field}><option value="todos">Todos</option><option value="pendientes">Por revisar</option>
+      <label className="text-xs text-muted">Conciliación<select name="conciliacion" defaultValue={f.conciliacion ?? 'todos'} className={field}><option value="todos">Todos</option><option value="pendientes">Por revisar</option>
         {Object.entries(REC_STATE).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></label>
       <label className="text-xs text-muted">Decisión<select name="decision" defaultValue={f.decision ?? ''} className={field}><option value="">Todas</option><option value="sin_decision">Sin decisión</option>
         {Object.entries(DECISIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
