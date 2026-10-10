@@ -26,10 +26,10 @@ function KpiCard({ label, k, fmt }: { label: string; k: Kpi; fmt: (v: number | n
   const st = STATUS[k.status];
   const d = k.status === 'OK' ? delta(k.value, k.prev) : null;
   return (
-    <div className="atelier-card flex min-h-32 flex-col gap-1.5 rounded-[20px] p-4">
-      <div className="flex items-start justify-between gap-2">
+    <div className="atelier-card flex min-h-32 min-w-0 flex-col gap-1.5 rounded-[20px] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-1.5">
         <span className="kicker text-ink-2">{label}</span>
-        {st.label && <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider ${st.cls}`}>{st.label}</span>}
+        {st.label && <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wide sm:text-[10px] sm:tracking-wider ${st.cls}`}>{st.label}</span>}
       </div>
       <span className={`tabular text-2xl font-semibold ${k.status === 'OK' || k.status === 'STALE' ? 'text-ink' : 'text-muted'}`}>{k.status === 'NOT_CONFIGURED' ? '—' : fmt(k.value)}</span>
       {d && <span className="text-xs text-ink-2">{d}</span>}
