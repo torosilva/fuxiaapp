@@ -7,7 +7,9 @@ import { commerceWoo, orderEconomics, refundDetail, type CommerceWoo } from '../
 import { serviceRpc, type SupabaseEnv } from '../_shared/f360-woo/supabase.ts';
 import { orderLoyalty, orderShipping } from '../_shared/f360-woo/shipping.ts';
 
-export type OrdersEnv = SupabaseEnv & { WOO_TARGET_KEY: string; WOO_WEBHOOK_SECRET: string; WOO_BASE_URL?: string; WOO_USER?: string; WOO_SECRET?: string };
+export type OrdersEnv = SupabaseEnv & { WOO_TARGET_KEY: string; WOO_WEBHOOK_SECRET: string; WOO_BASE_URL?: string; WOO_USER?: string; WOO_SECRET?: string;
+  /** Environment isolation (2026-10-10 incident): when set, only deliveries whose x-wc-webhook-source host is this store are accepted. */
+  WOO_EXPECTED_SOURCE?: string };
 export type OrdersOptions = { afterApplied?: () => Promise<unknown>; commerceWoo?: CommerceWoo | null };
 
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
@@ -23,6 +25,16 @@ export async function handleOrders(req: Request, env: OrdersEnv, opts: OrdersOpt
   // Woo "ping" when a webhook is created/activated: form-encoded "webhook_id=…", no topic. Acknowledge only.
   if (!topic && /^webhook_id=\d+$/.test(raw.trim())) return json({ ok: true, ping: true });
 
+  // Isolation: a copied store (staging4 → production) kept staging's webhooks and sent real orders here. With WOO_EXPECTED_SOURCE
+  // set, a delivery from any other store is refused and recorded, even with a valid signature.
+  if (env.WOO_EXPECTED_SOURCE) {
+    const src = req.headers.get('x-wc-webhook-source') ?? '';
+    let host = ''; try { host = new URL(src).host.toLowerCase(); } catch { /* missing / invalid → refused */ }
+    if (host !== env.WOO_EXPECTED_SOURCE.toLowerCase()) {
+      try { await rpc('f360_record_webhook_rejection', { p_target_key: env.WOO_TARGET_KEY, p_delivery: delivery, p_reason: `origen distinto: ${host || 'sin origen'}` }); } catch { /* still reject */ }
+      return json({ error: 'Este servicio no acepta pedidos de esa tienda.' }, 403);
+    }
+  }
   if (!(await verifyWooSignature(raw, req.headers.get('x-wc-webhook-signature'), env.WOO_WEBHOOK_SECRET))) {
     try { await rpc('f360_record_webhook_rejection', { p_target_key: env.WOO_TARGET_KEY, p_delivery: delivery, p_reason: 'firma inválida' }); } catch { /* still reject */ }
     return json({ error: 'Firma inválida.' }, 401);

@@ -171,3 +171,31 @@ test('shipping: billing address is the fallback when the order has no shipping a
   const s = orderShipping({ id: 7, status: 'processing', billing: { first_name: 'Eva', address_1: 'Calle 1', city: 'CDMX', state: 'CX', postcode: '01000', country: 'MX', phone: '5511112222' }, shipping: { first_name: 'Eva' } });
   assert.equal(s.street, 'Calle 1'); assert.equal(s.state, 'Ciudad de México'); assert.equal(s.postal_code, '01000'); assert.equal(s.created_at, null);
 });
+
+test('isolation (WOO_EXPECTED_SOURCE): a validly signed delivery from another store is refused and recorded; the expected store passes', async (t) => {
+  const calls: { fn: string; args: Record<string, unknown> }[] = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async (url: string, init: RequestInit) => {
+    const fn = String(url).split('/rpc/')[1]; calls.push({ fn, args: JSON.parse(String(init.body)) });
+    return new Response(JSON.stringify(fn === 'f360_ingest_woo_order' ? { result: 'applied' } : { result: 'inserted' }), { status: 200 });
+  }) as typeof fetch;
+  t.after(() => { globalThis.fetch = realFetch; });
+  const isoEnv = { ...env, WOO_EXPECTED_SOURCE: 'staging4.fuxiaballerinas.com' };
+  const body = JSON.stringify(fullOrder());
+  const from = (source: string | null) => new Request('http://x', { method: 'POST', body, headers: { 'x-wc-webhook-topic': 'order.updated', 'x-wc-webhook-delivery-id': 'd9',
+    'x-wc-webhook-signature': signed(body), ...(source ? { 'x-wc-webhook-source': source } : {}) } });
+  for (const src of ['https://fuxiaballerinas.com/', null, 'not a url']) {
+    calls.length = 0;
+    const res = await handleOrders(from(src), isoEnv, { commerceWoo: { listOrders: async () => [], listRefunds: async () => [] } });
+    assert.equal(res.status, 403, String(src));
+    assert.deepEqual(calls.map((c) => c.fn), ['f360_record_webhook_rejection']);
+    assert.match(String(calls[0].args.p_reason), /origen distinto/);
+  }
+  calls.length = 0;
+  const ok = await handleOrders(from('https://staging4.fuxiaballerinas.com/'), isoEnv, { commerceWoo: { listOrders: async () => [], listRefunds: async () => [] } });
+  assert.equal(ok.status, 200);
+  assert.ok(calls.some((c) => c.fn === 'f360_ingest_woo_order'));
+  // without the variable nothing changes (production keeps today's behaviour)
+  calls.length = 0;
+  assert.equal((await handleOrders(from('https://fuxiaballerinas.com/'), env, { commerceWoo: { listOrders: async () => [], listRefunds: async () => [] } })).status, 200);
+});

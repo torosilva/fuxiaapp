@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { DECISIONS } from '@/lib/sales-rec-labels';
-import { decideAction, fetchEvidenceAction, setAnalyticsAction, type EvidenceDisplay } from './conciliacion-actions';
+import { correctCurrencyAction, decideAction, fetchEvidenceAction, setAnalyticsAction, type EvidenceDisplay } from './conciliacion-actions';
 
 // Conciliación de Ventas — the three human actions. The database re-checks everything (who, what, reason, evidence).
 const field = 'mt-1 w-full rounded-xl border border-line bg-bg px-3 py-2 text-base outline-none focus:border-gold';
@@ -83,6 +83,36 @@ export function DecisionForm({ target, orderId, latestEvidence, hasDecision, can
           } else setMsg({ ok: false, text: r.error });
         })}>{pending ? 'Guardando…' : 'Guardar decisión'}</button>
       {msg && <p className={`mt-2 text-sm ${msg.ok ? 'text-ink-2' : 'text-danger'}`}>{msg.text}</p>}
+    </div>
+  );
+}
+
+// Commercial currency correction: WooCommerce keeps its record; no FX conversion; the payment state never changes.
+export function CurrencyForm({ target, orderId, wooCurrency, active }: { target: string; orderId: number; wooCurrency: string; active: { currency: string } | null }) {
+  const [currency, setCurrency] = useState(active?.currency ?? (wooCurrency === 'COP' ? 'MXN' : 'COP'));
+  const [reason, setReason] = useState('');
+  const [msg, setMsg] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const router = useRouter();
+  const run = (revert: boolean) => start(async () => {
+    const r = await correctCurrencyAction(target, orderId, revert ? null : currency, reason, revert);
+    if (r.ok) { setReason(''); setMsg(null); router.refresh(); } else setMsg(r.error);
+  });
+  return (
+    <div className="rounded-2xl border border-line p-4" data-testid="rec-currency">
+      <h3 className="text-lg font-semibold text-ink">Moneda del pedido</h3>
+      <p className="mt-1 text-xs text-muted">WooCommerce registra {wooCurrency}. Una corrección comercial cambia solo cómo se reporta (país y moneda), sin convertir el importe ni cambiar el estado de pago. Queda registrada y se puede revertir.</p>
+      <div className="mt-3 flex flex-wrap items-end gap-2">
+        {!active && <label className="text-sm text-muted">Moneda correcta
+          <select className={field} value={currency} onChange={(e) => setCurrency(e.target.value)}>
+            {['MXN', 'COP', 'USD'].filter((c) => c !== wooCurrency).map((c) => <option key={c} value={c}>{c}</option>)}
+          </select></label>}
+      </div>
+      <label className="mt-3 block text-sm text-muted">Motivo y evidencia (obligatorio)
+        <input className={field} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000} placeholder={active ? 'Por qué se revierte' : 'Quién lo confirmó y con qué evidencia'} /></label>
+      <button type="button" disabled={pending || reason.trim().length < 10} className="mt-3 rounded-full border border-ink px-5 py-2 text-sm text-ink disabled:opacity-40"
+        onClick={() => run(!!active)}>{pending ? 'Guardando…' : active ? `Revertir a ${wooCurrency}` : `Corregir a ${currency}`}</button>
+      {msg && <p className="mt-2 text-sm text-danger">{msg}</p>}
     </div>
   );
 }

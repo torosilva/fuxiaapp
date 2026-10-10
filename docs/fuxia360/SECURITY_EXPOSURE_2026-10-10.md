@@ -54,3 +54,8 @@ Después de rotar: borrar o archivar las transcripciones locales que contienen l
 ## 5. Para que no se repita
 - Nunca listar archivos de credenciales con `cat` o `sed`. Para ver nombres: `grep -o '^[A-Z_]*='`. Para ver valores: solo longitud o huella.
 - Los archivos de un solo valor (`*.secret`, `*-token`, `*-db-url`) no se leen con herramientas que muestran contenido.
+
+## 6. Estado al 2026-10-10 21:35 UTC
+- **Rotados y verificados:** `F360_SYNC_SECRET`, `WOO_WEBHOOK_SECRET` (detalle en `ISOLATION_DIAGNOSIS_2026-10-10.md`, "Ejecución").
+- **Pendientes:** `F360_HILO_SECRET` (coordinar con Adrián) · revisar si sigue vigente la contraseña de `~/.fuxia-db-url` (Mario) · revocar el token personal de Supabase en el panel (ya no sirve).
+- **Dato personal expuesto en esta sesión** (no es credencial): el correo de una clienta del pedido #3151, por un filtro de metadatos demasiado amplio. Está solo en la transcripción local y en la conversación.

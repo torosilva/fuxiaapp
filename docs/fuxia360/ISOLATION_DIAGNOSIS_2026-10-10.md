@@ -119,7 +119,7 @@ Los secretos de staging (incluido el secreto de los webhooks #3 y #4) **no se ex
 | Fuxia 360 producción | — | — | No está (P0D no ejecutado) |
 
 **Por qué aparece en USD:**
-1. El pedido se creó en junio desde el dominio de lanzamiento `nuevo.` y se pagó con PayPal, que **no acepta COP**. La tienda guardó el código de moneda USD pero dejó los precios colombianos: 380,000 por un par.
+1. El pedido se creó el 19 de junio desde el dominio de lanzamiento `nuevo.`, con PayPal. La tienda guardó el código de moneda USD pero dejó los precios colombianos: 380,000 por un par. *Hipótesis no comprobada:* en ese momento el selector de moneda o la configuración de PayPal en `nuevo.` cambió el código a USD sin convertir. **Corrección del 10 oct:** no es cierto que PayPal no acepte COP; staging4 tiene pedidos en COP completados con PayPal (#3593).
 2. Fuxia 360 asigna el mercado **por moneda** (USD → ROW). Solo marca conflicto si la ruta de entrada dice `/co/` o `/mx/`, y aquí la entrada no la tiene. El país de facturación (CO) se guarda pero **no se usa** para detectar conflictos.
 
 **¿Hay otros pedidos colombianos así?** No. De 84 pedidos desde el 1 de junio, los 32 con facturación CO son 31 en COP más **solo el #2095** en USD. Los otros 4 en USD son reales (precio 150 USD; Estados Unidos y Chile). Ningún MXN o COP tiene precios fuera de rango.
@@ -145,3 +145,43 @@ Los secretos de staging (incluido el secreto de los webhooks #3 y #4) **no se ex
   - sin permiso, rechazado;
   - historial inmutable.
 - **Rollback:** registrar una corrección inversa (evento nuevo), o el `.down.sql` que borra la tabla y deja la vista como antes.
+
+---
+
+## EJECUCIÓN — 2026-10-10 (autorizada por Mario)
+
+### 1. Webhooks (WooCommerce producción): HECHO
+- **Antes (21:21 UTC, REST de solo lectura):** igual que el diagnóstico. #1, #2, #5 y #6 activos → producción; #3 y #4 activos → staging.
+- **Cambio:** un script con protección (aborta si algún webhook no apunta a `faltxpkaicwpnlqaxrdu` o no está activo) puso **#3 y #4 en `paused`**. No se borró nada. `date_modified` de ambos: 2026-10-10T21:21:45.
+- **Después (REST + wp-cli):**
+
+| # | Estado | Destino | Tema |
+|---|---|---|---|
+| 1 | active | producción | order.created |
+| 2 | active | producción | order.updated |
+| 3 | **paused** | staging | order.created |
+| 4 | **paused** | staging | order.updated |
+| 5 | active | producción | order.created |
+| 6 | active | producción | order.updated |
+
+- **Reactivar si hiciera falta:** `wp wc webhook update 3 --status=active --user=<admin>` (ídem 4).
+
+### 2. Rotación de secretos de producción
+Herramienta: `scripts/f360/rotate_prod_secret.sh` (en el repo, sin valores). Los valores viajan por archivos `chmod 600` y nunca se imprimen. Cada rotación verifica y, si falla, vuelve sola al valor anterior.
+
+| Secreto | Estado | Verificación |
+|---|---|---|
+| `F360_SYNC_SECRET` (env de `f360-woo-sync` + Vault `f360_sync_secret`) | **ROTADO** ~21:23 UTC | Valor nuevo → 200; anterior → 401. **Cron de las 21:30 OK desde Vault** (última conciliación buena 21:30:02). Las 11 llamadas de cron desde la rotación respondieron 200. Valor anterior borrado. |
+| `WOO_WEBHOOK_SECRET` (env de `f360-woo-orders` + webhooks #5 y #6) | **ROTADO** ~21:33 UTC | Entrega firmada de prueba (tema que no es pedido, no escribe nada) con el valor nuevo → 200; con el anterior → 401. En el servidor, los webhooks #5 y #6 firman con el secreto nuevo (comparación `hash_equals`, sí/no). Valor anterior borrado. |
+| `F360_HILO_SECRET` | **PENDIENTE: coordinar con Adrián** (HiloLabs, `F360_INTAKE_SECRET`). No se tocó. | — |
+| Contraseña Postgres de `~/.fuxia-db-url` | **PENDIENTE (Mario):** revisar si sigue vigente (comando en `SECURITY_EXPOSURE_2026-10-10.md` §4.2) | — |
+| Token personal de Supabase | Ya inválido (401). Recomendado: revocarlo en el panel (Mario) | — |
+
+Incidente durante la ejecución, sin impacto: el primer intento de rotar sync abortó **antes de cambiar nada**, por un error de sintaxis del script (`$NAME…`). Solo creó las copias locales, que se borraron; se comprobó que el valor vigente seguía respondiendo 200. Se corrigió el script y se volvió a correr.
+
+### 3. Controles preparados (NO aplicados)
+- **Bloqueo de origen** en `f360-woo-orders`: con la variable `WOO_EXPECTED_SOURCE` definida, la función rechaza (403) y registra cualquier entrega cuyo `x-wc-webhook-source` no sea esa tienda, aunque traiga firma válida. Sin la variable, todo sigue igual que hoy. Prueba nueva en `commerce.test.ts`; Node 72/72. **No desplegado.** Activarlo en staging = deploy + `WOO_EXPECTED_SOURCE=staging4.fuxiaballerinas.com`; en producción, `fuxiaballerinas.com`.
+- **Bricks:** `scripts/f360/prod_bricks_staging_urls.sh`. Simulación de solo lectura: páginas 8 (Tienda), 3648 (Tienda) y 3655, 1 referencia cada una. `apply` respalda cada valor en el servidor antes de reemplazar solo esa URL; `restore` lo regresa. **No ejecutado.**
+
+### 4. #5347 y #5351 en staging: conservados y marcados
+Migración `20261022000500_f360_environment_foreign_events.sql`: tabla append-only `f360.environment_foreign_events` y marca **"Evento de producción"** en Conciliación. Los datos se cargan con `supabase/staging/mark_foreign_events.sql`, que aborta si la base no es staging, con las 2 y 6 entregas de evidencia. Los registros originales no se tocan.

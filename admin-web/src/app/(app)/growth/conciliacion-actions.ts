@@ -43,6 +43,14 @@ export async function decideAction(target: string, orderId: number, decision: st
   return { ok: true, data: data as { rec_state: string; conflict: string | null } };
 }
 
+export async function correctCurrencyAction(target: string, orderId: number, currency: string | null, reason: string, revert: boolean): Promise<Result<null>> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('f360_rec_correct_currency', { p_target: target, p_order: orderId, p_currency: currency, p_reason: reason.trim(), p_revert: revert });
+  if (error) return { ok: false, error: deny(error.code, error.message) };
+  revalidatePath('/growth');
+  return { ok: true, data: null };
+}
+
 export async function setAnalyticsAction(target: string, orderId: number, exclude: boolean, reason: string): Promise<Result<null>> {
   const supabase = await createClient();
   const { error } = await supabase.rpc('f360_rec_set_analytics', { p_target: target, p_order: orderId, p_exclude: exclude, p_reason: reason });

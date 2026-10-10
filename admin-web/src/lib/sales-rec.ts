@@ -10,6 +10,8 @@ export type RecRow = {
   status_class: string; financial_state: string; flags: RecFlag[]; rec_state: string; conflict: string | null; excluded: boolean;
   evidence: { id: number; gateway_result: string; transaction_ref: string | null; queried_at: string } | null;
   decision: { id: number; decision: string; comment: string | null; by: string; at: string; duplicate_of: number | null } | null;
+  /** Commercial currency correction (WooCommerce keeps the source currency; no FX conversion). */
+  currency_correction: { id: number; woo_currency: string; woo_market: string; currency: string; market: string; reason: string; by: string; at: string } | null;
 };
 export type RecEvidence = { id: number; source: string; source_ref: string; woo_status: string; date_paid: string | null; transaction_ref: string | null;
   payment_method: string | null; order_total: number | null; currency: string | null; refund_total: number; gateway_result: string; signals: string[];

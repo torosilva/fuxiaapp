@@ -121,3 +121,24 @@ test('War Room · authorized exclusion shown apart from the original WooCommerce
   await panel.scrollIntoViewIfNeeded();
   await panel.screenshot({ path: `${SHOTS}/11-warroom-ajustes-MX-movil.png` });
 });
+
+test('#2095 · commercial currency correction: Woo USD kept, reported as COP / Colombia, still unpaid (desktop + mobile)', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page);
+  await open(page, 2095);
+  const note = page.getByTestId('rec-currency-note');
+  await expect(note).toContainText('USD');
+  await expect(note).toContainText('COP');
+  await expect(page.getByTestId('rec-case')).toContainText('Moneda corregida');
+  await expect(page.getByTestId('rec-case')).toContainText('Sin cobro registrado');
+  await page.getByTestId('rec-case').screenshot({ path: `${SHOTS}/12-caso-2095-moneda-desktop.png` });
+  await page.goto('/growth?mercado=CO&desde=2026-06-01&hasta=2026-10-10');
+  const cur = page.getByTestId('cockpit-currency-CO');
+  await expect(cur).toContainText('#2095');
+  await page.getByTestId('cockpit-adjustments-CO').screenshot({ path: `${SHOTS}/13-warroom-CO-moneda-desktop.png` });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await open(page, 2095);
+  await noOverflow(page);
+  await note.screenshot({ path: `${SHOTS}/14-caso-2095-moneda-movil.png` });
+});

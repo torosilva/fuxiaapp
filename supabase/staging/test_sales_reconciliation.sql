@@ -30,7 +30,7 @@ BEGIN
      OR has_function_privilege('anon', 'public.f360_rec_list(date, date, text, text, text, text, text, text, int, int)', 'EXECUTE') THEN RAISE EXCEPTION 'R2 function grants'; END IF;
   -- R3 the list is Commerce Facts (no copy): every order of the store appears once; filters work; summary adds up
   PERFORM set_config('request.jwt.claims', json_build_object('sub', mario, 'role', 'authenticated')::text, true);
-  cockpit_before := public.f360_growth_cockpit('2026-06-01', '2026-10-10') - 'generated_at';
+  cockpit_before := (SELECT jsonb_agg(m - 'adjustments') FROM jsonb_array_elements(public.f360_growth_cockpit('2026-06-01', '2026-10-10')->'markets') m);   -- original figures only
   d := public.f360_rec_list(p_limit => 200);
   IF (d->>'total')::int <> (SELECT count(*) FROM f360.commerce_woo_orders) THEN RAISE EXCEPTION 'R3 total % vs facts', d->>'total'; END IF;
   d := public.f360_rec_list(p_market => 'CO', p_limit => 200);
@@ -90,12 +90,15 @@ BEGIN
   IF d->>'conflict' IS NULL THEN RAISE EXCEPTION 'R9 paid duplicate without refund must show conflict %', d; END IF;
   d := public.f360_rec_decide(tgt, 3654, 'prueba', 'Pedido de prueba del equipo (método f360_prueba)');   -- may supersede an example review
   -- R10 exclusion is a separate action with reason, append-only, reversible by a new record; NOT applied to metrics yet
+  IF EXISTS (SELECT 1 FROM f360.sales_rec_analytics_scope WHERE target_id = tgt AND woo_order_id = 3654 AND excluded) THEN   -- example exclusion in staging
+    PERFORM public.f360_rec_set_analytics(tgt, 3654, false, 'test: parte de incluido');
+  END IF;
   BEGIN PERFORM public.f360_rec_set_analytics(tgt, 3654, true, 'x'); RAISE EXCEPTION 'R10 short reason'; EXCEPTION WHEN check_violation THEN NULL; END;
   PERFORM public.f360_rec_set_analytics(tgt, 3654, true, 'Pedido de prueba, no es venta');
   BEGIN PERFORM public.f360_rec_set_analytics(tgt, 3654, true, 'otra vez excluir'); RAISE EXCEPTION 'R10 double exclude'; EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'R10%' THEN RAISE; END IF; END;
   IF NOT (public.f360_rec_case(tgt, 3654)->>'excluded')::boolean THEN RAISE EXCEPTION 'R10 excluded flag'; END IF;
   PERFORM public.f360_rec_set_analytics(tgt, 3654, false, 'Se vuelve a incluir para revisar');
-  IF (public.f360_rec_case(tgt, 3654)->>'excluded')::boolean OR jsonb_array_length(public.f360_rec_case(tgt, 3654)->'exclusion_history') <> 2 THEN RAISE EXCEPTION 'R10 include'; END IF;
+  IF (public.f360_rec_case(tgt, 3654)->>'excluded')::boolean OR jsonb_array_length(public.f360_rec_case(tgt, 3654)->'exclusion_history') < 2 THEN RAISE EXCEPTION 'R10 include'; END IF;
   -- R11 append-only: nothing recorded can be edited or deleted
   BEGIN UPDATE f360.sales_rec_decisions SET decision = 'venta_confirmada' WHERE id = first_id; RAISE EXCEPTION 'R11 update decision'; EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'R11%' THEN RAISE; END IF; END;
   BEGIN DELETE FROM f360.sales_rec_decisions WHERE id = first_id; RAISE EXCEPTION 'R11 delete decision'; EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'R11%' THEN RAISE; END IF; END;
@@ -105,7 +108,7 @@ BEGIN
   DELETE FROM f360.commerce_woo_order_lines WHERE target_id = tgt AND woo_order_id = 999001;
   DELETE FROM f360.commerce_woo_orders WHERE target_id = tgt AND woo_order_id = 999001;
   IF (SELECT md5(string_agg(o::text, '|' ORDER BY woo_order_id)) FROM f360.commerce_woo_orders o WHERE target_id = tgt) <> facts_before THEN RAISE EXCEPTION 'R12 facts changed'; END IF;
-  IF public.f360_growth_cockpit('2026-06-01', '2026-10-10') - 'generated_at' <> cockpit_before THEN RAISE EXCEPTION 'R12 Growth metrics changed'; END IF;
+  IF (SELECT jsonb_agg(m - 'adjustments') FROM jsonb_array_elements(public.f360_growth_cockpit('2026-06-01', '2026-10-10')->'markets') m) <> cockpit_before THEN RAISE EXCEPTION 'R12 Growth original metrics changed'; END IF;
   -- R13 a review is flagged again when the source changes after it
   d := public.f360_rec_decide(tgt, 4115, 'no_se_concreto', 'prueba R13: no se pagó');
   UPDATE f360.commerce_woo_orders SET woo_status = 'cancelled' WHERE target_id = tgt AND woo_order_id = 4115;

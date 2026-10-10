@@ -200,3 +200,30 @@ Ningún archivo `.down.sql` trae su propio BEGIN/COMMIT: se corren dentro de una
 - [ ] `deploy_prod_admin.sh`.
 - [ ] Humo en producción: Carolina y Mario ven Conciliación y un operador no; la evidencia de un pedido real carga; War Room original = Woo; sin exclusiones, ajustado = original.
 - [ ] Las decisiones de ejemplo de staging **no** se copian a producción.
+
+---
+
+# Fase 3 — corrección comercial de moneda (#2095) y alerta (2026-10-10, STAGING)
+- **Migración** `20261022000400_f360_currency_corrections.sql` (rollback `.down.sql`, ensayado):
+  - `f360.commerce_currency_corrections`: append-only; motivo obligatorio; evidencia capturada por el servidor; revertir = evento nuevo.
+  - Vista `f360.commerce_currency_scope`.
+  - `f360.commerce_orders_reporting`, que agrega `market_reporting`, `currency_reporting` y `currency_corrected`. Las columnas de origen no cambian.
+  - Alerta `f360.currency_suspicion()`.
+  - RPC `f360_rec_correct_currency` (Carolina y Mario).
+  - El War Room (`growth_market_block`, `growth_adjustments`) y la Conciliación usan el país y la moneda corregidos.
+  - **Siguen mostrando la fuente:** Commerce Facts (técnico), Medición (`measurement_sales`) y el tablero ejecutivo, hasta su propio pase.
+- **#2095 en staging:** corrección registrada (Mario demo, motivo con tu confirmación).
+  - WooCommerce y Commerce Facts siguen en **USD 405,000 / ROW / cancelado**.
+  - El War Room y la Conciliación lo cuentan como **COP 405,000 / Colombia, sin cobro**: +1 pedido creado sin pago en Colombia, −1 en Resto. **Los ingresos pagados no cambian.** No hay conversión cambiaria.
+- **Alerta "Moneda sospechosa"** (no corrige nada sola). Se dispara si:
+  - la factura es de MX o CO y no coincide con el mercado de la moneda;
+  - ePayco no está en COP;
+  - Mercado Pago no está en MXN;
+  - el precio por par está fuera de rango (USD > 5,000; MXN > 60,000; COP < 50,000).
+  En staging hoy solo marca el #2095.
+  - **Corrección propia:** descarté una regla "PayPal no cobra en COP", porque staging4 tiene pedidos en COP completados con PayPal.
+- **Pruebas** `test_currency_corrections.sql` K1–K8: ENSAYO OK.
+  - K1 permisos · K2 la alerta encuentra solo el #2095 · K3 validaciones · K4 la fuente no cambia · K5 Conciliación (original vs corregido, sigue "Sin cobro") · K6 War Room (se mueve de mercado, ingresos sin cambio) · K7 historial inmutable, sin doble corrección, la reversión restaura · K8 evidencia capturada por el servidor.
+  - Regresión: R1–R15, G1–G8 y S-G1 OK.
+  - E2E: 2/2.
+  - Capturas: 12 (caso desktop), 13 (War Room Colombia), 14 (móvil).

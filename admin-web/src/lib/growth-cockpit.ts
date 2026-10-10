@@ -18,6 +18,7 @@ export type MarketBlock = {
 export type AdjTotals = { revenue: number; paid_orders: number; units: number; aov?: number | null };
 export type Adjustments = {
   original: AdjTotals; excluded: AdjTotals & { without_effect: number }; adjusted: AdjTotals; classified_not_excluded: number; source: string;
+  currency_corrections?: { count: number; detail: { woo_order_id: number; woo_currency: string; woo_market: string; amount: number; status_class: string }[] | null };
   detail: { target_id: string; woo_order_id: number; status_class: string; payment_state: string; effective: boolean; revenue_effect: number; units_effect: number;
     why_no_effect: string | null; reason: string; by: string; at: string }[] | null;
 };

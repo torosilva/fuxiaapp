@@ -26,7 +26,7 @@ export const FINANCIAL: Record<string, string> = {
 export const FLAG_NAME: Record<string, string> = {
   NO_CONCRETADO: 'No se concretó', REINTENTO_PAGADO: 'Posible reintento pagado', PAGO_Y_CANCELADO: 'Pagado y cancelado', PAGADO_SIN_EVIDENCIA: 'Pagado sin evidencia',
   EVIDENCIA_CONTRADICE: 'Evidencia contradice', POSIBLE_PRUEBA: 'Posible prueba', POSIBLE_DUPLICADO: 'Posible duplicado', REEMBOLSO: 'Reembolso',
-  NO_EXISTE_EN_WOO: 'Ya no está en Woo',
+  NO_EXISTE_EN_WOO: 'Ya no está en Woo', MONEDA_CORREGIDA: 'Moneda corregida', MONEDA_SOSPECHOSA: 'Moneda sospechosa',
 };
 export const GATEWAY: Record<string, string> = {
   approved: 'Aprobado', rejected: 'Rechazado', pending: 'Pendiente', refunded: 'Reembolsado', transaction_only: 'Solo número de transacción',

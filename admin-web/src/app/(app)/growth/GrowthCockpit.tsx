@@ -40,7 +40,7 @@ function KpiCard({ label, k, fmt }: { label: string; k: Kpi; fmt: (v: number | n
 
 // Conciliación: the original WooCommerce figures never change; authorized exclusions are explained here, apart.
 function AdjustmentsPanel({ a, cur, market }: { a: Adjustments; cur: string; market: string }) {
-  const none = a.excluded.paid_orders === 0 && a.excluded.without_effect === 0;
+  const none = a.excluded.paid_orders === 0 && a.excluded.without_effect === 0;   // currency corrections are listed below either way
   const row = (label: string, t: { revenue: number; paid_orders: number; units: number; aov?: number | null }, sign = '', strong = false) => (
     <tr className={`border-t border-line ${strong ? 'font-semibold text-ink' : 'text-ink-2'}`}>
       <td className="py-1.5 pr-2">{label}</td><td className="tabular py-1.5 pl-3 text-right">{sign}{money(t.revenue, cur)}</td>
@@ -67,6 +67,10 @@ function AdjustmentsPanel({ a, cur, market }: { a: Adjustments; cur: string; mar
         </table>
       )}
       {a.excluded.without_effect > 0 && <p className="mt-2 text-xs text-muted">{a.excluded.without_effect} pedido(s) excluido(s) sin efecto: ya no contaban (nunca se pagaron, o se cancelaron o reembolsaron después del pago).</p>}
+      {a.currency_corrections && a.currency_corrections.count > 0 && (
+        <p className="mt-2 text-xs text-ink-2" data-testid={`cockpit-currency-${market}`}>{a.currency_corrections.count} pedido(s) con moneda corregida cuentan en este país
+          {a.currency_corrections.detail ? `: ${a.currency_corrections.detail.map((d) => `#${d.woo_order_id} (WooCommerce: ${d.woo_currency} ${Math.round(d.amount).toLocaleString('es-MX')}, ${d.woo_market} → ${cur}${d.status_class === 'countable' ? '' : ', sin cobro'})`).join(' · ')}` : ''}. Sin conversión cambiaria.</p>
+      )}
       {a.classified_not_excluded > 0 && <p className="mt-1 text-xs text-gold-strong">{a.classified_not_excluded} pedido(s) pagado(s) clasificados como prueba o duplicado siguen contando: clasificar no excluye.</p>}
       {a.detail && a.detail.length > 0 && (
         <ul className="mt-3 flex flex-col gap-1.5 text-xs">{a.detail.map((d) => (

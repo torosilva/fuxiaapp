@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { payName } from '@/lib/growth-cockpit';
 import { DECISIONS, FINANCIAL, FLAG_NAME, GATEWAY, REC_STATE, WOO_STATUS, type RecCase, type RecFilters, type RecFlag, type RecRow, type RecSummary } from '@/lib/sales-rec';
-import { AnalyticsForm, DecisionForm, EvidencePanel } from './ConciliacionForms';
+import { AnalyticsForm, CurrencyForm, DecisionForm, EvidencePanel } from './ConciliacionForms';
 
 // Conciliación de Ventas. Every order comes from Commerce Facts (no copy); each mark says why; each state says where it comes from.
 const MARKET: Record<string, string> = { MX: 'México', CO: 'Colombia', ROW: 'Resto del mundo' };
@@ -144,6 +144,11 @@ function CaseView({ c, f }: { c: RecCase; f: RecFilters }) {
         <span className="tabular text-2xl text-ink">{money(c.order_total, c.currency)}</span>
       </div>
       <p className="text-sm text-ink-2">Creado {when(c.created_at)} · {c.units} par(es) · {c.payment_method ? payName(c.payment_method) : 'Sin método de pago'}</p>
+      {c.currency_correction && (
+        <p className="mt-3 rounded-xl bg-gold-soft px-4 py-3 text-sm text-ink" data-testid="rec-currency-note">
+          <b>Moneda corregida.</b> WooCommerce: {money(c.order_total, c.currency_correction.woo_currency)} ({c.currency_correction.woo_market}) · Valor comercial: {money(c.order_total, c.currency_correction.currency)} ({MARKET[c.currency_correction.market] ?? c.currency_correction.market}).
+          Sin conversión; el estado de pago no cambia. {c.currency_correction.by}, {when(c.currency_correction.at)}: “{c.currency_correction.reason}”</p>
+      )}
       {c.conflict && <p className="mt-3 rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger" data-testid="rec-conflict">⚠ {c.conflict}</p>}
 
       <h3 className="mt-5 text-lg font-semibold text-ink">Por qué está aquí</h3>
@@ -197,6 +202,9 @@ function CaseView({ c, f }: { c: RecCase; f: RecFilters }) {
           hasDecision={!!c.decision} candidates={c.flags.find((x) => x.code === 'POSIBLE_DUPLICADO')?.candidates ?? []} />
         <AnalyticsForm target={c.target_id} orderId={c.woo_order_id} excluded={c.excluded} />
       </div>
+      {(c.currency_correction || c.flags.some((x) => x.code === 'MONEDA_SOSPECHOSA')) && (
+        <div className="mt-4"><CurrencyForm target={c.target_id} orderId={c.woo_order_id} wooCurrency={c.currency_correction?.woo_currency ?? c.currency} active={c.currency_correction ? { currency: c.currency_correction.currency } : null} /></div>
+      )}
 
       {c.decision_history.length > 0 && (
         <div className="mt-5"><h3 className="text-lg font-semibold text-ink">Historial (no se puede editar ni borrar)</h3>
