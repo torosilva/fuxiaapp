@@ -12,6 +12,14 @@ export type MarketBlock = {
   by_channel: { channel: string; orders_created: number; paid_orders: number; revenue: number }[];
   by_campaign: { campaign: string; source: string | null; orders_created: number; paid_orders: number; revenue: number; spend: number | null }[];
   by_product: { product: string; paid_units: number; revenue: number }[];
+  /** Conciliación: authorized exclusions, shown apart; `original` always equals the KPIs above. `detail` only for Carolina / Mario. */
+  adjustments?: Adjustments;
+};
+export type AdjTotals = { revenue: number; paid_orders: number; units: number; aov?: number | null };
+export type Adjustments = {
+  original: AdjTotals; excluded: AdjTotals & { without_effect: number }; adjusted: AdjTotals; classified_not_excluded: number; source: string;
+  detail: { target_id: string; woo_order_id: number; status_class: string; payment_state: string; effective: boolean; revenue_effect: number; units_effect: number;
+    why_no_effect: string | null; reason: string; by: string; at: string }[] | null;
 };
 export type Finding = { market: string; kind: string; confidence: 'ALTA' | 'MEDIA' | 'BAJA' | 'SIN DATOS'; title: string; evidence: string; source: string;
   detail?: { method: string; created: number; paid: number; never_paid: number }[] };

@@ -96,7 +96,7 @@ export function AnalyticsForm({ target, orderId, excluded }: { target: string; o
     <div className="rounded-2xl border border-line p-4" data-testid="rec-analytics">
       <h3 className="text-lg font-semibold text-ink">Métricas de Growth</h3>
       <p className="mt-1 text-xs text-muted">Acción aparte de la clasificación. Hoy {excluded ? 'está EXCLUIDO' : 'está incluido'}. Queda registrada con tu nombre, fecha y motivo.
-        El War Room todavía no aplica exclusiones: se activará cuando lo apruebes.</p>
+        El War Room conserva las cifras originales y muestra este ajuste por separado.</p>
       <label className="mt-3 block text-sm text-muted">Motivo (obligatorio)
         <input className={field} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000} placeholder={excluded ? 'Por qué vuelve a contar' : 'Por qué no debe contar'} /></label>
       <button type="button" disabled={pending || reason.trim().length < 5} className="mt-3 rounded-full border border-ink px-5 py-2 text-sm text-ink disabled:opacity-40"

@@ -107,3 +107,96 @@ Lectura real de evidencia (sin datos de clientas):
 2. **Segunda etapa:** lectura directa de Mercado Pago y ePayco con credenciales de solo lectura. Aprobada como objetivo, no iniciada.
 3. **Producción:** esta migración depende de `20261021000100` (S-G1, que no está en producción) y de P0D para tener pedidos que conciliar. Orden propuesto: P0D → S-G1 → esta migración → publicar la función y el panel.
 4. Las cuatro revisiones de ejemplo quedan en el historial de staging (no se pueden borrar, por diseño). Se identifican por el comentario "Ejemplo de revisión (staging)".
+
+---
+
+# Fase 2 — exclusiones en el War Room, validación de casos y preparación de P0D (2026-10-10, STAGING)
+
+> Autorización de Mario: continuar solo en staging. Producción, WooCommerce y pasarelas no tocados. P0D **no** ejecutado.
+> Seguridad (P0): `docs/fuxia360/SECURITY_EXPOSURE_2026-10-10.md` contiene el inventario, la verificación y los pasos de rotación, sin valores. No se rotó nada.
+
+## A. Exclusiones auditadas → War Room
+- **Migración** `20261022000200_f360_growth_exclusions.sql`:
+  - nueva función `f360.growth_adjustments()`;
+  - `f360_growth_cockpit` agrega a cada mercado un bloque `adjustments` con lo original, lo excluido, lo ajustado, los clasificados sin excluir y el detalle.
+  - **Las tarjetas KPI y todos los desgloses siguen siendo las cifras originales de WooCommerce**; no cambian.
+- **Rollback** `20261022000200_f360_growth_exclusions.down.sql`: restaura el cockpit de S-G1 y borra la función. Ensayado.
+- **Reglas:**
+  - Clasificar no excluye. Los pagados marcados como prueba o duplicado siguen contando y se muestran como "siguen contando".
+  - Excluir es una acción aparte: motivo, quién y cuándo, en un registro que no se edita. Se revierte con otro evento.
+  - Cuenta solo el estado vigente de cada pedido, así que nunca se resta dos veces.
+  - Efecto = lo que el pedido aportaba a la cifra original. Un pagado resta su venta neta (ya descontados sus reembolsos), 1 pedido y sus pares. Uno nunca pagado, o cancelado/reembolsado después del pago, no tiene efecto ("ya no contaba").
+  - El detalle (pedidos, motivos, quién) solo lo ven Carolina y Mario; Adrián y los operadores ven solo los totales.
+- **Pantalla:** en el War Room, bajo las tarjetas de cada país, el panel **"Ventas originales vs. ajustadas"** (originales − excluidos = ajustados, con ticket) y la lista de exclusiones con motivo.
+- **Pruebas** `supabase/staging/test_growth_exclusions.sql` G1–G8 — **ENSAYO OK**:
+  - G1: original = KPIs; sin exclusiones, ajustado = original, en cada país.
+  - G2: clasificar no cambia nada.
+  - G3: excluir un pagado resta una sola vez y el KPI original no se mueve.
+  - G4: no se puede excluir dos veces; excluir → incluir → excluir resta una vez; incluir regresa al original.
+  - G5: nunca pagado y pagado-cancelado no tienen efecto.
+  - G6: reembolso parcial resta solo la venta neta.
+  - G7: original − excluidos = ajustados, y el detalle suma lo excluido, en cada país.
+  - G8: el dueño sin acceso a datos de clientas ve totales sin detalle.
+  - Regresión: `test_sg1_cockpit` OK · `test_sales_reconciliation` OK · `db_tests` ALL PASS · Node 71/71 · `tsc`/eslint OK.
+- **E2E** (staging): exclusión de ejemplo del #3654 → MX original $130,690 / 38 pedidos / 53 pares → excluido −$2,800 / −1 / −1 → ajustado $127,890 / 37 / 52 (ticket $3,439 → $3,456). La tarjeta original no cambió. En el celular no hay scroll horizontal.
+- **Capturas:** `admin-web/e2e-screenshots/conciliacion/` 09 (panel, desktop), 10 (War Room MX completo), 11 (panel, móvil).
+
+## B. Validación de casos (solo lectura)
+| Caso | Qué se verificó | Conclusión | Origen de los datos |
+|---|---|---|---|
+| **#5351** | Producción: `commerce_woo_orders` (prod_read) y el destino `woo_production`, con corte en el 5351. Staging: `woo_webhook_deliveries`. | **Es un pedido real de fuxiaballerinas.com (producción)**, el único que tiene hoy Commerce Facts de producción. El 8 oct, de 13:56 a 15:11 UTC, la tienda de producción también mandó a **staging** webhooks firmados con el secreto de staging de los pedidos #5347 y #5351. Probablemente eran los webhooks de staging4 copiados al promover staging4 a producción. Staging los registró como si fueran de `woo_staging4`, y por eso staging4 no los encuentra (404). No hay datos de envío de la clienta en staging; solo cifras. | Producción + staging |
+| **#3097 → #3101** | Lectura en Woo comparando solo sí/no: mismo correo, mismo nombre de pila, apellido escrito distinto. Mismo producto y talla (variación 2960), COP 420,000, 6 h de diferencia. #3097 llegó por un anuncio de Instagram, #3101 directo. | **Muy probable reintento, no comprobado como la misma intención.** La marca ahora dice "Posible reintento pagado" y pide confirmarlo (migración de texto `20261022000300`). Se registró una corrección que reemplaza la revisión de ejemplo, con esta verificación (el historial conserva ambas). | staging4 (copia de producción hasta ~4 oct) |
+| **#3654** | Woo staging4: método "PRUEBA staging (sin cobro)", sin transacción ni notas de pasarela. | Sigue en **conflicto** (clasificado como prueba, pero Woo lo tiene pagado y sin reembolso). Además, como ejemplo, se **excluyó de métricas** con motivo, y el conflicto se mantiene visible. | Solo staging (método de prueba de staging4) |
+| **#4114** | Woo staging4: dos notas de la pasarela ("Mercado Pago: Pago aprobado" y "Pago completado"), número de pago de Mercado Pago presente, pagado $2,800 = total. | Evidencia de cobro **según lo que Mercado Pago registró en Woo**. No es una confirmación contra Mercado Pago directo (fase 2 de pasarelas). | staging4 |
+
+**Qué es ejemplo y qué está respaldado por producción:**
+- Todas las decisiones y exclusiones viven **solo en staging**, como ejemplos (su comentario empieza con "Ejemplo de revisión/exclusión (staging)").
+- Producción no tiene ninguna decisión ni exclusión, porque la Conciliación no está desplegada ahí.
+- Los pedidos #3097, #3101, #3654 y #4114 están en la copia de staging4. El historial real de producción (84 pedidos) los incluye con el mismo estado y total; ver P0D. Producción no los tiene en Commerce Facts todavía.
+- Solo el #5351 está hoy en Commerce Facts de producción.
+
+## C. P0D — conciliación previa (no ejecutado)
+- Herramienta: `scripts/f360/p0d_preflight.mjs` (solo lectura: GET a Woo producción sin campos personales + SELECT de solo lectura en producción y staging).
+- Resultado: `docs/fuxia360/growth/P0D_PREFLIGHT.md`, por país, moneda y estado, y pedido por pedido.
+- Resumen:
+  - 84 pedidos en Woo producción desde el 1 jun.
+  - **P0D importaría 83**; el #5351 ya está.
+  - **83 iguales a la copia de staging4** (mismo estado y total).
+  - México 48: 34 completados, 1 en proceso, 9 cancelados (2 con pago: #3138 y #5351), 4 fallidos.
+  - Colombia 31: 17 completados, 14 cancelados.
+  - Resto 5: 1 completado, 4 cancelados.
+- Hallazgos para revisar antes de importar:
+  1. **#2095 (ROW, cancelado) dice USD 405,000.** Casi seguro es un monto en COP con la moneda equivocada. No suma (está cancelado), pero hay que decidir si se importa marcado o se corrige el mercado/moneda.
+  2. **#5347** llegó a staging desde producción el 8 oct, pero no aparece en la lista de pedidos de Woo producción. Probablemente se borró o está en la papelera.
+  3. **No hay pedidos en línea en producción después del 8 oct** (Woo, Commerce Facts y webhooks coinciden). Si Carolina sabe de ventas en línea del 9–10 oct, hay que revisarlo antes de P0D.
+  4. #3177 sigue en "procesando" desde el 23 ago.
+
+## D. Riesgos
+| Riesgo | Mitigación |
+|---|---|
+| Los webhooks de producción que apuntaban a staging podrían seguir activos: el siguiente pedido real llegaría también a staging. | Verificar en modo lectura (Mario): `! ssh -p 18765 u2262-72gcmsiaboij@ssh.fuxiaballerinas.com "cd ~/www/fuxiaballerinas.com/public_html && wp wc webhook list --user=1 --fields=id,name,status,delivery_url"`. Pausar los que apunten a `faltxpkaicwpnlqaxrdu` **solo con autorización** (es un cambio en WooCommerce). |
+| Secretos de producción expuestos (3 vigentes, 1 posiblemente). | Rotación coordinada (documento de seguridad). |
+| Una persona confunde "ajustado" con "cobrado". | Las tarjetas siguen siendo originales y el panel dice siempre de dónde sale cada número. |
+| Excluir el pedido equivocado. | Motivo obligatorio, registro inmutable, reversión con un clic y otro motivo; detalle visible. |
+| Datos de producción (#5347, #5351) dentro de staging. | Solo cifras, sin datos de clientas. Pueden quedarse como evidencia o borrarse de staging con autorización. |
+
+## E. Rollback (orden inverso)
+1. `20261022000300_f360_sales_rec_wording.down.sql`: regresa el texto de la vista.
+2. `20261022000200_f360_growth_exclusions.down.sql`: el cockpit vuelve al de S-G1 y se borra la función.
+3. `20261022000100_f360_sales_reconciliation.down.sql`: borra la capa de conciliación, incluidas sus decisiones (exportarlas antes).
+4. Función: redeploy de `f360-woo-sync` del commit anterior con `deploy_woo_functions.sh`.
+5. Panel: Vercel → deployment anterior.
+
+Ningún archivo `.down.sql` trae su propio BEGIN/COMMIT: se corren dentro de una sola transacción.
+
+## F. Checklist de producción (cuando Mario lo autorice)
+- [ ] Rotación de secretos decidida y coordinada (o aceptado el riesgo por escrito).
+- [ ] Webhooks de Woo producción → staging verificados (y pausados si existen, con autorización).
+- [ ] Decisión sobre #2095 (moneda) y #5347.
+- [ ] **P0D:** dry-run en producción → revisar contra `P0D_PREFLIGHT.md` (83 a importar) → importar → re-correr = 0 → cifras por estado iguales a Woo.
+- [ ] Pase S-G1 (`20261021000100`) + panel War Room.
+- [ ] Pase Conciliación (`20261022000100`, `…0200`, `…0300`) con dry-run en `prod_sql.sh`.
+- [ ] `deploy_prod_function.sh f360-woo-sync` (acción `order_evidence`) y verificar el cron 200.
+- [ ] `deploy_prod_admin.sh`.
+- [ ] Humo en producción: Carolina y Mario ven Conciliación y un operador no; la evidencia de un pedido real carga; War Room original = Woo; sin exclusiones, ajustado = original.
+- [ ] Las decisiones de ejemplo de staging **no** se copian a producción.

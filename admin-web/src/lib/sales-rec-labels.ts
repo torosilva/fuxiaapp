@@ -24,7 +24,7 @@ export const FINANCIAL: Record<string, string> = {
   NO_EXISTE_EN_WOO: 'El pedido ya no existe en WooCommerce',
 };
 export const FLAG_NAME: Record<string, string> = {
-  NO_CONCRETADO: 'No se concretó', REINTENTO_PAGADO: 'Reintentó y pagó', PAGO_Y_CANCELADO: 'Pagado y cancelado', PAGADO_SIN_EVIDENCIA: 'Pagado sin evidencia',
+  NO_CONCRETADO: 'No se concretó', REINTENTO_PAGADO: 'Posible reintento pagado', PAGO_Y_CANCELADO: 'Pagado y cancelado', PAGADO_SIN_EVIDENCIA: 'Pagado sin evidencia',
   EVIDENCIA_CONTRADICE: 'Evidencia contradice', POSIBLE_PRUEBA: 'Posible prueba', POSIBLE_DUPLICADO: 'Posible duplicado', REEMBOLSO: 'Reembolso',
   NO_EXISTE_EN_WOO: 'Ya no está en Woo',
 };

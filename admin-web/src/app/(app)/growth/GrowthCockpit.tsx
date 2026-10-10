@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { payName, type Cockpit, type Kpi, type KpiStatus, type MarketBlock } from '@/lib/growth-cockpit';
+import { payName, type Adjustments, type Cockpit, type Kpi, type KpiStatus, type MarketBlock } from '@/lib/growth-cockpit';
 
 // S-G1 Growth War Room. Every number says where it comes from; a missing input is shown as such, never as 0.
 const MARKET_NAME: Record<string, string> = { MX: 'México', CO: 'Colombia', ROW: 'Resto del mundo', TODOS: 'Todos' };
@@ -38,6 +38,49 @@ function KpiCard({ label, k, fmt }: { label: string; k: Kpi; fmt: (v: number | n
   );
 }
 
+// Conciliación: the original WooCommerce figures never change; authorized exclusions are explained here, apart.
+function AdjustmentsPanel({ a, cur, market }: { a: Adjustments; cur: string; market: string }) {
+  const none = a.excluded.paid_orders === 0 && a.excluded.without_effect === 0;
+  const row = (label: string, t: { revenue: number; paid_orders: number; units: number; aov?: number | null }, sign = '', strong = false) => (
+    <tr className={`border-t border-line ${strong ? 'font-semibold text-ink' : 'text-ink-2'}`}>
+      <td className="py-1.5 pr-2">{label}</td><td className="tabular py-1.5 pl-3 text-right">{sign}{money(t.revenue, cur)}</td>
+      <td className="tabular py-1.5 pl-3 text-right">{sign}{t.paid_orders}</td><td className="tabular py-1.5 pl-3 text-right">{sign}{t.units}</td>
+      <td className="tabular hidden py-1.5 text-right sm:table-cell">{t.aov === undefined ? '' : money(t.aov, cur)}</td>
+    </tr>
+  );
+  return (
+    <div className="rounded-[20px] border border-line bg-surface p-5" data-testid={`cockpit-adjustments-${market}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-lg font-semibold text-ink">Ventas originales vs. ajustadas</h3>
+        <a href="/growth?vista=conciliacion" className="text-xs text-ink-2 underline">Conciliación</a>
+      </div>
+      <p className="mt-1 text-xs text-muted">Las tarjetas de arriba son siempre las cifras originales de WooCommerce. Aquí se restan solo los pedidos excluidos a propósito, con motivo y registro.</p>
+      {none ? <p className="mt-3 text-sm text-ink-2">Sin exclusiones en este periodo: ventas ajustadas = ventas originales.</p> : (
+        <table className="mt-3 w-full text-sm">
+          <thead className="text-xs text-muted"><tr><th className="py-1 text-left font-normal" /><th className="py-1 pl-3 text-right font-normal">Ingresos</th><th className="py-1 pl-3 text-right font-normal">Pedidos</th>
+            <th className="py-1 pl-3 text-right font-normal">Pares</th><th className="hidden py-1 pl-3 text-right font-normal sm:table-cell">Ticket</th></tr></thead>
+          <tbody>
+            {row('Originales (WooCommerce)', a.original)}
+            {row('Excluidos por decisión autorizada', { ...a.excluded, aov: undefined }, '−')}
+            {row('Ajustados (análisis)', a.adjusted, '', true)}
+          </tbody>
+        </table>
+      )}
+      {a.excluded.without_effect > 0 && <p className="mt-2 text-xs text-muted">{a.excluded.without_effect} pedido(s) excluido(s) sin efecto: ya no contaban (nunca se pagaron, o se cancelaron o reembolsaron después del pago).</p>}
+      {a.classified_not_excluded > 0 && <p className="mt-1 text-xs text-gold-strong">{a.classified_not_excluded} pedido(s) pagado(s) clasificados como prueba o duplicado siguen contando: clasificar no excluye.</p>}
+      {a.detail && a.detail.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-1.5 text-xs">{a.detail.map((d) => (
+          <li key={`${d.target_id}:${d.woo_order_id}`} className="rounded-xl bg-bg p-2.5">
+            <a href={`/growth?vista=conciliacion&conciliacion=todos&pedido=${d.target_id}:${d.woo_order_id}`} className="font-semibold text-ink underline">#{d.woo_order_id}</a>
+            {d.effective ? <span className="text-ink"> · −{money(d.revenue_effect, cur)} · −1 pedido · −{d.units_effect} par(es)</span> : <span className="text-muted"> · sin efecto: {d.why_no_effect}</span>}
+            <span className="block text-ink-2">“{d.reason}” · {d.by} · {new Date(d.at).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'medium', timeStyle: 'short' })}</span>
+          </li>))}</ul>
+      )}
+      <p className="mt-2 text-[11px] text-muted">{a.source}</p>
+    </div>
+  );
+}
+
 function Market({ m }: { m: MarketBlock }) {
   const k = m.kpis, c = m.currency;
   const cards: [string, Kpi, (v: number | null | undefined) => string][] = [
@@ -54,6 +97,7 @@ function Market({ m }: { m: MarketBlock }) {
         <span className="text-xs text-muted">Origen registrado en {m.attribution_coverage.attributed} de {m.attribution_coverage.paid} pedidos pagados</span>
       </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">{cards.map(([l, kk, f]) => <KpiCard key={l} label={l} k={kk} fmt={f} />)}</div>
+      {m.adjustments && <AdjustmentsPanel a={m.adjustments} cur={c} market={m.market} />}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="atelier-card rounded-[20px] p-5">

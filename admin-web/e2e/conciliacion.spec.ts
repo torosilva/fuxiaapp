@@ -61,8 +61,8 @@ test('Conciliación · real staging orders: flags, evidence, decisions, desktop 
 
   // 3 · #3097 never paid, customer retried and paid in #3101 → No se concretó
   await open(page, 3097);
-  await expect(page.getByTestId('rec-case')).toContainText('Reintentó y pagó');
-  await decide(page, 'No se concretó', 'Ejemplo de revisión (staging): intento fallido; la clienta pagó en el #3101.');
+  await expect(page.getByTestId('rec-case')).toContainText('Posible reintento pagado');
+  await decide(page, 'No se concretó', 'Ejemplo de revisión (staging): intento fallido sin cobro; posible reintento en #3101 (verificar misma clienta).');
   await page.reload();
   await expect(page.getByTestId('rec-case')).toContainText('Revisado');
 
@@ -88,4 +88,36 @@ test('Conciliación · real staging orders: flags, evidence, decisions, desktop 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/growth?vista=conciliacion&conciliacion=todos');
   await shot(page, '07-lista-todos-desktop');
+});
+
+test('War Room · authorized exclusion shown apart from the original WooCommerce figures (desktop + mobile)', async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page);
+  const period = '/growth?mercado=MX&desde=2026-06-01&hasta=2026-10-10';
+  await page.goto(period);
+  const panel = page.getByTestId('cockpit-adjustments-MX');
+  await expect(panel).toBeVisible();
+  const revenueCard = await page.getByTestId('cockpit-MX').locator('.atelier-card').first().innerText();
+  // example exclusion on #3654 (paid with the test gateway) — a separate, explicit, reasoned action
+  await open(page, 3654);
+  const ax = page.getByTestId('rec-analytics');
+  if (await ax.getByRole('button', { name: 'Excluir de métricas' }).isVisible()) {
+    await ax.getByRole('textbox').fill('Ejemplo de exclusión (staging): pedido pagado con el método de prueba, no es venta real.');
+    await ax.getByRole('button', { name: 'Excluir de métricas' }).click();
+    await expect(ax.getByRole('button', { name: 'Volver a incluir en métricas' })).toBeVisible({ timeout: 30_000 });
+  }
+  await page.goto(period);
+  await expect(panel).toContainText('Excluidos por decisión autorizada');
+  await expect(panel).toContainText('#3654');
+  // the original KPI card did not change
+  expect(await page.getByTestId('cockpit-MX').locator('.atelier-card').first().innerText()).toBe(revenueCard);
+  await panel.scrollIntoViewIfNeeded();
+  await panel.screenshot({ path: `${SHOTS}/09-warroom-ajustes-MX-desktop.png` });
+  await shot(page, '10-warroom-MX-desktop');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(period);
+  await noOverflow(page);
+  await panel.scrollIntoViewIfNeeded();
+  await panel.screenshot({ path: `${SHOTS}/11-warroom-ajustes-MX-movil.png` });
 });
