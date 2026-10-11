@@ -24,9 +24,13 @@ Esto reemplaza la regla anterior de "nunca resembrar `faltx…`". Los datos que 
 5. **Fotos.** Copia de `product-images` lo que falte o haya cambiado. No borra nada. Las fotos de clientas (`avatars`, `tryon-temp`) no se copian.
 6. Manda un aviso de macOS con el resultado. El registro queda en `<fecha>/refresh.log`.
 
+## Historial
+
+- **2026-10-11 09:10:** primera copia real. Resultado: 70 clientas anonimizadas, 5 migraciones del repo reaplicadas, 83 fotos copiadas, conteos iguales a prod. Falló el seed `intel_goal_300k.sql` (lo corrige la sesión de Inteligencia). Tarea nocturna instalada (`launchctl print gui/$(id -u)/com.fuxia.staging-refresh`).
+
 ## Pendiente: WooCommerce (staging4)
 
-Decisión de Mario (2026-10-11): staging4 también se copia de producción cada noche, con limpieza (Mercado Pago en modo prueba, sin correos, webhooks y endpoints a staging, clientas anonimizadas, sin medición, `noindex`). Inventario de solo lectura: `scripts/f360/wp_inventory.sh` (requiere acceso SSH a producción aprobado por Mario).
+Decisión de Mario (2026-10-11): staging4 también se copia de producción cada noche. Limpieza decidida: solo Mercado Pago en modo prueba (PayPal y ePayco apagados); apagados Google Listings & Ads, Facebook for WooCommerce, Cart Abandonment y Clarity; ningún correo sale (`f360-guardia-staging4.php`); webhooks y claves API de Woo de staging4 restaurados; mu-plugins de staging generados desde las mismas fuentes; clientas anonimizadas; `noindex`. Inventario de solo lectura: `scripts/f360/wp_inventory.sh` (requiere acceso SSH a producción aprobado por Mario).
 
 ## Coordinación con otras sesiones
 

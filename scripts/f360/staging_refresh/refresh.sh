@@ -200,6 +200,6 @@ find "$BASE" -mindepth 1 -maxdepth 1 -type d -name '20*' -mtime +7 -exec rm -rf 
 step "Listo"
 if [ "$MODE" = "--apply" ]; then
   if [ "$MIG_STATUS" = "ok" ]; then notify "Staging = producción" "Copia anonimizada aplicada ($TS)"
-  else notify "Copia aplicada, migraciones fallaron" "Ver $LOG"; exit 1; fi
+  else notify "Copia aplicada con avisos" "$MIG_STATUS — ver $LOG"; exit 1; fi
 fi
 echo "Registro: $LOG"
