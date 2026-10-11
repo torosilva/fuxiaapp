@@ -147,7 +147,7 @@ export default async function CierreContable({ searchParams }: { searchParams: P
       {period && (
         <section id="capturas" className={box} data-testid="entries">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-semibold capitalize text-ink">Cierre de {monthLabel(period.month)}</h2>
+            <h2 className="font-semibold text-ink">Cierre de {monthLabel(period.month)}</h2>
             <span className="text-xs text-muted">{MONTH_STATUS[period.status] ?? period.status}{open ? ' · se puede capturar' : ' · ya no se captura'}</span>
           </div>
           {period.entries.length === 0 && <p className="mt-2 text-sm text-muted">Sin capturas en este mes.</p>}

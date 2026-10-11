@@ -247,11 +247,11 @@ function C6({ c }: { c: Extract<Card, { id: 6 }> }) {
           {data.por_ubicacion.map((u) => <li key={u.ubicacion} className="flex justify-between gap-2"><span className="truncate">{u.ubicacion}</span><span className="tabular-nums">{u.pares}</span></li>)}
         </ul>
         <div className="text-sm">
-          <p className="text-ink"><b>Baja salida:</b> {data.baja_salida.length} modelos sin ventas en {data.ventana_dias} días</p>
+          <p className="text-ink"><b>Baja salida:</b> {data.baja_salida.length} {data.baja_salida.length === 1 ? 'modelo' : 'modelos'} sin ventas en {data.ventana_dias} días</p>
           {data.baja_salida.length > 0 && <p className="text-xs text-muted">{data.baja_salida.slice(0, 6).map((m) => `${m.modelo} (${m.pares})`).join(' · ')}{data.baja_salida.length > 6 ? ' …' : ''}</p>}
         </div>
         <div className="text-sm">
-          <p className="text-ink"><b>Riesgo de agotarse:</b> {data.riesgo_agotarse.length} modelos</p>
+          <p className="text-ink"><b>Riesgo de agotarse:</b> {data.riesgo_agotarse.length} {data.riesgo_agotarse.length === 1 ? 'modelo' : 'modelos'}</p>
           {data.riesgo_agotarse.length > 0 && <p className="text-xs text-muted">{data.riesgo_agotarse.map((m) => `${m.modelo} (${m.pares} pares, ${m.vendidos_periodo ?? 0} vendidos)`).join(' · ')}</p>}
         </div>
         {data.historial_ventas_desde && <p className="text-xs text-muted">Ventas medidas desde {dayLabel(data.historial_ventas_desde)}.</p>}

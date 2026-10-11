@@ -165,9 +165,9 @@ test('Contadora · only Cierre contable, redirected from everything else; captur
 
   // capture an amount in the open month, then void it (append-only: both stay in the history)
   const form = page.getByTestId('entry-form');
-  await form.getByLabel('Cuenta').selectOption('opex_other');
-  await form.getByLabel('Monto').fill('1.23');
-  await form.getByLabel(/Fuente/).fill('E2E demo staging (no es un dato real)');
+  await form.locator('select[name=account]').selectOption('opex_other');
+  await form.locator('input[name=amount]').fill('1.23');
+  await form.locator('input[name=source]').fill('E2E demo staging (no es un dato real)');
   await form.getByRole('button', { name: 'Guardar monto' }).click();
   await expect(page.getByText('Monto guardado')).toBeVisible({ timeout: 30_000 });
   const entry = page.getByTestId('entry').filter({ hasText: 'E2E demo staging' }).filter({ hasText: 'Por aprobar' }).first();
@@ -180,10 +180,10 @@ test('Contadora · only Cierre contable, redirected from everything else; captur
   // a commitment, then cancelled with a reason
   await page.getByText('Agregar un compromiso').click();
   const cf = page.getByTestId('commitment-form');
-  await cf.getByLabel('A quién se paga').fill('E2E proveedor demo');
-  await cf.getByLabel('Fecha de pago').fill('2026-12-15');
-  await cf.getByLabel('Monto').fill('10');
-  await cf.getByLabel(/Fuente/).fill('E2E demo staging');
+  await cf.locator('input[name=counterparty]').fill('E2E proveedor demo');
+  await cf.locator('input[name=due_date]').fill('2026-12-15');
+  await cf.locator('input[name=amount]').fill('10');
+  await cf.locator('input[name=source]').fill('E2E demo staging');
   await cf.getByRole('button', { name: 'Guardar compromiso' }).click();
   await expect(page.getByText('Compromiso guardado')).toBeVisible({ timeout: 30_000 });
   const c = page.getByTestId('commitment').filter({ hasText: 'E2E proveedor demo' }).first();
