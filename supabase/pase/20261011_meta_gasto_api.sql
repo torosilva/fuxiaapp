@@ -7,7 +7,7 @@ BEGIN;
 CREATE FUNCTION public.f360_marketing_spend_api_import(p_platform text, p_account_id text, p_currency text, p_from date, p_to date, p_rows jsonb)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
 DECLARE v_today date := (now() AT TIME ZONE 'America/Mexico_City')::date; v_src text; v_rows jsonb; v_hash text; v_dup uuid; v_id uuid;
-  v_started timestamptz := clock_timestamp(); x jsonb; i int := 0; e text; n int;
+  v_started timestamptz := clock_timestamp(); v_x jsonb; i int := 0; e text; n int;
 BEGIN
   v_src := CASE p_platform WHEN 'meta' THEN 'meta_ads' WHEN 'google' THEN 'google_ads' END;
   IF v_src IS NULL THEN RAISE EXCEPTION 'Plataforma no válida.'; END IF;
@@ -16,12 +16,12 @@ BEGIN
   IF coalesce(p_currency, '') !~ '^[A-Z]{3}$' THEN RAISE EXCEPTION 'Moneda no válida.'; END IF;
   IF jsonb_typeof(p_rows) IS DISTINCT FROM 'array' OR jsonb_array_length(p_rows) > 5000 THEN RAISE EXCEPTION 'Filas no válidas (máximo 5,000).'; END IF;
 
-  FOR x IN SELECT * FROM jsonb_array_elements(p_rows) LOOP
+  FOR v_x IN SELECT * FROM jsonb_array_elements(p_rows) LOOP
     i := i + 1;
-    e := f360.marketing_spend_row_error(x, v_today);
-    IF e IS NULL AND (x->>'account_id' <> p_account_id OR x->>'currency' <> p_currency) THEN e := 'cuenta o moneda distinta a la de la importación'; END IF;
-    IF e IS NULL AND ((x->>'date')::date < p_from OR (x->>'date')::date > p_to) THEN e := 'fecha fuera de la ventana'; END IF;
-    IF e IS NULL AND x->>'campaign_id' = 'sin_gasto' THEN e := 'campaign_id reservado'; END IF;
+    e := f360.marketing_spend_row_error(v_x, v_today);
+    IF e IS NULL AND (v_x->>'account_id' <> p_account_id OR v_x->>'currency' <> p_currency) THEN e := 'cuenta o moneda distinta a la de la importación'; END IF;
+    IF e IS NULL AND ((v_x->>'date')::date < p_from OR (v_x->>'date')::date > p_to) THEN e := 'fecha fuera de la ventana'; END IF;
+    IF e IS NULL AND v_x->>'campaign_id' = 'sin_gasto' THEN e := 'campaign_id reservado'; END IF;
     IF e IS NOT NULL THEN RAISE EXCEPTION 'Fila % no válida: %', i, e; END IF;
   END LOOP;
   SELECT count(*) INTO n FROM (SELECT 1 FROM jsonb_array_elements(p_rows) x
