@@ -16,7 +16,7 @@ PRODUCT → VARIANT → INVENTORY BY LOCATION → SALES CHANNEL
 6. Mover inventario cambia la ubicación, nunca la identidad de la variante.
 7. "En camino" es una ubicación de sistema que no se puede vender.
 8. Un canal de venta no posee inventario: tiene una ubicación de origen (`source_location`) explícita.
-9. ~~Woo publica disponibilidad únicamente desde esa ubicación.~~ **Reemplazada por la decisión 4 de Mario (2026-10-03, `ops/BITACORA_2026-10-02_04.md`):** la existencia en línea = Bodega CDMX + tiendas (no bazares) − apartados Gold (`f360.online_ats`, migración `20261007002100`). "En camino" y los bazares nunca suman.
+9. Woo publica disponibilidad únicamente desde esa ubicación. El stock de otras tiendas o bodegas no se suma automáticamente.
 10. El orden (`sort`), el orden en pantalla o el nombre de una ubicación nunca determinan autoridad.
 11. Fuxia 360 es la autoridad del inventario. Woo es un canal.
 12. El precio pertenece a producto + mercado, no al inventario ni a la ubicación.
