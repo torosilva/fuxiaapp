@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Fuxia 360 · copia nocturna producción → staging (anonimizada). Ver docs/fuxia360/ops/STAGING_REFRESH.md
+     Instalar:    cp scripts/f360/staging_refresh/com.fuxia.staging-refresh.plist ~/Library/LaunchAgents/
+                  launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuxia.staging-refresh.plist
+     Desinstalar: launchctl bootout gui/$(id -u)/com.fuxia.staging-refresh
+     Si la Mac está dormida a las 3:30, corre al despertar. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.fuxia.staging-refresh</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/bullsilva/Documents/GitHub/fuxiaapp/scripts/f360/staging_refresh/refresh.sh</string>
+    <string>--apply</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>3</integer><key>Minute</key><integer>30</integer></dict>
+  <key>StandardOutPath</key><string>/Users/bullsilva/fuxia360-respaldos/staging-refresh/launchd.log</string>
+  <key>StandardErrorPath</key><string>/Users/bullsilva/fuxia360-respaldos/staging-refresh/launchd.log</string>
+</dict>
+</plist>

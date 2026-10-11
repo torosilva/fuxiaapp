@@ -1,0 +1,7 @@
+# Datos propios de staging que no vienen de producción. refresh.sh --apply los corre (en este orden, desde
+# origin/fuxia-360) después de reaplicar las migraciones. Una ruta por línea, relativa a la raíz del repo.
+# Cada archivo debe ser idempotente, escribir SOLO en staging y traer su propio BEGIN/COMMIT. Los que fallen se reportan; no detienen la copia.
+supabase/staging/intel_approvers.sql
+supabase/staging/intel_goal_300k.sql
+supabase/staging/intel_fx_backfill.sql
+supabase/staging/intel_fx_propose.sql
