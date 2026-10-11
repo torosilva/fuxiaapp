@@ -187,18 +187,28 @@ echo "plugins activos: " . count($act) . PHP_EOL;'
 step "Anonimizar"
 sed "s/{P}/$PFX/g" woo_anonymize.sql > anon.sql
 W db query < anon.sql
-LEFT="$(W db query --skip-column-names "SELECT
-   (SELECT COUNT(*) FROM ${PFX}users u JOIN ${PFX}usermeta m ON m.user_id=u.ID AND m.meta_key='${PFX}capabilities'
-     WHERE m.meta_value NOT LIKE '%administrator%' AND m.meta_value NOT LIKE '%shop_manager%' AND u.user_email NOT LIKE '%@staging.invalid')
- + (SELECT COUNT(*) FROM ${PFX}wc_orders WHERE billing_email IS NOT NULL AND billing_email <> '' AND billing_email NOT LIKE '%@staging.invalid')
- + (SELECT COUNT(*) FROM ${PFX}wc_order_addresses WHERE email IS NOT NULL AND email <> '' AND email NOT LIKE '%@staging.invalid')
- + (SELECT COUNT(*) FROM ${PFX}wc_customer_lookup WHERE email IS NOT NULL AND email NOT LIKE '%@staging.invalid')
- + (SELECT COUNT(*) FROM ${PFX}comments WHERE comment_author_email <> '' AND comment_author_email NOT LIKE '%@staging.invalid'
-     AND comment_author_email NOT LIKE '%@fuxiaballerinas.com')
- + (SELECT COUNT(*) FROM ${PFX}wc_orders_meta WHERE meta_value REGEXP '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\\\.[A-Za-z]{2,}' AND meta_value NOT LIKE '%@staging.invalid%')
- + (SELECT COUNT(*) FROM ${PFX}usermeta m JOIN ${PFX}usermeta c ON c.user_id=m.user_id AND c.meta_key='${PFX}capabilities'
-     WHERE c.meta_value NOT LIKE '%administrator%' AND c.meta_value NOT LIKE '%shop_manager%'
-       AND m.meta_value REGEXP '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\\\.[A-Za-z]{2,}' AND m.meta_value NOT LIKE '%@staging.invalid%')")"
+EMAIL_RE='[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}'   # MySQL recibe '\\.' → regex '\.'
+NOT_ADMIN="c.meta_value NOT LIKE '%administrator%' AND c.meta_value NOT LIKE '%shop_manager%'"
+# Cada revisión: etiqueta | consulta de conteo | consulta de detalle (solo nombres de campos, nunca valores).
+checks=(
+ "usuarias|SELECT COUNT(*) FROM ${PFX}users u JOIN ${PFX}usermeta c ON c.user_id=u.ID AND c.meta_key='${PFX}capabilities' WHERE $NOT_ADMIN AND u.user_email NOT LIKE '%@staging.invalid'|"
+ "pedidos|SELECT COUNT(*) FROM ${PFX}wc_orders WHERE billing_email IS NOT NULL AND billing_email <> '' AND billing_email NOT LIKE '%@staging.invalid'|"
+ "direcciones|SELECT COUNT(*) FROM ${PFX}wc_order_addresses WHERE email IS NOT NULL AND email <> '' AND email NOT LIKE '%@staging.invalid'|"
+ "índice de clientas|SELECT COUNT(*) FROM ${PFX}wc_customer_lookup WHERE email IS NOT NULL AND email <> '' AND email NOT LIKE '%@staging.invalid'|"
+ "reseñas|SELECT COUNT(*) FROM ${PFX}comments WHERE comment_author_email <> '' AND comment_author_email NOT LIKE '%@staging.invalid' AND comment_author_email NOT LIKE '%@fuxiaballerinas.com'|SELECT comment_type, COUNT(*) FROM ${PFX}comments WHERE comment_author_email <> '' AND comment_author_email NOT LIKE '%@staging.invalid' AND comment_author_email NOT LIKE '%@fuxiaballerinas.com' GROUP BY 1"
+ "meta de pedidos|SELECT COUNT(*) FROM ${PFX}wc_orders_meta WHERE meta_value REGEXP '$EMAIL_RE' AND meta_value NOT LIKE '%@staging.invalid%'|SELECT meta_key, COUNT(*) FROM ${PFX}wc_orders_meta WHERE meta_value REGEXP '$EMAIL_RE' AND meta_value NOT LIKE '%@staging.invalid%' GROUP BY 1"
+ "meta de usuarias|SELECT COUNT(*) FROM ${PFX}usermeta m JOIN ${PFX}usermeta c ON c.user_id=m.user_id AND c.meta_key='${PFX}capabilities' WHERE $NOT_ADMIN AND m.meta_value REGEXP '$EMAIL_RE' AND m.meta_value NOT LIKE '%@staging.invalid%'|SELECT m.meta_key, COUNT(*) FROM ${PFX}usermeta m JOIN ${PFX}usermeta c ON c.user_id=m.user_id AND c.meta_key='${PFX}capabilities' WHERE $NOT_ADMIN AND m.meta_value REGEXP '$EMAIL_RE' AND m.meta_value NOT LIKE '%@staging.invalid%' GROUP BY 1"
+)
+LEFT=0
+for c in "${checks[@]}"; do
+  label="${c%%|*}"; rest="${c#*|}"; q="${rest%%|*}"; detail="${rest#*|}"
+  n="$(W db query --skip-column-names "$q")"
+  if [ "$n" != "0" ]; then
+    echo "   ✗ $label: $n"
+    [ -n "$detail" ] && W db query --skip-column-names "$detail" | sed 's/^/       /'
+    LEFT=$((LEFT + n))
+  fi
+done
 [ "$LEFT" = "0" ] || { echo "ABORT: quedaron $LEFT correo(s) de clientas sin anonimizar"; false; }
 echo "verificación OK: ningún correo de clienta real"
 
