@@ -91,6 +91,46 @@ BEGIN
   r := public.f360_intel_query('senales_semana', jsonb_build_object('desde', today - 6, 'hasta', today));
   IF r->>'ok' <> 'true' OR jsonb_typeof(r->'data'->'senales') <> 'array' THEN RAISE EXCEPTION 'M9 signals'; END IF;
 
+  -- M11 READ-ONLY: calling every analyst tool + the cockpit writes NOTHING except the access log (measured inside this transaction)
+  PERFORM set_config('request.jwt.claims', claims_m, true);
+  CREATE TEMP TABLE _w0 ON COMMIT DROP AS SELECT relid, n_tup_ins, n_tup_upd, n_tup_del FROM pg_stat_xact_user_tables;
+  PERFORM public.f360_intel_query(t, '{"desde":"2026-06-01","hasta":"2026-10-11","mes":"2026-09-01","dias":60}')
+    FROM unnest(ARRAY['ventas','presupuesto_vs_real','avance_meta','marketing','pagos','inventario_mx','margen','caja','proyeccion_cierre','embudo','senales_semana','fuentes']) t;
+  PERFORM public.f360_intel_cockpit(today);
+  IF EXISTS (SELECT 1 FROM pg_stat_xact_user_tables s LEFT JOIN _w0 b USING (relid)
+             WHERE s.schemaname NOT LIKE 'pg_temp%' AND s.relid <> 'f360_board.access_log'::regclass
+               AND (s.n_tup_ins - coalesce(b.n_tup_ins, 0) + s.n_tup_upd - coalesce(b.n_tup_upd, 0) + s.n_tup_del - coalesce(b.n_tup_del, 0)) > 0) THEN
+    RAISE EXCEPTION 'M11 a tool wrote: %', (SELECT string_agg(s.schemaname || '.' || s.relname, ', ') FROM pg_stat_xact_user_tables s LEFT JOIN _w0 b USING (relid)
+      WHERE s.schemaname NOT LIKE 'pg_temp%' AND s.relid <> 'f360_board.access_log'::regclass AND (s.n_tup_ins - coalesce(b.n_tup_ins, 0) + s.n_tup_upd - coalesce(b.n_tup_upd, 0) + s.n_tup_del - coalesce(b.n_tup_del, 0)) > 0);
+  END IF;
+
+  -- M12 currencies: each market only in its own currency (MX→MXN, CO→COP, ROW→USD); a month without an approved rate is never consolidated
+  r := public.f360_intel_query('ventas', '{"desde":"2026-06-01","hasta":"2026-06-30"}');
+  IF EXISTS (SELECT 1 FROM jsonb_array_elements(r->'data'->'por_mercado_canal') e WHERE e->>'moneda' <> CASE e->>'mercado' WHEN 'MX' THEN 'MXN' WHEN 'CO' THEN 'COP' ELSE 'USD' END) THEN RAISE EXCEPTION 'M12 currency mix'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM f360.fx_rates WHERE period = '2026-06-01' AND status = 'approved')
+     AND EXISTS (SELECT 1 FROM jsonb_array_elements(r->'data'->'por_mercado_canal') e WHERE e->>'moneda' <> 'MXN' AND (e->>'venta_neta')::numeric > 0)
+     AND (r->'data'->'consolidado_mxn'->>'mxn' IS NOT NULL OR NOT (r->'meta'->'faltantes') @> '[{"que":"Tipo de cambio aprobado"}]') THEN RAISE EXCEPTION 'M12 converted without approved rate %', r->'data'->'consolidado_mxn'; END IF;
+
+  -- M13 cancelled / never-paid orders are not sales: revenue = countable only; payments report the never-paid ones apart
+  r := public.f360_intel_query('ventas', '{"desde":"2026-06-01","hasta":"2026-10-11"}');
+  SELECT sum((e->>'pedidos_pagados')::int) INTO n FROM jsonb_array_elements(r->'data'->'por_mercado_canal') e;
+  IF n <> (SELECT count(*) FROM f360.intel_orders('2026-06-01', '2026-10-11') WHERE status_class = 'countable') THEN RAISE EXCEPTION 'M13 paid count'; END IF;
+  SELECT sum((e->>'nunca_pagados')::int) INTO n FROM jsonb_array_elements((public.f360_intel_query('pagos', '{"desde":"2026-06-01","hasta":"2026-10-11"}'))->'data'->'por_metodo') e;
+  IF n <> (SELECT count(*) FROM f360.intel_orders('2026-06-01', '2026-10-11') WHERE channel = 'online' AND payment_state = 'never_paid') THEN RAISE EXCEPTION 'M13 never paid'; END IF;
+
+  -- M14 CAC ≠ CPA: CPA = spend ÷ paid orders; CAC = spend ÷ NEW identified customers (≤ paid orders) → CAC ≥ CPA
+  r := public.f360_intel_query('marketing', '{"desde":"2026-06-01","hasta":"2026-10-11"}');
+  FOR x IN SELECT * FROM jsonb_array_elements(r->'data'->'por_mercado') LOOP
+    IF (x->>'clientas_nuevas')::int > (x->>'pedidos_pagados')::int THEN RAISE EXCEPTION 'M14 new > paid %', x; END IF;
+    IF x->>'cac_mxn' IS NOT NULL AND x->>'cpa_mxn' IS NOT NULL AND (x->>'cac_mxn')::numeric < (x->>'cpa_mxn')::numeric THEN RAISE EXCEPTION 'M14 cac < cpa %', x; END IF;
+    IF x->>'cpa_mxn' IS NOT NULL AND (x->>'cpa_mxn')::numeric <> round((x->'inversion_mxn'->>'mxn')::numeric / (x->>'pedidos_pagados')::int, 2) THEN RAISE EXCEPTION 'M14 cpa formula %', x; END IF;
+  END LOOP;
+
+  -- M15 incomplete inventory is labelled: PARCIAL + missing physical count / legacy pairs / cost coverage
+  r := public.f360_intel_query('inventario_mx', '{"dias":60}');
+  IF r->'meta'->>'disponibilidad' <> 'PARCIAL' OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r->'meta'->'faltantes') f WHERE f->>'que' LIKE 'Conteo físico%')
+     OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r->'meta'->'faltantes') f WHERE f->>'que' = 'Inventario a costo') THEN RAISE EXCEPTION 'M15 %', r->'meta'; END IF;
+
   -- M10 grants: cores are never callable directly
   IF has_function_privilege('authenticated', 'f360.intel_sales_core(date,date)', 'EXECUTE') OR has_function_privilege('authenticated', 'f360.intel_orders(date,date)', 'EXECUTE')
      OR has_function_privilege('anon', 'public.f360_intel_query(text,jsonb)', 'EXECUTE') OR has_function_privilege('anon', 'public.f360_intel_cockpit(date)', 'EXECUTE')

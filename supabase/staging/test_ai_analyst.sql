@@ -3,7 +3,7 @@ BEGIN;
 DO $$
 DECLARE mario uuid := (SELECT u.id FROM auth.users u JOIN f360.user_roles r ON r.auth_user_id = u.id AND r.role = 'owner' WHERE u.email = 'mario.demo@staging.invalid');
   caro uuid := (SELECT u.id FROM auth.users u JOIN f360.user_roles r ON r.auth_user_id = u.id AND r.role = 'owner' WHERE u.email = 'carolina.demo@staging.invalid');
-  q jsonb; v bigint; i int; r jsonb;
+  q jsonb; v bigint; i int; r jsonb; nb uuid;
 BEGIN
   INSERT INTO f360.approval_scopes (scope, auth_user_id, display_name, added_by_name) VALUES ('budget', mario, 'Mario', 'test') ON CONFLICT DO NOTHING;
   DELETE FROM f360.approval_scopes WHERE scope = 'budget' AND auth_user_id = caro;
@@ -36,6 +36,18 @@ BEGIN
   -- A6 history: only my own; usage: per person
   IF EXISTS (SELECT 1 FROM jsonb_array_elements(public.f360_ai_history()->'items') x WHERE x->>'question' = 'p' AND (x->>'cost_usd')::numeric > 50) THEN RAISE EXCEPTION 'A6 own'; END IF;
   IF jsonb_array_length(public.f360_ai_usage()->'month'->'por_persona') < 2 THEN RAISE EXCEPTION 'A6 usage'; END IF;
+  -- A8 protection between users: each person sees only her own history; an owner who is not a board member gets nothing
+  PERFORM set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, true);
+  PERFORM public.f360_ai_log(jsonb_build_object('auth_user_id', caro, 'question', 'pregunta privada de Carolina', 'status', 'ok'));
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', mario, 'role', 'authenticated', 'aal', 'aal2')::text, true);
+  IF EXISTS (SELECT 1 FROM jsonb_array_elements(public.f360_ai_history()->'items') x WHERE x->>'question' = 'pregunta privada de Carolina') THEN RAISE EXCEPTION 'A8 leak'; END IF;
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', caro, 'role', 'authenticated', 'aal', 'aal2')::text, true);
+  IF NOT EXISTS (SELECT 1 FROM jsonb_array_elements(public.f360_ai_history()->'items') x WHERE x->>'question' = 'pregunta privada de Carolina') THEN RAISE EXCEPTION 'A8 own'; END IF;
+  INSERT INTO auth.users (id, email, aud, role) VALUES (gen_random_uuid(), 'zz-ai-owner@staging.invalid', 'authenticated', 'authenticated') RETURNING id INTO nb;
+  INSERT INTO f360.user_roles (auth_user_id, role, display_name) VALUES (nb, 'owner', 'Dueña sin consejo (prueba)');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', (SELECT id FROM auth.users WHERE email = 'zz-ai-owner@staging.invalid'), 'role', 'authenticated', 'aal', 'aal2')::text, true);
+  IF (public.f360_ai_history())->>'ok' <> 'false' OR (public.f360_ai_usage())->>'ok' <> 'false' OR (public.f360_intel_query('ventas', '{}'))->>'ok' <> 'false' THEN RAISE EXCEPTION 'A8 non-board owner'; END IF;
+
   -- A7 grants: nobody writes the audit or reads the tables directly
   IF has_function_privilege('authenticated', 'public.f360_ai_log(jsonb)', 'EXECUTE') OR has_function_privilege('authenticated', 'public.f360_ai_quota(uuid)', 'EXECUTE')
      OR has_table_privilege('authenticated', 'f360.ai_queries', 'SELECT') OR has_function_privilege('anon', 'public.f360_ai_history()', 'EXECUTE') THEN RAISE EXCEPTION 'A7'; END IF;
