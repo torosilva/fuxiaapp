@@ -23,10 +23,10 @@ console.log(psql(`SELECT jsonb_pretty(jsonb_build_object(
   'extensions_crypt', EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'extensions' AND p.proname = 'crypt')
 ))`, {}, { readOnly: true }));
 // During the window: the 4 real active sellers must stay blocked (sales_access) — only when the Academy schema exists.
-const installed = psql(`SELECT to_regnamespace('f360_academy') IS NOT NULL`, {}, { readOnly: true }) === 't';
+const installed = psql(`SELECT to_regnamespace('f360_academy') IS NOT NULL;`, {}, { readOnly: true }) === 't';
 const sellers = installed ? psql(`SELECT 'vendedoras reales activas: ' || count(*) || ' · bloqueadas: ' || count(*) FILTER (WHERE f360_academy.sales_access(auth_user_id) = 'bloqueado')
   || ' · con acceso: ' || count(*) FILTER (WHERE f360_academy.sales_access(auth_user_id) = 'ok')
-  FROM f360.sellers WHERE status = 'activa' AND auth_user_id IS NOT NULL AND phone NOT LIKE '+155501909%'`, {}, { readOnly: true }) : 'academy: no instalado';
+  FROM f360.sellers WHERE status = 'activa' AND auth_user_id IS NOT NULL AND phone NOT LIKE '+155501909%';`, {}, { readOnly: true }) : 'academy: no instalado';
 console.log(sellers + ' · ' + psql(`SELECT 'cuentas de prueba: ' || (SELECT count(*) FROM auth.users WHERE email LIKE 'alumna.prueba%@staging.invalid')
   || ' · factores MFA demo: ' || (SELECT count(*) FROM auth.mfa_factors f JOIN auth.users u ON u.id = f.user_id WHERE u.email LIKE '%.demo@staging.invalid')
-  || ' · roles de prueba: ' || (SELECT count(*) FROM f360.user_roles WHERE granted_by = 'Academy A1 (staging)')`, {}, { readOnly: true }));
+  || ' · roles de prueba: ' || (SELECT count(*) FROM f360.user_roles WHERE granted_by = 'Academy A1 (staging)');`, {}, { readOnly: true }));
