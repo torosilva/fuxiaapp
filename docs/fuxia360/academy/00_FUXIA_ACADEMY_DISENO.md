@@ -46,18 +46,20 @@
 
 En una frase: el primer curso se puede armar con **fichas reales de 27 modelos**. Cuidados, beneficios, objeciones, políticas y la historia de la marca **los tiene que dar Carolina** en A0.
 
-### Decisiones pendientes y mi recomendación (Sales = P0, Ejecutiva = P1)
+### Decisiones aprobadas por Mario (2026-10-11)
 
-| # | Decisión | Recomendación | Por qué (P0 primero) | Efecto en la Ejecutiva (P1) |
-|---|---|---|---|---|
-| 1 | **Dónde estudian las vendedoras** (§12.1) | **Web móvil en admin-web** para el MVP, entrando con su código de WhatsApp y con acceso directo en la pantalla de inicio del teléfono. App nativa después, sobre las mismas RPC | Una sola interfaz para alumna, Carolina y panel; el diploma PDF se genera en el servidor; sin depender de OTA ni tiendas de apps. Es el camino más corto a un curso funcionando | Ninguno: la Ejecutiva ya era web |
-| 2 | **Valores de XP y puntos** (§7.4) | **XP: aprobar la tabla completa** (no tiene valor económico). **Puntos: aprobar solo lo del MVP**: Fuxia Starter = 100 y microcertificación = 50. Los demás niveles se fijan cuando existan sus cursos. **El valor de un punto en pesos no se define hasta A4/A5** | Las vendedoras ven saldo desde el primer certificado, sin comprometer dinero: los canjes están apagados y el valor en pesos no está fijado | La Ejecutiva no da puntos (alumno único, sin premios) |
-| 3 | **Verificación pública del diploma** (§6.4) | **Nombre + inicial del apellido** ("Ana G."), nivel, fecha y estado. Sin tienda, teléfono ni calificación | Basta para comprobar que es auténtico y expone lo mínimo de una empleada | La Ejecutiva no emite diplomas públicos (decisión futura) |
-| 4 | **Ranking** | **Sin ranking con nombres en el MVP.** Cada vendedora ve su progreso y el avance del equipo en conjunto ("3 de 4 ya terminaron Starter"). Revisar al mes | Con 4 vendedoras en una tienda, un ranking señala de inmediato a la última. Primero medimos si el curso se completa sin esa presión | No aplica |
-| 5 | **Dónde viven los beneficios del producto** (§9.3) | **Opción A en el MVP**: beneficios, objeciones y recomendaciones viven en Academy (`product_sales_notes`, versionadas, aprobadas por Carolina con `academy_content`), marcadas **uso interno de venta**. **Cuidados** se captura en la ficha de producto existente. Pasar beneficios a la ficha compartida se decide con el equipo de tienda en línea más adelante | No toca la página de producto ni Hilo (no frena P0 ni a otros módulos). Hoy no existen en ningún lado, así que no se duplica nada | Ninguno |
-| 6 | **Medición de datos de producto para A0** (§9.1) | **Consulta de solo lectura en staging**, que es la copia nocturna de producción. Si algún número no cuadra, una consulta de solo lectura en producción **con tu permiso explícito** | Los datos de producto no son personales y la copia es de anoche; no requiere permisos sobre producción. Leer no modifica staging | Ninguno |
+| # | Decisión | Aprobado | Dónde se aplica |
+|---|---|---|---|
+| 1 | Plataforma | **Web móvil primero.** WhatsApp OTP se reutiliza **solo después de verificar** que es seguro y adecuado para vendedoras autorizadas | §2.4 (verificación hecha: apto para el MVP con condiciones; **no apto para canjes** hasta cerrar P0-6) |
+| 2 | XP y puntos | Conceptos separados. **Starter = 100 puntos canjeables; microcertificación = 50.** XP según la tabla propuesta, **pendiente de revisión**. **Sin valor monetario** de los puntos. **Canjes apagados** | §7.4 |
+| 3 | Diplomas | Identificador **no predecible**, **información mínima autorizada**, **revocable / invalidable** | §6.3, §6.4 |
+| 4 | Ranking | **Sin ranking público individual.** Progreso personal + avance agregado del equipo | §12.2 |
+| 5 | Contenido de producto | **Carolina es la autoridad.** Beneficios comerciales = contenido **interno** de Academy. **Cuidados consistentes con las fichas existentes** (se capturan en `f360.product_knowledge`, Academy los lee) | §9.3 |
+| 6 | Datos para A0 | Diseñar la consulta de solo lectura a producción. **Sin consultas automáticas ni tareas programadas** sobre producción sin autorización adicional | §9.5 |
+| 7 | Autoaprobación | Carolina puede **publicar directamente contenido ordinario de producto que ella creó**, con auditoría, versionado y registro explícito de la excepción. **No aplica** a reglas de puntos, ajustes de saldo, premios, canjes excepcionales ni revocaciones sensibles: ahí siempre hay dos personas | §4.1.2 |
+| — | Arquitectura | **Registro compartido de aprobaciones en `f360`**, con las condiciones de §4.1.8 | §4.1 |
 
-**Una confirmación adicional, surgida del diseño de aprobaciones:** ¿Carolina puede aprobar lecciones que ella misma escribió (`publish_sales` con autoaprobación registrada, §4.1.2)? **Recomiendo que sí**, porque es la única autoridad de producto. Si no, otra persona tendría que escribir todo para que ella apruebe.
+**Siguiente paso:** el alcance definitivo de A0 está en §18. **A0, migraciones, implementación, despliegues y consultas automatizadas a producción siguen sin autorizar.**
 
 ---
 
@@ -103,6 +105,32 @@ Los puntos de clientas viven en `public.loyalty_cards`, `public.rewards`, `publi
 **Academy no lee, no escribe y no reusa ninguno.** El nombre visible es **"Puntos Academy"**, para que nadie los confunda con los puntos de una clienta. Si una vendedora también es clienta, sus dos saldos están separados.
 
 ### 2.3 Producto: ver §9.
+
+### 2.4 Verificación de WhatsApp OTP para vendedoras (decisión 1)
+
+**Cómo funciona hoy:**
+- El admin web llama a la Edge Function `whatsapp-otp` (`admin-web/src/app/login/actions.ts:34-56`).
+- La función crea o abre una cuenta `{teléfono}@fuxia.app` (`fuxia-native/supabase/functions/whatsapp-otp/index.ts:226-258`).
+- Después, el admin web **cierra la sesión de cualquier cuenta sin rol de Fuxia 360** (`actions.ts:20-32`).
+
+| Control | Estado | Evidencia | Veredicto |
+|---|---|---|---|
+| Código de 6 dígitos con generador criptográfico | ✓ | `index.ts:34-39` | Adecuado |
+| Vence en 10 min; máximo 3 envíos por teléfono cada 10 min; máximo 5 intentos por código, luego se invalida; un solo uso | ✓ | `:148-160`, `:194-216` | Adecuado para el MVP (≈ 15 intentos por teléfono cada 10 min; sin límite por IP) |
+| Solo entran cuentas con rol de Fuxia 360 al admin web | ✓ | `actions.ts:20-32` | Adecuado: una clienta no entra |
+| Vendedora desactivada pierde acceso | ✓ con Academy | Academy deriva la alumna de `f360.sellers.status` (§4) | Adecuado |
+| **Entrada de revisión de tiendas de apps** (`+525555555555` / `555555` → cuenta demo) **activa con valores fijos en el código** | ✗ **abierto** | `index.ts:17-19`, `:183-191`; hallazgo **P0-6.3** en `docs/fuxia360/audit/SPRINT_0_IMPLEMENTATION_PLAN.md:112, 367-389` (contención "A8" diseñada, **no aplicada**: el código actual conserva los valores fijos) | No afecta a Academy si la cuenta demo **no** tiene rol de Fuxia 360 ni ficha de vendedora (entonces el admin web la expulsa). **Se verifica en A0** (consulta §9.5 Q4) |
+| **Contraseña derivada** de teléfono + un secreto (`OTP_SALT`) | ⚠ riesgo P1 conocido | `index.ts:227-228`; `docs/fuxia360/audit/SECURITY_AUDIT.md:70`; `LIVE_RECONCILIATION.md:84` (el secreto **sí** está configurado en producción) | Quien tuviera el secreto podría entrar como cualquier vendedora sin código |
+| El error de Twilio se devuelve en `debug`; teléfonos en logs; `check_phone` revela si un número existe | ⚠ menores | `:163-166`, `:69-87`, `:110-125` | No bloquean el MVP |
+
+**Veredicto:**
+- **Apto para el MVP de Sales** (A1–A4). Ahí la vendedora solo estudia, se certifica y ve un saldo **sin valor monetario y sin canje**. Lo peor que podría hacer un impostor es presentar exámenes por otra persona.
+- **No apto para A5 (canjes reales).** Ahí una cuenta tomada sí tendría valor. **Condición para encender canjes:** cerrar P0-6, con dos requisitos:
+  - contener la entrada de revisión de tiendas (A8);
+  - reemplazar la contraseña derivada.
+
+  Además, la entrega física de premios lleva firma en tienda.
+- Corregir `whatsapp-otp` **no es parte de Academy**: es una función compartida con la app de clientas y requiere su propia aprobación. Academy solo **depende** de que P0-6 esté cerrado antes de A5.
 
 ---
 
@@ -219,7 +247,8 @@ Los permisos explícitos se cargan con un script revisado (con evidencia de iden
 
 | Alcance | Operación | Qué aprueba | Sensible (dos personas) | aal2 | Quién al inicio |
 |---|---|---|---|---|---|
-| `academy_content` | `publish_sales` | Publicar una versión de lección o curso de Sales (producto, comercial, políticas) | **Excepción de autoridad**: ver nota | No | Carolina |
+| `academy_content` | `publish_sales` | Publicar una versión de lección o curso de Sales con contenido **ordinario de producto** | **Excepción de autoridad** (decisión 7): ver nota | No | Carolina |
+| `academy_content` | `publish_sales_policy` | Publicar contenido con **políticas** o cambiar **criterios de certificación** | **Sí** | Sí | Carolina, Mario (nunca la misma persona que lo pidió) |
 | `academy_content` | `publish_executive` | Publicar contenido de la Escuela Ejecutiva | No (P1, alumno único) | Sí | Mario |
 | `academy_content` | `retire` | Retirar un curso publicado | Sí | Sí | Carolina, Mario |
 | `academy_points` | `rule_version` | Activar una versión de reglas de XP y puntos | **Sí** | Sí | Carolina (propone Mario) |
@@ -230,9 +259,12 @@ Los permisos explícitos se cargan con un script revisado (con evidencia de iden
 | `academy_rewards` | `redemption` | Aprobar un canje (A5) | **Sí** + beneficiario ≠ aprobador | Sí | No se asigna hasta A5 |
 
 **Nota sobre `publish_sales`.** Carolina es la autoridad única de producto, igual que con `store_discount`, donde solo ella aprueba. Si ella misma escribe una lección y además la aprueba, exigir una segunda persona dejaría el contenido sin quien lo apruebe.
-- **Propuesta:** `allow_self_approval = true` **solo** para `publish_sales`. Queda marcada como **autoaprobación** en `approval_events` y aparece en el panel de Mario.
+- **Aprobado por Mario (decisión 7):** `allow_self_approval = true` **solo** para `publish_sales`, y solo para **contenido ordinario de producto** creado por la propia Carolina.
+  - Queda como evento `approved` con la marca **`self_approval = true`**, la versión y la huella del contenido.
+  - Aparece en el panel de Mario.
 - Si otra persona es la autora, la aprobación de Carolina es obligatoria.
-- **Si prefieres dos personas también aquí, dímelo.** Cambia un valor del catálogo de operaciones, no el diseño.
+- **La excepción nunca aplica** a `academy_points.*` (reglas, ajustes de saldo, revocaciones), `academy_rewards.*` (premios, canjes, encendido de canjes) ni `academy_content.retire`. Esas operaciones tienen `allow_self_approval = false` en el catálogo, y `approval_decide` exige siempre solicitante ≠ aprobador.
+- **"Contenido ordinario" excluye** cualquier lección que incluya una **política** (cambios, apartados, envíos, descuentos) o que **cambie la nota mínima o los criterios de certificación**. Esas van como `publish_sales_policy`, sin autoaprobación: Carolina las propone y Mario las aprueba, o al revés.
 
 #### 4.1.3 Separación solicitante / aprobador (requisito 2)
 
@@ -279,6 +311,20 @@ Ninguna migración que toque `f360.approval_scopes` o cree el registro compartid
 - Academy **no** tiene tabla de aprobadores ni de solicitudes o decisiones. La tabla `approvals` de §5.1 **se elimina** del diseño.
 - Academy **sí** guarda en sus tablas el **estado** del objeto (`borrador`, `en_revision`, `publicado`…) y el `approval_request_id` que lo autorizó. Es una referencia, no una copia de la decisión.
 - Los comentarios de Carolina por bloque ("cambia esta frase") son **notas de edición**, no decisiones. Viven en `f360_academy.review_comments`. La decisión formal está solo en `f360.approval_events`.
+
+#### 4.1.8 Condiciones de Mario al registro compartido (2026-10-11)
+
+| Condición | Cómo se cumple |
+|---|---|
+| No modificar las aprobaciones de tipo de cambio, presupuesto ni descuentos | Esos flujos siguen con sus tablas y funciones (`fx_rates`, `budget_versions`, `store_discount_requests`). El registro nuevo **no** los lee ni los escribe, y no tienen que adoptarlo |
+| No eliminar ni alterar `approval_scopes`, `can_approve` ni `store_discount` | Única intervención: **ampliar** el CHECK de alcances con guarda que aborta si el CHECK vigente no es el esperado (§4.1.6). Sin cambio de columnas, llave, RLS ni función |
+| Historial inmutable | `approval_events` append-only con `f360.reject_audit_change`; `approval_requests` solo cambia de estado por las funciones del registro, y cada cambio deja un evento |
+| Aprobaciones atadas a versiones | Objeto + versión + huella en la solicitud, al decidir y al consumir (§4.1.4) |
+| Sin reutilización | `approval_consume` marca `consumed` en la misma transacción; una solicitud consumida no se vuelve a usar |
+| Expiración correcta | `expires_at` fijo al crear la solicitud (por operación, `max_age_days`). Se evalúa **en la base con `now()`** al decidir y al consumir, nunca con la hora del navegador. Vencer no borra nada: deja un evento `expired` |
+| Sin aprobar versiones modificadas | Versiones inmutables desde que se envían a revisión + huella recalculada (§4.1.4) |
+| Coordinación con otras sesiones | §4.1.6 obligatorio antes de cualquier migración |
+| Sin dependencias que rompan módulos existentes | Objetos **nuevos**; ninguna función existente cambia su firma ni su comportamiento; ningún módulo existente depende del registro. Si el registro falla, **solo** Academy queda sin poder publicar. El `.down.sql` del registro solo se puede ejecutar si no hay solicitudes de otros módulos |
 
 ---
 
@@ -360,6 +406,7 @@ Ningún endpoint permite "emitir" desde fuera. **Revocación:** solo el Admin, c
 ### 6.4 Diploma PDF y verificación
 
 - `GET /academy/certificados/[id]/pdf` (route handler) comprueba con una RPC que el certificado es **de quien lo pide** (o que quien lo pide es Admin o Aprobadora) y genera el PDF al vuelo con `pdf-lib`. El PDF lleva nombre, nivel, fecha, calificación, código y la URL `…/verificar/<código>`; en A2+ se agrega un código QR.
+- **Invalidar sin revocar.** Además de revocar (el certificado deja de ser válido), el Admin puede **apagar la verificación pública** de un certificado vigente, por ejemplo si la vendedora lo pide por privacidad. La página responde igual que un código inexistente. Si se trata de una revocación sensible, se pide con `academy_points.certificate_revoke` y dos personas.
 - `/verificar/[código]` es **pública y sin sesión**. Muestra nivel, fecha, estado (vigente o revocado) y el nombre según tu decisión 3. Por omisión propongo nombre + inicial del apellido.
   - Nunca muestra teléfono, tienda, calificación ni otros certificados.
   - Límite de consultas por IP.
@@ -405,7 +452,17 @@ created_by (uid o 'sistema') · approved_by (uid, ajustes) · reason · at
 | Revocar un certificado | Movimiento de `reversa` automático por los puntos que dio. |
 | Persona con doble papel (p. ej., dueña con ficha de vendedora, §2.1) | Puede estudiar y ganar puntos **automáticos**, pero no puede pedir ni aprobar ajustes sobre sí misma ni aprobar un premio cuyo canje le toque. |
 
-### 7.4 Valores propuestos (requieren tu aprobación; no se activan sin ella)
+### 7.4 Valores
+
+**Aprobado (2026-10-11):**
+- **Fuxia Starter = 100 Puntos Academy.**
+- **Microcertificación = 50 Puntos Academy.**
+- **Sin valor monetario** por punto.
+- **Canjes apagados.**
+- Los demás niveles **no tienen puntos fijados**: se deciden cuando existan sus cursos.
+- La **tabla de XP** de abajo sigue **pendiente de revisión** y se confirma antes de A2.
+
+Tabla original propuesta (referencia):
 
 | Logro | XP | Puntos Academy |
 |---|---|---|
@@ -485,7 +542,7 @@ solicitado ──(Admin o Aprobadora revisa stock y saldo)──▶ aprobado ─
 | Precio | `f360.products.regular_price`, `f360.product_prices` | existe | Solo si Carolina decide enseñarlo; los precios cambian y no deben quedar fijos en un diploma |
 | Enlace a WooCommerce | `f360.woo_variant_links` (`supabase/migrations/20261007000200_f360_d2_legacy_channel_links.sql`); `f360.products.wc_product_id` está en **0/32** y no se usa | — | No hace falta: Woo es el canal, no la fuente de la ficha |
 
-**Tareas de A0 (lectura):** medir forro, suela, punta, tacón, nota de talla y colores por modelo, y por qué 5 modelos no tienen ficha validada (hay 4 modelos archivados; falta confirmar si son los mismos). Requiere tu permiso para otra consulta de solo lectura a producción, o hacerla en staging, que es copia anonimizada de producción.
+**Tareas de A0 (lectura):** medir forro, suela, punta, tacón, nota de talla y colores por modelo, y por qué 5 modelos no tienen ficha validada (hay 4 modelos archivados; falta confirmar si son los mismos). Mecanismo en §9.5.
 
 ### 9.2 Ficha educativa por modelo (pantalla)
 
@@ -512,6 +569,23 @@ Recomiéndala para…                       ⏳ pendiente de validación
 - **Opción A (recomendada para el MVP):** beneficios, objeciones y recomendaciones viven en Academy (`product_sales_notes`, versionadas y aprobadas por Carolina), marcadas como **uso interno de venta**. No tocan la tabla que usan la tienda en línea y Hilo.
 - **Opción B:** agregar columnas a `f360.product_knowledge` para que la tienda en línea y Hilo también las usen. Es más coherente a largo plazo, pero cambia una tabla compartida y la página de producto. Requiere su propio sprint con el equipo de storefront.
 - **Cuidados** sí pertenece a `f360.product_knowledge` (el campo ya existe). Carolina lo llena en la ficha de producto existente y Academy lo lee. **No se duplica.**
+
+### 9.5 Consulta de solo lectura a producción para A0 (decisión 6)
+
+**Mecanismo:** manual, puntual y aprobado por consulta. **Sin** tareas programadas, cron, copias nocturnas nuevas ni ejecuciones automáticas.
+
+1. **Herramienta existente:** `scripts/f360/prod_read.sh`. Envuelve la consulta en `BEGIN READ ONLY … COMMIT`, así que Postgres rechaza cualquier escritura. Acepta una sola sentencia (rechaza `;`). Usa la sesión de la CLI de Supabase del llavero de macOS y no imprime credenciales.
+2. **Lista cerrada:** las consultas exactas (abajo) se aprueban **antes** de ejecutarse. No se ejecuta nada fuera de la lista; si hace falta otra, se pide de nuevo.
+3. **Solo datos de producto o conteos.** Sin teléfonos, nombres de clientas ni montos individuales. Q4 devuelve solo **sí/no**.
+4. **Una ejecución por consulta**, a mano, en esta sesión. El resultado se guarda en `docs/fuxia360/academy/a0/07_CONSULTAS_SOLO_LECTURA.md` con fecha, consulta y resultado, y queda versionado.
+5. **Si el permiso de la sesión bloquea la ejecución** (como pasó el 11-oct), no se reintenta ni se rodea. Se te pide que la ejecutes tú con `! scripts/f360/prod_read.sh <<'SQL' … SQL`.
+
+| # | Para qué | Devuelve |
+|---|---|---|
+| Q1 | Fichas: datos de producto por modelo Ballerinas | Por modelo: código, nombre, estado, colores, tallas, foto principal (ruta), y de `product_knowledge`: estado, versión, fecha de validación, ajuste, entre tallas, nota de talla, horma, ancho, materiales (exterior, forro, suela), tacón, punta, comodidad, cuidados |
+| Q2 | Qué falta | Por modelo: lista de campos vacíos y si el modelo está archivado |
+| Q3 | Descripciones existentes (posible material para Carolina) | Por modelo: `short_description` y los primeros 400 caracteres de `description` (texto de producto, no personal) |
+| Q4 | Verificar la entrada de revisión de tiendas (§2.4) | Dos valores **sí/no**: ¿la cuenta demo tiene rol en `f360.user_roles`? ¿tiene ficha en `f360.sellers`? Sin teléfono ni id en la salida |
 
 ### 9.4 Referencias versionadas
 
@@ -604,6 +678,8 @@ YO: nivel, XP, saldo de Puntos Academy y movimientos, diplomas (Descargar PDF), 
 
 ## 13. Primer curso: Fuxia Starter · Ballerinas (contenido de A0)
 
+> El detalle definitivo de A0 está en **§18**. Esta sección queda como resumen.
+
 | Módulo | Microlecciones | Fuente | Estado hoy |
 |---|---|---|---|
 | 1. Bienvenida a Fuxia | Historia, qué hace distinta a una Fuxia, cómo hablamos con la clienta | **Carolina** | ⏳ Por escribir con ella |
@@ -657,7 +733,7 @@ Cada sprint se hace primero en STAGING, en `fuxia-360`, y lleva:
 
 | Sprint | Entrega | Base de datos / API | Seguridad | Verificación | Aceptación |
 |---|---|---|---|---|---|
-| **A0 · Rediseño y contenido** | Este documento aprobado; inventario de datos faltantes por modelo; cuestionario de Carolina; borrador del curso Starter · Ballerinas (guion + banco de ≥ 60 reactivos) | Ninguno | — | Revisión de Mario y Carolina | Carolina aprueba el guion y el banco en documento |
+| **A0 · Contenido del primer curso** | Ver **§18**: temario, microlecciones, fichas, banco de preguntas, criterios de certificación, lista de validación de Carolina, consultas Q1–Q4 | Ninguno (solo documentos + 4 lecturas manuales aprobadas) | Sin escrituras; lecturas de producto solamente | Revisión de Mario y Carolina | Criterios de §18.6 |
 | **A1 · Motor y acceso de vendedoras** | Esquema `f360_academy` (contenido, versiones, progreso, permisos); alumna derivada de `f360.sellers`; `/academy` móvil (Inicio, Cursos, Microlección, Fichas); editor mínimo + cola de aprobación de Carolina; carga del curso A0 como **borrador** para que Carolina lo apruebe en la plataforma | Migración + RPC `f360_academy_*`; entrada en `Shell.tsx` | RLS sin políticas; revocaciones; pruebas de acceso cruzado | Una vendedora no ve Dirección, Ejecutiva ni el progreso de otra; vendedora desactivada = sin acceso; claves fuera del bundle | Ana estudia 3 lecciones en el teléfono, cierra y retoma en la misma tarjeta |
 | **A2 · Evaluaciones, certificados, diplomas, XP** | Quizzes y final con banco aleatorio, límites e intentos; retroalimentación; emisión de certificados; PDF; `/verificar`; XP; progreso por vendedora y tienda en el panel | Migración + route handler PDF; dependencia `pdf-lib` | Emisión solo transaccional; PDF solo para la dueña o el admin; verificación con límite de consultas | Pruebas: no se emite sin aprobar; no se emite dos veces; un código mal escrito no revela nada | Ana se certifica en Starter y descarga su diploma; el código se verifica |
 | **A3 · Puntos Academy** | `points_rules` versionadas (aprobación de dos personas); `points_ledger`; saldo y movimientos en "Yo"; ajustes manuales con doble aprobación; revocación con reversa | Migración | Append-only; único por logro; sin autoasignación; 2FA | Pruebas adversariales: doble emisión, autoajuste, regla editada, reversa | Saldo correcto tras certificar; ningún camino crea puntos sin certificado o sin doble aprobación |
@@ -713,3 +789,70 @@ Los sprints no se encadenan con Growth, Inteligencia ni otros módulos. Los punt
 | Choque con migraciones de otra sesión sobre `approval_scopes` | Chequeo obligatorio de §4.1.6: estado real, aviso a la otra sesión, guarda del CHECK que aborta si no coincide, dry-run |
 | Una aprobación usada para algo distinto de lo aprobado | Aprobación atada a alcance, operación, objeto, versión y hash; un solo uso; vencimiento (§4.1.4) |
 | Duplicar fuentes de verdad | Aprobadores en `f360.approval_scopes` existente; solicitudes y decisiones en el registro compartido `f360.approval_*` (no en Academy); producto y vendedoras se leen de su origen; Cuidados se captura en `product_knowledge`; la Ejecutiva usa el mismo motor |
+
+---
+
+## 18. Alcance definitivo de A0 — "Fuxia Starter · Ballerinas" (para autorizar)
+
+### 18.1 Qué produce A0
+
+Documentos en `docs/fuxia360/academy/a0/`, versionados en `fuxia-360`. **Nada de código, migraciones, despliegues ni escrituras en ningún ambiente.**
+
+| # | Archivo | Contenido | Tamaño esperado |
+|---|---|---|---|
+| 1 | `01_TEMARIO.md` | Curso Starter · Ballerinas: 5 módulos, objetivos por módulo y microlección, duración, orden, qué es obligatorio y qué queda "pendiente de Carolina" | 1 página |
+| 2 | `02_MICROLECCIONES.md` | **Guion completo, tarjeta por tarjeta**, de ≈ 18 microlecciones de 2–5 min (≈ 70 min en total). Cada frase lleva su **etiqueta de fuente**: `[FICHA vN]` (validada), `[PEDAGOGÍA]` (técnica general de venta, revisable), `[PENDIENTE CAROLINA]` (hueco explícito). Una pregunta de práctica por tarjeta donde aplique | ≈ 18 guiones |
+| 3 | `03_FICHAS_BALLERINAS.md` | **Una ficha educativa por modelo activo** (28), con el formato de §9.2: lo validado tal cual (con versión y fecha), lo que falta marcado **pendiente**, y beneficios / objeciones / "recomiéndala para…" como **BORRADOR PARA CAROLINA** solo cuando se derivan de un campo validado, con la derivación escrita (p. ej., "horma cómoda [FICHA v3] → beneficio propuesto: …"). **Nunca** se escriben materiales, tallas, cuidados ni políticas que no estén validados | 28 fichas |
+| 4 | `04_BANCO_DE_PREGUNTAS.md` | **≥ 60 reactivos fijos** + **6 plantillas** que generan reactivos por modelo desde campos validados (≈ 150). Cada reactivo: tipo, enunciado, opciones, respuesta, **explicación con su fuente**, habilidad, módulo, dificultad. Los reactivos que dependen de datos pendientes quedan marcados y **no cuentan** para el examen hasta validarse | ≥ 60 + plantillas |
+| 5 | `05_CRITERIOS_CERTIFICACION.md` | Requisitos de Starter: lecciones obligatorias, examen de 20 reactivos con distribución por módulo (producto 8, tallas 5, cuidados 2, atención 3, marca/políticas 2), **nota mínima 80** (configurable), 3 intentos al día, 1 h de espera, qué pasa si no hay datos de un módulo (variante "Parte 1 · Producto"), 100 Puntos Academy al certificar, datos del diploma y de la verificación, causas de revocación. Todo lo que es **criterio de certificación** se marca para aprobación con dos personas (`publish_sales_policy`) | 2 páginas |
+| 6 | `06_VALIDACION_CAROLINA.md` | **Lista de lo que Carolina debe validar o dar**: (a) por modelo, campos faltantes (de Q2); (b) cuidados por material, para capturarlos en la ficha de producto existente; (c) historia y promesa de la marca; (d) políticas de cambios, apartados, envíos y descuentos (preguntas, **sin borrador**); (e) aceptar, editar o rechazar cada beneficio/objeción propuesto; (f) los 5 modelos sin ficha validada; (g) las 6 plantillas de preguntas; (h) la parte `[PEDAGOGÍA]` de atención. Con casillas y tiempo estimado (≈ 90 min de respuestas + ≈ 2 h de revisión) | 3–4 páginas |
+| 7 | `07_CONSULTAS_SOLO_LECTURA.md` | Las consultas Q1–Q4 (§9.5) con fecha, texto exacto y resultado | 1 página |
+| 8 | `00_A0_ESTADO.md` | Índice, avance y criterios de salida (§18.6) | 1 página |
+
+### 18.2 Temario propuesto (se detalla en `01_TEMARIO.md`)
+
+| Módulo | Microlecciones | Fuente | Puede escribirse en A0 sin Carolina |
+|---|---|---|---|
+| 1. Bienvenida a Fuxia | 2: qué es Fuxia; cómo hablamos con la clienta | Carolina | Solo estructura y preguntas |
+| 2. Conoce las Ballerinas | 1 "cómo leer una ficha" + ≈ 6 por grupo de modelos (27 validados) | Fichas validadas + fotos | **Sí** (datos validados) |
+| 3. Tallas y ajuste | 3: escala 35–40; talla exacta, chica o grande y "entre dos tallas"; cómo preguntar por la talla | Fichas + etiquetas existentes (`knowledge_labels`) | **Sí**; sin conversiones a otras escalas |
+| 4. Cuidados | 2 | `care_instructions` (0/32) | No: hueco explícito |
+| 5. Atención y venta básica | 4: recibir, descubrir la necesidad, presentar 2–3 opciones, cerrar sin presionar; políticas | `[PEDAGOGÍA]` + políticas de Carolina | La técnica sí (para revisión); las políticas **no** |
+
+### 18.3 Reglas de contenido en A0 (no negociables)
+
+1. Ningún material, talla, medida, cuidado, beneficio, garantía, precio ni política aparece como dato si no viene de una ficha **validada** o de texto de Carolina.
+2. Las **propuestas** (beneficios, objeciones, recomendaciones) se marcan BORRADOR, muestran de qué campo validado se derivan y no se usan en el examen hasta que Carolina las apruebe.
+3. **Políticas: solo preguntas, nunca borradores.**
+4. Las tallas se enseñan como están en el sistema (35–40), sin equivalencias.
+5. Los precios no se usan en lecciones ni en el examen; cambian y no deben quedar en un diploma.
+6. Español sencillo; cada tarjeta ≤ 60 palabras.
+
+### 18.4 Lo que A0 necesita y lo que no toca
+
+| Necesita | No toca |
+|---|---|
+| Tu autorización para **ejecutar a mano Q1–Q4** (§9.5), una vez cada una | Producción (escrituras), staging, WooCommerce, Hilo, la app, `whatsapp-otp`, `approval_scopes` |
+| El tiempo de Carolina para `06_VALIDACION_CAROLINA.md` | Cron, tareas programadas, copias de datos |
+| (Opcional) que le compartamos los documentos de A0 en **Google Docs** para comentar más fácil. Si no, en PDF o en el repo | Otras sesiones de trabajo |
+
+**Si Q1–Q4 no se autorizan:** A0 se puede hacer con la estructura completa, pero las 28 fichas y las plantillas quedarían **sin valores** hasta tener los datos. No lo recomiendo: las fichas son el corazón del curso.
+
+### 18.5 Pasos
+
+1. Ejecutar Q1–Q4 y guardar resultados (`07`).
+2. Escribir `03` (fichas) y `02` módulos 2–3 (datos validados).
+3. Escribir `04` (banco + plantillas) y `05` (criterios).
+4. Escribir `02` módulos 1, 4 y 5 como estructura + `[PEDAGOGÍA]` + huecos, y `06` (lista para Carolina).
+5. Revisión tuya → envío a Carolina → incorporar sus respuestas → segunda versión.
+
+Cada paso se sube a `fuxia-360` al terminarlo.
+
+### 18.6 Criterios de salida de A0
+
+1. Los 8 archivos existen. Cada afirmación de producto tiene etiqueta de fuente, y una revisión automática del texto confirma que no hay ningún material, talla ni cuidado **sin** `[FICHA vN]` o `[PENDIENTE CAROLINA]`.
+2. 28 fichas: los campos validados coinciden con Q1; los faltantes coinciden con Q2.
+3. ≥ 60 reactivos fijos, todos con respuesta, explicación y fuente; distribución suficiente para presentar 20 por intento sin repetir más del 50% entre dos intentos seguidos.
+4. Criterios de certificación completos y marcados para aprobación con dos personas.
+5. Lista de Carolina completa, con tiempo estimado y casillas.
+6. **Tú apruebas A0** (y Carolina contesta y aprueba el contenido en documento). La aprobación formal en la plataforma ocurre en A1, cuando el contenido se cargue como borrador y Carolina lo publique con `publish_sales`.
