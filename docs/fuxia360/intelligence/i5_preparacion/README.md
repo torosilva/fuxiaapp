@@ -185,3 +185,12 @@ Ninguno afecta ventas, inventario, Growth ni otros módulos: el analista solo le
 | D10 | Ejecutar las 7 migraciones en producción (E1) | 7 pases con ensayo previo |
 | D11 | Encender las pantallas en producción (`NEXT_PUBLIC_F360_INTEL=on`) | 1 variable de Vercel + redespliegue |
 | D12 | Corregir el hallazgo de seguridad de las tablas de la app anterior | Fuera de I5; propuesta aparte |
+
+## Corrección 2026-10-11 (tarde): permisos de `service_role` en `f360_board` (0200)
+Tras la copia de staging con los permisos exactos de producción, `test_sb0_access` T0 detectó 16 permisos de tabla en `f360_board`. Venían de la migración **0200**, que daba `GRANT ALL … TO service_role` sobre `finance_preparers`, `goals`, `financial_commitments` y `financial_commitment_events` (y `SELECT` sobre `commitments_current`).
+- **No es un hallazgo de producción:** allí la misma consulta da 0, porque la 0200 todavía no se ha aplicado.
+- **Corrección:** la 0200 ahora revoca también a `service_role`, como exige la convención de SB0: `f360_board` es deny-all y solo se llega por RPC `SECURITY DEFINER`. Ninguna Edge Function ni script usa esas tablas con `service_role`; la evaluación usa psql como `postgres`. El `REVOKE` ya está aplicado en staging.
+- **Pruebas actualizadas:**
+  - `test_sb0_access` acepta `require_finance_capture` como primer control en las 3 RPC de captura de presupuesto, que es la puerta diseñada en la 0200/0700, y cuenta como miembros reales del Consejo solo los que tienen `person_key` (los seeds de staging agregan miembros "(demo)").
+  - En `test_intel_inputs` y `test_intel_metrics` la contadora de prueba ya no tiene rol de F360, como exige la 0700.
+- **Resultado:** `test_sb0_access` (T0–T19), `test_intel_inputs`, `test_intel_metrics`, `test_finance_access`, `test_ai_analyst` y `test_d12_phase_a` pasan en staging.

@@ -8,7 +8,7 @@ BEGIN
   INSERT INTO auth.users (id, email, aud, role) VALUES (gen_random_uuid(), 'zz-intel-m-seller@staging.invalid', 'authenticated', 'authenticated') RETURNING id INTO seller;
   INSERT INTO f360.user_roles (auth_user_id, role, display_name) VALUES (seller, 'seller', 'Vendedora de prueba');
   INSERT INTO auth.users (id, email, aud, role) VALUES (gen_random_uuid(), 'zz-intel-m-conta@staging.invalid', 'authenticated', 'authenticated') RETURNING id INTO conta;
-  INSERT INTO f360.user_roles (auth_user_id, role, display_name) VALUES (conta, 'viewer', 'Contadora de prueba');
+  -- 0700: the contadora holds NO Fuxia 360 role (the guard refuses a preparer with one)
   INSERT INTO f360_board.finance_preparers (auth_user_id, display_name, granted_by_name, evidence) VALUES (conta, 'Contadora de prueba', 'test', 'prueba');
 
   -- M1 gate: seller, contadora, Mario without second factor → denied; Mario with aal2 → allowed; analyst calls logged as ai_analyst

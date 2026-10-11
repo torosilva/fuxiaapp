@@ -11,9 +11,9 @@ BEGIN
   -- this test controls the approval scopes it relies on
   DELETE FROM f360.approval_scopes WHERE scope IN ('budget', 'close');
   INSERT INTO f360.approval_scopes (scope, auth_user_id, display_name, added_by_name) VALUES ('budget', mario, 'Mario', 'test'), ('close', mario, 'Mario', 'test'), ('close', caro, 'Carolina', 'test');
-  -- throw-away contadora (viewer + preparer) and seller, only inside this transaction
+  -- throw-away contadora (preparer, no role) and seller, only inside this transaction
   INSERT INTO auth.users (id, email, aud, role) VALUES (gen_random_uuid(), 'zz-intel-conta@staging.invalid', 'authenticated', 'authenticated') RETURNING id INTO conta;
-  INSERT INTO f360.user_roles (auth_user_id, role, display_name) VALUES (conta, 'viewer', 'Contadora de prueba');
+  -- 0700: the contadora holds NO Fuxia 360 role (the guard refuses a preparer with one)
   INSERT INTO f360_board.finance_preparers (auth_user_id, display_name, granted_by_name, evidence) VALUES (conta, 'Contadora de prueba', 'test', 'prueba');
   INSERT INTO auth.users (id, email, aud, role) VALUES (gen_random_uuid(), 'zz-intel-seller@staging.invalid', 'authenticated', 'authenticated') RETURNING id INTO seller;
   INSERT INTO f360.user_roles (auth_user_id, role, display_name) VALUES (seller, 'seller', 'Vendedora de prueba');

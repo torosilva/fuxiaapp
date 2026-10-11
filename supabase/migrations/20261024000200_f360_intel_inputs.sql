@@ -400,9 +400,9 @@ ALTER TABLE f360_board.goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE f360_board.financial_commitments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE f360_board.financial_commitment_events ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON f360_board.finance_preparers, f360_board.goals, f360_board.financial_commitments, f360_board.financial_commitment_events,
-  f360_board.commitments_current FROM PUBLIC, anon, authenticated;
-GRANT ALL ON f360_board.finance_preparers, f360_board.goals, f360_board.financial_commitments, f360_board.financial_commitment_events TO service_role;
-GRANT SELECT ON f360_board.commitments_current TO service_role;
+  f360_board.commitments_current FROM PUBLIC, anon, authenticated, service_role;
+-- SB0 convention: f360_board is deny-all, service_role included (only SECURITY DEFINER RPCs reach it). No Edge Function reads
+-- these tables; an earlier draft granted them to service_role and test_sb0_access T0 caught it after the prod-ACL refresh.
 REVOKE ALL ON FUNCTION f360_board.require_finance_capture(text, text, text), f360_board.capture_name(uuid), f360_board.goal_for(text, date),
   f360_board.commitments_current_json() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.f360_board_budget_draft(int, text, text, uuid), public.f360_board_budget_lines_set(uuid, jsonb), public.f360_board_budget_validate(uuid, text),

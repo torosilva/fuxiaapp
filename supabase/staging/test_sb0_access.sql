@@ -78,7 +78,11 @@ BEGIN
         'anon', has_function_privilege('anon', p.oid, 'EXECUTE'), 'auth', has_function_privilege('authenticated', p.oid, 'EXECUTE'),
         'gate_first', p.proname IN ('f360_board_nav_visible', 'f360_board_access_state') OR   -- caller-only hints (20261016000100), no data
                       (position('f360_board.require_board_member(' IN p.prosrc) > 0
-                      AND position('f360_board.require_board_member(' IN p.prosrc) < position('BEGIN' IN p.prosrc)))
+                      AND position('f360_board.require_board_member(' IN p.prosrc) < position('BEGIN' IN p.prosrc)) OR
+                      -- 20261024000200/0700: budget capture is gated by the finance-capture gate (board member OR contadora), also first
+                      (p.proname IN ('f360_board_budget_draft', 'f360_board_budget_lines_set', 'f360_board_budgets')
+                      AND position('f360_board.require_finance_capture(' IN p.prosrc) > 0
+                      AND position('f360_board.require_finance_capture(' IN p.prosrc) < position('BEGIN' IN p.prosrc)))
       FROM pg_proc p JOIN pg_namespace s ON s.oid = p.pronamespace WHERE s.nspname = 'public' AND p.proname LIKE 'f360\_board\_%' LOOP
     IF NOT (r->>'definer')::boolean OR NOT (r->'cfg') @> '["search_path=pg_catalog, pg_temp"]' OR (r->>'anon')::boolean OR NOT (r->>'auth')::boolean
        OR NOT (r->>'gate_first')::boolean THEN RAISE EXCEPTION 'FAIL T0 RPC convention % %', k, r; END IF;
@@ -137,8 +141,9 @@ BEGIN
     IF r->>'error' NOT LIKE 'permission denied for schema%' THEN RAISE EXCEPTION 'FAIL % direct table read must still be denied: %', who, r; END IF;
     RAISE NOTICE 'PASS % authorized: % read RPCs ok, nav visible, still no direct table access, no PII in responses', who, cardinality(reads);
   END LOOP;
+  -- the 2 real members (person_key); the staging seeds add '(demo)' members without person_key
   r := pg_temp.as(car, 'SELECT public.f360_board_me()');
-  IF r->'me'->>'person_key' <> 'CAROLINA' OR jsonb_array_length(r->'members') <> 2 THEN RAISE EXCEPTION 'FAIL T4 me %', r; END IF;
+  IF r->'me'->>'person_key' <> 'CAROLINA' OR (SELECT count(*) FROM jsonb_array_elements(r->'members') m WHERE m->>'person_key' IS NOT NULL) <> 2 THEN RAISE EXCEPTION 'FAIL T4 me %', r; END IF;
 
   -- ── 5b · missing scope, inactive member, member who lost owner, MFA flag ───
   partial := pg_temp.new_user('owner', 'Socio parcial (test)');
