@@ -50,7 +50,7 @@ SELECT DISTINCT ON (currency, obs_date) currency, obs_date, rate, method, source
 FROM f360.fx_observations WHERE role = 'primary'
 ORDER BY currency, obs_date, retrieved_at DESC, id DESC;
 
-CREATE TABLE f360.approval_scopes (
+CREATE TABLE IF NOT EXISTS f360.approval_scopes (   -- also created by 20261023000200 (extracted for the store discounts)
   scope         text NOT NULL CHECK (scope IN ('fx_rate', 'budget', 'close')),
   auth_user_id  uuid NOT NULL,
   display_name  text NOT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE f360.approval_scopes (
   PRIMARY KEY (scope, auth_user_id)
 );
 COMMENT ON TABLE f360.approval_scopes IS 'Who approves what (Mario 2026-10-11): fx_rate = Mario; budget = Mario; close = Mario or Carolina. Loaded per environment; empty = nobody.';
-CREATE FUNCTION f360.can_approve(p_scope text, p_user uuid) RETURNS boolean LANGUAGE sql STABLE SET search_path = pg_catalog, pg_temp AS $$
+CREATE OR REPLACE FUNCTION f360.can_approve(p_scope text, p_user uuid) RETURNS boolean LANGUAGE sql STABLE SET search_path = pg_catalog, pg_temp AS $$
   SELECT EXISTS (SELECT 1 FROM f360.approval_scopes WHERE scope = p_scope AND auth_user_id = p_user) $$;
 
 -- the system identity that proposes monthly averages (no auth user; never an approver)

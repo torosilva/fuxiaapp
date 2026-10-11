@@ -11,12 +11,12 @@
 -- discount amount, the net total and who authorized it are the server's. Each line keeps its list unit_price and gets its NET
 -- line_total (the rounding cent goes to the last line), so Σ line_total = total and the commerce views stay VERIFIED.
 -- Loyalty: points are per pair (unchanged); the amount sent to loyalty is the NET total, purchase lines carry the net unit price.
--- Depends on 20261024000100 (f360.approval_scopes). ADDITIVE except: f360_record_store_sale / _for gain two optional parameters
+-- Depends on 20261023000200 (f360.approval_scopes; also in 20261024000100). ADDITIVE except: f360_record_store_sale / _for gain two optional parameters
 -- (old calls — the published app — keep working with no discount).
 -- Rollback: supabase/rollbacks/20261025000100_f360_store_discounts.down.sql
 
 DO $$ BEGIN
-  IF to_regclass('f360.approval_scopes') IS NULL THEN RAISE EXCEPTION 'ABORT: needs 20261024000100 (f360.approval_scopes)'; END IF;
+  IF to_regclass('f360.approval_scopes') IS NULL THEN RAISE EXCEPTION 'ABORT: needs 20261023000200 (f360.approval_scopes)'; END IF;
 END $$;
 ALTER TABLE f360.approval_scopes DROP CONSTRAINT approval_scopes_scope_check;
 ALTER TABLE f360.approval_scopes ADD CONSTRAINT approval_scopes_scope_check CHECK (scope IN ('fx_rate', 'budget', 'close', 'store_discount'));

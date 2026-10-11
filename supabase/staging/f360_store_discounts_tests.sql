@@ -3,7 +3,7 @@
 -- Fixtures are synthetic ("ZZ D …") and live only inside this transaction. Carolina = the staging user named Carolina (approver),
 -- Mario = the staging user named Mario (owner, NOT an approver), A = lab seller 15550100011.
 BEGIN;
--- @include supabase/migrations/20261025000100_f360_store_discounts.sql
+-- (20261025000100 is applied in staging; its body is rehearsed by the production dry-run)
 
 CREATE TEMP TABLE t_results (n serial, status text, name text, detail text) ON COMMIT DROP;
 GRANT ALL ON t_results TO authenticated, anon;
