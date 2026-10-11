@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { intelEnabled } from '@/lib/feature';
 import { boardAccessState, getBoardMe } from '@/lib/board';
 import { BoardMfa } from '../estrategia/BoardMfa';
 import { DireccionNav } from './DireccionNav';
@@ -9,6 +10,7 @@ import { DireccionNav } from './DireccionNav';
 export const dynamic = 'force-dynamic';
 
 export default async function DireccionLayout({ children }: { children: React.ReactNode }) {
+  if (!intelEnabled()) notFound();   // D0: hidden in production until I5
   const me = await getBoardMe();
   if (!me.ok) {
     if ((await boardAccessState()) === 'mfa_required') return <BoardMfa area="Dirección 🔒" next="/direccion" />;

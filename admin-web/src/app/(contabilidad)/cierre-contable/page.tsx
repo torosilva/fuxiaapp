@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import { BoardMfa } from '@/app/(app)/estrategia/BoardMfa';
 import { SubmitButton } from '@/components/SubmitButton';
 import { boardAccessState } from '@/lib/board';
-import { getMe } from '@/lib/f360';
 import { dayLabel, financeAccess, getClosePrep, money, monthLabel, when, type Commitment, type PrepEntry } from '@/lib/intel';
 import { addCommitment, addEntry, commitmentEvent, voidEntry } from './actions';
 
@@ -111,8 +110,7 @@ export default async function CierreContable({ searchParams }: { searchParams: P
   const board = await boardAccessState();
   if (!ctx.ok) {
     if (board === 'mfa_required') return <BoardMfa area="Cierre contable" next="/cierre-contable" />;
-    const me = await getMe();
-    if ((await financeAccess(me.role)) === 'mfa_required') return <BoardMfa area="Cierre contable" next="/cierre-contable" />;
+    if ((await financeAccess()) === 'mfa_required') return <BoardMfa area="Cierre contable" next="/cierre-contable" />;
     notFound();
   }
   const isBoard = board === 'ok';

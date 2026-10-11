@@ -1,6 +1,5 @@
 import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
-import type { Role } from '@/lib/f360';
 
 // Centro de Inteligencia (I2): the screens only RENDER what these RPCs return. Every number, comparison, projection and
 // availability seal is computed in the database (f360_intel_* / f360_board_* / f360_close_prep_*), which also decides who may
@@ -96,20 +95,21 @@ export const getClosePrep = cache(() => call<ClosePrep>('f360_close_prep_context
 export const writeCall = (fn: string, args: Record<string, unknown>) => call<{ ok: true } & Record<string, unknown>>(fn, args);
 
 // ── Contadora (finance preparer) — NAVIGATION ONLY, never security ───────────────────────────────────────────────────────
-// The database is the only gate (f360_board.require_finance_capture). There is no RPC that says "this caller is a preparer"
-// before the second factor, so for a 'viewer' the app decides like this:
-//   · session already aal2 → ask f360_close_prep_context: allowed = she is the contadora ('ok'); denied = a plain viewer ('none').
-//   · session aal1 → 'mfa_required': every viewer is taken to the second-factor screen of Cierre contable first; after it,
-//     a viewer who is not a preparer is denied by the database and goes back to the normal viewer screens.
-// Owners/operators/sellers are never affected. (Backend gap reported in I2_COCKPIT_DELIVERY.md: f360_finance_access_state().)
-export type FinanceAccess = 'ok' | 'mfa_required' | 'none';
-export const financeAccess = cache(async (role: Role): Promise<FinanceAccess> => {
-  if (role !== 'viewer') return 'none';
+// 0700 (least privilege): the contadora has NO Fuxia 360 role. f360_finance_access_state() tells the CALLER her own status
+// (preparer / board / second factor) and nothing about anyone else; the database stays the only gate (require_finance_capture).
+export type FinanceState = { preparadora: boolean; nombre?: string | null; can_close?: boolean; can_budget?: boolean; consejo: boolean;
+  rol_f360: boolean; conflicto?: boolean; mfa_requerido: boolean };
+export const financeState = cache(async (): Promise<FinanceState> => {
   const supabase = await createClient();
-  const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (data?.currentLevel !== 'aal2') return 'mfa_required';
-  const ctx = await getClosePrep();
-  return ctx.ok ? 'ok' : 'none';
+  const { data, error } = await supabase.rpc('f360_finance_access_state');
+  if (error || !data) return { preparadora: false, consejo: false, rol_f360: false, mfa_requerido: false };
+  return data as FinanceState;
+});
+export type FinanceAccess = 'ok' | 'mfa_required' | 'none';
+export const financeAccess = cache(async (): Promise<FinanceAccess> => {
+  const s = await financeState();
+  if (!s.preparadora) return 'none';
+  return s.mfa_requerido ? 'mfa_required' : 'ok';
 });
 
 // ── Presentation (no business math: formatting only) ─────────────────────────────────────────────────────────────────────

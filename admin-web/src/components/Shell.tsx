@@ -1,4 +1,5 @@
 'use client';
+import { intelEnabled, INTEL_ROUTES } from '@/lib/feature';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { IconBag, IconBell, IconBoxes, IconCamera, IconCheck, IconClock, IconGrowth, IconHome, IconLink, IconLogout, IconMore, IconMove, IconReceipt, IconScissors, IconShoe, IconUsers } from './icons';
@@ -54,7 +55,10 @@ const FINANCE_ITEM = NAV.find((n) => n.href === '/cierre-contable')!;
 // Who sees an entry (menu hint only — every page re-checks in the database). The contadora (onlyFinance) sees ONLY
 // Cierre contable; her layout also redirects her there from any other page.
 type Item = (typeof NAV)[number];
-const visible = (n: Item, role: string, board: boolean, finance: boolean, onlyFinance: boolean) =>
+// D0 (Mario 2026-10-11): Dirección / Inteligencia / Cierre contable hidden unless the Centro de Inteligencia is enabled (staging, or
+// NEXT_PUBLIC_F360_INTEL = "on"). The routes themselves also answer 404 when it is off.
+const visible = (n: Item, role: string, board: boolean, finance: boolean, onlyFinance: boolean) => (intelEnabled() || !INTEL_ROUTES.includes(n.href)) && visibleBase(n, role, board, finance, onlyFinance);
+const visibleBase = (n: Item, role: string, board: boolean, finance: boolean, onlyFinance: boolean) =>
   onlyFinance ? 'finance' in n
   : 'board' in n ? board
   : 'finance' in n ? board || finance

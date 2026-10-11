@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { intelEnabled } from '@/lib/feature';
 import { boardAccessState, getBoardMe } from '@/lib/board';
 import { BoardMfa } from '../estrategia/BoardMfa';
 
@@ -8,6 +9,7 @@ import { BoardMfa } from '../estrategia/BoardMfa';
 export const dynamic = 'force-dynamic';
 
 export default async function InteligenciaLayout({ children }: { children: React.ReactNode }) {
+  if (!intelEnabled()) notFound();   // D0: hidden in production until I5
   const me = await getBoardMe();
   if (!me.ok) {
     if ((await boardAccessState()) === 'mfa_required') return <BoardMfa />;

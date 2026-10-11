@@ -2,7 +2,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { boardAccessState } from '@/lib/board';
-import { getMe } from '@/lib/f360';
 import { financeAccess } from '@/lib/intel';
 
 // Strategy & Board second factor (Supabase Auth TOTP). Only a Board member who is missing the second factor in this session
@@ -14,7 +13,7 @@ const CODE = /^\d{6}$/;
 // Where to go after the code: the board pages and the contadora's Cierre contable (I2). Anything else → /estrategia.
 const NEXT = ['/estrategia', '/direccion', '/cierre-contable'];
 // Board member missing the second factor, or a viewer who may be the contadora (the database decides after aal2).
-const mayVerify = async () => (await boardAccessState()) === 'mfa_required' || (await financeAccess((await getMe()).role)) === 'mfa_required';
+const mayVerify = async () => (await boardAccessState()) === 'mfa_required' || (await financeAccess()) === 'mfa_required';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function startEnroll(): Promise<MfaState> {
