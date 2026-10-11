@@ -14,7 +14,7 @@ DECLARE
   a1 uuid := (SELECT id FROM auth.users WHERE email = 'alumna.prueba1@staging.invalid');
   a2 uuid := (SELECT id FROM auth.users WHERE email = 'alumna.prueba2@staging.invalid');
   store uuid := (SELECT id FROM f360.locations WHERE type = 'store' AND status = 'active' ORDER BY sort, name LIMIT 1);
-  s uuid; t record;
+  t record;
 BEGIN
   -- Production guard: the @staging.invalid demo/test accounts exist only in staging, so the check below aborts anywhere else.
   IF caro IS NULL OR mario IS NULL OR a1 IS NULL OR a2 IS NULL OR store IS NULL THEN
@@ -37,13 +37,16 @@ BEGIN
     ('academy_content', mario, 'publish_sales_policy', 'Mario (A1 2026-10-11)'),
     ('academy_content', mario, 'retire',               'Mario (A1 2026-10-11)')
   ON CONFLICT DO NOTHING;
-  -- the two fictitious test sellers, through the normal activation (role seller + her store; PIN random and never shown)
+  -- the two fictitious test sellers. Direct inserts (no f360.activate_seller): activation writes append-only audit rows that a manual
+  -- cleanup could not remove; these accounts never open a shift, so no session/audit rows are produced. PIN random, never shown.
   FOR t IN SELECT * FROM (VALUES (a1, '+15550190901', 'Alumna Prueba 1'), (a2, '+15550190902', 'Alumna Prueba 2')) x(uid, phone, name) LOOP
+    INSERT INTO f360.user_roles (auth_user_id, role, display_name, granted_by) VALUES (t.uid, 'seller', t.name, 'Academy A1 (staging)')
+      ON CONFLICT (auth_user_id) DO NOTHING;
+    INSERT INTO f360.location_assignments (auth_user_id, location_id, active, granted_by_name) VALUES (t.uid, store, true, 'Academy A1 (staging)')
+      ON CONFLICT DO NOTHING;
     IF NOT EXISTS (SELECT 1 FROM f360.sellers WHERE phone = t.phone) THEN
-      INSERT INTO f360.sellers (phone, name, location_id, pin_hash, status, created_by_name)
-      VALUES (t.phone, t.name, store, extensions.crypt(gen_random_uuid()::text, extensions.gen_salt('bf', 10)), 'pendiente', 'Academy A1 (staging)')
-      RETURNING id INTO s;
-      PERFORM f360.activate_seller(s, t.uid, 'Academy A1 (staging)', NULL);
+      INSERT INTO f360.sellers (phone, name, location_id, pin_hash, status, auth_user_id, created_by_name, activated_at)
+      VALUES (t.phone, t.name, store, extensions.crypt(gen_random_uuid()::text, extensions.gen_salt('bf', 10)), 'activa', t.uid, 'Academy A1 (staging)', now());
     END IF;
   END LOOP;
 END $$;
