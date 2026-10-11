@@ -6,7 +6,7 @@ import { pushContent } from '../_shared/f360-woo/content.ts';
 import { f360User, serviceRpc, type SupabaseEnv } from '../_shared/f360-woo/supabase.ts';
 import { safeEqual } from '../_shared/f360-woo/orders.ts';
 import type { WooAdapter } from '../_shared/f360-woo/types.ts';
-import { commerceReconcile, commerceWoo, type CommerceWoo } from '../_shared/f360-woo/commerce.ts';
+import { commerceHistoryImport, commerceReconcile, commerceWoo, type CommerceWoo } from '../_shared/f360-woo/commerce.ts';
 import { orderEvidence } from '../_shared/f360-woo/evidence.ts';
 
 export type SyncEnv = SupabaseEnv & { WOO_TARGET_KEY: string; WOO_BASE_URL: string; WOO_USER: string; WOO_SECRET: string; F360_SYNC_SECRET?: string };
@@ -94,6 +94,17 @@ export async function handleSync(req: Request, env: SyncEnv, opts: SyncOptions =
       const lookbackHours = role !== 'system' && action === 'commerce_reconcile' && Number.isInteger(raw) && raw >= 1 && raw <= 24 * 800 ? raw : null;
       const cw = opts.commerceWoo ?? commerceWoo({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET });
       return json(await commerceReconcile(rpc, cw, env.WOO_TARGET_KEY, { lookbackHours }));
+    }
+    // P0D (Mario 2026-10-11): one-off import of THIS channel's Woo order history into Commerce Facts. Owner or the scheduler
+    // secret only (never an operator); SIMULATES unless apply === true. Woo is only read (GET); every order goes through the one
+    // idempotent capture path (p_via 'backfill'); inventory is never touched; nothing after the live cutover (orders_since_id).
+    if (action === 'commerce_history') {
+      if (role !== 'system' && role !== 'owner') return json({ error: 'Solo una dueña puede importar el historial de pedidos.' }, 403);
+      if (!ordersOn) return json({ skipped: 'Este canal no manda pedidos a Fuxia 360 (pedidos apagados).' });
+      const b = body as { apply?: unknown; months?: unknown };
+      const months = Number.isInteger(b.months) ? (b.months as number) : 24;
+      const cw = opts.commerceWoo ?? commerceWoo({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET });
+      return json(await commerceHistoryImport(rpc, cw, env.WOO_TARGET_KEY, { months, dryRun: b.apply !== true }));
     }
     if (action === 'reconcile') {
       if (!stockOn) return json({ error: 'Este canal no sincroniza existencias; no hay nada que conciliar.' }, 409);
