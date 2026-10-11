@@ -71,10 +71,10 @@ UPDATE {P}comments SET comment_content = REGEXP_REPLACE(comment_content, '[A-Za-
                        comment_author_IP = '127.0.0.1'
  WHERE comment_type = 'order_note';
 
--- ── Reseñas (el nombre ya es público en la tienda; el correo y la IP no) ─────────────────────────────────
-UPDATE {P}comments SET comment_author_email = CONCAT('resena', comment_ID, '@staging.invalid'),
+-- ── Reseñas y notas de pedido (el nombre de una reseña ya es público en la tienda; el correo y la IP no) ─
+UPDATE {P}comments SET comment_author_email = CONCAT('comentario', comment_ID, '@staging.invalid'),
                        comment_author_IP = '127.0.0.1', comment_agent = ''
- WHERE comment_author_email <> '' AND comment_author_email NOT LIKE '%@fuxiaballerinas.com' AND comment_type <> 'order_note';
+ WHERE comment_author_email <> '' AND comment_author_email NOT LIKE '%@fuxiaballerinas.com';
 
 -- ── Índice de clientas de WooCommerce ────────────────────────────────────────────────────────────────────
 UPDATE {P}wc_customer_lookup SET email = CONCAT('clienta', customer_id, '@staging.invalid'), first_name = 'Clienta',
