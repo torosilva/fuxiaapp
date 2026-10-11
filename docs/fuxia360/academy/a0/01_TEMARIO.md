@@ -33,10 +33,10 @@
 | 1.2 | Cómo hablamos con la clienta | Usar el tono Fuxia al saludar y al recomendar | 3 | `[PENDIENTE CAROLINA]` + `[PEDAGOGÍA]` | ⏳ Falta el tono de marca |
 | **M2 · Conoce las Ballerinas** | | | | | |
 | 2.0 | Cómo leer una ficha | Encontrar en una ficha talla, horma, punta, materiales y comodidad, y saber qué significa "validada" o "pendiente" | 3 | `[CATÁLOGO]` + `[SISTEMA]` | ✓ Se puede escribir ya |
-| 2.1–2.6 | Modelos, en 6 grupos de ≈ 4–5 | Reconocer cada modelo por foto y decir su ajuste de talla, horma, punta, material exterior y comodidad | 4 c/u | `[FICHA vN]` + `[CATÁLOGO]` | ⏳ Se escriben con el resultado de **Q1**; agrupación final según los datos (por horma/punta o por colección, lo que resulte más claro) |
+| 2.1–2.6 | Modelos, en 6 familias | Reconocer cada modelo por foto y decir su ajuste de talla, horma, punta, material exterior y comodidad | 4 c/u | `[FICHA vN]` + `[CATÁLOGO]` | ✓ Con Q1: **23 modelos publicables**, 5 retenidos (`02`). Lección piloto 2.P con 5 modelos |
 | **M3 · Tallas y ajuste** | | | | | |
 | 3.1 | Las tallas de las Ballerinas | Saber que las Ballerinas activas vienen del **35 al 40** y revisar disponibilidad por talla en el sistema, no de memoria | 3 | `[CATÁLOGO]` | ✓ (sin equivalencias con otras escalas) |
-| 3.2 | Talla exacta, chica o grande | Dar la recomendación de talla de cada modelo según su ficha, y qué hacer "entre dos tallas" | 4 | `[FICHA vN]` + `[SISTEMA]` | ⚠ **Conflicto**: el texto del sistema dice "pide **media talla** más/menos", pero las Ballerinas activas solo tienen tallas **enteras**. No se enseña hasta que Carolina decida (`06_VALIDACION_CAROLINA.md`, P1) |
+| 3.2 | Talla exacta, chica o grande | Dar la recomendación de talla de cada modelo según su ficha, y qué hacer "entre dos tallas" | 4 | `[FICHA vN]` | ✓ Con las **notas de Carolina** ("una talla más" en los modelos de talla chica). El texto genérico de la tienda ("media talla") no se usa (`06` P1) |
 | 3.3 | Cómo preguntar y probar la talla | Preguntar por la talla habitual, cómo le quedan sus zapatos y probar, sin prometer ajustes que la ficha no dice | 3 | `[PEDAGOGÍA]` | ✓ Borrador para revisión |
 | **M4 · Cuidados** | | | | | |
 | 4.1 | Cuidados por material | Explicar cómo cuidar cada material | 3 | `care_instructions` (`[FICHA]`) | ⏳ **0/32 modelos** tienen cuidados. Carolina los captura en la ficha de producto existente; Academy los lee |
@@ -55,7 +55,7 @@
 |---|---|---|
 | 2.0, 2.1–2.6 (modelos con ficha validada) | **Sí** | Con los datos de Q1; solo modelos con ficha `validado` |
 | 3.1 | **Sí** | — |
-| 3.2 | Solo si Carolina resuelve el conflicto de "media talla" | — |
+| 3.2 | **Sí**, con las notas de talla de Carolina por modelo; sin el texto genérico de "media talla" | Q1 mostró que sus notas dicen "una talla más" |
 | 3.3, 5.1, 5.2 | **Sí** | Después de que Carolina revise el texto `[PEDAGOGÍA]` |
 | M1, M4, 5.3, 5.4 | **No** | Hasta tener su contenido |
 

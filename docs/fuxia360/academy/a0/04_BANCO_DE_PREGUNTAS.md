@@ -2,7 +2,7 @@
 
 > **Estado:** borrador para Carolina.
 > - **Parte A** (preguntas generales) está escrita.
-> - **Parte B** (preguntas por modelo) se completa con el resultado de **Q1**.
+> - **Parte B** (preguntas por modelo) se escribió con el resultado de **Q1** (2026-10-11).
 > - **Parte C** son las plantillas que generan preguntas por modelo desde campos validados.
 >
 > **Regla:** una pregunta solo entra al examen cuando su fuente está validada y Carolina la aprobó. Las marcadas ⛔ están **bloqueadas** porque dependen de un dato pendiente.
@@ -210,19 +210,171 @@ a) "Si no lo llevas hoy, se acaba" (sin saberlo) · b) "¿Te los llevas puestos 
 
 **A43** ⛔ · M1 · `[PENDIENTE CAROLINA]` · **bloqueada** — Tono de marca al recomendar *(por redactar)*.
 
-**Conteo Parte A:** 43 preguntas: **33 utilizables** (tras la revisión de Carolina) y **10 bloqueadas** (A14, A15, A22, A23, A37, A40–A43).
+**Conteo Parte A:** 43 preguntas: **34 utilizables** (tras la revisión de Carolina) y **9 bloqueadas** (A14, A15, A22, A23, A37, A40–A43).
 
 ---
 
-## Parte B — Preguntas por modelo (se escriben con Q1)
+## Parte B — Preguntas por modelo (29, desde Q1)
 
-Para cada uno de los 28 modelos activos con ficha validada se escriben **1–2 preguntas fijas** de reconocimiento y ajuste, revisadas una por una. Meta: **≥ 25**. Ejemplos de forma:
-- "¿Cuál de estas fotos es el modelo ___?" (3 fotos de modelos distintos, `[CATÁLOGO]`).
-- "¿Qué horma tiene el ___?" (`[FICHA vN]`).
+Generadas **solo** con campos validados:
+- **B01–B24:** recomendación general de talla, una por modelo. Usa el **ajuste** y la **nota de Carolina** de cada ficha.
+- **B25–B29:** horma y punta de los 5 modelos del piloto.
 
-**Total previsto:** Parte A (33 utilizables + 10 bloqueadas) + Parte B (≥ 25) = **≥ 68**, con **≥ 58 utilizables** al validar. Meta de §18: **≥ 60** preguntas fijas.
+**Excluidos a propósito:**
+- **Canutillos y Slingback**: su nota dice "medio número" y no hay medias tallas.
+- **Suecos leopardo**: "talla chica" contradice su nota.
+- **Pointed Aladdin**: sin ficha.
 
-*(pendiente de Q1)*
+Vuelven cuando Carolina los resuelva (`06`).
+
+**B01** · opción múltiple · M2/M3 · fácil · `[FICHA v1 · 2026-10-08]` · ✓
+Una clienta que normalmente usa 37 quiere el **Ballerinas mocasines**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Te recomendamos pedir tu talla habitual.".
+
+**B02** · opción múltiple · M2/M3 · fácil · `[FICHA v1 · 2026-10-09]` · ✓
+Una clienta que normalmente usa 37 quiere el **Breeze**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Si tienes empeine alto escoger la talla mas alta".
+
+**B03** · opción múltiple · M2/M3 · fácil · `[FICHA v1 · 2026-10-08]` · ✓ · **PILOTO**
+Una clienta que normalmente usa 37 quiere el **Byl**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Te recomendamos pedir tu talla habitual.".
+
+**B04** · opción múltiple · M2/M3 · fácil · `[FICHA v1 · 2026-10-08]` · ✓
+Una clienta que normalmente usa 37 quiere el **Croc**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice: Talla exacta.
+
+**B05** · opción múltiple · M2/M3 · fácil · `[FICHA v2 · 2026-10-08]` · ✓
+Una clienta que normalmente usa 37 quiere el **Cucarron**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Te recomendamos pedir tu talla habitual.".
+
+**B06** · opción múltiple · M2/M3 · fácil · `[FICHA v1 · 2026-10-08]` · ✓
+Una clienta que normalmente usa 37 quiere el **Cucarron láser**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Te recomendamos pedir tu talla habitual".
+
+**B07** · opción múltiple · M2/M3 · fácil · `[FICHA v1 · 2026-10-08]` · ✓
+Una clienta que normalmente usa 37 quiere el **Cucarron single**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Te recomendamos pedir tu talla habitual.".
+
+**B08** · opción múltiple · M2/M3 · fácil · `[FICHA v4 · 2026-10-08]` · ✓ · **PILOTO**
+Una clienta que normalmente usa 37 quiere el **Leather Loafers**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Te recomendamos pedir tu talla habitual.".
+
+**B09** · opción múltiple · M2/M3 · fácil · `[FICHA v1 · 2026-10-10]` · ✓
+Una clienta que normalmente usa 37 quiere el **Leo Aladin**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Pide tu talla habitual".
+
+**B10** · opción múltiple · M2/M3 · fácil · `[FICHA v1 · 2026-10-08]` · ✓
+Una clienta que normalmente usa 37 quiere el **Leo Penny**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Te recomendamos pedir tu talla habitual.".
+
+**B11** · opción múltiple · M2/M3 · fácil · `[FICHA v1 · 2026-10-08]` · ✓
+Una clienta que normalmente usa 37 quiere el **Loafer suede**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Te recomendamos pedir tu talla habitual.".
+
+**B12** · opción múltiple · M2/M3 · fácil · `[FICHA v1 · 2026-10-08]` · ✓
+Una clienta que normalmente usa 37 quiere el **Mafalda chocolate pepas grandes**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Te recomendamos pedir tu talla habitual.".
+
+**B13** · opción múltiple · M2/M3 · fácil · `[FICHA v3 · 2026-10-08]` · ✓
+Una clienta que normalmente usa 37 quiere el **Mafalda Láser**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Te recomendamos pedir tu talla habitual.".
+
+**B14** · opción múltiple · M2/M3 · fácil · `[FICHA v5 · 2026-10-08]` · ✓
+Una clienta que normalmente usa 37 quiere el **Mafalda Pelo**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Te recomendamos pedir tu talla habitual.".
+
+**B15** · opción múltiple · M2/M3 · fácil · `[FICHA v3 · 2026-10-08]` · ✓ · **PILOTO**
+Una clienta que normalmente usa 37 quiere el **Mafalda Studs**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Te recomendamos pedir tu talla habitual.".
+
+**B16** · opción múltiple · M2/M3 · fácil · `[FICHA v1 · 2026-10-08]` · ✓
+Una clienta que normalmente usa 37 quiere el **Mafalda taches gamuza**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Te recomendamos pedir tu talla habitual.".
+
+**B17** · opción múltiple · M2/M3 · fácil · `[FICHA v1 · 2026-10-08]` · ✓
+Una clienta que normalmente usa 37 quiere el **Mules Colectiva**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **b** — La ficha dice "Te recomendamos pedir una talla mas.".
+
+**B18** · opción múltiple · M2/M3 · fácil · `[FICHA v5 · 2026-10-08]` · ✓
+Una clienta que normalmente usa 37 quiere el **Nina Classic Strap**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Te recomendamos pedir tu talla habitual.".
+
+**B19** · opción múltiple · M2/M3 · fácil · `[FICHA v2 · 2026-10-08]` · ✓ · **PILOTO**
+Una clienta que normalmente usa 37 quiere el **Paula**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **b** — La ficha dice "Te recomendamos pedir una talla mas".
+
+**B20** · opción múltiple · M2/M3 · fácil · `[FICHA v1 · 2026-10-07]` · ✓
+Una clienta que normalmente usa 37 quiere el **Paula gamuza**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice: Talla exacta.
+
+**B21** · opción múltiple · M2/M3 · fácil · `[FICHA v1 · 2026-10-08]` · ✓
+Una clienta que normalmente usa 37 quiere el **Stud Point**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice "Te recomendamos pedir tu talla habitual".
+
+**B22** · opción múltiple · M2/M3 · fácil · `[FICHA v1 · 2026-10-08]` · ✓ · **PILOTO**
+Una clienta que normalmente usa 37 quiere el **Sueco cucarrón**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **b** — La ficha dice "Te recomendamos pedir una talla mas".
+
+**B23** · opción múltiple · M2/M3 · fácil · `[FICHA v1 · 2026-10-10]` · ✓
+Una clienta que normalmente usa 37 quiere el **T-Strap**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **b** — La ficha dice "Te recomendamos pedir una talla mas de tu talla habitual.".
+
+**B24** · opción múltiple · M2/M3 · fácil · `[FICHA v2 · 2026-10-08]` · ✓
+Una clienta que normalmente usa 37 quiere el **Twin Studs**. En general, ¿qué le recomiendas?
+a) su talla habitual · b) una talla más que su talla habitual · c) una talla menos que su talla habitual
+✔ **a** — La ficha dice: Talla exacta.
+
+**B25** · opción múltiple · M2 · media · `[FICHA v2 · 2026-10-08]` · ✓ · **PILOTO**
+¿Qué horma y qué punta tiene el **Paula**?
+a) Horma cómoda, punta cuadrada · b) Horma normal, punta redonda · c) Horma normal, punta puntuda
+✔ **a** — Ficha: horma cómoda, punta cuadrada. *(Al publicarse, el orden de las opciones se baraja.)*
+
+**B26** · opción múltiple · M2 · media · `[FICHA v1 · 2026-10-08]` · ✓ · **PILOTO**
+¿Qué horma y qué punta tiene el **Byl**?
+a) Horma normal, punta puntuda · b) Horma cómoda, punta cuadrada · c) Horma normal, punta redonda
+✔ **a** — Ficha: horma normal, punta puntuda. *(Al publicarse, el orden de las opciones se baraja.)*
+
+**B27** · opción múltiple · M2 · media · `[FICHA v3 · 2026-10-08]` · ✓ · **PILOTO**
+¿Qué horma y qué punta tiene el **Mafalda Studs**?
+a) Horma cómoda, punta redonda · b) Horma cómoda, punta cuadrada · c) Horma normal, punta redonda
+✔ **a** — Ficha: horma cómoda, punta redonda. *(Al publicarse, el orden de las opciones se baraja.)*
+
+**B28** · opción múltiple · M2 · media · `[FICHA v4 · 2026-10-08]` · ✓ · **PILOTO**
+¿Qué horma y qué punta tiene el **Leather Loafers**?
+a) Horma cómoda, punta cuadrada · b) Horma normal, punta redonda · c) Horma normal, punta puntuda
+✔ **a** — Ficha: horma cómoda, punta cuadrada. *(Al publicarse, el orden de las opciones se baraja.)*
+
+**B29** · opción múltiple · M2 · media · `[FICHA v1 · 2026-10-08]` · ✓ · **PILOTO**
+¿Qué horma y qué punta tiene el **Sueco cucarrón**?
+a) Horma cómoda, punta redonda · b) Horma cómoda, punta cuadrada · c) Horma normal, punta redonda
+✔ **a** — Ficha: horma cómoda, punta redonda. *(Al publicarse, el orden de las opciones se baraja.)*
+
+**Conteo Parte B:** 29 utilizables (tras la revisión de Carolina).
+
+**Total de preguntas fijas:** Parte A 43 + Parte B 29 = **72**. **Utilizables al validar: 63** (≥ 60 ✓). Bloqueadas: 9.
 
 ---
 
@@ -247,8 +399,8 @@ Las plantillas de ajuste "talla chica / grande" **no existen** hasta resolver el
 
 | Área | Pide el examen | Disponible ahora (Parte A utilizable) | Con Parte B y plantillas |
 |---|---|---|---|
-| Producto / modelos | 8 | 6 (A01–A06) | + ≥ 25 fijas + plantillas → suficiente |
-| Tallas y ajuste | 5 | 11 (A07–A13, A16–A20) | Suficiente |
+| Producto / modelos | 8 | 6 (A01–A06) + **29** (B01–B29) | + plantillas → suficiente |
+| Tallas y ajuste | 5 | 12 (A07–A13, A16–A20) | Suficiente |
 | Cuidados | 2 | 1 (A21) | ⛔ Faltan cuidados de Carolina |
 | Atención | 3 | 13 (A24–A36) | Suficiente |
 | Marca y políticas | 2 | 2 (A38, A39) | ⛔ Faltan marca y políticas para variedad |

@@ -124,7 +124,7 @@ Los puntos de clientas viven en `public.loyalty_cards`, `public.rewards`, `publi
 | El error de Twilio se devuelve en `debug`; teléfonos en logs; `check_phone` revela si un número existe | ⚠ menores | `:163-166`, `:69-87`, `:110-125` | No bloquean el MVP |
 
 **Veredicto:**
-- **Apto para el MVP de Sales** (A1–A4). Ahí la vendedora solo estudia, se certifica y ve un saldo **sin valor monetario y sin canje**. Lo peor que podría hacer un impostor es presentar exámenes por otra persona.
+- **Apto técnicamente para construir y probar el MVP en staging** (A1–A4). **Decisión de Mario (2026-10-11): el acceso real de vendedoras, piloto incluido, espera a que P0-6 esté corregido**. Que la cuenta de revisión no tenga privilegios no basta (`P0-6_ACCESO_VENDEDORAS_PROPUESTA.md`).
 - **No apto para A5 (canjes reales).** Ahí una cuenta tomada sí tendría valor. **Condición para encender canjes:** cerrar P0-6, con dos requisitos:
   - contener la entrada de revisión de tiendas (A8);
   - reemplazar la contraseña derivada.

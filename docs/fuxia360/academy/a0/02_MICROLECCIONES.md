@@ -2,8 +2,8 @@
 
 > **Estado:** borrador para Carolina. Cada tarjeta tiene ≤ 60 palabras y su etiqueta de fuente (ver `01_TEMARIO.md`).
 > - **Escritas:** 2.0, 3.1, 3.3, 5.1, 5.2, 5.3 (parte general) y 5.4 (parte general).
-> - **Con conflicto:** 3.2 (media talla).
-> - **Esperan datos:** 2.1–2.6 (Q1).
+> - **3.2:** se enseña con las notas de talla de Carolina; el texto "media talla" de la tienda queda fuera.
+> - **Con datos de Q1 (2026-10-11):** 2.1–2.6 por familia y la lección del piloto 2.P, escrita completa.
 > - **Esperan a Carolina:** M1, M4 y las políticas de 5.4.
 >
 > Cada lección termina con 1–2 preguntas de práctica del banco (`04`). La práctica no cuenta para el certificado; el examen final sí.
@@ -42,17 +42,46 @@
 | 5 | **Materiales:** exterior, forro y suela, tal como los escribió Carolina. **Comodidad:** su nota sobre cómo se siente. **Cuidados:** cómo cuidarlos. `[SISTEMA]` |
 | Práctica | A01, A05 |
 
-### 2.1–2.6 Modelos por grupo — ⏳ esperan Q1
-Estructura de cada lección (4 min, 4–5 modelos):
+### 2.1–2.6 Modelos por familia — ✓ datos de Q1
+
+Cada modelo usa **3 tarjetas generadas desde su ficha** (`03_FICHAS_BALLERINAS.md`), con el mismo formato de la lección piloto (abajo):
+1. **Foto, colores y tallas** `[CATÁLOGO]`.
+2. **Talla:** ajuste, nota de Carolina y entre dos tallas `[FICHA]`.
+3. **Horma, ancho, punta, materiales y comodidad** `[FICHA]`. Lo vacío dice "pendiente".
+
+Agrupación por familia de nombre, para que sea fácil recordar. Carolina puede reagruparla.
+
+| Lección | Modelos incluidos | Retenidos (no se publican aún) |
+|---|---|---|
+| 2.1 Paula y Cucarrón | Paula, Paula gamuza, Cucarron, Cucarron láser, Cucarron single | — (Paula gamuza y Cucarron tienen observación de "tacón": se publican sin la frase de comodidad hasta que Carolina la revise) |
+| 2.2 Mafalda (Mary Jane) | Mafalda Láser, Mafalda Pelo, Mafalda Studs, Mafalda taches gamuza, Mafalda chocolate pepas grandes | — |
+| 2.3 Loafers y mocasines | Leather Loafers, Loafer suede, Leo Penny, Ballerinas mocasines | — |
+| 2.4 Puntudos | Byl, Stud Point, Nina Classic Strap | Slingback punta afilada taches (sin materiales; "medio número") · Pointed Aladdin (sin ficha) |
+| 2.5 Suecos y mules | Sueco cucarrón, Mules Colectiva | Suecos leopardo (contradicción de talla; texto cortado) |
+| 2.6 Con detalle | Breeze, Croc, T-Strap, Twin Studs | Canutillos ("medio número") · Leo Aladin (texto de comodidad cortado) |
+
+**Publicables ahora:** 23 modelos. **Retenidos:** 5 (4 con observaciones + 1 sin ficha).
+
+### 2.P Lección piloto: 5 modelos — ✓ escrita con datos validados (Q1)
 
 | Tarjeta | Contenido |
 |---|---|
-| 1 | Foto del modelo + nombre + colores. `[CATÁLOGO]` |
-| 2 | Ajuste de talla y "entre dos tallas". `[FICHA vN]` |
-| 3 | Horma, punta, materiales y comodidad, **solo** lo validado. Lo vacío dice "pendiente". `[FICHA vN]` |
-| 4 | "Recomiéndala para…": **solo** si Carolina aprobó el borrador; si no, la tarjeta no aparece. `[BORRADOR PARA CAROLINA]` |
-| (repetir por modelo) | |
-| Cierre | "¿Cuál es cuál?": 3 fotos para reconocer (plantilla T6) |
+| Paula · 1 | Foto. **Paula**. Colores: Azul marino, Bambi, Beige con talco, Blanco con negro, Café, Dorado, Dorado con ocre, Leopardo, Negro, Plata, Plata con verde, Talco, Taupe, Verde aceituna, Vino con negro, Denim, Plata con dorado, Dorada con plata, Ocre. Tallas 35–40. `[CATÁLOGO]` |
+| Paula · 2 | Talla: **Talla chica**. "Te recomendamos pedir una talla mas" Entre dos tallas: elige **la mayor**. `[FICHA v2 · 2026-10-08]` |
+| Paula · 3 | Horma **cómoda**, ancho normal, punta **cuadrada**. Exterior piel vacuna, forro piel vacuna, suela antiderrapante. Comodidad, según Carolina: "Comfy, versátil, el par que sale contigo sin pensarlo dos veces." `[FICHA v2 · 2026-10-08]` |
+| Byl · 1 | Foto. **Byl**. Colores: Negro, Vino, Gris, Dorado, Café, Chocolate, Verde. Tallas 35–40. `[CATÁLOGO]` |
+| Byl · 2 | Talla: **Talla exacta**. "Te recomendamos pedir tu talla habitual." Entre dos tallas: elige **la mayor**. `[FICHA v1 · 2026-10-08]` |
+| Byl · 3 | Horma **normal**, ancho normal, punta **puntuda**. Exterior piel vacuna, forro piel vacuna, suela antiderrapante. Comodidad, según Carolina: "Plantilla Cushion Cloud" `[FICHA v1 · 2026-10-08]` |
+| Mafalda Studs · 1 | Foto. **Mafalda Studs**. Colores: Plata, Negro, Nude, Taupe, Vino, Cafe. Tallas 35–40. `[CATÁLOGO]` |
+| Mafalda Studs · 2 | Talla: **Talla exacta**. "Te recomendamos pedir tu talla habitual." Entre dos tallas: elige **la menor**. `[FICHA v3 · 2026-10-08]` |
+| Mafalda Studs · 3 | Horma **cómoda**, ancho amplio, punta **redonda**. Exterior piel vacuna, forro piel vacuna, suela antiderrapante. Comodidad, según Carolina: "Comfy, versátil, el par que sale contigo sin pensarlo dos veces." `[FICHA v3 · 2026-10-08]` |
+| Leather Loafers · 1 | Foto. **Leather Loafers**. Colores: Negro, Taupe, Beige, Dorado. Tallas 35–40. `[CATÁLOGO]` |
+| Leather Loafers · 2 | Talla: **Talla exacta**. "Te recomendamos pedir tu talla habitual." Entre dos tallas: elige **la mayor**. `[FICHA v4 · 2026-10-08]` |
+| Leather Loafers · 3 | Horma **cómoda**, ancho normal, punta **cuadrada**. Exterior piel vacuna, forro piel vacuna, suela antiderrapante. Comodidad, según Carolina: "Comfy, versátil, y siempre en tendencia." `[FICHA v4 · 2026-10-08]` |
+| Sueco cucarrón · 1 | Foto. **Sueco cucarrón**. Colores: Plata, Azul, Café, Dorado, Negro, Talco, Taupe, Verde, Vino. Tallas 35–40. `[CATÁLOGO]` |
+| Sueco cucarrón · 2 | Talla: **Talla chica**. "Te recomendamos pedir una talla mas" Entre dos tallas: elige **la mayor**. `[FICHA v1 · 2026-10-08]` |
+| Sueco cucarrón · 3 | Horma **cómoda**, ancho normal, punta **redonda**. Exterior piel vacuna, forro piel vacuna, suela caucho - antiderrapante. Comodidad, según Carolina: "Su diseño destalonado y suela flexible las hace muy cómodas" `[FICHA v1 · 2026-10-08]` |
+| Cierre | "¿Cuál es cuál?": 3 fotos (plantilla T6). Práctica: B correspondientes a estos 5 modelos y B25–B29 |
 
 ---
 
@@ -72,7 +101,7 @@ Estructura de cada lección (4 min, 4–5 modelos):
 |---|---|
 | 1 | Cada modelo dice en su ficha cómo queda la talla. `[SISTEMA]` |
 | 2 | **Talla exacta:** recomienda su talla habitual. `[SISTEMA]` |
-| 3 | ⚠ **Talla chica / Talla grande:** el texto de la tienda en línea dice "pide **media talla** más / menos", pero las Ballerinas activas solo vienen en tallas enteras. **Esta tarjeta no se publica** hasta que Carolina decida qué se recomienda (`06`, P1). |
+| 3 | **Talla chica:** sigue la **nota de Carolina** de ese modelo. Hoy, en Paula, Mules Colectiva, Sueco cucarrón y T-Strap dice "pide **una talla más**". `[FICHA vN]` *(El texto genérico de la tienda en línea, "media talla", **no** se usa en Academy: `06` P1.)* No hay modelos activos de "talla grande". |
 | 4 | **Entre dos tallas:** la ficha dice si conviene "la mayor" o "la menor". Sigue lo que diga la ficha de **ese** modelo. `[FICHA vN]` |
 | 5 | Si la ficha tiene una **nota de talla**, léela tal cual. `[FICHA vN]` |
 | Práctica | A11, A12 |
@@ -120,7 +149,7 @@ Estructura de cada lección (4 min, 4–5 modelos):
 | Tarjeta | Contenido |
 |---|---|
 | 1 | Elige **2 o 3 modelos** según lo que te dijo. No muestres todo el catálogo. |
-| 2 | Presenta cada uno con **un dato de su ficha** unido a lo que ella busca: "Buscas comodidad todo el día; este tiene horma cómoda." |
+| 2 | Presenta cada uno con **un dato de su ficha** unido a lo que ella busca: "Buscas comodidad todo el día; este tiene horma cómoda." `[PEDAGOGÍA]` (ejemplo genérico, sin un modelo concreto) |
 | 3 | No digas "es el más vendido" ni "se acaba hoy" si no lo sabes. |
 | 4 | Si duda entre dos, pregúntale cuál sintió más cómodo y para qué lo usará más. |
 | Práctica | A29, A30 |

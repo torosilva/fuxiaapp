@@ -30,12 +30,12 @@
 **Conclusión para Academy:**
 
 1. **Canjes reales (A5): bloqueados** hasta cerrar P0-6.2 y P0-6.3.
-2. **MVP (A1–A3):** puede avanzar en staging. **Antes de usarse en producción**, Academy debe cumplir, por diseño y aunque P0-6 siga abierto:
+2. **MVP (A1–A3):** puede avanzar **en staging**. El **acceso real de vendedoras** (piloto incluido) espera a que P0-6 esté corregido (punto 4). Además, por diseño, Academy debe cumplir:
    - **Toda** aprobación y acción de administración de Academy exige **segundo factor (aal2)**, incluida `academy_content.publish_sales`. Esto **endurece** el catálogo de operaciones de §4.1.2: allí `publish_sales` no lo exigía. Así, una sesión obtenida con la contraseña derivada no publica contenido ni toca puntos.
    - La alumna se deriva **solo** de `f360.sellers.status = 'activa'` y de permisos explícitos. Nunca de `customers.role`, `user_metadata` ni del teléfono enviado por el navegador.
    - Las pruebas de §4.3 pasan en staging.
 3. **Riesgo residual del MVP con P0-6 abierto:** alguien con `OTP_SALT` puede hacerse pasar por una vendedora en sus exámenes. Es bajo mientras los puntos no tengan valor, y se reduce con el cierre de P0-6.2.
-4. **Fuera de Academy**, P0-6.2 afecta a todo Fuxia 360. **Recomiendo cerrarlo antes de abrir el MVP a todas las vendedoras**, aunque técnicamente no bloquea el piloto. La decisión es tuya.
+4. **Decisión de Mario (2026-10-11): P0-6 debe corregirse ANTES de habilitar acceso real de vendedoras a Academy**, incluido el piloto. El MVP puede construirse y probarse en staging, pero no se abre a vendedoras reales con P0-6 abierto. Una respuesta negativa en Q4 (cuenta demo sin privilegios) **no** lo resuelve.
 
 ---
 
