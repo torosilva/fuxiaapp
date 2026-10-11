@@ -30,11 +30,11 @@ export default async function Mas() {
         <Link href="/avisos" className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5">
           <IconBell className="size-6 text-gold-strong" /><span className="flex-1 text-lg text-ink">Avisos de sincronización</span>
         </Link>
-        {board && (
-          <Link href="/estrategia" className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5">
-            <IconGrowth className="size-6 text-gold-strong" /><span className="flex-1 text-lg text-ink">Strategy &amp; Board 🔒</span>
+        {board && [['/estrategia', 'Strategy & Board 🔒'], ['/direccion', 'Dirección 🔒'], ['/inteligencia', 'Inteligencia 🔒'], ['/cierre-contable', 'Cierre contable']].map(([href, label]) => (
+          <Link key={href} href={href} className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5">
+            <IconGrowth className="size-6 text-gold-strong" /><span className="flex-1 text-lg text-ink">{label}</span>
           </Link>
-        )}
+        ))}
         {ITEMS.filter((i) => !('admin' in i) || canWrite(me.role)).map(({ href, label, icon: Icon, live }) => (
           <Link key={href} href={href} className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5">
             <Icon className="size-6 text-muted" /><span className="flex-1 text-lg text-ink">{label}</span>{!live && <span className="text-sm text-muted">Próximamente</span>}

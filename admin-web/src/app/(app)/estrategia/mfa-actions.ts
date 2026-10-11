@@ -2,6 +2,8 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { boardAccessState } from '@/lib/board';
+import { getMe } from '@/lib/f360';
+import { financeAccess } from '@/lib/intel';
 
 // Strategy & Board second factor (Supabase Auth TOTP). Only a Board member who is missing the second factor in this session
 // (f360_board_access_state = 'mfa_required', decided in the database) gets past the first line; the database re-checks aal2
@@ -9,10 +11,14 @@ import { boardAccessState } from '@/lib/board';
 export type MfaState = { error?: string; factorId?: string; qr?: string; secret?: string };
 
 const CODE = /^\d{6}$/;
+// Where to go after the code: the board pages and the contadora's Cierre contable (I2). Anything else → /estrategia.
+const NEXT = ['/estrategia', '/direccion', '/cierre-contable'];
+// Board member missing the second factor, or a viewer who may be the contadora (the database decides after aal2).
+const mayVerify = async () => (await boardAccessState()) === 'mfa_required' || (await financeAccess((await getMe()).role)) === 'mfa_required';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function startEnroll(): Promise<MfaState> {
-  if ((await boardAccessState()) !== 'mfa_required') return { error: 'No disponible.' };
+  if (!(await mayVerify())) return { error: 'No disponible.' };
   const supabase = await createClient();
   const { data: list } = await supabase.auth.mfa.listFactors();
   if ((list?.totp?.length ?? 0) > 0) return { error: 'Ya tienes una app configurada: recarga la página y escribe tu código.' };
@@ -20,7 +26,7 @@ export async function startEnroll(): Promise<MfaState> {
   for (const f of list?.all ?? []) {
     if (f.factor_type === 'totp' && f.status !== 'verified') await supabase.auth.mfa.unenroll({ factorId: f.id });
   }
-  const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Fuxia 360 · Strategy & Board', issuer: 'Fuxia 360' });
+  const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Fuxia 360', issuer: 'Fuxia 360' });
   if (error || !data) return { error: 'No se pudo iniciar la configuración. Intenta de nuevo.' };
   return { factorId: data.id, qr: data.totp.qr_code, secret: data.totp.secret };
 }
@@ -30,9 +36,10 @@ export async function verifyCode(prev: MfaState, form: FormData): Promise<MfaSta
   const code = String(form.get('code') ?? '').replace(/\s/g, '');
   if (!UUID.test(factorId)) return { ...prev, error: 'No disponible.' };
   if (!CODE.test(code)) return { ...prev, error: 'Escribe los 6 dígitos.' };
-  if ((await boardAccessState()) !== 'mfa_required') return { ...prev, error: 'No disponible.' };
+  if (!(await mayVerify())) return { ...prev, error: 'No disponible.' };
+  const next = String(form.get('next') ?? '');
   const supabase = await createClient();
   const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code });   // sets the aal2 session cookies
   if (error) return { ...prev, error: 'Código incorrecto o vencido. Escribe el código que se ve ahora en tu app.' };
-  redirect('/estrategia');
+  redirect(NEXT.includes(next) ? next : '/estrategia');
 }

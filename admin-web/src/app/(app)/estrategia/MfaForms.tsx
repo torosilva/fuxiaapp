@@ -5,11 +5,12 @@ import { startEnroll, verifyCode, type MfaState } from './mfa-actions';
 const input = 'w-full rounded-xl border border-line bg-surface px-4 py-3.5 text-center text-2xl tracking-[0.5em] text-ink outline-none transition focus:border-gold';
 const primary = 'w-full rounded-xl bg-ink py-4 text-base font-medium text-surface transition hover:bg-ink-2 disabled:opacity-50';
 
-function CodeForm({ factorId, state, action, pending, label }: { factorId: string; state: MfaState; action: (f: FormData) => void; pending: boolean; label: string }) {
+function CodeForm({ factorId, next, state, action, pending, label }: { factorId: string; next: string; state: MfaState; action: (f: FormData) => void; pending: boolean; label: string }) {
   return (
     <form action={action} className="space-y-4">
       {state.error && <p role="alert" className="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{state.error}</p>}
       <input type="hidden" name="factor_id" value={factorId} />
+      <input type="hidden" name="next" value={next} />
       <label className="block text-sm text-ink-2">Código de 6 dígitos
         <input name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={7} placeholder="••••••" className={`${input} mt-2`} required autoFocus />
       </label>
@@ -18,12 +19,12 @@ function CodeForm({ factorId, state, action, pending, label }: { factorId: strin
   );
 }
 
-export function MfaChallenge({ factorId }: { factorId: string }) {
+export function MfaChallenge({ factorId, next = '/estrategia' }: { factorId: string; next?: string }) {
   const [state, action, pending] = useActionState<MfaState, FormData>(verifyCode, {});
-  return <CodeForm factorId={factorId} state={state} action={action} pending={pending} label="Entrar" />;
+  return <CodeForm factorId={factorId} next={next} state={state} action={action} pending={pending} label="Entrar" />;
 }
 
-export function MfaEnroll() {
+export function MfaEnroll({ next = '/estrategia' }: { next?: string }) {
   const [setup, setSetup] = useState<MfaState>({});
   const [starting, start] = useTransition();
   const [state, action, pending] = useActionState<MfaState, FormData>(verifyCode, {});
@@ -51,7 +52,7 @@ export function MfaEnroll() {
         Recomendado: escanea el mismo código también en un segundo dispositivo o en tu gestor de contraseñas. Así, si pierdes el
         celular, sigues teniendo tu código.
       </p>
-      <CodeForm factorId={setup.factorId} state={state} action={action} pending={pending} label="Activar y entrar" />
+      <CodeForm factorId={setup.factorId} next={next} state={state} action={action} pending={pending} label="Activar y entrar" />
     </div>
   );
 }

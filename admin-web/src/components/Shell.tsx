@@ -35,6 +35,9 @@ const GROUPS = [
   ] },
   { label: 'Dirección', items: [
     { href: '/estrategia', label: 'Strategy & Board 🔒', icon: IconGrowth, live: true, board: true },
+    { href: '/direccion', label: 'Dirección 🔒', icon: IconGrowth, live: true, board: true },
+    { href: '/inteligencia', label: 'Inteligencia 🔒', icon: IconGrowth, live: true, board: true },
+    { href: '/cierre-contable', label: 'Cierre contable', icon: IconReceipt, live: true, finance: true },
   ] },
   { label: 'Configuración', items: [
     { href: '/tiendas', label: 'Tiendas', icon: IconBoxes, live: true, admin: true },
@@ -46,22 +49,33 @@ const GROUPS = [
 ];
 const NAV = GROUPS.flatMap((g) => g.items);
 const BOTTOM = ['/', '/tablero', '/productos'].map((h) => NAV.find((n) => n.href === h)!);
+const FINANCE_ITEM = NAV.find((n) => n.href === '/cierre-contable')!;
+
+// Who sees an entry (menu hint only — every page re-checks in the database). The contadora (onlyFinance) sees ONLY
+// Cierre contable; her layout also redirects her there from any other page.
+type Item = (typeof NAV)[number];
+const visible = (n: Item, role: string, board: boolean, finance: boolean, onlyFinance: boolean) =>
+  onlyFinance ? 'finance' in n
+  : 'board' in n ? board
+  : 'finance' in n ? board || finance
+  : !('admin' in n) || role === 'owner' || role === 'operator';
 
 const isActive = (path: string, href: string) => (href === '/' ? path === '/' : path.startsWith(href));
 
-export function Shell({ name, role, env, alerts = 0, board = false, signOut, children }: { name: string; role: string; env?: string; alerts?: number; board?: boolean; signOut: () => Promise<void>; children: React.ReactNode }) {
+export function Shell({ name, role, env, alerts = 0, board = false, finance = false, onlyFinance = false, signOut, children }: { name: string; role: string; env?: string; alerts?: number; board?: boolean; finance?: boolean; onlyFinance?: boolean; signOut: () => Promise<void>; children: React.ReactNode }) {
   const path = usePathname();
+  const bottom = onlyFinance ? [FINANCE_ITEM] : [...BOTTOM, { href: '/mas', label: 'Más', icon: IconMore, live: true }];
   return (
     <div className="min-h-dvh lg:flex">
       {/* Sidebar (tablet landscape / desktop) */}
       <aside className={`sticky hidden w-64 ${env === 'staging' ? 'top-12 h-[calc(100dvh-3rem)]' : 'top-0 h-dvh'} shrink-0 flex-col overflow-y-auto bg-[#100E0B] px-4 py-7 text-[#CFC6B8] lg:flex`}>
-        <Link href="/" className="mb-8 block px-3">
+        <Link href={onlyFinance ? '/cierre-contable' : '/'} className="mb-8 block px-3">
           <div className="font-display text-3xl leading-none text-[#F7E7C4]">Fuxia <span className="text-[#E8C98A]">360</span></div>
           <div className="mt-1 text-[10px] uppercase tracking-[0.28em] text-[#A79F92]">Fuxia Ballerinas</div>
           <div className="mt-1 text-[11px] text-[#8E877C]">by HiloLabs.ai</div>
         </Link>
         <nav className="flex flex-1 flex-col gap-5">
-          {GROUPS.map((g) => ({ ...g, items: g.items.filter((n) => ('board' in n ? board : !('admin' in n) || role === 'owner' || role === 'operator')) })).filter((g) => g.items.length > 0).map((g) => (
+          {GROUPS.map((g) => ({ ...g, items: g.items.filter((n) => visible(n, role, board, finance, onlyFinance)) })).filter((g) => g.items.length > 0).map((g) => (
             <div key={g.label} className="flex flex-col gap-0.5">
               <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.26em] text-[#8E877C]">{g.label}</div>
               {g.items.map(({ href, label, icon: Icon, live }) => (
@@ -79,7 +93,7 @@ export function Shell({ name, role, env, alerts = 0, board = false, signOut, chi
         </nav>
         <div className="mt-6 border-t border-white/10 px-3 pt-4">
           <div className="text-sm font-medium text-[#F7E7C4]">{name}</div>
-          <div className="text-xs text-[#A79F92]">{role === 'owner' ? 'Dueña' : role === 'operator' ? 'Operación' : role === 'seller' ? 'Vendedora' : 'Consulta'}{env === 'staging' ? ' · Ambiente de pruebas' : ''}</div>
+          <div className="text-xs text-[#A79F92]">{onlyFinance ? 'Contabilidad' : role === 'owner' ? 'Dueña' : role === 'operator' ? 'Operación' : role === 'seller' ? 'Vendedora' : 'Consulta'}{env === 'staging' ? ' · Ambiente de pruebas' : ''}</div>
           <form action={signOut}><button className="mt-3 flex items-center gap-2 text-sm text-[#A79F92] hover:text-[#F7E7C4]"><IconLogout className="size-4" />Salir</button></form>
         </div>
       </aside>
@@ -87,15 +101,15 @@ export function Shell({ name, role, env, alerts = 0, board = false, signOut, chi
       <div className="min-w-0 flex-1 pb-24 lg:pb-0">
         {/* Mobile / portrait tablet header */}
         <header className="flex items-center justify-between px-5 pt-5 lg:hidden">
-          <Link href="/" className="flex items-baseline gap-2"><span className="font-display text-2xl">Fuxia <span className="text-gold">360</span></span><span className="text-[11px] text-muted">by HiloLabs.ai</span></Link>
+          <Link href={onlyFinance ? '/cierre-contable' : '/'} className="flex items-baseline gap-2"><span className="font-display text-2xl">Fuxia <span className="text-gold">360</span></span><span className="text-[11px] text-muted">by HiloLabs.ai</span></Link>
           <form action={signOut}><button aria-label="Salir" className="rounded-full p-2 text-muted"><IconLogout /></button></form>
         </header>
         <main className="mx-auto w-full max-w-6xl px-5 py-6 md:px-8 lg:py-10">{children}</main>
       </div>
 
       {/* Bottom bar (phone / portrait tablet) */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
-        {[...BOTTOM, { href: '/mas', label: 'Más', icon: IconMore, live: true }].map(({ href, label, icon: Icon }) => (
+      <nav className={`fixed inset-x-0 bottom-0 z-20 grid ${onlyFinance ? 'grid-cols-1' : 'grid-cols-4'} border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden`}>
+        {bottom.map(({ href, label, icon: Icon }) => (
           <Link key={href} href={href} className={`flex flex-col items-center gap-1 py-3 text-xs ${isActive(path, href) ? 'text-gold-strong' : 'text-muted'}`}>
             <span className="relative"><Icon className="size-6" />{href === '/mas' && alerts > 0 && <span className="absolute -right-1.5 -top-1 size-2.5 rounded-full bg-danger" />}</span>{label}
           </Link>
