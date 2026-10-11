@@ -110,3 +110,11 @@
 | 3615 | 2026-09-28 | CO | COP | cancelled | no | COP 370,000 | — | epayco | store-api | no está | P0D lo importaría |
 | 5347 | 2026-10-08 | MX | MXN | cancelled | no | MXN 2,800 | — | woo-mercado-pago-custom | store-api | igual | P0D lo importaría |
 | 5351 | 2026-10-08 | MX | MXN | cancelled | sí | MXN 2,800 | — | woo-mercado-pago-custom | store-api | igual | ya está en producción (sin cambio) |
+
+## EJECUCIÓN · 2026-10-11 (Mario: "autorizo los despliegues y pases a producción de Growth y P0D")
+1. `f360-woo-sync` con la acción `commerce_history` (commit `e29cbac`): solo dueña o secreto del cron; simula salvo `apply: true`; solo GET a Woo; una sola ruta de captura (`backfill`); nunca después del corte. Ensayo en staging: 90 vistos, 90 al día, 0 por importar. Desplegada en producción ~13:50 UTC.
+2. Simulación en producción: 84 vistos · 1 al día · **83 por importar** · 0 antes de mayo de 2024 · 0 después del corte. Coincide con este preflight.
+3. **Importación** (run 261): 83 importados · 0 errores. Segunda pasada: 0 faltan · 0 desactualizados · 84 al día.
+4. Verificación: el resumen por mercado/moneda/estado es idéntico a la tabla de arriba (CO 14+17, MX 9+34+4+1, ROW 4+1; mismos totales). `inventory_events` 470 → 470 y `woo_orders` 0 → 0: **el inventario no se tocó**. WooCommerce solo se leyó.
+5. Mismo día: pase `supabase/pase/20261011_growth_conciliacion.sql` (War Room S-G1 + Conciliación + exclusiones + textos + corrección de moneda + eventos ajenos; sin datos) y Google Ads "sin gasto" (`20261011_google_ads_sin_gasto.sql`). Panel de producción publicado (`2848e67`).
+6. **Pendiente:** corrección de moneda del #2095 (COP/CO). La registra Mario desde Growth → Conciliación con su propia sesión; no se hizo por pase a su nombre.
