@@ -220,6 +220,36 @@ done
 [ "$LEFT" = "0" ] || { echo "ABORT: quedaron $LEFT correo(s) de clientas sin anonimizar"; false; }
 echo "verificación OK: ningún correo de clienta real"
 
+# ── 7b. Firmas de código de Bricks: Bricks solo ejecuta bloques de código cuya firma (wp_hash, que usa las llaves de
+#        wp-config) coincide; staging4 tiene llaves propias, así que las firmas copiadas de prod no valen (sin esto no hay
+#        botones de talla ni pie de página; ver docs/fuxia360/audit/P2_3B_STAGING4_PREFLIGHT.md §4.13). Equivale a
+#        Bricks → Settings → Custom code → Regenerate code signatures.
+step "Firmas de código de Bricks"
+W eval '
+$firmar = function (&$els) { $n = 0;
+  if (!is_array($els)) return 0;
+  foreach ($els as &$e) {
+    if (!is_array($e) || empty($e["settings"]) || !is_array($e["settings"])) continue;
+    if (isset($e["settings"]["code"]) && is_string($e["settings"]["code"]) && $e["settings"]["code"] !== "") {
+      $e["settings"]["signature"] = wp_hash($e["settings"]["code"]); $n++;
+    }
+  }
+  return $n; };
+global $wpdb; $total = 0;
+$metas = $wpdb->get_results("SELECT post_id, meta_key FROM {$wpdb->postmeta} WHERE meta_key LIKE \"\\_bricks\\_page\\_%\"", ARRAY_A);
+foreach ($metas as $m) {
+  $v = get_post_meta($m["post_id"], $m["meta_key"], true);
+  $n = $firmar($v);
+  if ($n) { update_post_meta($m["post_id"], $m["meta_key"], wp_slash($v)); $total += $n; }
+}
+foreach (array("bricks_global_elements", "bricks_components") as $o) {
+  $v = get_option($o); if (!is_array($v)) continue; $n = 0;
+  foreach ($v as &$g) { if (isset($g["elements"])) $n += $firmar($g["elements"]); elseif (isset($g["settings"])) { $one = array($g); $n += $firmar($one); $g = $one[0]; } }
+  if ($n) { update_option($o, $v); $total += $n; }
+}
+echo "bloques de código firmados con las llaves de staging4: $total" . PHP_EOL;
+if ($total === 0) { fwrite(STDERR, "ABORT: no encontré bloques de código de Bricks\n"); exit(1); }'
+
 # ── 8. mu-plugins: espejo de prod (a staging) + guardia; lo anterior queda en el respaldo ───────────────
 step "mu-plugins"
 for f in mu/*.php; do php -l "$f" >/dev/null || { echo "ABORT: $f no pasa php -l"; false; }; done
@@ -244,6 +274,16 @@ rc=$?
 set -e
 code="$(curl -sL -o /dev/null -w '%{http_code}' "https://staging4.fuxiaballerinas.com/mx/?nc=$TS")"
 echo "staging4 /mx/: http $code"
+# Ficha de producto: staging4 debe ejecutar los mismos bloques de código de Bricks que prod (tallas, pie de página).
+if [ "$MODE" = "--apply" ] && [ "$rc" -eq 0 ]; then
+  slug="$(curl -s "https://fuxiaballerinas.com/wp-json/wc/store/v1/products?per_page=1&type=variable" | python3 -c 'import json,sys; print(json.load(sys.stdin)[0]["slug"])' 2>/dev/null || true)"
+  if [ -n "$slug" ]; then
+    np="$(curl -sL "https://fuxiaballerinas.com/mx/producto/$slug/?nc=$TS" | grep -o 'brxe-code"' | wc -l | tr -d ' ')"
+    ns="$(curl -sL "https://staging4.fuxiaballerinas.com/mx/producto/$slug/?nc=$TS" | grep -o 'brxe-code"' | wc -l | tr -d ' ')"
+    echo "bloques de código en la ficha de $slug: prod $np · staging4 $ns"
+    [ "$ns" = "$np" ] || { echo "ATENCIÓN: staging4 no ejecuta todos los bloques de código de Bricks (firmas)"; notify "staging4 sin tallas" "Faltan bloques de código de Bricks ($TS)"; exit 1; }
+  fi
+fi
 if [ "$rc" -ne 0 ] || { [ "$MODE" = "--apply" ] && [ "$code" != "200" ]; }; then
   [ "$MODE" = "--apply" ] && notify "Copia de la tienda FALLÓ" "staging4 restaurado desde respaldo ($TS)"
   exit 1
