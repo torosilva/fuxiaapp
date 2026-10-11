@@ -121,6 +121,39 @@ select format('create policy %I on storage.objects as %s for %s to %s%s%s;',
   from pg_policies where schemaname = 'storage' and tablename = 'objects' order by policyname;
 commit;
 SQL
+# Permisos exactos de prod (tablas, vistas, secuencias, funciones). Sin esto, los permisos por defecto de staging se suman
+# a los del esquema copiado (p. ej. anon/authenticated con acceso total a tablas que en prod solo ve service_role).
+# Por cada objeto de postgres: se quita todo a PUBLIC/anon/authenticated/service_role y se da exactamente lo de prod.
+psql "$PROD_DB_URL" -X -q -A -t -v ON_ERROR_STOP=1 > "$WORK/prod_acls.sql" <<'SQL' || fail "lectura de permisos de producción"
+begin read only;
+set local search_path = '';
+with objs as (
+  select case c.relkind when 'S' then 'sequence' else 'table' end as kind,
+         format('%I.%I', n.nspname, c.relname) as name,
+         coalesce(c.relacl, acldefault((case c.relkind when 'S' then 's' else 'r' end)::"char", c.relowner)) as acl
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname in ('public', 'f360', 'f360_board') and c.relkind in ('r', 'p', 'v', 'm', 'f', 'S')
+     and pg_get_userbyid(c.relowner) = 'postgres'
+  union all
+  select 'routine', p.oid::regprocedure::text, coalesce(p.proacl, acldefault('f'::"char", p.proowner))
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname in ('public', 'f360', 'f360_board') and pg_get_userbyid(p.proowner) = 'postgres'
+     and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+), grants as (
+  select o.kind, o.name, a.privilege_type, a.is_grantable,
+         case a.grantee when 0 then 'public' else quote_ident(pg_get_userbyid(a.grantee)) end as grantee
+    from objs o cross join lateral aclexplode(o.acl) a
+   where a.grantee = 0 or pg_get_userbyid(a.grantee) in ('anon', 'authenticated', 'service_role')
+)
+select stmt from (
+  select 0 as ord, name, format('revoke all on %s %s from public, anon, authenticated, service_role;', kind, name) as stmt from objs
+  union all
+  select 1, name, format('grant %s on %s %s to %s%s;', string_agg(privilege_type, ', ' order by privilege_type), kind, name, grantee,
+                         case when is_grantable then ' with grant option' else '' end)
+    from grants group by kind, name, grantee, is_grantable
+) s order by ord, name, stmt;
+commit;
+SQL
 ls -lh "$WORK"/prod_*.sql | awk '{print "   ", $5, $NF}'
 
 # ── 3. Reemplazo en staging: una sola transacción. El esquema (~7,000 sentencias) va en modo pipeline de psql 18:
@@ -151,6 +184,9 @@ SET session_replication_role = origin;
 \\! date '+   · %H:%M:%S'
 \\echo '     políticas de archivos'
 \\i $WORK/prod_storage_policies.sql
+\\! date '+   · %H:%M:%S'
+\\echo '     permisos exactos de producción'
+\\i $WORK/prod_acls.sql
 \\! date '+   · %H:%M:%S'
 \\echo '     anonimizar, devolver configuración de staging y verificar'
 \\i $HERE/post_restore.sql
