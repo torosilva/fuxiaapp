@@ -6,7 +6,7 @@
 
 ## 0. Resumen
 
-- **De los 8 indicadores, 2 se pueden mostrar completos hoy, 4 a medias y 2 no tienen fuente.** Lo que más falta:
+- **De los 8 indicadores, 1 se puede mostrar completo hoy (KPI 2), 5 a medias (KPI 1, 3, 5, 6, 8) y 2 no tienen fuente (KPI 4, 7).** Lo que más falta:
   - **presupuesto:** `f360_board.budget_versions` = 0;
   - **costo por modelo:** `product_cost_versions` = 0;
   - **caja y gastos:** `monthly_close_entries` = 0;
