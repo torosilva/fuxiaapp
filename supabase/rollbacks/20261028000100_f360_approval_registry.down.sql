@@ -1,12 +1,12 @@
--- Rollback of 20261026000100_f360_approval_registry. Run ONLY with Mario's explicit OK (after apply it is a teardown).
--- Refuses if: Academy (20261026000200) is still installed; any request exists for a non-academy scope (another module adopted the
+-- Rollback of 20261028000100_f360_approval_registry. Run ONLY with Mario's explicit OK (after apply it is a teardown).
+-- Refuses if: Academy (20261028000200) is still installed; any request exists for a non-academy scope (another module adopted the
 -- registry); academy scopes still have people assigned. It never removes scopes other migrations may have added after this one:
 -- the CHECK is rebuilt from the live definition minus the three academy scopes.
 BEGIN;
 DO $$
 DECLARE def text; vals text[];
 BEGIN
-  IF to_regnamespace('f360_academy') IS NOT NULL THEN RAISE EXCEPTION 'ABORT: primero revierta 20261026000200 (f360_academy)'; END IF;
+  IF to_regnamespace('f360_academy') IS NOT NULL THEN RAISE EXCEPTION 'ABORT: primero revierta 20261028000200 (f360_academy)'; END IF;
   IF EXISTS (SELECT 1 FROM f360.approval_requests WHERE scope NOT LIKE 'academy\_%') THEN
     RAISE EXCEPTION 'ABORT: otro módulo ya usa el registro de aprobaciones';
   END IF;

@@ -3,18 +3,18 @@ import { createClient } from '@/lib/supabase/server';
 // Fuxia Academy (Sales, A1). Every call goes to a public.f360_academy_* RPC that decides with auth.uid() in the database:
 // learner access (tester grant in A1; real sellers BLOCKED while P0-6 is open), editor, content approver (shared approval registry).
 // A denied call answers {ok:false} with no data; pages answer notFound() or a neutral message.
-// A1 is STAGING ONLY: the production admin deploy ships the whole branch, so this module refuses to render outside staging.
-export const academyEnabled = () => process.env.NEXT_PUBLIC_F360_ENV === 'staging';
+// Visibility switch: academyEnabled() in lib/feature.ts (staging, or NEXT_PUBLIC_F360_ACADEMY = "on").
+export { academyEnabled } from '@/lib/feature';
 
 export type AcademyMe = { ok: true; sales: 'ok' | 'bloqueado' | 'none'; editor: boolean; approver: boolean; admin: boolean; aal: string; name: string;
   gates: { learner_access_enabled: boolean; certificates_enabled: boolean; points_enabled: boolean; redemptions_enabled: boolean; note: string } };
-export type Block = { type: 'texto' | 'ficha' | 'ficha_talla' | 'pendiente' | 'politica'; text?: string; source?: string; code?: string };
+export type Block = { type: 'texto' | 'ficha' | 'ficha_talla' | 'pendiente' | 'politica' | 'video'; text?: string; source?: string; code?: string; src?: string; poster?: string; sha256?: string };
 export type Knowledge = { version: number; validated_at: string; fit?: { label?: string; advice?: string; between_sizes?: string; note?: string };
   last?: string; width?: string; toe?: string; heel_height_cm?: number; materials?: { upper?: string; lining?: string; sole?: string }; comfort?: string; care?: string };
 export type ProductCard = { code: string; name: string; photo: string | null; sizes: string[] | null; colors: { name: string; photo: string | null }[] | null; knowledge: Knowledge } | null;
 export type Lesson = { id: string; key: string; position: number; title: string; minutes: number; blocks: Block[]; products: Record<string, ProductCard> };
 export type PracticeItem = { id: string; key: string; kind: 'opcion' | 'vf' | 'varias' | 'ordenar'; area: string; prompt: string; options: { id: string; text: string }[] };
-export type HomeCourse = { id: string; key: string; title: string; summary: string | null; version: number; enrolled: boolean;
+export type HomeCourse = { id: string; key: string; title: string; summary: string | null; kind: string; version: number; enrolled: boolean;
   lessons: { id: string; key: string; title: string; minutes: number; cards: number; status: 'pendiente' | 'en_curso' | 'completada'; card_index: number }[] };
 export type LessonView = { ok: true; course: { id: string; title: string }; lesson: Lesson; progress: { card_index: number; status: string }; practice: PracticeItem[]; next: string | null };
 export type Denied = { ok: false; error: string };
@@ -49,3 +49,8 @@ export type TeamRow = { name: string; store: string | null; course: string; vers
   lessons_total: number; lessons_done: number; practice: { answered: number; correct: number }; tester: boolean };
 
 export const STATUS: Record<string, string> = { borrador: 'Borrador', en_revision: 'En revisión de Carolina', publicado: 'Publicado', retirado: 'Retirado' };
+// Shared approval registry states and events, in Spanish.
+export const APPROVAL: Record<string, string> = { pending: 'pendiente', approved: 'aprobada', rejected: 'rechazada', cancelled: 'cancelada',
+  invalidated: 'invalidada (el contenido cambió)', expired: 'vencida', consumed: 'usada (publicada)', requested: 'solicitada' };
+export const OPERATION: Record<string, string> = { publish_sales: 'publicar contenido de producto', publish_sales_policy: 'publicar con políticas',
+  publish_executive: 'publicar contenido ejecutivo', retire: 'retirar curso' };

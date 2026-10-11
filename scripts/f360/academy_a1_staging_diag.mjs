@@ -12,7 +12,7 @@ console.log(psql(`SELECT jsonb_pretty(jsonb_build_object(
   'last_migrations', (SELECT jsonb_agg(version ORDER BY version DESC) FROM (SELECT version FROM supabase_migrations.schema_migrations ORDER BY version DESC LIMIT 8) m),
   'has_20261023000200', EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version = '20261023000200'),
   'has_20261025000100', EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version = '20261025000100'),
-  'pending_2026102600', (SELECT count(*) FROM supabase_migrations.schema_migrations WHERE version LIKE '20261026%'),
+  'pending_20261028', (SELECT count(*) FROM supabase_migrations.schema_migrations WHERE version LIKE '20261028%'),
   'pilot_models', (SELECT jsonb_object_agg(c, jsonb_build_object('active', p.status = 'active', 'validated', f360.product_knowledge_public(p.id) IS NOT NULL,
       'knowledge_version', (f360.product_knowledge_public(p.id)->>'version')))
      FROM unnest(ARRAY['PAULA','BALLERINAS-BYL-PUNTUDO','MAFALDA-TACHES','LEATHER-LOAFERS','SUECO-CUCARRON']) c LEFT JOIN f360.products p ON p.code = c),

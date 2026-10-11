@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { academyVersion, STATUS } from '@/lib/academy';
+import { academyVersion, APPROVAL, OPERATION, STATUS } from '@/lib/academy';
 import { CardView } from '../../../Card';
 import { Decide, ItemEditor, LessonEditor, Submit, CommentBox } from './Editors';
 
@@ -18,10 +18,10 @@ export default async function Version({ params }: { params: Promise<{ id: string
       {ver.status === 'borrador' && <p className="rounded-2xl bg-gold-soft px-4 py-3 text-xs text-ink-2">En borrador las fichas se muestran con los datos validados de hoy. Al enviar a revisión quedan congeladas y forman parte de lo que Carolina aprueba.</p>}
       {v.request && (
         <section className="rounded-3xl border border-line bg-surface p-4 text-xs text-ink-2" data-testid="academy-request">
-          <p className="font-semibold text-ink">Solicitud {v.request.operation} · {v.request.status}</p>
+          <p className="font-semibold text-ink">Solicitud: {OPERATION[v.request.operation] ?? v.request.operation} · {APPROVAL[v.request.status] ?? v.request.status}</p>
           <p>Pedida por {v.request.requested_by}: “{v.request.reason}” · vence {new Date(v.request.expires_at).toLocaleDateString('es-MX')}</p>
           <p className="break-all text-muted">Huella aprobada: {v.request.hash}</p>
-          <ul className="mt-1">{v.request.events.map((e, k) => <li key={k}>{e.action} · {e.by}{e.self ? ' · autoaprobación' : ''}{e.aal ? ` · ${e.aal}` : ''}{e.reason ? ` — ${e.reason}` : ''}</li>)}</ul>
+          <ul className="mt-1">{v.request.events.map((e, k) => <li key={k}>{APPROVAL[e.action] ?? e.action} · {e.by}{e.self ? ' · autoaprobación' : ''}{e.aal ? ` · ${e.aal}` : ''}{e.reason ? ` — ${e.reason}` : ''}</li>)}</ul>
         </section>
       )}
       {v.can_edit && <Submit version={ver.id} />}

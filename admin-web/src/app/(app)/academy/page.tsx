@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { academyHome, academyMe } from '@/lib/academy';
+import { WelcomeVideo } from './WelcomeVideo';
 
 // Academy home (mobile first): pending courses, progress, "Continuar". Staff also get the content panel link.
 export default async function AcademyHome() {
@@ -9,13 +10,17 @@ export default async function AcademyHome() {
   const staff = me.editor || me.approver;
   if (me.sales === 'none' && !staff) notFound();
   const home = me.sales === 'ok' ? await academyHome() : null;
-  const courses = home?.ok ? home.courses : [];
+  const all = home?.ok ? home.courses : [];
+  const welcome = all.find((c) => c.kind === 'bienvenida');
+  const wl = welcome?.lessons[0];
+  const courses = all.filter((c) => c.kind !== 'bienvenida');
   return (
     <>
       <header>
         <p className="text-xs uppercase tracking-[0.2em] text-muted">Fuxia Sales Academy · pruebas</p>
         <h1 className="font-display text-4xl text-ink">Hola, {me.name.split(' ')[0]}</h1>
       </header>
+      {wl && wl.status !== 'completada' && <WelcomeVideo lessonId={wl.id} src="/academy/bienvenida-720.mp4" poster="/academy/bienvenida-poster.jpg" />}
       {staff && (
         <Link href="/academy/admin" className="rounded-2xl border border-line bg-surface px-4 py-3 text-sm font-semibold text-ink" data-testid="academy-admin-link">
           Contenido y aprobaciones →
@@ -56,6 +61,7 @@ export default async function AcademyHome() {
           </section>
         );
       })}
+      {wl && wl.status === 'completada' && <Link href={`/academy/clase/${wl.id}`} className="text-sm text-muted underline-offset-4 hover:underline">Ver otra vez la bienvenida</Link>}
       {me.sales === 'ok' && <Link href="/academy/fichas" className="rounded-2xl border border-line bg-surface px-4 py-3 text-sm font-semibold text-ink">Fichas de producto →</Link>}
       <p className="text-xs text-muted">Ambiente de pruebas. Sin certificados ni puntos en esta etapa.</p>
     </>

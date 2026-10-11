@@ -3,9 +3,9 @@
 -- Uses the real Ballerinas of the pilot (copied nightly from production) for the validated-knowledge snapshot.
 -- Run (only with Mario's approval): scripts/s00a/run.sh ../f360/sql_test_one.mjs supabase/staging/f360_academy_a1_tests.sql
 BEGIN;
--- @include supabase/migrations/20261026000100_f360_approval_registry.sql
--- @include supabase/migrations/20261026000200_f360_academy_a1.sql
--- @include supabase/migrations/20261026000300_f360_academy_pilot_seed.sql
+-- @include supabase/migrations/20261028000100_f360_approval_registry.sql
+-- @include supabase/migrations/20261028000200_f360_academy_a1.sql
+-- @include supabase/migrations/20261028000300_f360_academy_pilot_seed.sql
 
 CREATE TEMP TABLE t_results (n serial, status text, name text, detail text) ON COMMIT DROP;
 GRANT ALL ON t_results TO authenticated, anon;
@@ -127,6 +127,11 @@ SELECT pg_temp.ok((pg_temp.as(pg_temp.id('MARIO'), format($q$SELECT public.f360_
   'W4 el editor edita un borrador', '');
 SELECT pg_temp.ok((pg_temp.as(pg_temp.id('MARIO'), format($q$SELECT public.f360_academy_lesson_save(%L, 'x', 8, '[{"type":"texto","text":"sin fuente"}]'::jsonb, ARRAY[]::text[])$q$, pg_temp.id('L2P')))->>'ok') = 'false',
   'W5 una tarjeta sin fuente se rechaza', '');
+SELECT pg_temp.ok((SELECT v.status = 'borrador' FROM f360_academy.course_versions v JOIN f360_academy.courses c ON c.id = v.course_id WHERE c.key = 'bienvenida-academy'),
+  'V1 video de bienvenida sembrado como BORRADOR (espera a Carolina)', '');
+SELECT pg_temp.ok(f360_academy.valid_blocks('[{"type":"video","src":"/academy/x.mp4","source":"[X]"}]'::jsonb) IS NOT NULL
+  AND f360_academy.valid_blocks('[{"type":"video","src":"https://otro.sitio/x.mp4","sha256":"0000000000000000000000000000000000000000000000000000000000000000","source":"[X]"}]'::jsonb) IS NOT NULL,
+  'V2 tarjeta de video sin huella o de otro sitio: rechazada', '');
 DO $$ DECLARE r jsonb; BEGIN
   r := pg_temp.as(pg_temp.id('MARIO'), format($q$SELECT public.f360_academy_submit(%L, 'Piloto A1 para revisión de Carolina')$q$, pg_temp.id('V1')));
   PERFORM pg_temp.ok((r->>'ok')::boolean AND r->>'operation' = 'publish_sales', 'W6 enviar a revisión crea la solicitud publish_sales', r::text);

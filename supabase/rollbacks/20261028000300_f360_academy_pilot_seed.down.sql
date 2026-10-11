@@ -1,5 +1,5 @@
--- Rollback of 20261026000300 (pilot seed). Only possible while version 1 is still a DRAFT nobody studied: once submitted/published,
--- content and its approval history are kept (revert 20261026000200 instead, with Mario's OK).
+-- Rollback of 20261028000300 (pilot seed). Only possible while version 1 is still a DRAFT nobody studied: once submitted/published,
+-- content and its approval history are kept (revert 20261028000200 instead, with Mario's OK).
 BEGIN;
 DO $$
 DECLARE c uuid := (SELECT id FROM f360_academy.courses WHERE key = 'starter-ballerinas-parte-1');

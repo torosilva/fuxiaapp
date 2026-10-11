@@ -114,14 +114,14 @@ export function Shell({ name, role, env, alerts = 0, board = false, finance = fa
         <main className="mx-auto w-full max-w-6xl px-5 py-6 md:px-8 lg:py-10">{children}</main>
       </div>
 
-      {/* Bottom bar (phone / portrait tablet) */}
-      <nav className={`fixed inset-x-0 bottom-0 z-20 grid ${onlyFinance ? 'grid-cols-1' : 'grid-cols-4'} border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden`}>
+      {/* Bottom bar (phone / portrait tablet). Hidden inside Academy, which has its own bar. */}
+      {!path.startsWith('/academy') && <nav className={`fixed inset-x-0 bottom-0 z-20 grid ${onlyFinance ? 'grid-cols-1' : 'grid-cols-4'} border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden`}>
         {bottom.map(({ href, label, icon: Icon }) => (
           <Link key={href} href={href} className={`flex flex-col items-center gap-1 py-3 text-xs ${isActive(path, href) ? 'text-gold-strong' : 'text-muted'}`}>
             <span className="relative"><Icon className="size-6" />{href === '/mas' && alerts > 0 && <span className="absolute -right-1.5 -top-1 size-2.5 rounded-full bg-danger" />}</span>{label}
           </Link>
         ))}
-      </nav>
+      </nav>}
     </div>
   );
 }

@@ -13,7 +13,7 @@ export function Ficha({ p, compact = false, onlySize = false }: { p: ProductCard
   const img = imageUrl(p.photo);
   return (
     <div className="flex flex-col gap-3">
-      {img && !onlySize && <img src={img} alt={p.name} className={`w-full rounded-2xl object-cover ${compact ? 'aspect-[4/3]' : 'aspect-square'}`} />}
+      {img && !onlySize && <img src={img} alt={p.name} loading="eager" decoding="async" className={`w-full rounded-2xl bg-surface-2 object-cover ${compact ? 'aspect-[4/3]' : 'aspect-square'}`} />}
       <h3 className="font-display text-2xl text-ink">{p.name}</h3>
       {!onlySize && <p className="text-sm text-ink-2">Colores: {p.colors?.map((c) => c.name).join(', ') || '—'} · Tallas {p.sizes?.join(', ')}</p>}
       <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1.5 text-sm">
@@ -34,6 +34,7 @@ export function Ficha({ p, compact = false, onlySize = false }: { p: ProductCard
 }
 export function CardView({ b, products }: { b: Block; products: Record<string, ProductCard> }) {
   if (b.type === 'ficha' || b.type === 'ficha_talla') return <Ficha p={products[b.code ?? ''] ?? null} onlySize={b.type === 'ficha_talla'} />;
+  if (b.type === 'video' && b.src) return <video src={b.src} poster={b.poster} controls playsInline preload="metadata" className="aspect-[9/16] w-full rounded-2xl bg-ink object-cover" />;
   if (b.type === 'pendiente') return <p className="rounded-xl bg-gold-soft px-3 py-3 text-sm text-ink-2">⏳ {b.text}</p>;
   return (
     <div>

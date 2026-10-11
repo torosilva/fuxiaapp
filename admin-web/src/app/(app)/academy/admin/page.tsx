@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { academyOverview, academyTeam, STATUS } from '@/lib/academy';
+import { academyOverview, academyTeam, APPROVAL, OPERATION, STATUS } from '@/lib/academy';
 import { NewDraftButton } from './NewDraftButton';
 
 // Content panel (editor / approver). Approval history comes from the shared registry f360.approval_* (academy scopes only).
@@ -27,7 +27,7 @@ export default async function AcademyAdmin() {
                 <Link href={`/academy/admin/version/${v.id}`} className="flex flex-col rounded-2xl border border-line px-3 py-2 text-sm hover:bg-surface-2" data-testid="academy-version">
                   <span className="font-semibold text-ink">Versión {v.version} · {STATUS[v.status] ?? v.status}</span>
                   <span className="text-xs text-muted">{v.lessons} lecciones · {v.items} preguntas · {v.comments} comentarios
-                    {v.request ? ` · solicitud ${v.request.status} (${v.request.operation})${v.request.self_approval ? ' · autoaprobación' : ''}` : ''}</span>
+                    {v.request ? ` · solicitud ${APPROVAL[v.request.status] ?? v.request.status} (${OPERATION[v.request.operation] ?? v.request.operation})${v.request.self_approval ? ' · autoaprobación' : ''}` : ''}</span>
                   {!!v.stale_products?.length && <span className="text-xs text-danger">Ficha actualizada desde la publicación: {v.stale_products.join(', ')}. Revisar.</span>}
                 </Link>
               </li>
@@ -48,7 +48,7 @@ export default async function AcademyAdmin() {
         <h2 className="text-lg font-semibold text-ink">Historial de aprobaciones</h2>
         <ul className="mt-2 flex flex-col gap-1 text-xs text-ink-2">
           {o.events.slice(0, 40).map((e, k) => (
-            <li key={k}>{new Date(e.at).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })} · v{e.version} · {e.operation} · <b>{e.action}</b> · {e.by}{e.self ? ' · autoaprobación' : ''}{e.aal ? ` · ${e.aal}` : ''}{e.reason ? ` — ${e.reason}` : ''}</li>
+            <li key={k}>{new Date(e.at).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })} · v{e.version} · {OPERATION[e.operation] ?? e.operation} · <b>{APPROVAL[e.action] ?? e.action}</b> · {e.by}{e.self ? ' · autoaprobación' : ''}{e.aal ? ` · ${e.aal}` : ''}{e.reason ? ` — ${e.reason}` : ''}</li>
           ))}
           {!o.events.length && <li className="text-muted">Sin movimientos.</li>}
         </ul>

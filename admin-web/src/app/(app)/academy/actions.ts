@@ -11,6 +11,10 @@ async function call(fn: string, args: Record<string, unknown>): Promise<R> {
   if (error) return { ok: false, error: 'No se pudo guardar.' };
   return (data ?? { ok: false, error: 'No disponible.' }) as R;
 }
+// Opening the lesson enrolls the learner in its course version (needed before saving progress).
+export async function openLesson(lesson: string) {
+  return call('f360_academy_lesson', { p_lesson: lesson });
+}
 export async function saveProgress(lesson: string, card: number, done: boolean) {
   return call('f360_academy_progress_save', { p_lesson: lesson, p_card: card, p_done: done });
 }

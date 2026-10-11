@@ -1,5 +1,5 @@
 -- Fuxia Academy · A1 — learning engine for Sales Academy (Mario 2026-10-11: "A1 exclusivamente en staging, alcance controlado").
--- STAGING FIRST. ADDITIVE: own schema f360_academy + public.f360_academy_* RPCs. Depends on 20261026000100 (approval registry).
+-- STAGING FIRST. ADDITIVE: own schema f360_academy + public.f360_academy_* RPCs. Depends on 20261028000100 (approval registry).
 -- Design: docs/fuxia360/academy/00_FUXIA_ACADEMY_DISENO.md (§3–§5, §9.4, §10, §12) · A1 conditions:
 --   · NO real seller access while P0-6 is open: settings.learner_access_enabled is false and a CHECK forbids true — only a reviewed
 --     migration can lift it (after P0-6 is fixed). Learners in A1 = people with an explicit 'tester' grant, loaded per environment.
@@ -10,10 +10,10 @@
 --   · Product facts are NEVER stored as course text: lessons reference products by immutable code; on submission the validated
 --     public knowledge (f360.product_knowledge_public) is frozen into a snapshot that is part of the approved hash (§9.4).
 --   · Publication = shared registry (academy_content.publish_sales, aal2; self-approval only for ordinary product content).
--- Rollback: supabase/rollbacks/20261026000200_f360_academy_a1.down.sql
+-- Rollback: supabase/rollbacks/20261028000200_f360_academy_a1.down.sql
 
 DO $$ BEGIN
-  IF to_regclass('f360.approval_requests') IS NULL THEN RAISE EXCEPTION 'ABORT: falta 20261026000100 (registro de aprobaciones)'; END IF;
+  IF to_regclass('f360.approval_requests') IS NULL THEN RAISE EXCEPTION 'ABORT: falta 20261028000100 (registro de aprobaciones)'; END IF;
 END $$;
 
 CREATE SCHEMA f360_academy;
@@ -69,7 +69,7 @@ CREATE TABLE f360_academy.courses (
   school               text NOT NULL CHECK (school IN ('sales', 'executive')),
   key                  text NOT NULL UNIQUE CHECK (key ~ '^[a-z0-9-]{3,60}$'),
   title                text NOT NULL CHECK (length(btrim(title)) BETWEEN 3 AND 120),
-  kind                 text NOT NULL CHECK (kind IN ('nivel', 'parte', 'microcert', 'programa')),
+  kind                 text NOT NULL CHECK (kind IN ('nivel', 'parte', 'microcert', 'programa', 'bienvenida')),   -- bienvenida = first-entry video
   level_key            text CHECK (level_key IN ('starter', 'product_expert', 'sales_pro', 'master')),
   sort                 int NOT NULL DEFAULT 0,
   published_version_id uuid,
@@ -260,7 +260,10 @@ DECLARE b jsonb;
 BEGIN
   IF jsonb_typeof(p) <> 'array' OR jsonb_array_length(p) = 0 OR jsonb_array_length(p) > 40 THEN RETURN 'Una lección necesita entre 1 y 40 tarjetas.'; END IF;
   FOR b IN SELECT * FROM jsonb_array_elements(p) LOOP
-    IF jsonb_typeof(b) <> 'object' OR NOT (b->>'type' = ANY (ARRAY['texto', 'ficha', 'ficha_talla', 'pendiente', 'politica'])) THEN RETURN 'Tipo de tarjeta no válido.'; END IF;
+    IF jsonb_typeof(b) <> 'object' OR NOT (b->>'type' = ANY (ARRAY['texto', 'ficha', 'ficha_talla', 'pendiente', 'politica', 'video'])) THEN RETURN 'Tipo de tarjeta no válido.'; END IF;
+    -- a video is a static file of the app, bound to its exact bytes by sha256 (part of the approved hash)
+    IF b->>'type' = 'video' AND (coalesce(b->>'src', '') !~ '^/academy/[a-z0-9._-]+\.mp4$' OR coalesce(b->>'sha256', '') !~ '^[0-9a-f]{64}$'
+        OR length(btrim(coalesce(b->>'source', ''))) < 3) THEN RETURN 'Una tarjeta de video necesita archivo, huella sha256 y fuente.'; END IF;
     IF b->>'type' IN ('texto', 'pendiente', 'politica') AND length(btrim(coalesce(b->>'text', ''))) NOT BETWEEN 2 AND 600 THEN RETURN 'Cada tarjeta de texto lleva entre 2 y 600 caracteres.'; END IF;
     IF b->>'type' IN ('texto', 'politica') AND length(btrim(coalesce(b->>'source', ''))) < 3 THEN RETURN 'Cada tarjeta de texto lleva su etiqueta de fuente.'; END IF;
     IF b->>'type' IN ('ficha', 'ficha_talla') AND coalesce(b->>'code', '') !~ '^[A-Z0-9-]{2,60}$' THEN RETURN 'Una tarjeta de ficha necesita el código del modelo.'; END IF;

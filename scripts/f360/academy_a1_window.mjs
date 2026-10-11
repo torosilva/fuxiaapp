@@ -1,5 +1,5 @@
 // Fuxia Academy A1 — STAGING test window (Mario 2026-10-11). Isolated: NO `db push`, NO schema_migrations rows, nothing from other sessions.
-//   apply    → preflight (read-only) · applies ONLY 20261026000100/0200/0300 in order, one transaction each · records the exact
+//   apply    → preflight (read-only) · applies ONLY 20261028000100/0200/0300 in order, one transaction each · records the exact
 //              versions + sha256 in f360_academy.staging_window (temporary, dropped by cleanup) · prints them
 //   cleanup  → ONE transaction: removes test sellers / roles / assignments of the two test accounts, academy_* approval rows, then
 //              the bodies of the two .down.sql files (schema f360_academy, registry, CHECK back to the 4 values) · then deletes the two
@@ -14,7 +14,7 @@ import { loadEnv, client, psql } from '../s00a/lib.mjs';
 
 const env = loadEnv();
 const mode = process.argv[2];
-const FILES = ['20261026000100_f360_approval_registry', '20261026000200_f360_academy_a1', '20261026000300_f360_academy_pilot_seed'];
+const FILES = ['20261028000100_f360_approval_registry', '20261028000200_f360_academy_a1', '20261028000300_f360_academy_pilot_seed'];
 const TEST = ['alumna.prueba1@staging.invalid', 'alumna.prueba2@staging.invalid'];
 const strip = (s) => s.replace(/^\s*BEGIN;\s*$/gm, '').replace(/^\s*COMMIT;\s*$/gm, '');
 const mig = (f) => readFileSync(`supabase/migrations/${f}.sql`, 'utf8');
@@ -24,7 +24,7 @@ const commit = execSync('git rev-parse --short HEAD').toString().trim();
 const PREFLIGHT = `DO $$ BEGIN
   IF to_regnamespace('f360_academy') IS NOT NULL THEN RAISE EXCEPTION 'ABORT: f360_academy ya existe en staging'; END IF;
   IF to_regclass('f360.approval_requests') IS NOT NULL THEN RAISE EXCEPTION 'ABORT: el registro de aprobaciones ya existe'; END IF;
-  IF EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version LIKE '20261026%') THEN RAISE EXCEPTION 'ABORT: hay versiones 20261026* registradas'; END IF;
+  IF EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version LIKE '20261028%') THEN RAISE EXCEPTION 'ABORT: hay versiones 20261028* registradas'; END IF;
 END $$;`;
 const WINDOW = () => `CREATE TABLE f360_academy.staging_window (version text PRIMARY KEY, name text NOT NULL, sha256 text NOT NULL, branch_commit text NOT NULL,
   applied_at timestamptz NOT NULL DEFAULT clock_timestamp(), note text NOT NULL DEFAULT 'TEMPORAL: aplicada fuera del historial oficial (sin fila en schema_migrations). La borra la limpieza manual o la copia nocturna.');
@@ -38,8 +38,8 @@ const CLEANUP = `DO $$ DECLARE u uuid[] := ARRAY(SELECT id FROM auth.users WHERE
   DELETE FROM f360.user_roles WHERE auth_user_id = ANY (u);
   DELETE FROM f360.approval_scopes WHERE scope LIKE 'academy\\_%';
 END $$;
-${strip(readFileSync('supabase/rollbacks/20261026000200_f360_academy_a1.down.sql', 'utf8'))}
-${strip(readFileSync('supabase/rollbacks/20261026000100_f360_approval_registry.down.sql', 'utf8'))}`;
+${strip(readFileSync('supabase/rollbacks/20261028000200_f360_academy_a1.down.sql', 'utf8'))}
+${strip(readFileSync('supabase/rollbacks/20261028000100_f360_approval_registry.down.sql', 'utf8'))}`;
 
 if (mode === 'apply') {
   psql(`BEGIN READ ONLY;\n${PREFLIGHT}\nROLLBACK;`);
