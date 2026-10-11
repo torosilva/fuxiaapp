@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- Fuxia 360 · copia nocturna producción → staging (anonimizada). Ver docs/fuxia360/ops/STAGING_REFRESH.md
+<!-- Fuxia 360 · copia nocturna producción → staging (anonimizada): tienda real → staging4 y luego Supabase. Ver docs/fuxia360/ops/STAGING_REFRESH.md
      Instalar:    cp scripts/f360/staging_refresh/com.fuxia.staging-refresh.plist ~/Library/LaunchAgents/
                   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuxia.staging-refresh.plist
      Desinstalar: launchctl bootout gui/$(id -u)/com.fuxia.staging-refresh
@@ -11,8 +11,7 @@
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
-    <string>/Users/bullsilva/Documents/GitHub/fuxiaapp/scripts/f360/staging_refresh/refresh.sh</string>
-    <string>--apply</string>
+    <string>/Users/bullsilva/Documents/GitHub/fuxiaapp/scripts/f360/staging_refresh/nightly.sh</string>
   </array>
   <key>StartCalendarInterval</key>
   <dict><key>Hour</key><integer>3</integer><key>Minute</key><integer>30</integer></dict>

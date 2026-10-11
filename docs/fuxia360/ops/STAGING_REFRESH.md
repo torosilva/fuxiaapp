@@ -6,7 +6,11 @@ Esto reemplaza la regla anterior de "nunca resembrar `faltx…`". Los datos que 
 
 ## Cómo funciona
 
-`scripts/f360/staging_refresh/refresh.sh --apply` corre todos los días a las 3:30 en la Mac de Mario. Lo lanza `launchd` (`com.fuxia.staging-refresh.plist`); si la Mac está dormida, corre al despertar.
+`scripts/f360/staging_refresh/nightly.sh` corre todos los días a las 3:30 en la Mac de Mario. Lo lanza `launchd` (`com.fuxia.staging-refresh.plist`); si la Mac está dormida, corre al despertar.
+
+Primero copia la tienda real a staging4 (`woo_refresh.sh --apply`, sección WooCommerce). Si salió bien, copia Supabase con `refresh.sh --apply --woo-mirrored`: el destino de venta de prod se vuelve el de staging4, porque staging4 ya tiene los mismos IDs de producto que la tienda real. Si la tienda falló (y se restauró sola), Supabase se copia igual, sin esa conexión.
+
+Pasos de la copia de Supabase (`refresh.sh`):
 
 1. **Respaldo de staging.** Guarda los esquemas de la app y los usuarios en `~/fuxia360-respaldos/staging-refresh/<fecha>/`. Se conservan 7 días.
 2. **Lee producción.** `pg_dump` siempre lee en una transacción de solo lectura. Lee el esquema de `public`, `f360` y `f360_board`; los datos; `auth.users`, `auth.identities` y la historia de migraciones; y las políticas de `storage`.
@@ -18,6 +22,7 @@ Esto reemplaza la regla anterior de "nunca resembrar `faltx…`". Los datos que 
    - **No se tocan:** `vault` (URLs y secretos de staging), `cron` (tareas de staging), los archivos de `storage`, `realtime` y `net`.
    - **Se reescriben las URLs** del proyecto de prod que estén guardadas en los datos, para que apunten al proyecto de staging.
    - **Verificación final.** Si queda cualquier teléfono, correo o nombre completo de una clienta de prod, o cualquier correo que no sea ficticio, interno o de la empresa, la transacción se deshace y staging queda como estaba.
+   - **Permisos exactos de prod.** Cada tabla, vista, secuencia y función recibe exactamente los permisos que tiene en prod para PUBLIC, `anon`, `authenticated` y `service_role` (revoke + grant). Sin esto, los permisos por defecto de staging se sumaban; por ejemplo, `offline_sale_items` quedaba abierta a `anon`.
    - El esquema (~7,000 sentencias) se envía en modo *pipeline* de psql 18. La transacción completa dura ~1.5 min (ensayo del 2026-10-11); sin pipeline eran ~12 min con staging bloqueado.
 4. **Migraciones.** Reaplica las migraciones de `origin/fuxia-360` que prod todavía no tiene (`supabase db push --include-all`, desde un worktree limpio, de modo que las migraciones locales sin publicar nunca entran). Así staging ensaya cada noche lo que irá a producción.
    Luego corre, en orden, los SQL de `scripts/f360/staging_refresh/after_refresh.list` (datos propios de staging que no vienen de prod, p. ej. los de Inteligencia). Cada uno trae su BEGIN/COMMIT; si uno falla se reporta y la copia sigue.
@@ -28,9 +33,36 @@ Esto reemplaza la regla anterior de "nunca resembrar `faltx…`". Los datos que 
 
 - **2026-10-11 09:10:** primera copia real. Resultado: 70 clientas anonimizadas, 5 migraciones del repo reaplicadas, 83 fotos copiadas, conteos iguales a prod. Falló el seed `intel_goal_300k.sql` (lo corrige la sesión de Inteligencia). Tarea nocturna instalada (`launchctl print gui/$(id -u)/com.fuxia.staging-refresh`).
 
-## Pendiente: WooCommerce (staging4)
+## WooCommerce (staging4)
 
-Decisión de Mario (2026-10-11): staging4 también se copia de producción cada noche. Limpieza decidida: solo Mercado Pago en modo prueba (PayPal y ePayco apagados); apagados Google Listings & Ads, Facebook for WooCommerce, Cart Abandonment y Clarity; ningún correo sale (`f360-guardia-staging4.php`); webhooks y claves API de Woo de staging4 restaurados; mu-plugins de staging generados desde las mismas fuentes; clientas anonimizadas; `noindex`. Inventario de solo lectura: `scripts/f360/wp_inventory.sh` (requiere acceso SSH a producción aprobado por Mario).
+Decisión de Mario (2026-10-11): staging4 también se copia de producción cada noche. Lo hace `scripts/f360/staging_refresh/woo_refresh.sh --apply` por SSH en SiteGround, donde viven los dos sitios:
+
+1. **Respaldo de staging4:** la base completa, sus webhooks y claves API de Woo, sus opciones propias (Mercado Pago de prueba, GTM, `noindex`) y sus mu-plugins. Queda en `~/f360-backups/staging4-refresh/<fecha>/` en el servidor, 7 días.
+2. **Guardia primero** (`f360-guardia-staging4.php`): desde ese momento ningún correo sale y ninguna llamada HTTP llega a Supabase de prod, a la tienda real, a Meta ni a Google Merchant. Staging4 entra en modo mantenimiento.
+3. **Copia:** la base de la tienda real (leída en una transacción) y los temas, plugins y fotos.
+4. **Direcciones:** la tienda real pasa a staging4 y Supabase de prod pasa a staging (URL y claves públicas). La URL de Hilo se reemplaza por `hilo.staging.invalid`, porque Hilo solo existe en prod.
+5. **Lo propio de staging4 vuelve:** sus opciones, sus webhooks (todos apuntan a Supabase de staging) y sus claves API.
+   - Se apagan PayPal (los dos plugins), ePayco, Google Listings & Ads, Facebook for WooCommerce, Cart Abandonment y Clarity.
+   - Solo queda Mercado Pago, en modo prueba.
+6. **Anonimiza** (`woo_anonymize.sql`):
+   - Usuarias, pedidos, direcciones, índice de clientas, reseñas y notas de pedido.
+   - Los valores serializados que tengan un correo se borran.
+   - Se vacían leads, avisos de stock, carritos abandonados, sesiones, tokens de pago, registros y tareas pendientes.
+   - **Verificación:** si queda un correo real, dice en qué tabla y qué campos (nunca valores), restaura y falla.
+7. **mu-plugins:** se instalan los espejos de prod de `tools/storefront/mu-plugins/staging4-espejo/`, generados con `node scripts/f360/build_staging4_mirror_mu.mjs`, más la guardia. `f360-hilo.php` no se espeja.
+8. **Prueba:** que `home` sea staging4, que ningún webhook apunte a prod (lista cada webhook con su estado y destino) y que `/mx/` responda http 200.
+
+Ante cualquier fallo después del respaldo, staging4 se restaura solo y el error dice la línea donde falló. `RESTORE_FROM=<fecha>` restaura desde el respaldo de otra corrida, por ejemplo si la anterior dejó staging4 a medias.
+
+```
+scripts/f360/staging_refresh/woo_refresh.sh --rehearsal   # solo revisa: nada cambia
+scripts/f360/staging_refresh/woo_refresh.sh --apply
+```
+
+Necesita la llave SSH de SiteGround cargada en el agente (`ssh-add -l`). Sin ella, la tienda falla y Supabase se copia igual, sin `--woo-mirrored`.
+
+- **Primera copia exitosa:** 2026-10-11 12:43 (corrida 124304).
+- **Mientras staging4 tiene los IDs de prod pero Supabase de staging aún no (antes de la primera copia con `--woo-mirrored`):** las tallas aparecen sin disponibilidad. Las consultas de existencias van a Supabase de staging, que todavía conoce los IDs viejos de staging4.
 
 ## Coordinación con otras sesiones
 
@@ -41,6 +73,7 @@ Un ensayo bloquea staging ~1.5 min. Avisa a las sesiones que trabajen en staging
 ```
 scripts/f360/staging_refresh/refresh.sh --rehearsal   # ensayo completo, termina en ROLLBACK: staging no cambia
 scripts/f360/staging_refresh/refresh.sh --apply       # copia real
+scripts/f360/staging_refresh/nightly.sh               # lo mismo que la noche: tienda + Supabase
 ```
 
 Requiere `brew install libpq` (pg_dump/psql 17+), `node`, la CLI de Supabase con sesión iniciada, y los archivos `~/.fuxia-prod.env` y `~/.fuxia-staging.env`.
@@ -52,7 +85,7 @@ El repositorio es **público**. Los registros de Actions se ven públicamente, y
 ## Consecuencias aceptadas
 
 - Los datos de prueba que existan solo en staging se pierden en cada copia (queda el respaldo de 7 días).
-- Los IDs de producto de la tienda staging4 dejan de coincidir con el catálogo, que ahora es el de prod.
+- Los datos de prueba de staging4 (pedidos, clientas, productos creados solo ahí) se pierden en cada copia.
 - Si una migración pendiente falla, staging queda con el esquema de prod y el aviso dice "migraciones fallaron".
 
 ## Seguridad
@@ -66,6 +99,7 @@ El repositorio es **público**. Los registros de Actions se ven públicamente, y
 ## Reversión
 
 - **Una copia:** `pg_restore --clean` de `staging_before_app.dump` y `staging_before_auth.dump` de la fecha anterior.
+- **staging4:** `RESTORE_FROM=<fecha> woo_refresh.sh --apply` o, a mano en el servidor, `gunzip -c ~/f360-backups/staging4-refresh/<fecha>/staging4_before.sql.gz | wp db import -`.
 - **Apagar la copia nocturna:** `launchctl bootout gui/$(id -u)/com.fuxia.staging-refresh`.
 
 ## Verificación
