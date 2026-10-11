@@ -62,9 +62,9 @@ test('no API key → 503 sin_configurar (audited)', async () => {
 test('happy path: data tool with the USER token, masked question, facts verified, invented number flagged, audit with tokens', async () => {
   const h = harness([use('t1', 'ventas', { desde: '2026-08-01', hasta: '2026-08-31' }),
     final({ resumen: 'Agosto MX: 56,406 MXN.', hechos: [{ texto: 'Venta neta MX agosto 56,406 MXN en 16 pedidos', cifras: [{ valor: 56406, moneda: 'MXN' }],
-      fuente: { herramienta: 'ventas', fuente: 'Commerce Facts', periodo: '2026-08' } }, { texto: 'Margen 42%', cifras: [{ valor: 42 }], fuente: { herramienta: 'ventas', fuente: 'x', periodo: 'x' } }],
+      fuente: { herramienta: 'ventas', fuente: 'Commerce Facts', periodo: '2026-08' } }, { texto: 'Crecimiento 42%', cifras: [{ valor: 42 }], fuente: { herramienta: 'ventas', fuente: 'x', periodo: 'x' } }],
       calculos: [], recomendaciones: [], faltantes: [] }), ...[1, 2].map(() => final({ resumen: 'Agosto MX: 56,406 MXN.', hechos: [{ texto: 'Venta neta MX agosto 56,406 MXN en 16 pedidos', cifras: [{ valor: 56406, moneda: 'MXN' }],
-      fuente: { herramienta: 'ventas', fuente: 'Commerce Facts', periodo: '2026-08' } }, { texto: 'Margen 42%', cifras: [{ valor: 42 }], fuente: { herramienta: 'ventas', fuente: 'x', periodo: 'x' } }],
+      fuente: { herramienta: 'ventas', fuente: 'Commerce Facts', periodo: '2026-08' } }, { texto: 'Crecimiento 42%', cifras: [{ valor: 42 }], fuente: { herramienta: 'ventas', fuente: 'x', periodo: 'x' } }],
       calculos: [], recomendaciones: [], faltantes: [] }))]);
   await withUser('owner', async () => {
     const r = await handleAnalyst(req({ question: '¿Cuánto vendimos en agosto? escríbeme a ana@example.com' }), env, h.deps);
@@ -255,4 +255,21 @@ test('F1 priorities mode: the answer tool asks for the 3 priorities FIRST (befor
   assert.equal(sch.properties.prioridades.minItems, 3); assert.equal(sch.properties.prioridades.maxItems, 3);
   assert.ok(sch.required.includes('prioridades')); assert.equal(sch.properties.hechos.maxItems, 4);
   assert.deepEqual(Object.keys((answerTool('pregunta').input_schema as { properties: object }).properties).slice(0, 2), ['resumen', 'hechos']);
+});
+
+test('Requisito 8: margin / EBITDA / profitability as a fact needs complete costs; "estimado" allowed only with a partial source', () => {
+  const f = { herramienta: 'margen', fuente: 'x', periodo: 'oct' };
+  const hecho = (texto: string, valor: number, unidad = 'MXN') => ({ resumen: 'x', hechos: [{ texto, cifras: [{ valor, unidad }], fuente: f }] });
+  const falta = [{ tool: 'margen', disponibilidad: 'FALTA' }];
+  let v = validateAnswer(hecho('Margen de contribución MX: $12,000', 12000), ['margen'], 'pregunta', falta);
+  assert.equal((v.answer.hechos as unknown[]).length, 0); assert.equal((v.answer.sin_fuente as { motivo: string }[])[0].motivo, 'margen o rentabilidad sin costos completos verificados');
+  v = validateAnswer(hecho('EBITDA estimado $5,000', 5000), ['margen'], 'pregunta', falta);
+  assert.equal((v.answer.hechos as unknown[]).length, 0);
+  v = validateAnswer(hecho('Cobertura de costo para calcular margen: 0%', 0, '% de cobertura'), ['margen'], 'pregunta', falta);
+  assert.equal((v.answer.hechos as unknown[]).length, 1, 'stating the 0 % coverage is fine');
+  const parcial = [{ tool: 'margen', disponibilidad: 'PARCIAL' }];
+  assert.equal((validateAnswer(hecho('Margen $8,000', 8000), ['margen'], 'pregunta', parcial).answer.hechos as unknown[]).length, 0, 'partial without "estimado"');
+  assert.equal((validateAnswer(hecho('Margen estimado $8,000 (costos estimados)', 8000), ['margen'], 'pregunta', parcial).answer.hechos as unknown[]).length, 1);
+  assert.equal((validateAnswer(hecho('Margen $8,000', 8000), ['margen'], 'pregunta', [{ tool: 'margen', disponibilidad: 'DISPONIBLE' }]).answer.hechos as unknown[]).length, 1);
+  assert.equal((validateAnswer({ resumen: 'x', hechos: [{ texto: 'Margen $8,000', cifras: [{ valor: 8000 }], fuente: { herramienta: 'ventas', fuente: 'x', periodo: 'o' } }] }, ['ventas'], 'pregunta', [{ tool: 'ventas', disponibilidad: 'DISPONIBLE' }]).answer.hechos as unknown[]).length, 0, 'margin cited from another tool');
 });

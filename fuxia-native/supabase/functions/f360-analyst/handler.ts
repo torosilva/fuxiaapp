@@ -124,7 +124,7 @@ export async function handleAnalyst(req: Request, env: AnalystEnv, deps: Deps = 
         results.push({ type: 'tool_result', tool_use_id: use.id, content: JSON.stringify(r).slice(0, MAX_TOOL_CHARS) });
       }
       if (delivered) {
-        const v = validateAnswer(delivered.input, calls.map((c) => c.tool), kind);
+        const v = validateAnswer(delivered.input, calls.map((c) => c.tool), kind, calls);
         const problems = [...v.problems];
         if (t.stop === 'max_tokens') problems.unshift('tu respuesta se cortó por largo: repítela más breve (frases cortas, máximo 6 hechos)');
         if (problems.length === 0) {   // F2/F3: figures stated as facts must exist in the data; sums or differences you made go to "calculos"

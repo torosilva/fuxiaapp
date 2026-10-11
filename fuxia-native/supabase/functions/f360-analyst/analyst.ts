@@ -74,6 +74,8 @@ Reglas (no negociables):
 10. Publicidad: "ROAS" SOLO con ingresos atribuidos a Meta que entregue la herramienta (atribución con evidencia). Venta combinada (en línea + tienda) ÷ inversión es una razón de eficiencia comercial que NO implica atribución: nómbrala así y di qué ventas incluye. Nunca presentes ventas de tienda física como retorno de Meta.
 11. Si una lista viene limitada o recortada, dilo y di cuántos registros faltan; no presentes el tamaño de la lista como total.
 12. Sé breve: resumen de máximo 80 palabras; cada hecho, una frase; máximo 6 hechos.
+13. Información financiera: di siempre si es COMPLETA (fuente DISPONIBLE), INCOMPLETA (PARCIAL/FALTA: di qué falta) o ESTIMADA (usa costos estimados).
+    Margen, EBITDA, utilidad o rentabilidad: solo si la herramienta margen los entrega; si falta el costo, NO los calcules ni los presentes como hecho.
 ${kind === 'prioridades'
     ? `\nTAREA: propone las TRES prioridades comerciales de esta semana para acelerar ventas rentables. Empieza con senales_semana (últimos 7 días) y confirma con las herramientas que necesites.
 Cada prioridad en "prioridades" (exactamente 3, en la herramienta, no solo en el resumen): texto, evidencia (cifras con fuente), impacto potencial (cálculo explícito o "no cuantificable con los datos actuales"), responsable sugerido (Mario, Carolina, tiendas, agencia de anuncios, contadora) y cómo medir el resultado la próxima semana. Cada campo de máximo 25 palabras; máximo 4 hechos.`
@@ -167,7 +169,12 @@ function normalizeKeys(v: unknown): unknown {
 
 /** F2 · structural validation of the final answer and its traceability. A fact is "traceable" when it names a data tool that was
  *  actually called in this conversation and a period. Untraceable facts are moved to sin_fuente (shown as NOT verified). */
-export function validateAnswer(input: unknown, calledTools: string[], kind: 'pregunta' | 'prioridades') {
+// Requisito 8 (Mario 2026-10-11): profitability words in a FACT need a margin source that is complete (DISPONIBLE) — or, if it is
+// estimated (PARCIAL with estimated costs), the fact must say "estimado". Otherwise the fact goes to sin_fuente (never verified).
+const PROFIT = /\b(margen|ebitda|utilidad|rentabilidad|rentable|ganancia|costo de lo vendido|cogs)\b/i;
+export type ToolAvail = { tool: string; disponibilidad?: unknown };
+
+export function validateAnswer(input: unknown, calledTools: string[], kind: 'pregunta' | 'prioridades', avail: ToolAvail[] = []) {
   const problems: string[] = [];
   const a = normalizeKeys(parseMaybe(input) ?? {}) as Record<string, unknown>;
   for (const k of ['hechos', 'calculos', 'recomendaciones', 'prioridades', 'faltantes']) if (typeof a[k] === 'string') a[k] = normalizeKeys(parseMaybe(a[k]));
@@ -180,7 +187,12 @@ export function validateAnswer(input: unknown, calledTools: string[], kind: 'pre
     const texto = typeof h?.texto === 'string' ? h.texto : '';
     const cifras = (Array.isArray(h?.cifras) ? h.cifras : []).map((c: Record<string, unknown>) => ({ ...c, valor: Number(c?.valor) })).filter((c: { valor: number }) => Number.isFinite(c.valor));
     const ok = texto && typeof f.herramienta === 'string' && calledTools.includes(f.herramienta) && typeof f.periodo === 'string' && f.periodo.trim() !== '';
-    if (ok) hechos.push({ texto, cifras, fuente: f });
+    // a profitability figure (not a 0 % coverage) needs a complete margin source, or an explicit "estimado" with a partial one
+    const profitFigure = PROFIT.test(texto) && cifras.some((c: { valor: number; unidad?: unknown }) => c.valor !== 0 && !/cobertura/i.test(String(c.unidad ?? '')));
+    const margin = avail.filter((a) => a.tool === 'margen').map((a) => String(a.disponibilidad ?? ''));
+    const profitOk = !profitFigure || margin.includes('DISPONIBLE') || (margin.includes('PARCIAL') && /estimad/i.test(texto));
+    if (ok && profitOk) hechos.push({ texto, cifras, fuente: f });
+    else if (ok) { sinFuente.push({ texto, cifras, motivo: 'margen o rentabilidad sin costos completos verificados' }); problems.push(`hecho ${i + 1}: margen/EBITDA/rentabilidad sin costos verificados (dilo como faltante o como estimado)`); }
     else { sinFuente.push({ texto, cifras, motivo: !texto ? 'sin texto' : !calledTools.includes(String(f.herramienta)) ? 'la herramienta citada no se consultó' : 'sin periodo' }); problems.push(`hecho ${i + 1} sin fuente trazable`); }
   });
   if (calledTools.length > 0 && hechos.length === 0 && economicNumbers(resumen).length > 0) problems.push('las cifras del resumen deben ir en "hechos" con su herramienta y periodo');
