@@ -1,5 +1,6 @@
 'use server';
 import { redirect } from 'next/navigation';
+import { intelEnabled } from '@/lib/feature';
 import { createClient } from '@/lib/supabase/server';
 
 export type LoginState = { error?: string; step?: 'phone' | 'code'; phone?: string };
@@ -24,6 +25,9 @@ async function requireF360Role(): Promise<string | null> {
     if (error.code === '42501') {
       const { data: weekly } = await supabase.rpc('f360_weekly_me');
       if (weekly?.ok) return null;
+      // the contadora (0700) has no Fuxia 360 role on purpose: her only access is Cierre contable (finance preparer)
+      const { data: fin } = await supabase.rpc('f360_finance_access_state');
+      if (fin?.preparadora && intelEnabled()) return null;
     }
     await supabase.auth.signOut();
     return error.code === '42501' ? 'Esta cuenta no tiene acceso a Fuxia 360. Pídele acceso a Mario.' : 'No pudimos verificar tu acceso. Intenta de nuevo.';
