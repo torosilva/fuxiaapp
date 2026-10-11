@@ -38,13 +38,23 @@ export function AnswerView({ a, unverified }: { a: Answer; unverified: AnalystRe
       <p className="text-lg text-ink">{a.resumen}</p>
       {unverified.length > 0 && (
         <p className="rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger" data-testid="analyst-unverified">
-          Ojo: {unverified.length} cifra(s) presentadas como hecho no aparecen en los datos consultados ({unverified.map((u) => fmt(u.valor)).join(', ')}). No las uses sin revisar.
+          Ojo: {unverified.length} cifra(s) económicas presentadas como hecho o en el resumen no aparecen en los datos consultados ({unverified.map((u) => fmt(u.valor)).join(', ')}). No las uses sin revisar.
+        </p>
+      )}
+      {a.validacion?.estado === 'incompleta' && (
+        <p className="rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger" data-testid="analyst-incomplete">
+          Respuesta incompleta: {a.validacion.problemas.join('; ')}. Lo que no tiene fuente no cuenta como hecho verificado.
         </p>
       )}
       {a.formato === 'texto_libre' && <p className="text-xs text-muted">Respuesta sin estructura: nada de lo anterior cuenta como hecho verificado.</p>}
       {a.hechos.length > 0 && (
         <section><h3 className="text-sm font-semibold text-ink">Hechos</h3>
           <ul className="mt-2 flex flex-col gap-2">{a.hechos.map((h, i) => <li key={i} className="rounded-xl bg-surface-2 px-3 py-2 text-sm text-ink">{h.texto}<Source f={h.fuente} /></li>)}</ul>
+        </section>
+      )}
+      {(a.sin_fuente?.length ?? 0) > 0 && (
+        <section data-testid="analyst-sin-fuente"><h3 className="text-sm font-semibold text-danger">Sin fuente · no verificado</h3>
+          <ul className="mt-2 flex flex-col gap-2">{a.sin_fuente!.map((h, i) => <li key={i} className="rounded-xl border border-danger/40 px-3 py-2 text-sm text-ink-2">{h.texto} <span className="text-xs text-muted">({h.motivo})</span></li>)}</ul>
         </section>
       )}
       {a.calculos.length > 0 && (

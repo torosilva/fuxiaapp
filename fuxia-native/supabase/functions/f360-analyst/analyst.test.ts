@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { handleAnalyst, type AnalystEnv } from './handler.ts';
 import { ClaudeModel, type AnalystModel, type RunParams, type Turn } from './provider.ts';
-import { collectNumbers, mask, unverifiedFacts } from './analyst.ts';
+import { collectNumbers, mask, unverifiedFacts, validateAnswer } from './analyst.ts';
 
 const env: AnalystEnv = { SUPABASE_URL: 'http://sb', SUPABASE_ANON_KEY: 'anon', SUPABASE_SERVICE_ROLE_KEY: 'svc', ANTHROPIC_API_KEY: 'sk-test' };
 const req = (body: unknown, token = 'user-jwt') => new Request('http://x', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
@@ -84,13 +84,15 @@ test('whitelist: an unknown tool (e.g. "sql") is refused and never reaches the d
   });
 });
 
-test('limits: after max_tool_calls the model is forced to answer', async () => {
+test('F1 limits: after max_tool_calls the next turn only OFFERS entregar_respuesta (never a forced tool_choice)', async () => {
   const h = harness([use('a', 'ventas'), use('b', 'pagos'), use('c', 'marketing'), use('d', 'embudo'),
     final({ resumen: 'listo', hechos: [], calculos: [], recomendaciones: [], faltantes: [] })]);
   await withUser('owner', async () => {
-    await handleAnalyst(req({ question: 'todo' }), env, h.deps);
-    assert.equal(h.intelCalls.length, 3);
-    assert.equal(h.seen[3].forceTool, 'entregar_respuesta');
+    const r = await handleAnalyst(req({ question: 'todo' }), env, h.deps);
+    assert.equal(r.status, 200); assert.equal(h.intelCalls.length, 3);
+    assert.ok(h.seen.every((p) => p.forceTool === undefined), 'no forced tool_choice');
+    assert.deepEqual(h.seen[3].tools.map((t) => t.name), ['entregar_respuesta']);
+    assert.ok(JSON.stringify(h.seen[3].messages.at(-1)).includes('Ya no puedes consultar más datos'));
   });
 });
 
@@ -110,11 +112,87 @@ test('weekly priorities use their own instructions', async () => {
   });
 });
 
-test('verifier: commas/decimals/rounding accepted, years and dates ignored; mask', () => {
+test('verifier: commas/decimals/rounding accepted, years and dates ignored', () => {
   const known = collectNumbers([{ a: 56406, b: '1.9', c: [{ d: 14720.5 }] }]);
   assert.deepEqual(unverifiedFacts({ hechos: [{ texto: 'Del 1 de octubre de 2026: 56,406 MXN, avance 1.9%, ritmo 14,721 al día' }] }, known), []);
   assert.deepEqual(unverifiedFacts({ hechos: [{ texto: 'vendimos 70,000', cifras: [] }] }, known).map((x) => x.valor), [70000]);
+});
+
+test('F3 no false alarms from names, identifiers, dates, "12 meses", "90 días", GA4, or numbers written inside tool texts', () => {
+  const known = collectNumbers([{ por_ubicacion: [{ ubicacion: 'Amsterdam 264', pares: 92 }], faltantes: [{ por_que: '179 pares en la app anterior' }], total: 643 }]);
+  const hechos = [
+    { texto: 'Pares por ubicación: Amsterdam 264 92, total 643 pares', cifras: [{ valor: 92 }, { valor: 643 }] },
+    { texto: 'México, 1–11 oct 2026: 4 pedidos; últimos 12 meses; compromisos a 90 días; falta GA4' },
+    { texto: '179 pares de la app anterior nunca pasaron', cifras: [{ valor: 179 }] },
+  ];
+  assert.deepEqual(unverifiedFacts({ hechos, resumen: 'Hay 643 pares en el sistema nuevo.' }, known), []);
+});
+
+test('F3 still catches invented economic figures (money, %, currency) in facts and in the summary', () => {
+  const known = collectNumbers([{ venta_neta: 5600, avance_pct: 1.9 }]);
+  const bad = unverifiedFacts({ hechos: [{ texto: 'Venta $5,600 MXN, margen 48%', cifras: [{ valor: 5600 }] }], resumen: 'Ganamos $70,000 MXN este mes.' }, known);
+  assert.deepEqual(bad.map((b) => [b.donde, b.valor]), [['hechos', 48], ['resumen', 70000]]);
+});
+
+test('H1 mask: phones and emails masked, dates kept', () => {
   assert.equal(mask('ana@x.com +52 55 1234 5678'), '[correo] [número]');
+  assert.equal(mask('ventas del 2026-08-01 al 2026-08-31 y del 01/09/2026'), 'ventas del 2026-08-01 al 2026-08-31 y del 01/09/2026');
+});
+
+test('F2 validation: traceable facts kept; facts citing a tool not called or without period go to sin_fuente; string hechos rejected', () => {
+  const v = validateAnswer({ resumen: 'ok', hechos: [
+    { texto: 'a', cifras: [{ valor: '5' }], fuente: { herramienta: 'ventas', fuente: 'x', periodo: 'oct' } },
+    { texto: 'b', cifras: [], fuente: { herramienta: 'margen', fuente: 'x', periodo: 'oct' } },
+    { texto: 'c', cifras: [], fuente: { herramienta: 'ventas', fuente: 'x', periodo: '' } }] }, ['ventas'], 'pregunta');
+  assert.equal(v.ok, false); assert.equal((v.answer.hechos as unknown[]).length, 1); assert.equal((v.answer.sin_fuente as unknown[]).length, 2);
+  assert.equal(((v.answer.hechos as { cifras: { valor: number }[] }[])[0].cifras[0].valor), 5);
+  const s = validateAnswer({ resumen: 'x', hechos: '<parameter name="hechos">[]' }, ['pagos'], 'pregunta');
+  assert.equal(s.ok, false); assert.ok(s.problems.some((p) => p.includes('"hechos" debe ser una lista')));
+  const r = validateAnswer({ resumen: 'Llevamos $45,200 MXN' }, ['ventas'], 'pregunta');
+  assert.ok(r.problems.some((p) => p.includes('cifras del resumen')));
+  const p = validateAnswer({ resumen: 'x', prioridades: [{ texto: 'a', evidencia: 'b', impacto: 'c', responsable: 'd', medicion: 'e' }] }, [], 'prioridades');
+  assert.ok(p.problems.some((x) => x.includes('exactamente 3 prioridades')));
+});
+
+test('F2 repair: an answer with figures but no traceable facts gets ONE correction round (answer tool only); then it is accepted', async () => {
+  const good = { resumen: 'México lleva $5,600 MXN.', hechos: [{ texto: 'Venta MX $56,406 MXN', cifras: [{ valor: 56406 }], fuente: { herramienta: 'ventas', fuente: 'Commerce Facts', periodo: '2026-08' } }],
+    calculos: [], recomendaciones: [], faltantes: [] };
+  const h = harness([use('a', 'ventas'), final({ resumen: 'Llevamos $56,406 MXN' }), final(good)]);
+  await withUser('owner', async () => {
+    const r = await handleAnalyst(req({ question: 'ventas' }), env, h.deps);
+    const j = await r.json() as { answer: { validacion: { estado: string }; hechos: unknown[] } };
+    assert.equal(r.status, 200); assert.equal(j.answer.validacion.estado, 'completa'); assert.equal(j.answer.hechos.length, 1);
+    assert.deepEqual(h.seen[2].tools.map((t) => t.name), ['entregar_respuesta']);
+    assert.ok(JSON.stringify(h.seen[2].messages.at(-1)).includes('Respuesta incompleta'));
+  });
+});
+
+test('F2 after the repair round an untraceable answer is returned marked "incompleta", facts as sin_fuente (never verified)', async () => {
+  const bad = { resumen: 'x', hechos: [{ texto: 'Venta $1', cifras: [{ valor: 1 }], fuente: { herramienta: 'margen', fuente: 'x', periodo: 'oct' } }] };
+  const h = harness([use('a', 'ventas'), final(bad), final(bad)]);
+  await withUser('owner', async () => {
+    const j = await (await handleAnalyst(req({ question: 'ventas' }), env, h.deps)).json() as { answer: { validacion: { estado: string }; hechos: unknown[]; sin_fuente: unknown[] } };
+    assert.equal(j.answer.validacion.estado, 'incompleta'); assert.equal(j.answer.hechos.length, 0); assert.equal(j.answer.sin_fuente.length, 1);
+    assert.equal(h.logs[0].status, 'ok');
+  });
+});
+
+test('F1 weekly priorities: tools → three complete priorities delivered (no forced tool_choice)', async () => {
+  const reco = (n: number) => ({ texto: `p${n}`, evidencia: 'e', impacto: 'i', responsable: 'Mario', medicion: 'm' });
+  const h = harness([use('a', 'senales_semana'), final({ resumen: 'tres', hechos: [], calculos: [], recomendaciones: [], prioridades: [reco(1), reco(2), reco(3)], faltantes: [] })]);
+  await withUser('owner', async () => {
+    const j = await (await handleAnalyst(req({ kind: 'prioridades' }), env, h.deps)).json() as { answer: { prioridades: unknown[]; validacion: { estado: string } } };
+    assert.equal(j.answer.prioridades.length, 3); assert.equal(j.answer.validacion.estado, 'completa');
+    assert.ok(h.seen.every((p) => p.forceTool === undefined));
+  });
+});
+
+test('H3 budget margin: a question does not start when the remaining budget cannot cover a whole question', async () => {
+  const h = harness([], { allowed: true, reason: null, settings, spent_month_usd: 99.95, budget_usd: 100, warning: true });
+  await withUser('owner', async () => {
+    const r = await handleAnalyst(req({ question: '¿cómo vamos?' }), env, h.deps);
+    assert.equal(r.status, 429); assert.equal(h.seen.length, 0); assert.equal(h.logs[0].status, 'limite_mes');
+  });
 });
 
 test('Claude provider: cached system + last tool, forced tool_choice, usage mapped', async () => {

@@ -11,10 +11,12 @@ export type Answer = {
   recomendaciones: Reco[];
   prioridades?: Reco[];
   faltantes: { que: string; quien: string }[];
+  sin_fuente?: { texto: string; cifras: Cifra[]; motivo: string }[];   // F2: facts without traceable source — never shown as verified
+  validacion?: { estado: 'completa' | 'incompleta'; problemas: string[] };
   formato?: string;
 };
 export type AnalystResult = {
-  ok: true; id: number | null; kind: 'pregunta' | 'prioridades'; answer: Answer; unverified: { hecho: string; valor: number }[];
+  ok: true; id: number | null; kind: 'pregunta' | 'prioridades'; answer: Answer; unverified: { hecho: string; valor: number; donde?: 'hechos' | 'resumen' }[];
   tools: { tool: string; args: unknown; disponibilidad: string | null; fuente: string | null }[]; sources: string[];
   usage: { input: number; output: number; cacheRead: number; cacheWrite: number; cost_usd: number; model: string; spent_month_usd: number; budget_usd: number; warning: boolean };
 };

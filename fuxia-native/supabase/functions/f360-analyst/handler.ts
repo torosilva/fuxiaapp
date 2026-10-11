@@ -6,7 +6,7 @@
 //      cálculos / recomendaciones / faltantes); 5. verifier: numbers stated as facts must exist in tool payloads; 6. audit row
 //      (f360_ai_log, cost computed by the database). The question is masked before it is sent or stored.
 import { f360User, serviceRpc, type SupabaseEnv } from '../_shared/f360-woo/supabase.ts';
-import { ANSWER_TOOL, DATA_TOOLS, collectNumbers, mask, systemPrompt, unverifiedFacts } from './analyst.ts';
+import { ANSWER_TOOL, DATA_TOOLS, collectNumbers, mask, systemPrompt, unverifiedFacts, validateAnswer } from './analyst.ts';
 import { makeModel, type AnalystModel, type Block, type Message } from './provider.ts';
 
 export type AnalystEnv = SupabaseEnv & { ANTHROPIC_API_KEY?: string; F360_AI_PROVIDER?: string };
@@ -18,6 +18,12 @@ type Settings = { provider: string; model: string; max_tool_calls: number; max_o
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 const mxToday = (now = new Date()) => new Date(now.getTime() - 6 * 3600e3).toISOString().slice(0, 10);
 const MAX_TOOL_CHARS = 30_000;
+const MAX_REPAIRS = 1;   // F2: one chance to fix an incomplete / untraceable answer
+const CLOSE_MSG = 'Ya no puedes consultar más datos. Entrega ahora tu respuesta llamando a entregar_respuesta, solo con lo que ya consultaste: cada hecho con su herramienta y periodo; lo que falte va en "faltantes".';
+/** H3 · worst plausible cost of ONE question (all tool turns + closing + one repair), so a question never starts without room for it. */
+export function maxQuestionCost(s: { max_tool_calls: number; max_output_tokens: number; price_input_mtok: number; price_output_mtok: number }) {
+  return ((s.max_tool_calls + 3) * (12_000 * s.price_input_mtok + s.max_output_tokens * s.price_output_mtok)) / 1e6;
+}
 
 function intelCaller(env: AnalystEnv) {
   return async (token: string, tool: string, args: unknown) => {
@@ -56,6 +62,10 @@ export async function handleAnalyst(req: Request, env: AnalystEnv, deps: Deps = 
     return json({ error: msg, reason: quota.reason }, 429);
   }
   const s = quota.settings;
+  if (quota.spent_month_usd + maxQuestionCost(s) > quota.budget_usd) {   // H3: not enough budget left for a whole question
+    await log({ status: 'limite_mes' });
+    return json({ error: 'Queda muy poco presupuesto de IA este mes para una pregunta completa. Mario puede ajustarlo en Inteligencia → Consumo.', reason: 'limite_mes' }, 429);
+  }
   if (!deps.model && !env.ANTHROPIC_API_KEY) {
     await log({ status: 'sin_configurar' });
     return json({ error: 'El analista todavía no tiene la llave de IA configurada.' }, 503);
@@ -64,28 +74,34 @@ export async function handleAnalyst(req: Request, env: AnalystEnv, deps: Deps = 
   const intel = deps.intel ?? intelCaller(env);
   const signal = AbortSignal.timeout(s.timeout_seconds * 1000);
   const messages: Message[] = [{ role: 'user', content: masked }];
-  const tools = [...DATA_TOOLS, ANSWER_TOOL];
+  const allTools = [...DATA_TOOLS, ANSWER_TOOL];
   const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
   const calls: { tool: string; args: unknown; disponibilidad: unknown; fuente: unknown }[] = [];
   const payloads: unknown[] = [];
   let answer: Record<string, unknown> | null = null;
+  let closing = false; let repairs = 0;
+  const textOf = (blocks: Block[]) => blocks.filter((b): b is Extract<Block, { type: 'text' }> => b.type === 'text').map((b) => b.text).join('\n').trim();
 
   try {
-    for (let step = 0; step <= s.max_tool_calls + 1 && !answer; step++) {
-      const force = calls.length >= s.max_tool_calls || step === s.max_tool_calls + 1 ? ANSWER_TOOL.name : undefined;
-      const t = await model.turn({ system: systemPrompt(mxToday(deps.now), kind), messages, tools, maxTokens: s.max_output_tokens, forceTool: force, signal });
+    // F1: the answer is never FORCED (tool_choice "tool" is not supported by every model). When the data-tool budget is used up,
+    // the next turn only OFFERS entregar_respuesta and says so in plain words.
+    for (let step = 0; step < s.max_tool_calls + 4 && !answer; step++) {
+      closing = closing || calls.length >= s.max_tool_calls;
+      const t = await model.turn({ system: systemPrompt(mxToday(deps.now), kind), messages, tools: closing ? [ANSWER_TOOL] : allTools, maxTokens: s.max_output_tokens, signal });
       usage.input += t.usage.input; usage.output += t.usage.output; usage.cacheRead += t.usage.cacheRead; usage.cacheWrite += t.usage.cacheWrite;
       messages.push({ role: 'assistant', content: t.blocks });
       const uses = t.blocks.filter((b): b is Extract<Block, { type: 'tool_use' }> => b.type === 'tool_use');
-      if (!uses.length) {   // the model answered in plain text: keep it, but nothing in it counts as a verified fact
-        const text = t.blocks.filter((b): b is Extract<Block, { type: 'text' }> => b.type === 'text').map((b) => b.text).join('\n').trim();
-        answer = { resumen: text || 'Sin respuesta.', hechos: [], calculos: [], recomendaciones: [], faltantes: [], formato: 'texto_libre' };
+      if (!uses.length) {   // plain text instead of the answer tool: ask once (F2), then keep it as an UNVERIFIED free-text answer
+        if (repairs < MAX_REPAIRS) { repairs++; closing = true; messages.push({ role: 'user', content: [{ type: 'text', text: CLOSE_MSG }] }); continue; }
+        answer = { resumen: textOf(t.blocks) || 'Sin respuesta.', hechos: [], calculos: [], recomendaciones: [], prioridades: [], faltantes: [], sin_fuente: [],
+          formato: 'texto_libre', validacion: { estado: 'incompleta', problemas: ['respuesta sin estructura: nada cuenta como hecho verificado'] } };
         break;
       }
       const results: Block[] = [];
+      let delivered: Extract<Block, { type: 'tool_use' }> | null = null;
       for (const use of uses) {
-        if (use.name === ANSWER_TOOL.name) { answer = use.input; break; }
-        if (!DATA_TOOLS.some((d) => d.name === use.name) || calls.length >= s.max_tool_calls) {
+        if (use.name === ANSWER_TOOL.name) { delivered = use; continue; }
+        if (closing || !DATA_TOOLS.some((d) => d.name === use.name) || calls.length >= s.max_tool_calls) {
           results.push({ type: 'tool_result', tool_use_id: use.id, is_error: true, content: 'Herramienta no disponible o límite alcanzado. Responde con lo que tienes.' });
           continue;
         }
@@ -99,15 +115,25 @@ export async function handleAnalyst(req: Request, env: AnalystEnv, deps: Deps = 
         payloads.push(r.data ?? null, meta);
         results.push({ type: 'tool_result', tool_use_id: use.id, content: JSON.stringify(r).slice(0, MAX_TOOL_CHARS) });
       }
-      if (answer) break;
-      messages.push({ role: 'user', content: results });
+      if (delivered) {
+        const v = validateAnswer(delivered.input, calls.map((c) => c.tool), kind);
+        if (v.ok || repairs >= MAX_REPAIRS) { answer = v.answer; break; }
+        repairs++; closing = true;   // F2: one repair round, answer tool only
+        results.push({ type: 'tool_result', tool_use_id: delivered.id, is_error: true,
+          content: `Respuesta incompleta: ${v.problems.join('; ')}. Vuelve a llamar entregar_respuesta corrigiéndolo, solo con datos ya consultados.` });
+        messages.push({ role: 'user', content: results });
+        continue;
+      }
+      if (calls.length >= s.max_tool_calls) closing = true;
+      messages.push({ role: 'user', content: closing ? [...results, { type: 'text', text: CLOSE_MSG }] : results });
     }
   } catch (e) {
     await log({ status: 'error', provider: model.provider, model: model.model, tools: calls, error: (e as Error).message,
       tokens_input: usage.input, tokens_output: usage.output, tokens_cache_read: usage.cacheRead, tokens_cache_write: usage.cacheWrite });
     return json({ error: 'El analista no pudo terminar. Intenta de nuevo en un momento.' }, 502);
   }
-  if (!answer) answer = { resumen: 'No se pudo completar la respuesta dentro de los límites.', hechos: [], calculos: [], recomendaciones: [], faltantes: [] };
+  if (!answer) answer = { resumen: 'No se pudo completar la respuesta dentro de los límites.', hechos: [], calculos: [], recomendaciones: [], prioridades: [], faltantes: [],
+    sin_fuente: [], validacion: { estado: 'incompleta', problemas: ['sin respuesta dentro de los límites'] } };
   const unverified = unverifiedFacts(answer as never, collectNumbers(payloads));
   const sources = [...new Set(calls.map((c) => c.fuente).filter(Boolean))];
   const cost = (usage.input * s.price_input_mtok + usage.output * s.price_output_mtok + usage.cacheRead * s.price_cache_read_mtok + usage.cacheWrite * s.price_cache_write_mtok) / 1e6;
