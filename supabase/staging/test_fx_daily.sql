@@ -2,8 +2,8 @@
 -- Run: psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -f supabase/staging/test_fx_daily.sql
 BEGIN;
 DO $$
-DECLARE mario uuid := (SELECT auth_user_id FROM f360.user_roles WHERE display_name = 'Mario');
-  caro uuid := (SELECT auth_user_id FROM f360.user_roles WHERE role = 'owner' AND display_name <> 'Mario' ORDER BY display_name LIMIT 1);
+DECLARE mario uuid := (SELECT u.id FROM auth.users u JOIN f360.user_roles r ON r.auth_user_id = u.id AND r.role = 'owner' WHERE u.email = 'mario.demo@staging.invalid');
+  caro uuid := (SELECT u.id FROM auth.users u JOIN f360.user_roles r ON r.auth_user_id = u.id AND r.role = 'owner' WHERE u.email = 'carolina.demo@staging.invalid');
   seller uuid := (SELECT auth_user_id FROM f360.user_roles WHERE role = 'seller' LIMIT 1);
   r jsonb; rows jsonb := '[]'; d date; i int; n int; v_usd uuid; v_cop uuid; open_month date := date_trunc('month', (now() AT TIME ZONE 'America/Mexico_City'))::date;
   as_svc text := json_build_object('role', 'service_role')::text;

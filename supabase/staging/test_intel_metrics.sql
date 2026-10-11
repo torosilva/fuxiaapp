@@ -1,9 +1,9 @@
 -- I1b · capa de métricas del Centro de Inteligencia — rolled-back checks (staging). Run ONLY as a whole file (BEGIN … ROLLBACK).
 BEGIN;
 DO $$
-DECLARE mario uuid := (SELECT auth_user_id FROM f360.user_roles WHERE display_name = 'Mario' AND role = 'owner');
+DECLARE mario uuid := (SELECT u.id FROM auth.users u JOIN f360.user_roles r ON r.auth_user_id = u.id AND r.role = 'owner' WHERE u.email = 'mario.demo@staging.invalid');
   seller uuid; conta uuid; r jsonb; d jsonb; n numeric; m numeric; x jsonb; u uuid; v uuid; today date := (now() AT TIME ZONE 'America/Mexico_City')::date;
-  claims_m text := json_build_object('sub', (SELECT auth_user_id FROM f360.user_roles WHERE display_name = 'Mario' AND role = 'owner'), 'role', 'authenticated', 'aal', 'aal2')::text;
+  claims_m text := json_build_object('sub', (SELECT u.id FROM auth.users u JOIN f360.user_roles r ON r.auth_user_id = u.id AND r.role = 'owner' WHERE u.email = 'mario.demo@staging.invalid'), 'role', 'authenticated', 'aal', 'aal2')::text;
 BEGIN
   INSERT INTO auth.users (id, email, aud, role) VALUES (gen_random_uuid(), 'zz-intel-m-seller@staging.invalid', 'authenticated', 'authenticated') RETURNING id INTO seller;
   INSERT INTO f360.user_roles (auth_user_id, role, display_name) VALUES (seller, 'seller', 'Vendedora de prueba');

@@ -5,8 +5,8 @@
 -- never averaged into a monthly rate. Idempotent. Run: psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -f supabase/staging/intel_approvers.sql
 BEGIN;
 DO $$
-DECLARE mario uuid := (SELECT auth_user_id FROM f360.user_roles WHERE display_name = 'Mario' AND role = 'owner');
-  caro uuid := (SELECT auth_user_id FROM f360.user_roles WHERE display_name = 'Carolina' AND role = 'owner');
+DECLARE mario uuid := (SELECT u.id FROM auth.users u JOIN f360.user_roles r ON r.auth_user_id = u.id AND r.role = 'owner' WHERE u.email = 'mario.demo@staging.invalid');
+  caro uuid := (SELECT u.id FROM auth.users u JOIN f360.user_roles r ON r.auth_user_id = u.id AND r.role = 'owner' WHERE u.email = 'carolina.demo@staging.invalid');
 BEGIN
   IF mario IS NULL OR caro IS NULL THEN RAISE EXCEPTION 'ABORT: Mario o Carolina no existen como dueños en este ambiente'; END IF;
   INSERT INTO f360.approval_scopes (scope, auth_user_id, display_name, added_by_name, note) VALUES

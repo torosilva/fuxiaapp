@@ -2,8 +2,8 @@
 -- Run ONLY wrapped: psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -f supabase/staging/test_intel_inputs.sql   (this file has BEGIN … ROLLBACK)
 BEGIN;
 DO $$
-DECLARE mario uuid := (SELECT auth_user_id FROM f360.user_roles WHERE display_name = 'Mario' AND role = 'owner');
-  caro uuid := (SELECT auth_user_id FROM f360.user_roles WHERE display_name = 'Carolina' AND role = 'owner');
+DECLARE mario uuid := (SELECT u.id FROM auth.users u JOIN f360.user_roles r ON r.auth_user_id = u.id AND r.role = 'owner' WHERE u.email = 'mario.demo@staging.invalid');
+  caro uuid := (SELECT u.id FROM auth.users u JOIN f360.user_roles r ON r.auth_user_id = u.id AND r.role = 'owner' WHERE u.email = 'carolina.demo@staging.invalid');
   conta uuid; seller uuid; r jsonb; v1 uuid; v2 uuid; per uuid; e1 uuid; e2 uuid; c1 uuid; c2 uuid; prod uuid; g jsonb;
   as_ text;
 BEGIN
