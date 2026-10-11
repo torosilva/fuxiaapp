@@ -6,6 +6,7 @@ import { canWrite, getArchiveState, getColorRemoveState, getLegacySources, getMe
 import { MISSING_LABEL, pares, precio } from '@/lib/format';
 import { ColorPhotos } from './ColorPhotos';
 import { ProductInfoForm } from './ProductInfoForm';
+import { ProductName } from './ProductName';
 import { PublishPanel } from './PublishPanel';
 import { PricesPanel } from './PricesPanel';
 import { KnowledgePanel } from './KnowledgePanel';
@@ -54,7 +55,7 @@ export default async function ProductoDetalle({ params, searchParams }: { params
             {product.category && <span className="text-xs uppercase tracking-[0.2em] text-muted">{product.category}</span>}
             <span className={`rounded-full px-3 py-1 text-xs font-medium ${legacy || ready || pub.woo_product_id ? 'bg-success-soft text-success' : 'bg-gold-soft text-ink-2'}`}>{legacy || pub.woo_product_id ? 'En la tienda' : ready ? 'Listo para publicar' : 'Borrador'}</span>
           </div>
-          <h1 className="font-display mt-2 break-words text-5xl text-ink md:text-6xl">{product.name}</h1>
+          <ProductName key={product.name} productId={product.id} name={product.name} canEdit={edit} />
           <p className="tabular mt-2 text-lg text-ink-2">
             {product.regular_price != null && <span className="mr-3 font-medium text-ink">{precio(product.sale_price ?? product.regular_price)}</span>}
             {pares(product.pairs)} en inventario
