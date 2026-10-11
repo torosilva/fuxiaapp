@@ -46,14 +46,18 @@
 
 En una frase: el primer curso se puede armar con **fichas reales de 27 modelos**. Cuidados, beneficios, objeciones, políticas y la historia de la marca **los tiene que dar Carolina** en A0.
 
-### Decisiones que necesito de ti
+### Decisiones pendientes y mi recomendación (Sales = P0, Ejecutiva = P1)
 
-1. **Dónde estudian las vendedoras.** Recomiendo **web en el teléfono** (admin-web, entrando con su código de WhatsApp) para el MVP. Las pantallas nativas en la app de vendedora vienen después, sobre la misma base. (§12.1)
-2. **Valores de puntos y XP.** En §7.4 propongo valores. No se activan hasta que los apruebes.
-3. **Verificación pública del diploma:** ¿muestra nombre y primera letra del apellido, o el nombre completo? (§6.4)
-4. **Ranking.** ¿Las vendedoras ven un ranking de XP de su tienda, o solo su propio progreso? Recomiendo solo su progreso + el avance del equipo sin nombres para el MVP.
-5. **Beneficios del producto.** ¿Son "uso interno de venta" (viven en Academy) o hechos para la clienta (deberían vivir en la ficha de producto que también usan la tienda en línea y Hilo)? (§9.3)
-6. **Orden de sprints:** acepto tu orden con dos ajustes chicos (§15).
+| # | Decisión | Recomendación | Por qué (P0 primero) | Efecto en la Ejecutiva (P1) |
+|---|---|---|---|---|
+| 1 | **Dónde estudian las vendedoras** (§12.1) | **Web móvil en admin-web** para el MVP, entrando con su código de WhatsApp y con acceso directo en la pantalla de inicio del teléfono. App nativa después, sobre las mismas RPC | Una sola interfaz para alumna, Carolina y panel; el diploma PDF se genera en el servidor; sin depender de OTA ni tiendas de apps. Es el camino más corto a un curso funcionando | Ninguno: la Ejecutiva ya era web |
+| 2 | **Valores de XP y puntos** (§7.4) | **XP: aprobar la tabla completa** (no tiene valor económico). **Puntos: aprobar solo lo del MVP**: Fuxia Starter = 100 y microcertificación = 50. Los demás niveles se fijan cuando existan sus cursos. **El valor de un punto en pesos no se define hasta A4/A5** | Las vendedoras ven saldo desde el primer certificado, sin comprometer dinero: los canjes están apagados y el valor en pesos no está fijado | La Ejecutiva no da puntos (alumno único, sin premios) |
+| 3 | **Verificación pública del diploma** (§6.4) | **Nombre + inicial del apellido** ("Ana G."), nivel, fecha y estado. Sin tienda, teléfono ni calificación | Basta para comprobar que es auténtico y expone lo mínimo de una empleada | La Ejecutiva no emite diplomas públicos (decisión futura) |
+| 4 | **Ranking** | **Sin ranking con nombres en el MVP.** Cada vendedora ve su progreso y el avance del equipo en conjunto ("3 de 4 ya terminaron Starter"). Revisar al mes | Con 4 vendedoras en una tienda, un ranking señala de inmediato a la última. Primero medimos si el curso se completa sin esa presión | No aplica |
+| 5 | **Dónde viven los beneficios del producto** (§9.3) | **Opción A en el MVP**: beneficios, objeciones y recomendaciones viven en Academy (`product_sales_notes`, versionadas, aprobadas por Carolina con `academy_content`), marcadas **uso interno de venta**. **Cuidados** se captura en la ficha de producto existente. Pasar beneficios a la ficha compartida se decide con el equipo de tienda en línea más adelante | No toca la página de producto ni Hilo (no frena P0 ni a otros módulos). Hoy no existen en ningún lado, así que no se duplica nada | Ninguno |
+| 6 | **Medición de datos de producto para A0** (§9.1) | **Consulta de solo lectura en staging**, que es la copia nocturna de producción. Si algún número no cuadra, una consulta de solo lectura en producción **con tu permiso explícito** | Los datos de producto no son personales y la copia es de anoche; no requiere permisos sobre producción. Leer no modifica staging | Ninguno |
+
+**Una confirmación adicional, surgida del diseño de aprobaciones:** ¿Carolina puede aprobar lecciones que ella misma escribió (`publish_sales` con autoaprobación registrada, §4.1.2)? **Recomiendo que sí**, porque es la única autoridad de producto. Si no, otra persona tendría que escribir todo para que ella apruebe.
 
 ---
 
@@ -139,22 +143,27 @@ Edge Functions (después): f360-academy-sales-tutor (A6) · f360-academy-exec-tu
 
 ## 4. Matriz de roles y permisos
 
-**Roles de Academy** (tabla `f360_academy.grants`): son permisos **de Academy**, no roles de Fuxia 360. Nadie recibe `owner` ni `operator` por usar Academy.
+Academy separa **tres capas** que no se mezclan (requisito 7 de Mario, 2026-10-11):
+
+| Capa | Responde | Dónde vive | Ejemplo |
+|---|---|---|---|
+| **1. Rol educativo** | ¿Qué papel tiene la persona dentro de Academy? | `f360_academy.grants` (+ alumna derivada de `f360.sellers`) | Alumna Sales, Alumno Ejecutivo, Editora, Administrador Academy |
+| **2. Autorización de acceso** | ¿Puede entrar a esta escuela o pantalla ahora? | Funciones `f360_academy.can_access(school)` / `can_admin()`, que combinan la capa 1 con condiciones de sesión (cuenta activa, Dirección, aal2) | Una vendedora desactivada pierde acceso aunque conserve su rol; la Ejecutiva exige además Dirección + 2FA |
+| **3. Aprobación** | ¿Puede decidir sobre esta operación sensible? | `f360.approval_scopes` existente + sus operaciones + el registro compartido de solicitudes (§4.1) | Carolina aprueba publicar una lección; otra persona aprueba un ajuste de puntos |
+
+Tener un rol no da acceso por sí solo, y tener acceso no da poder de aprobación. Por ejemplo, la Editora puede escribir y no puede publicar; Mario como Administrador no aprueba contenido de producto.
+
+**Roles educativos** (tabla `f360_academy.grants`): son permisos **de Academy**, no roles de Fuxia 360. Nadie recibe `owner` ni `operator` por usar Academy.
 
 | Rol Academy | Cómo se obtiene | Quién, al inicio |
 |---|---|---|
 | **Alumna Sales** | **Derivado**: `f360.sellers.status = 'activa'` con cuenta. Al desactivarla en Vendedoras, pierde acceso sola. También por permiso explícito (p. ej., una encargada nueva para probar) | Las 4 vendedoras activas |
 | **Alumno Ejecutivo** | Permiso explícito **+** miembro de Dirección **+** sesión con 2FA (aal2) | Mario |
 | **Editora** | Permiso explícito | Carolina, Mario |
-| **Aprobadora de contenido** | Alcance `academy_content` en **`f360.approval_scopes`** (existente; ver nota abajo) | Carolina |
+| *(Aprobadora de contenido)* | **No es un rol educativo:** es la capa 3, el alcance `academy_content` · operación `publish_sales` (§4.1) | Carolina |
 | **Administrador Academy** | Permiso explícito; funciones sensibles con 2FA | Mario |
 
-**Aprobaciones = `f360.approval_scopes` (no una tabla nueva).** "Quién aprueba qué" ya existe en `f360.approval_scopes` + `f360.can_approve(scope, user)` (`supabase/migrations/20261023000200_f360_approval_scopes.sql`, hoy con `fx_rate`, `budget`, `close` y, desde `20261025000100`, `store_discount`). Academy **agrega alcances** a ese CHECK, conservando los existentes (incluido `store_discount`):
-- `academy_content`: publicar contenido de producto/comercial (Carolina);
-- `academy_points`: aprobar versiones de reglas y ajustes manuales de puntos;
-- `academy_rewards`: aprobar premios del catálogo y, en A5, canjes.
-
-`f360_academy.grants` queda **solo** para lo que no es una aprobación: Editora, Alumno Ejecutivo, Administrador y alumnas explícitas. La migración que amplíe el CHECK se coordina con quien esté tocando `approval_scopes` en ese momento (dry-run antes del push).
+**Aprobaciones:** se usa el sistema existente `f360.approval_scopes` (decisión aprobada por Mario el 2026-10-11), con los alcances `academy_content`, `academy_points` y `academy_rewards`. El diseño completo está en §4.1. `f360_academy.grants` guarda **solo** roles educativos, nunca aprobaciones.
 
 Los permisos explícitos se cargan con un script revisado (con evidencia de identidad, como `board_members`). Cada cambio queda en `grant_changes`, que es append-only. Solo el Administrador da permisos, con 2FA, y **nunca a sí mismo**.
 
@@ -179,6 +188,98 @@ Los permisos explícitos se cargan con un script revisado (con evidencia de iden
 
 **2FA.** Mario y Carolina, como miembros de Dirección, usan el flujo de segundo factor existente (`admin-web/src/app/(app)/estrategia/BoardMfa.tsx`). Las vendedoras **no** necesitan 2FA: solo pueden leer su escuela y responder sus evaluaciones.
 
+### 4.1 Integración con el sistema de aprobaciones existente (diseño aprobado 2026-10-11)
+
+**Lo que existe hoy** (auditado en el repo):
+
+| Pieza | Evidencia | Qué hace | Qué **no** hace |
+|---|---|---|---|
+| `f360.approval_scopes (scope, auth_user_id, …)` + `f360.can_approve(scope, user)` | `supabase/migrations/20261023000200_f360_approval_scopes.sql:6-21`; CHECK ampliado a `store_discount` en `20261025000100_f360_store_discounts.sql:21-22` | Registro de **quién puede aprobar** cada alcance (`fx_rate`, `budget`, `close`, `store_discount`) | No distingue **operaciones** dentro de un alcance. No guarda **solicitudes ni decisiones**. |
+| Decisiones | `fx_rates.approved_by` (`20261024000100_f360_fx_daily.sql:169`), `budget_versions.approved_by` (`20261024000200_f360_intel_inputs.sql:144`), `f360.store_discount_requests` (`20261025000100…:45`) | Cada módulo guarda su decisión **en su propia tabla** | No hay un registro compartido de solicitud → decisión. |
+
+**Contradicción a señalar.** Los requisitos 3 (registro auditable), 4 (atar la aprobación a la versión) y 6 (no duplicar la lógica en tablas exclusivas de Academy) **no se pueden cumplir solo con `approval_scopes`**, porque hoy solo dice quién puede aprobar. Hay dos caminos:
+- tablas de aprobación propias de Academy, lo que **viola el requisito 6**; o
+- un **registro de aprobaciones compartido** en `f360`, del que Academy es el primer usuario.
+
+**Recomiendo el segundo.** Los módulos existentes (tipo de cambio, presupuesto, descuentos) **no se migran**: siguen como están y pueden adoptarlo después, cada uno con su propia decisión.
+
+#### 4.1.1 Objetos (todos en `f360`, aditivos, sin cambiar los existentes)
+
+| Objeto | Qué es | Requisito |
+|---|---|---|
+| `f360.approval_scopes` | **Sin cambio de estructura.** Solo se amplía el CHECK con `academy_content`, `academy_points` y `academy_rewards`, conservando `fx_rate`, `budget`, `close` y `store_discount` | 6 |
+| `f360.approval_scope_operations (scope, auth_user_id, operation, added_by_name, added_at)` | Permiso **por operación** dentro del alcance. FK a `approval_scopes(scope, auth_user_id)`. Si la persona no tiene la operación, no puede aprobarla aunque tenga el alcance. Los alcances existentes no lo usan y siguen funcionando con `can_approve` | 1 |
+| `f360.approval_operations (scope, operation, sensitive, requires_aal2, allow_self_approval, max_age_days, label)` | Catálogo de operaciones con sus reglas, cargado por migración. Solo se cambia con otra migración revisada, nunca desde la interfaz | 1, 2 |
+| `f360.can_approve_op(scope, operation, user)` | `can_approve(scope, user)` **y** la operación asignada. La función existente `can_approve` no se modifica | 1 |
+| `f360.approval_requests` | Una solicitud: alcance, operación, `object_kind`, `object_id`, **`object_version`**, **`object_hash`** (sha256 del contenido canónico al pedir), `beneficiary_user` (si la operación favorece a alguien), resumen legible, quién pide, motivo, estado, vence | 3, 4 |
+| `f360.approval_events` | **Append-only** (trigger `f360.reject_audit_change`): `requested`, `approved`, `rejected`, `cancelled`, `invalidated`, `expired`, `consumed`, con responsable, nombre, fecha, motivo, nivel de sesión (`aal`) y **hash del objeto al decidir** | 3 |
+| `f360.approval_request(…)` / `f360.approval_decide(…)` / `f360.approval_consume(…)` | Únicas funciones que escriben; `SECURITY DEFINER`. Academy (y cualquier módulo futuro) las llama; nadie escribe las tablas directo | 2, 3, 4, 6 |
+
+#### 4.1.2 Operaciones de Academy
+
+| Alcance | Operación | Qué aprueba | Sensible (dos personas) | aal2 | Quién al inicio |
+|---|---|---|---|---|---|
+| `academy_content` | `publish_sales` | Publicar una versión de lección o curso de Sales (producto, comercial, políticas) | **Excepción de autoridad**: ver nota | No | Carolina |
+| `academy_content` | `publish_executive` | Publicar contenido de la Escuela Ejecutiva | No (P1, alumno único) | Sí | Mario |
+| `academy_content` | `retire` | Retirar un curso publicado | Sí | Sí | Carolina, Mario |
+| `academy_points` | `rule_version` | Activar una versión de reglas de XP y puntos | **Sí** | Sí | Carolina (propone Mario) |
+| `academy_points` | `manual_adjust` | Un ajuste manual de puntos | **Sí** + el beneficiario no puede ser quien pide ni quien aprueba | Sí | Carolina (pide Mario) |
+| `academy_points` | `certificate_revoke` | Revocar un certificado (y revertir sus puntos) | **Sí** | Sí | Carolina (pide Mario) |
+| `academy_rewards` | `catalog_item` | Activar un premio o cambiar su costo, stock o vigencia | **Sí** | Sí | Carolina (propone Mario) |
+| `academy_rewards` | `redemptions_enable` | Encender canjes reales | **Sí** | Sí | **No se asigna a nadie hasta A5** (§8.3) |
+| `academy_rewards` | `redemption` | Aprobar un canje (A5) | **Sí** + beneficiario ≠ aprobador | Sí | No se asigna hasta A5 |
+
+**Nota sobre `publish_sales`.** Carolina es la autoridad única de producto, igual que con `store_discount`, donde solo ella aprueba. Si ella misma escribe una lección y además la aprueba, exigir una segunda persona dejaría el contenido sin quien lo apruebe.
+- **Propuesta:** `allow_self_approval = true` **solo** para `publish_sales`. Queda marcada como **autoaprobación** en `approval_events` y aparece en el panel de Mario.
+- Si otra persona es la autora, la aprobación de Carolina es obligatoria.
+- **Si prefieres dos personas también aquí, dímelo.** Cambia un valor del catálogo de operaciones, no el diseño.
+
+#### 4.1.3 Separación solicitante / aprobador (requisito 2)
+
+`f360.approval_decide` rechaza, **en la base**, cuando la operación es sensible y:
+- quien decide es quien pidió;
+- quien decide o quien pidió es el **beneficiario** (puntos, canjes);
+- falta `aal2` y la operación lo exige;
+- quien decide no tiene `can_approve_op`;
+- la solicitud está vencida, cancelada o ya decidida.
+
+Además, **nadie aprueba con una sesión de vendedora**, aunque esa misma persona tenga el alcance. La decisión se toma desde el panel con la cuenta de Fuxia 360 y su 2FA.
+
+#### 4.1.4 Una aprobación vieja no autoriza un cambio nuevo (requisito 4)
+
+1. **Versiones inmutables.** Lecciones, cursos, reglas de puntos y premios se aprueban **por versión**. Una versión enviada a revisión ya no se edita (trigger). Cualquier cambio crea una versión nueva, con su propia solicitud.
+2. **Hash al pedir y al decidir.** La solicitud guarda `object_hash`. Al aprobar, `approval_decide` recalcula el hash del objeto. Si no coincide, la solicitud pasa a `invalidated` y no se puede aprobar.
+3. **Hash al usar.** La acción que ejecuta (publicar, activar regla, aplicar ajuste, activar premio) llama `approval_consume(request_id, object_hash)`:
+   - comprueba que la aprobación existe, coincide en **alcance, operación, objeto, versión y hash**, y no ha caducado (`max_age_days`; propuesta: 14);
+   - la marca `consumed` en la misma transacción. **Una aprobación se usa una sola vez.**
+4. **Dependencias.** Si una lección aprobada referencia una ficha de producto y Carolina re-valida esa ficha (§9.4), la versión de la lección no cambia, pero su contenido "foto" ya no es el vigente. La lección entra a la cola como "ficha actualizada", y publicar la nueva requiere **otra** aprobación.
+
+#### 4.1.5 Registro auditable (requisito 3)
+
+Cada solicitud y decisión deja, sin posibilidad de edición:
+- **qué:** alcance, operación, objeto, versión y hash;
+- **solicitud:** quién, cuándo y motivo;
+- **decisión:** aprobada, rechazada, invalidada o vencida; quién, cuándo, motivo (obligatorio al rechazar o aprobar algo sensible) y con qué nivel de sesión;
+- **uso:** cuándo se consumió y por qué acción.
+
+El panel de Academy (§11) lo muestra filtrado por sus alcances. Un futuro módulo de auditoría puede leer el mismo registro para todo Fuxia 360.
+
+#### 4.1.6 Coordinación antes de cualquier migración (requisito 5)
+
+Ninguna migración que toque `f360.approval_scopes` o cree el registro compartido se escribe sin este chequeo:
+1. **Leer el estado real.** En el repo, `git pull` y todas las migraciones que mencionan `approval_scopes`/`can_approve` (hoy `20261023000200`, `20261024000100`, `20261024000400`, `20261024000200`, `20261025000100`). En staging y producción, la definición vigente del CHECK, en solo lectura.
+2. **Avisar a la otra sesión** (mensaje entre sesiones) qué objetos se tocarán y con qué número de migración. Esperar confirmación de que no hay otra migración pendiente sobre lo mismo.
+3. **Migración con guarda:** antes de redefinir el CHECK, la migración **verifica que el CHECK vigente es exactamente el esperado** (`fx_rate`, `budget`, `close`, `store_discount`, …). Si no coincide, **aborta**. Nunca reescribe el CHECK de memoria.
+4. **No tocar** `f360.can_approve` ni la estructura de `approval_scopes`: solo se agregan objetos nuevos.
+5. `supabase db push --dry-run` antes de cada push y `.down.sql` ensayado. El rollback **no** quita alcances que otra migración posterior haya agregado.
+6. Los cambios al registro compartido se presentan **aparte** de las migraciones de Academy, para revisarlos como infraestructura común.
+
+#### 4.1.7 Qué no se duplica (requisito 6)
+
+- Academy **no** tiene tabla de aprobadores ni de solicitudes o decisiones. La tabla `approvals` de §5.1 **se elimina** del diseño.
+- Academy **sí** guarda en sus tablas el **estado** del objeto (`borrador`, `en_revision`, `publicado`…) y el `approval_request_id` que lo autorizó. Es una referencia, no una copia de la decisión.
+- Los comentarios de Carolina por bloque ("cambia esta frase") son **notas de edición**, no decisiones. Viven en `f360_academy.review_comments`. La decisión formal está solo en `f360.approval_events`.
+
 ---
 
 ## 5. Modelo de cursos, lecciones, evaluaciones y progreso
@@ -192,7 +293,7 @@ Los permisos explícitos se cargan con un script revisado (con evidencia de iden
 | `lessons` / `lesson_versions` | Microlección: bloques `jsonb` validados por esquema en el servidor (texto, foto, ficha de producto, comparación, pregunta, resumen), `product_refs` (§9.4), duración estimada, habilidades, autor, envío a revisión, quién aprobó y cuándo |
 | `items` | Banco de reactivos: tipo (opción múltiple, verdadero/falso, numérico, ordenar, relacionar, **"¿qué le dirías a la clienta?"**), enunciado, opciones, **`answer_key` (nunca sale a la alumna)**, explicación, habilidad, dificultad, `product_ref` opcional |
 | `assessments` | Por curso o versión: tipo (`quiz` de lección / `final`), **nota mínima configurable**, número de reactivos tomados del banco, intentos por día, espera entre intentos, si baraja |
-| `approvals` | Append-only: cada envío, aprobación, rechazo (con comentario) y publicación |
+| `review_comments` | Comentarios de edición de Carolina por bloque (no son decisiones). **Las decisiones viven en el registro compartido `f360.approval_requests/events` (§4.1)**; cada versión guarda el `approval_request_id` que la publicó |
 
 ### 5.2 Progreso (por persona)
 
@@ -437,9 +538,9 @@ Editora crea/edita ──▶ borrador ──(Enviar a revisión: valida que no f
   - hay bloques "pendiente";
   - un reactivo no tiene clave o explicación;
   - la evaluación tiene menos reactivos en el banco que los que debe presentar.
-- **Si Carolina es la autora**, su aprobación es la publicación, porque ella es la autoridad de producto. Queda registrado igual en `approvals`.
+- **Si Carolina es la autora**, su aprobación es la publicación, porque ella es la autoridad de producto. Queda registrado como autoaprobación en `f360.approval_events` (§4.1.2).
 - **Pantalla de Carolina:** cola "Por aprobar" → vista **como la verá la vendedora** (marco de teléfono) → comentarios por bloque → Aprobar o Pedir cambios. Debe poder hacerse desde el teléfono en 2 minutos por lección.
-- Cada evento queda en `approvals` (append-only).
+- Cada envío, aprobación, rechazo e invalidación queda en `f360.approval_events` (append-only, §4.1). Publicar consume la aprobación, que debe coincidir con la versión y el hash (§4.1.4).
 
 ---
 
@@ -546,7 +647,7 @@ YO: nivel, XP, saldo de Puntos Academy y movimientos, diplomas (Descargar PDF), 
 ## 15. Plan de sprints (tu orden, con dos ajustes)
 
 **Ajustes propuestos:**
-1. **El flujo mínimo de aprobación de Carolina va en A1, no después.** Sin él no se puede publicar el primer curso: o ella aprueba en la plataforma, o hay que cargar contenido "aprobado" por migración, que es justo lo que queremos evitar.
+1. **El flujo mínimo de aprobación de Carolina va en A1, no después.** Sin él no se puede publicar el primer curso: o ella aprueba en la plataforma, o hay que cargar contenido "aprobado" por migración, que es justo lo que queremos evitar. Esto implica que **el registro de aprobaciones compartido (§4.1) entra en A1**, como una migración **separada** de infraestructura común (`f360`), revisada por su cuenta y coordinada con la otra sesión según §4.1.6, **antes** de la migración de Academy.
 2. **El XP va en A2**, junto con la evaluación, porque se deriva de completar lecciones. **A3 queda para el libro de Puntos Academy y sus controles.** El **MVP liberable = A1 + A2 + A3**.
 
 Cada sprint se hace primero en STAGING, en `fuxia-360`, y lleva:
@@ -609,4 +710,6 @@ Los sprints no se encadenan con Growth, Inteligencia ni otros módulos. Los punt
 | Exposición de datos en la verificación pública | Mínimo de datos (decisión 3); límite de consultas; sin listados |
 | Confusión con puntos de clientas | Nombre "Puntos Academy"; tablas y funciones separadas (§2.2) |
 | Interferir con trabajos en curso | Esquema, rutas y funciones propios; puntos compartidos mínimos y fechados por sprint |
-| Duplicar fuentes de verdad | Aprobadores en `f360.approval_scopes` existente; producto y vendedoras se leen de su origen; Cuidados se captura en `product_knowledge`; la Ejecutiva usa el mismo motor |
+| Choque con migraciones de otra sesión sobre `approval_scopes` | Chequeo obligatorio de §4.1.6: estado real, aviso a la otra sesión, guarda del CHECK que aborta si no coincide, dry-run |
+| Una aprobación usada para algo distinto de lo aprobado | Aprobación atada a alcance, operación, objeto, versión y hash; un solo uso; vencimiento (§4.1.4) |
+| Duplicar fuentes de verdad | Aprobadores en `f360.approval_scopes` existente; solicitudes y decisiones en el registro compartido `f360.approval_*` (no en Academy); producto y vendedoras se leen de su origen; Cuidados se captura en `product_knowledge`; la Ejecutiva usa el mismo motor |
