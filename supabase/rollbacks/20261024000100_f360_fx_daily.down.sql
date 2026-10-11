@@ -17,8 +17,9 @@ DROP FUNCTION f360.fx_system_proposer();
 DROP VIEW f360.fx_daily;
 DROP TABLE f360.fx_observations;
 DROP FUNCTION f360.fx_observations_immutable();
-DROP FUNCTION f360.can_approve(text, uuid);
-DROP TABLE f360.approval_scopes;
+-- f360.approval_scopes and f360.can_approve are NOT dropped: since 4133a1a they belong to 20261023000200 (also used by the store
+-- discounts). Only the FX approval rows are removed.
+DELETE FROM f360.approval_scopes WHERE scope = 'fx_rate';
 
 CREATE OR REPLACE FUNCTION public.f360_measurement_run_failed(p_source_key text, p_from date, p_to date, p_error text) RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
