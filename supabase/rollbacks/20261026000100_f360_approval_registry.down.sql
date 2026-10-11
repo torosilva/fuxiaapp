@@ -15,7 +15,7 @@ BEGIN
   END IF;
   SELECT pg_get_constraintdef(c.oid) INTO def FROM pg_constraint c
    WHERE c.conrelid = 'f360.approval_scopes'::regclass AND c.conname = 'approval_scopes_scope_check';
-  SELECT array_agg(m[1] ORDER BY m[1]) INTO vals FROM regexp_matches(def, '''([a-z_]+)''', 'g') m WHERE m[1] NOT LIKE 'academy\_%';
+  SELECT array_agg(t.m[1] ORDER BY t.o) INTO vals FROM regexp_matches(def, '''([a-z_]+)''', 'g') WITH ORDINALITY AS t(m, o) WHERE t.m[1] NOT LIKE 'academy\_%';   -- keeps the live order
   EXECUTE 'ALTER TABLE f360.approval_scopes DROP CONSTRAINT approval_scopes_scope_check';
   EXECUTE format('ALTER TABLE f360.approval_scopes ADD CONSTRAINT approval_scopes_scope_check CHECK (scope IN (%s))',
     (SELECT string_agg(quote_literal(v), ', ') FROM unnest(vals) v));
