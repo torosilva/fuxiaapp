@@ -67,3 +67,9 @@
 - Mover Guadalajara y Contreras (y Polanco, si todavía alterna) al turno de Fuxia 360, o reemplazar el NIP por un RPC `SECURITY DEFINER` que valide en el servidor sin devolver `pin`.
 - Después, quitar `anon_read_active_staff`, `anon_insert_offline_sales`, `anon_update_inventory_sold` y `anon_read_*`.
 - Rotar los NIP. Hoy los puede leer cualquiera que tenga la llave pública.
+
+## Estado (2026-10-11, tarde)
+- **Fase A:** implementada y probada **solo en staging** (autorizado por Mario). Detalle, diff, pruebas y reversión en `docs/fuxia360/security/D12_FASE_A.md`. Producción sin cambios; requiere autorización posterior.
+  - Además se encontraron y cerraron en staging tres políticas que confiaban en `user_metadata.phone`, que el propio usuario puede editar.
+- **Fase B:** solo plan, en `docs/fuxia360/security/D12_FASE_B_PLAN.md`. No ejecutada.
+  - Nuevo punto de alta prioridad: la Edge Function `claim-sale` acredita puntos con el total que manda el cliente, sin identificar a quien llama.
