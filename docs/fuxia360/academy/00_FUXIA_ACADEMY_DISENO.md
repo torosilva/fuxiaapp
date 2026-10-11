@@ -247,7 +247,7 @@ Los permisos explícitos se cargan con un script revisado (con evidencia de iden
 
 | Alcance | Operación | Qué aprueba | Sensible (dos personas) | aal2 | Quién al inicio |
 |---|---|---|---|---|---|
-| `academy_content` | `publish_sales` | Publicar una versión de lección o curso de Sales con contenido **ordinario de producto** | **Excepción de autoridad** (decisión 7): ver nota | No | Carolina |
+| `academy_content` | `publish_sales` | Publicar una versión de lección o curso de Sales con contenido **ordinario de producto** | **Excepción de autoridad** (decisión 7): ver nota | **Sí** (endurecido por P0-6: una sesión obtenida con la contraseña derivada no debe poder publicar; `P0-6_ACCESO_VENDEDORAS_PROPUESTA.md` §2) | Carolina |
 | `academy_content` | `publish_sales_policy` | Publicar contenido con **políticas** o cambiar **criterios de certificación** | **Sí** | Sí | Carolina, Mario (nunca la misma persona que lo pidió) |
 | `academy_content` | `publish_executive` | Publicar contenido de la Escuela Ejecutiva | No (P1, alumno único) | Sí | Mario |
 | `academy_content` | `retire` | Retirar un curso publicado | Sí | Sí | Carolina, Mario |
