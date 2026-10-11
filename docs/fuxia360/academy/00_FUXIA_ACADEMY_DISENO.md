@@ -110,7 +110,7 @@ Los puntos de clientas viven en `public.loyalty_cards`, `public.rewards`, `publi
 
 **Cómo funciona hoy:**
 - El admin web llama a la Edge Function `whatsapp-otp` (`admin-web/src/app/login/actions.ts:34-56`).
-- La función crea o abre una cuenta `{teléfono}@fuxia.app` (`fuxia-native/supabase/functions/whatsapp-otp/index.ts:226-258`).
+- La función crea o abre una cuenta `{teléfono}@fuxia.app` (`fuxia-native/supabase/functions/whatsapp-otp/index.ts:228-258`).
 - Después, el admin web **cierra la sesión de cualquier cuenta sin rol de Fuxia 360** (`actions.ts:20-32`).
 
 | Control | Estado | Evidencia | Veredicto |
@@ -120,7 +120,7 @@ Los puntos de clientas viven en `public.loyalty_cards`, `public.rewards`, `publi
 | Solo entran cuentas con rol de Fuxia 360 al admin web | ✓ | `actions.ts:20-32` | Adecuado: una clienta no entra |
 | Vendedora desactivada pierde acceso | ✓ con Academy | Academy deriva la alumna de `f360.sellers.status` (§4) | Adecuado |
 | **Entrada de revisión de tiendas de apps** (`+525555555555` / `555555` → cuenta demo) **activa con valores fijos en el código** | ✗ **abierto** | `index.ts:17-19`, `:183-191`; hallazgo **P0-6.3** en `docs/fuxia360/audit/SPRINT_0_IMPLEMENTATION_PLAN.md:112, 367-389` (contención "A8" diseñada, **no aplicada**: el código actual conserva los valores fijos) | No afecta a Academy si la cuenta demo **no** tiene rol de Fuxia 360 ni ficha de vendedora (entonces el admin web la expulsa). **Se verifica en A0** (consulta §9.5 Q4) |
-| **Contraseña derivada** de teléfono + un secreto (`OTP_SALT`) | ⚠ riesgo P1 conocido | `index.ts:227-228`; `docs/fuxia360/audit/SECURITY_AUDIT.md:70`; `LIVE_RECONCILIATION.md:84` (el secreto **sí** está configurado en producción) | Quien tuviera el secreto podría entrar como cualquier vendedora sin código |
+| **Contraseña derivada** de teléfono + un secreto (`OTP_SALT`) | ⚠ riesgo P1 conocido | `index.ts:228-229`; `docs/fuxia360/audit/SECURITY_AUDIT.md:70`; `LIVE_RECONCILIATION.md:84` (el secreto **sí** está configurado en producción) | Quien tuviera el secreto podría entrar como cualquier vendedora sin código |
 | El error de Twilio se devuelve en `debug`; teléfonos en logs; `check_phone` revela si un número existe | ⚠ menores | `:163-166`, `:69-87`, `:110-125` | No bloquean el MVP |
 
 **Veredicto:**

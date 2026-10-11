@@ -96,7 +96,7 @@ ORDER BY p.name
 
 **Para qué:** saber qué puede hacer hoy la cuenta a la que entra el código fijo de revisión. **Responde solo sí/no**: no devuelve ids, teléfonos, nombres ni correos.
 
-La cuenta demo es `+525543412939`, valor fijo por omisión en `fuxia-native/supabase/functions/whatsapp-otp/index.ts:19`. En septiembre, `REVIEW_DEMO_PHONE` **no** estaba configurado en producción (`docs/fuxia360/audit/LIVE_RECONCILIATION.md:49`), así que rige el valor fijo. Su usuario de Auth es `525543412939@fuxia.app` (`index.ts:226`).
+La cuenta demo es `+525543412939`, valor fijo por omisión en `fuxia-native/supabase/functions/whatsapp-otp/index.ts:19`. En septiembre, `REVIEW_DEMO_PHONE` **no** estaba configurado en producción (`docs/fuxia360/audit/LIVE_RECONCILIATION.md:49`), así que rige el valor fijo. Su usuario de Auth es `525543412939@fuxia.app` (`index.ts:228`).
 
 ```sql
 WITH demo AS (SELECT id FROM auth.users WHERE email = '525543412939@fuxia.app')
@@ -126,7 +126,7 @@ SELECT jsonb_build_object(
 
 | Qué se pudo confirmar | Evidencia |
 |---|---|
-| ✓ El correo **se deriva** del teléfono: la función construye `{teléfono sin +}@fuxia.app`, así que `+525543412939` ↔ `525543412939@fuxia.app` | `whatsapp-otp/index.ts:226` |
+| ✓ El correo **se deriva** del teléfono: la función construye `{teléfono sin +}@fuxia.app`, así que `+525543412939` ↔ `525543412939@fuxia.app` | `whatsapp-otp/index.ts:228` |
 | ✗ Que **hoy** la cuenta de revisión siga siendo `+525543412939` | Depende del secreto `REVIEW_DEMO_PHONE` en producción. La última evidencia de que no estaba configurado (y rige el valor fijo) es de **septiembre** (`LIVE_RECONCILIATION.md:49`). Comprobarlo hoy es una consulta adicional no autorizada |
 | ✗ Que la versión **desplegada** de la función sea la del repo | Verificado el 2026-09-24 (`SPRINT_0_IMPLEMENTATION_PLAN.md:367`); no hoy |
 | ✗ Que en la base la cuenta, su metadata y su ficha de clienta apunten al mismo teléfono | La Q4 original no lo comprobaba: mezclaba búsquedas por id y por teléfono |
