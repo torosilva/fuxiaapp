@@ -6,3 +6,4 @@ supabase/staging/intel_board_demo.sql
 supabase/staging/intel_goal_300k.sql
 supabase/staging/intel_fx_backfill.sql
 supabase/staging/intel_fx_propose.sql
+scripts/f360/staging_demo_contadora.sql
