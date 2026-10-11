@@ -117,7 +117,12 @@ if [ -n "$RESTORE_FROM" ]; then
   [ -f "$RB/staging4_before.sql.gz" ] && [ -d "$RB/mu_before" ] || { echo "ABORT: no existe el respaldo $RB"; exit 11; }
   echo "punto de restauración: $RB"
 fi
+# Solo restaura el shell principal: con set -E la trampa también corre dentro de $(...), donde su salida
+# quedaría capturada en la variable (así falló en silencio la corrida 111413). En un subshell solo se sale.
 restore() {
+  [ "$BASH_SUBSHELL" -gt 0 ] && exit 1
+  exec 1>&2
+  echo "!! falló en la línea $1 del script remoto"
   [ -f "$B/.restaurado" ] && exit 1
   touch "$B/.restaurado"
   echo "!! FALLÓ: restaurando staging4 desde $RB/staging4_before.sql.gz"
@@ -128,7 +133,7 @@ restore() {
   echo "!! staging4 restaurado"
   exit 1
 }
-trap 'restore' ERR
+trap 'restore $LINENO' ERR
 
 # ── 2. Guardia primero: desde aquí staging4 no puede mandar correos ni llamar a producción ───────────────
 step "Guardia de staging4 y modo mantenimiento (nadie usa staging4 ni corre su cron mientras se reemplaza)"
@@ -168,7 +173,8 @@ step "Configuración propia de staging4"
   wp_cache_flush();
   echo "opciones de staging4 restauradas: " . count($rows) . PHP_EOL;')
 W db import "$B/keep_tables.sql" >/dev/null
-ADMIN="$(W user list --role=administrator --field=ID --orderby=ID --order=ASC | head -1)"
+ADMIN="$(W user list --role=administrator --field=ID --orderby=ID --order=ASC | awk 'NR==1')"   # awk lee todo: sin SIGPIPE con pipefail
+[ -n "$ADMIN" ] || { echo "ABORT: no encontré administradora en staging4"; false; }
 W db query "UPDATE ${PFX}wc_webhooks SET user_id = $ADMIN; UPDATE ${PFX}woocommerce_api_keys SET user_id = $ADMIN"
 W option update blog_public 0 >/dev/null
 
