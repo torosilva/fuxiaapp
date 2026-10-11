@@ -18,7 +18,7 @@ type Settings = { provider: string; model: string; max_tool_calls: number; max_o
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 const mxToday = (now = new Date()) => new Date(now.getTime() - 6 * 3600e3).toISOString().slice(0, 10);
 const MAX_TOOL_CHARS = 30_000;
-const MAX_REPAIRS = 1;   // F2: one chance to fix an incomplete / untraceable answer
+const MAX_REPAIRS = 2;   // F2: at most two correction rounds (structure / truncation, then figures not found in the data)
 const CLOSE_MSG = 'Ya no puedes consultar más datos. Entrega ahora tu respuesta llamando a entregar_respuesta, solo con lo que ya consultaste: cada hecho con su herramienta y periodo; lo que falte va en "faltantes".';
 /** H3 · worst plausible cost of ONE question (all tool turns + closing + one repair), so a question never starts without room for it. */
 export function maxQuestionCost(s: { max_tool_calls: number; max_output_tokens: number; price_input_mtok: number; price_output_mtok: number }) {
@@ -124,10 +124,16 @@ export async function handleAnalyst(req: Request, env: AnalystEnv, deps: Deps = 
       }
       if (delivered) {
         const v = validateAnswer(delivered.input, calls.map((c) => c.tool), kind);
-        if (v.ok || repairs >= MAX_REPAIRS) { answer = v.answer; break; }
-        repairs++; closing = true;   // F2: one repair round, answer tool only
+        const problems = [...v.problems];
+        if (t.stop === 'max_tokens') problems.unshift('tu respuesta se cortó por largo: repítela más breve (frases cortas, máximo 6 hechos)');
+        if (problems.length === 0) {   // F2/F3: figures stated as facts must exist in the data; sums or differences you made go to "calculos"
+          const nf = unverifiedFacts(v.answer as never, collectNumbers(payloads));
+          if (nf.length) problems.push(`estas cifras no aparecen en los datos consultados: ${[...new Set(nf.map((x) => x.valor))].join(', ')}. Si las calculaste, ponlas en "calculos" con su fórmula; si no, quítalas`);
+        }
+        if (problems.length === 0 || repairs >= MAX_REPAIRS) { answer = v.answer; break; }
+        repairs++; closing = true;   // correction round, answer tool only
         results.push({ type: 'tool_result', tool_use_id: delivered.id, is_error: true,
-          content: `Respuesta incompleta: ${v.problems.join('; ')}. Vuelve a llamar entregar_respuesta corrigiéndolo, solo con datos ya consultados.` });
+          content: `Respuesta por corregir: ${problems.join('; ')}. Vuelve a llamar entregar_respuesta corrigiéndolo, solo con datos ya consultados.` });
         messages.push({ role: 'user', content: results });
         continue;
       }

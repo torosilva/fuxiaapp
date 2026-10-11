@@ -63,7 +63,9 @@ test('happy path: data tool with the USER token, masked question, facts verified
   const h = harness([use('t1', 'ventas', { desde: '2026-08-01', hasta: '2026-08-31' }),
     final({ resumen: 'Agosto MX: 56,406 MXN.', hechos: [{ texto: 'Venta neta MX agosto 56,406 MXN en 16 pedidos', cifras: [{ valor: 56406, moneda: 'MXN' }],
       fuente: { herramienta: 'ventas', fuente: 'Commerce Facts', periodo: '2026-08' } }, { texto: 'Margen 42%', cifras: [{ valor: 42 }], fuente: { herramienta: 'ventas', fuente: 'x', periodo: 'x' } }],
-      calculos: [], recomendaciones: [], faltantes: [] })]);
+      calculos: [], recomendaciones: [], faltantes: [] }), ...[1, 2].map(() => final({ resumen: 'Agosto MX: 56,406 MXN.', hechos: [{ texto: 'Venta neta MX agosto 56,406 MXN en 16 pedidos', cifras: [{ valor: 56406, moneda: 'MXN' }],
+      fuente: { herramienta: 'ventas', fuente: 'Commerce Facts', periodo: '2026-08' } }, { texto: 'Margen 42%', cifras: [{ valor: 42 }], fuente: { herramienta: 'ventas', fuente: 'x', periodo: 'x' } }],
+      calculos: [], recomendaciones: [], faltantes: [] }))]);
   await withUser('owner', async () => {
     const r = await handleAnalyst(req({ question: '¿Cuánto vendimos en agosto? escríbeme a ana@example.com' }), env, h.deps);
     const j = await r.json() as { ok: boolean; unverified: { valor: number }[]; usage: { cost_usd: number }; tools: unknown[] };
@@ -71,8 +73,8 @@ test('happy path: data tool with the USER token, masked question, facts verified
     assert.deepEqual(h.intelCalls, [{ token: 'user-jwt', tool: 'ventas', args: { desde: '2026-08-01', hasta: '2026-08-31' } }]);
     assert.ok(!JSON.stringify(h.seen[0].messages).includes('ana@example.com'), 'question masked before the model');
     assert.deepEqual(j.unverified.map((x) => x.valor), [42]);
-    assert.equal(h.logs[0].status, 'ok'); assert.equal(h.logs[0].tokens_input, 2000); assert.ok(!String(h.logs[0].question).includes('ana@'));
-    assert.equal(j.usage.cost_usd, (2000 * 2 + 200 * 10) / 1e6);
+    assert.equal(h.logs[0].status, 'ok'); assert.equal(h.logs[0].tokens_input, 4000); assert.ok(!String(h.logs[0].question).includes('ana@'));
+    assert.equal(j.usage.cost_usd, (4000 * 2 + 400 * 10) / 1e6);   // 4 turns: tool, answer, 2 correction rounds
   });
 });
 
@@ -156,7 +158,7 @@ test('F2 validation: traceable facts kept; facts citing a tool not called or wit
 });
 
 test('F2 repair: an answer with figures but no traceable facts gets ONE correction round (answer tool only); then it is accepted', async () => {
-  const good = { resumen: 'México lleva $5,600 MXN.', hechos: [{ texto: 'Venta MX $56,406 MXN', cifras: [{ valor: 56406 }], fuente: { herramienta: 'ventas', fuente: 'Commerce Facts', periodo: '2026-08' } }],
+  const good = { resumen: 'México lleva $56,406 MXN.', hechos: [{ texto: 'Venta MX $56,406 MXN', cifras: [{ valor: 56406 }], fuente: { herramienta: 'ventas', fuente: 'Commerce Facts', periodo: '2026-08' } }],
     calculos: [], recomendaciones: [], faltantes: [] };
   const h = harness([use('a', 'ventas'), final({ resumen: 'Llevamos $56,406 MXN' }), final(good)]);
   await withUser('owner', async () => {
@@ -164,13 +166,13 @@ test('F2 repair: an answer with figures but no traceable facts gets ONE correcti
     const j = await r.json() as { answer: { validacion: { estado: string }; hechos: unknown[] } };
     assert.equal(r.status, 200); assert.equal(j.answer.validacion.estado, 'completa'); assert.equal(j.answer.hechos.length, 1);
     assert.deepEqual(h.seen[2].tools.map((t) => t.name), ['entregar_respuesta']);
-    assert.ok(JSON.stringify(h.seen[2].messages.at(-1)).includes('Respuesta incompleta'));
+    assert.ok(JSON.stringify(h.seen[2].messages.at(-1)).includes('Respuesta por corregir'));
   });
 });
 
 test('F2 after the repair round an untraceable answer is returned marked "incompleta", facts as sin_fuente (never verified)', async () => {
   const bad = { resumen: 'x', hechos: [{ texto: 'Venta $1', cifras: [{ valor: 1 }], fuente: { herramienta: 'margen', fuente: 'x', periodo: 'oct' } }] };
-  const h = harness([use('a', 'ventas'), final(bad), final(bad)]);
+  const h = harness([use('a', 'ventas'), final(bad), final(bad), final(bad)]);
   await withUser('owner', async () => {
     const j = await (await handleAnalyst(req({ question: 'ventas' }), env, h.deps)).json() as { answer: { validacion: { estado: string }; hechos: unknown[]; sin_fuente: unknown[] } };
     assert.equal(j.answer.validacion.estado, 'incompleta'); assert.equal(j.answer.hechos.length, 0); assert.equal(j.answer.sin_fuente.length, 1);
@@ -215,4 +217,26 @@ test('H2 every question reserves its estimated cost atomically and releases it i
     assert.equal(h.reserves.length, 1); assert.ok(Number(h.reserves[0].p_est_cost) > 0);
     assert.equal(h.logs[0].reservation_id, 41);
   });
+});
+
+test('F2/F3 a fact with a figure not in the data triggers a correction asking to move it to calculos; a truncated answer asks for a shorter one', async () => {
+  const invented = { resumen: 'ok', hechos: [{ texto: 'Total $99,999 MXN', cifras: [{ valor: 99999 }], fuente: { herramienta: 'ventas', fuente: 'x', periodo: 'oct' } }], calculos: [], recomendaciones: [], faltantes: [] };
+  const fixed = { resumen: 'ok', hechos: [{ texto: 'Venta $56,406 MXN', cifras: [{ valor: 56406 }], fuente: { herramienta: 'ventas', fuente: 'x', periodo: 'ago' } }],
+    calculos: [{ texto: 'total', formula: 'a + b' }], recomendaciones: [], faltantes: [] };
+  const h = harness([use('a', 'ventas'), final(invented), final(fixed)]);
+  await withUser('owner', async () => {
+    const j = await (await handleAnalyst(req({ question: 'ventas' }), env, h.deps)).json() as { unverified: unknown[] };
+    assert.ok(JSON.stringify(h.seen[2].messages.at(-1)).includes('99999'));
+    assert.deepEqual(j.unverified, []);
+  });
+  const cut: Turn = { ...final({ resumen: 'x', hechos: [], calculos: [], recomendaciones: [], faltantes: [] }), stop: 'max_tokens' };
+  const h2 = harness([cut, final({ resumen: 'breve', hechos: [], calculos: [], recomendaciones: [], faltantes: [] })]);
+  await withUser('owner', async () => {
+    await handleAnalyst(req({ question: '¿cómo vamos?' }), env, h2.deps);
+    assert.ok(JSON.stringify(h2.seen[1].messages.at(-1)).includes('se cortó por largo'));
+  });
+});
+
+test('F3 a gap shown without its sign is verified (data −284,218.18 → "brecha de $284,218")', () => {
+  assert.deepEqual(unverifiedFacts({ hechos: [{ texto: 'La brecha es de $284,218 MXN', cifras: [{ valor: 284218.18 }] }] }, collectNumbers([{ brecha_vs_meta: -284218.18 }])), []);
 });

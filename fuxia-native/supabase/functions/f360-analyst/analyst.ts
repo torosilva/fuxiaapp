@@ -61,9 +61,10 @@ Reglas (no negociables):
 9. Cada hecho lleva su fuente: herramienta que consultaste en ESTA conversación + periodo. Sumas, restas, totales y porcentajes que calcules tú van en "calculos", no en "hechos".
 10. Publicidad: "ROAS" SOLO con ingresos atribuidos a Meta que entregue la herramienta (atribución con evidencia). Venta combinada (en línea + tienda) ÷ inversión es una razón de eficiencia comercial que NO implica atribución: nómbrala así y di qué ventas incluye. Nunca presentes ventas de tienda física como retorno de Meta.
 11. Si una lista viene limitada o recortada, dilo y di cuántos registros faltan; no presentes el tamaño de la lista como total.
+12. Sé breve: resumen de máximo 80 palabras; cada hecho, una frase; máximo 6 hechos.
 ${kind === 'prioridades'
     ? `\nTAREA: propone las TRES prioridades comerciales de esta semana para acelerar ventas rentables. Empieza con senales_semana (últimos 7 días) y confirma con las herramientas que necesites.
-Cada prioridad en "prioridades": texto, evidencia (cifras con fuente), impacto potencial (cálculo explícito o "no cuantificable con los datos actuales"), responsable sugerido (Mario, Carolina, tiendas, agencia de anuncios, contadora) y cómo medir el resultado la próxima semana.`
+Cada prioridad en "prioridades" (exactamente 3, en la herramienta, no solo en el resumen): texto, evidencia (cifras con fuente), impacto potencial (cálculo explícito o "no cuantificable con los datos actuales"), responsable sugerido (Mario, Carolina, tiendas, agencia de anuncios, contadora) y cómo medir el resultado la próxima semana. Cada campo de máximo 25 palabras; máximo 4 hechos.`
     : ''}`;
 }
 
@@ -103,7 +104,8 @@ function economicNumbers(text: string): { raw: string; value: number }[] {
 function matches(raw: string, value: number, known: number[]) {
   const dec = raw.includes('.') ? raw.split('.')[1].length : 0;
   const tol = dec === 0 ? 1 : 0.5 * 10 ** -dec + 1e-9;
-  return known.some((k) => Math.abs(k - value) < tol || Math.abs(k * 100 - value) < tol);   // also a ratio shown as a percentage
+  // also a ratio shown as a percentage, and a gap shown without its sign ("brecha de 284,218" when the data says −284,218.18)
+  return known.some((k) => Math.abs(k - value) < tol || Math.abs(k * 100 - value) < tol || Math.abs(Math.abs(k) - value) < tol);
 }
 
 /** Economic figures stated as FACTS (structured cifras + money/percent in fact texts) or money/percent in the summary that do not
