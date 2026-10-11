@@ -173,6 +173,8 @@ step "Configuración propia de staging4"
   wp_cache_flush();
   echo "opciones de staging4 restauradas: " . count($rows) . PHP_EOL;')
 W db import "$B/keep_tables.sql" >/dev/null
+# Los webhooks propios de staging4 que están apagados (1 y 2) conservan la dirección de Supabase de prod: se pasan a staging.
+W db query "UPDATE ${PFX}wc_webhooks SET delivery_url = REPLACE(delivery_url, 'tgzgiwfzddsghnxgkcqd', 'faltxpkaicwpnlqaxrdu') WHERE delivery_url LIKE '%tgzgiwfzddsghnxgkcqd%'"
 ADMIN="$(W user list --role=administrator --field=ID --orderby=ID --order=ASC | awk 'NR==1')"   # awk lee todo: sin SIGPIPE con pipefail
 [ -n "$ADMIN" ] || { echo "ABORT: no encontré administradora en staging4"; false; }
 W db query "UPDATE ${PFX}wc_webhooks SET user_id = $ADMIN; UPDATE ${PFX}woocommerce_api_keys SET user_id = $ADMIN"
@@ -229,7 +231,8 @@ step "Caché y prueba"
 (cd "$S" && wp maintenance-mode deactivate --skip-plugins --skip-themes >/dev/null 2>&1) || true   # si no se apagó, la prueba http de abajo lo detecta
 (cd "$S" && wp sg purge >/dev/null 2>&1) || true
 [ "$(cd "$S" && wp option get home)" = "https://staging4.fuxiaballerinas.com" ] || { echo "ABORT: home quedó mal"; false; }
-[ "$(cd "$S" && wp wc webhook list --user=$ADMIN --field=delivery_url 2>/dev/null | grep -c tgzgiwfzddsghnxgkcqd)" = "0" ] || { echo "ABORT: un webhook apunta a prod"; false; }
+[ "$(W db query --skip-column-names "SELECT COUNT(*) FROM ${PFX}wc_webhooks WHERE delivery_url LIKE '%tgzgiwfzddsghnxgkcqd%' OR delivery_url LIKE '%//fuxiaballerinas.com%' OR delivery_url LIKE '%//www.fuxiaballerinas.com%'")" = "0" ] || { echo "ABORT: un webhook apunta a prod"; false; }
+W db query --skip-column-names "SELECT CONCAT('   webhook ', webhook_id, ' · ', status, ' → ', SUBSTRING_INDEX(SUBSTRING_INDEX(delivery_url, '/', 3), '/', -1)) FROM ${PFX}wc_webhooks ORDER BY webhook_id"
 trap - ERR
 
 # Respaldos: 7 días.
