@@ -1,4 +1,15 @@
-# Fuxia Academy · Formación ejecutiva dentro de Fuxia 360 (diseño)
+# Fuxia Academy · Escuela Ejecutiva (P1) — diseño conservado
+
+> **Estado (2026-10-11, revisión de Mario a b9abba4).** Este es el diseño original de b9abba4, **conservado íntegro** como la segunda escuela (prioridad **P1**). La prioridad **P0** es Sales Academy; ver `00_FUXIA_ACADEMY_DISENO.md`, que es ahora el documento maestro.
+>
+> **Lo que cambia respecto al texto de abajo** (todo lo demás sigue vigente):
+> 1. **Ruta:** `/academy/ejecutiva`, no `/academy`. `/academy` es ahora la entrada común de las dos escuelas.
+> 2. **Acceso:** permiso explícito de Escuela Ejecutiva (solo Mario al inicio) **y además** el candado de Dirección con verificación en dos pasos. El acceso de Dirección por sí solo ya no basta. Ver `00` §4.
+> 3. **Contenido:** ya no vive como archivos en el repo (§4.1 de abajo). Se guarda en el **mismo motor de contenido versionado** que Sales Academy (`00` §5), con `school = 'executive'`. Las 30 clases se siguen redactando en el repo y se cargan al motor con un script revisado. Se elimina una fuente de verdad duplicada.
+> 4. **Tablas:** las tablas por persona del §3 de abajo (`lesson_progress`, `attempts`, `study_time`…) se unifican con las del motor común (`00` §5). Las vistas de dominio y repaso se mantienen.
+> 5. **Tutor:** el tutor ejecutivo queda como Edge Function **propia** (`f360-academy-exec-tutor`), separada del tutor comercial. Comparten solo la tabla de configuración y la de auditoría, con una fila y un presupuesto por tutor (`00` §14).
+> 6. **Sprint:** A7 en el plan nuevo (`00` §15). Los sprints A0–A7 de la sección 7 de abajo quedan **reemplazados**.
+> 7. **Hallazgos del §1.2** (forced `tool_choice` del analista, precio de lectura de caché, actor del log): siguen vigentes y sin corregir; se resuelven fuera de Academy.
 
 > 2026-10-11 · rama `fuxia-360` · pedido de Mario: un módulo `/academy` con un programa personal de 6 semanas (30 clases), aula interactiva, evaluaciones, seguimiento y un tutor de IA.
 > **Solo diseño.** No se creó ninguna migración ni código. No se tocó producción, staging, WooCommerce, Hilo ni ninguna integración.
