@@ -19,15 +19,16 @@ function withUser(role: string, fn: () => Promise<void>) {
 function harness(turns: Turn[], quota: Record<string, unknown> = { allowed: true, reason: null, settings, spent_month_usd: 1, budget_usd: 100, warning: false },
   intelResult: (tool: string) => Record<string, unknown> = () => ({ ok: true, data: { por_mercado_canal: [{ mercado: 'MX', venta_neta: 56406, pedidos_pagados: 16 }] },
     meta: { fuente: 'Commerce Facts', disponibilidad: 'DISPONIBLE', periodo: { desde: '2026-08-01', hasta: '2026-08-31' } } })) {
-  const seen: RunParams[] = []; const logs: Record<string, unknown>[] = []; const intelCalls: { token: string; tool: string; args: unknown }[] = [];
+  const seen: RunParams[] = []; const logs: Record<string, unknown>[] = []; const reserves: Record<string, unknown>[] = []; const intelCalls: { token: string; tool: string; args: unknown }[] = [];
   const model: AnalystModel = { provider: 'fake', model: 'fake-1', turn: async (p) => { seen.push(JSON.parse(JSON.stringify(p))); return turns.shift() ?? { blocks: [{ type: 'text', text: 'fin' }], stop: 'end_turn', usage: u0 }; } };
   const rpc = async <T>(fn: string, args: Record<string, unknown>) => {
     if (fn === 'f360_ai_quota') return quota as T;
+    if (fn === 'f360_ai_reserve') { reserves.push(args); return { ...quota, reservation_id: (quota as { allowed?: boolean }).allowed ? 41 : undefined } as T; }
     if (fn === 'f360_ai_log') { logs.push(args.p as Record<string, unknown>); return 7 as T; }
     throw new Error(fn);
   };
   const intel = async (token: string, tool: string, args: unknown) => { intelCalls.push({ token, tool, args }); return intelResult(tool); };
-  return { seen, logs, intelCalls, deps: { model, rpc, intel, now: new Date('2026-10-11T16:00:00Z') } };
+  return { seen, logs, intelCalls, reserves, deps: { model, rpc, intel, now: new Date('2026-10-11T16:00:00Z') } };
 }
 const u0 = { input: 1000, output: 100, cacheRead: 0, cacheWrite: 0 };
 const use = (id: string, name: string, input: Record<string, unknown> = {}): Turn => ({ blocks: [{ type: 'tool_use', id, name, input }], stop: 'tool_use', usage: u0 });
@@ -205,4 +206,13 @@ test('Claude provider: cached system + last tool, forced tool_choice, usage mapp
   assert.deepEqual(b.system[0].cache_control, { type: 'ephemeral' }); assert.equal(b.tools[0].cache_control, undefined); assert.deepEqual(b.tools[1].cache_control, { type: 'ephemeral' });
   assert.deepEqual(b.tool_choice, { type: 'tool', name: 'b' }); assert.equal(b.model, 'claude-sonnet-5-5');
   assert.deepEqual(t.usage, { input: 10, output: 5, cacheRead: 3, cacheWrite: 2 });
+});
+
+test('H2 every question reserves its estimated cost atomically and releases it in the audit row (reservation_id)', async () => {
+  const h = harness([use('a', 'ventas'), final({ resumen: 'ok', hechos: [], calculos: [], recomendaciones: [], faltantes: [] })]);
+  await withUser('owner', async () => {
+    await handleAnalyst(req({ question: 'ventas' }), env, h.deps);
+    assert.equal(h.reserves.length, 1); assert.ok(Number(h.reserves[0].p_est_cost) > 0);
+    assert.equal(h.logs[0].reservation_id, 41);
+  });
 });

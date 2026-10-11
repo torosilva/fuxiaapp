@@ -52,9 +52,16 @@ export async function handleAnalyst(req: Request, env: AnalystEnv, deps: Deps = 
   if (question.length < 3 || question.length > 1500) return json({ error: 'Escribe una pregunta (máximo 1,500 caracteres).' }, 400);
   const masked = mask(question);
   const rpc = deps.rpc ?? serviceRpc(env);
-  const log = (row: Record<string, unknown>) => rpc<number>('f360_ai_log', { p: { auth_user_id: u.id, kind, question: masked, duration_ms: Date.now() - started, ...row } }).catch(() => null);
+  let reservationId: number | null = null;
+  const log = (row: Record<string, unknown>) => rpc<number>('f360_ai_log', { p: { auth_user_id: u.id, kind, question: masked, duration_ms: Date.now() - started,
+    ...(reservationId !== null ? { reservation_id: reservationId } : {}), ...row } }).catch(() => null);
 
-  const quota = await rpc<{ allowed: boolean; reason: string | null; settings: Settings; spent_month_usd: number; budget_usd: number; warning: boolean }>('f360_ai_quota', { p_user: u.id });
+  // H2: check AND reserve atomically (advisory lock in the database). The reservation counts against the daily cap and the monthly
+  // budget until the audit row is written (f360_ai_log releases it); estimate = worst plausible cost of one question (H3).
+  const settings0 = await rpc<{ settings: Settings }>('f360_ai_quota', { p_user: u.id });
+  const quota = await rpc<{ allowed: boolean; reason: string | null; settings: Settings; spent_month_usd: number; budget_usd: number; warning: boolean; reservation_id?: number }>(
+    'f360_ai_reserve', { p_user: u.id, p_est_cost: Math.round(maxQuestionCost(settings0.settings) * 1e5) / 1e5 });
+  reservationId = quota.reservation_id ?? null;
   if (!quota.allowed) {
     await log({ status: quota.reason ?? 'apagado' });
     const msg = quota.reason === 'limite_mes' ? 'Se alcanzó el presupuesto mensual de IA. Mario puede ajustarlo en Inteligencia → Consumo.'
