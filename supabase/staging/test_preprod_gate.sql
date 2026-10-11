@@ -179,6 +179,9 @@ BEGIN
   fx1 := (r->>'id')::uuid;
   PERFORM pg_temp.ok(fx1 IS NOT NULL AND f360.fx_rate_for('USD', '2025-02-10') IS NULL, 'D4 documented rate proposed by operator; NOT used until approved', r::text);
   PERFORM pg_temp.ok(pg_temp.as(oper, format('SELECT public.f360_fx_rate_approve(%L)', fx1)) ? 'error', 'D5 operator cannot approve', '');
+  IF to_regclass('f360.approval_scopes') IS NOT NULL THEN  -- I0 (2026-10-11): approval also requires being a listed FX approver
+    EXECUTE format('INSERT INTO f360.approval_scopes (scope, auth_user_id, display_name, added_by_name) VALUES (''fx_rate'', %L, %L, %L) ON CONFLICT DO NOTHING', car, 'prueba', 'test');
+  END IF;
   r := pg_temp.as(car, format('SELECT public.f360_fx_rate_approve(%L)', fx1), 'aal1');
   PERFORM pg_temp.ok((r->>'ok')::boolean AND f360.fx_rate_for('USD', '2025-02-10') = 20.31
     AND (SELECT source_reference IS NOT NULL AND source_retrieved_on = '2025-03-02' AND rate_method = 'MONTHLY_AVERAGE' FROM f360.fx_rates WHERE id = fx1),

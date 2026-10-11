@@ -95,6 +95,9 @@ BEGIN
   r := pg_temp.as(op, $q$SELECT public.f360_fx_rate_propose('USD', '2025-01-15', 20.50, 'Banxico FIX promedio mensual (prueba)', 'https://www.banxico.org.mx/SieInternet/ (prueba)', '2025-02-03', 'MONTHLY_AVERAGE')$q$); id2 := (r->>'id')::uuid;
   PERFORM pg_temp.ok(pg_temp.truth()->'q8_net_product_revenue'->'consolidated_mxn'->>'status' = 'DATA_INCOMPLETE', 'TEST 15b · a PROPOSED (not approved) rate is never used', '');
   PERFORM pg_temp.ok(pg_temp.as(op, format('SELECT public.f360_fx_rate_approve(%L)', id1)) ? 'error', 'FX: an operator cannot approve a rate', '');
+  IF to_regclass('f360.approval_scopes') IS NOT NULL THEN  -- I0 (2026-10-11): approval also requires being a listed FX approver
+    EXECUTE format('INSERT INTO f360.approval_scopes (scope, auth_user_id, display_name, added_by_name) VALUES (''fx_rate'', %L, %L, %L) ON CONFLICT DO NOTHING', own, 'prueba', 'test');
+  END IF;
   PERFORM pg_temp.as(own, format('SELECT public.f360_fx_rate_approve(%L)', id1));
   PERFORM pg_temp.ok(pg_temp.truth()->'q8_net_product_revenue'->'consolidated_mxn'->>'status' = 'DATA_INCOMPLETE', 'TEST 15c · one currency still without rate → still DATA_INCOMPLETE', '');
   PERFORM pg_temp.as(own, format('SELECT public.f360_fx_rate_approve(%L)', id2));
