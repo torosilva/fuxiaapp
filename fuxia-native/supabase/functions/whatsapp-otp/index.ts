@@ -116,14 +116,13 @@ async function sendOtp(to: string, code: string): Promise<{ channel: 'sms' | 'wh
 // One-time server-side session for the account {phone}@fuxia.app. Creates the account (random, never-stored password) if needed.
 async function issueSession(admin: ReturnType<typeof createClient>, authPhone: string) {
   const email = `${authPhone.replace('+', '')}@fuxia.app`;
-  let link = await admin.auth.admin.generateLink({ type: 'magiclink', email });
-  if (link.error || !link.data?.properties?.hashed_token) {
-    const random = `${crypto.randomUUID()}${crypto.randomUUID()}`;
-    const created = await admin.auth.admin.createUser({ email, password: random, email_confirm: true, user_metadata: { phone: authPhone } });
-    if (created.error) return { error: 'create' as const };
-    link = await admin.auth.admin.generateLink({ type: 'magiclink', email });
-    if (link.error || !link.data?.properties?.hashed_token) return { error: 'link' as const };
-  }
+  // Create first (an existing account answers "already registered", which is fine), then ask for ONE link: Auth rate-limits
+  // repeated link requests for the same email, so a second generateLink right after a failed one would be refused.
+  const random = `${crypto.randomUUID()}${crypto.randomUUID()}`;
+  const created = await admin.auth.admin.createUser({ email, password: random, email_confirm: true, user_metadata: { phone: authPhone } });
+  if (created.error && !/already|exists|registered/i.test(created.error.message ?? '')) return { error: 'create' as const };
+  const link = await admin.auth.admin.generateLink({ type: 'magiclink', email });
+  if (link.error || !link.data?.properties?.hashed_token) return { error: 'link' as const };
   const user = link.data.user;
   if (user && !user.user_metadata?.phone) {
     await admin.auth.admin.updateUserById(user.id, { user_metadata: { ...(user.user_metadata ?? {}), phone: authPhone } });
