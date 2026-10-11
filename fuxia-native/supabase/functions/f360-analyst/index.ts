@@ -6,7 +6,8 @@ const env = {
   SUPABASE_URL: Deno.env.get('SUPABASE_URL') ?? '',
   SUPABASE_ANON_KEY: Deno.env.get('SUPABASE_ANON_KEY') ?? '',
   SUPABASE_SERVICE_ROLE_KEY: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-  ANTHROPIC_API_KEY: Deno.env.get('ANTHROPIC_API_KEY') ?? '',
+  // the dashboard keeps the name as typed: accept the lowercase spelling too (staging was saved as anthropic_api_key)
+  ANTHROPIC_API_KEY: Deno.env.get('ANTHROPIC_API_KEY') ?? Deno.env.get('anthropic_api_key') ?? '',
   F360_AI_PROVIDER: Deno.env.get('F360_AI_PROVIDER') ?? '',
 };
 
