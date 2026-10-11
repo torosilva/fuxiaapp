@@ -1,0 +1,25 @@
+-- Rollback of 20261024000300_f360_intel_metrics (I1b): read-only functions only, no data. Run inside one transaction (no BEGIN/COMMIT here).
+DROP FUNCTION public.f360_intel_query(text, jsonb);
+DROP FUNCTION public.f360_intel_cockpit(date);
+DROP FUNCTION public.f360_intel_valid_range(date, date);
+DROP FUNCTION f360.intel_cockpit_core(date);
+DROP FUNCTION f360.intel_sources_core();
+DROP FUNCTION f360.intel_signals_core(date, date);
+DROP FUNCTION f360.intel_funnel_core(date, date);
+DROP FUNCTION f360.intel_forecast_core(date);
+DROP FUNCTION f360.intel_cash_core(date);
+DROP FUNCTION f360.intel_margin_core(date, date);
+DROP FUNCTION f360.intel_inventory_core(int);
+DROP FUNCTION f360.intel_payments_core(date, date);
+DROP FUNCTION f360.intel_marketing_core(date, date);
+DROP FUNCTION f360.intel_goal_core(text, date);
+DROP FUNCTION f360.intel_budget_core(date, date);
+DROP FUNCTION f360.intel_sales_core(date, date);
+DROP FUNCTION f360.intel_to_mxn(jsonb);
+DROP FUNCTION f360.intel_orders(date, date);
+DROP FUNCTION f360.intel_cur(text);
+DROP FUNCTION f360.intel_today();
+DROP FUNCTION f360.intel_meta(text, date, date, text, text, jsonb, jsonb, timestamptz, text);
+DROP FUNCTION f360.intel_gate(text, jsonb);
+DROP FUNCTION f360.intel_actor();
+DELETE FROM supabase_migrations.schema_migrations WHERE version = '20261024000300';
