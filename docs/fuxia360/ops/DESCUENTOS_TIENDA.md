@@ -1,6 +1,6 @@
 # Descuentos en la venta de tienda
 
-**Decisión:** Mario, 2026-10-11. **Estado:** en STAGING. Producción, pendiente (ver §7).
+**Decisión:** Mario, 2026-10-11. **Estado:** **EN PRODUCCIÓN desde 2026-10-11.** Pase `supabase/pase/20261011_descuentos_tienda.sql`: ensayo en seco OK y luego aplicado. Admin desplegado. App publicada por OTA para Android 1.0.2 e iOS 1.0.1.
 Este documento cambia la decisión Q3 del Sprint 0, que decía "las vendedoras no descuentan" (`docs/fuxia360/audit/SPRINT_0_IMPLEMENTATION_PLAN.md`).
 
 ## 1. Reglas (Mario; ninguna inventada)
@@ -57,8 +57,8 @@ Este documento cambia la decisión Q3 del Sprint 0, que decía "las vendedoras n
 - [x] Cada venta con descuento guarda el porcentaje, el monto, el motivo, quién lo autorizó y cómo, y queda marcada "sin cambio".
 - [ ] Probado a mano en el teléfono de una vendedora y en el admin de Carolina (staging), después del pase.
 
-## 7. Para producción
-1. **Depende de `20261024000100`** (`f360.approval_scopes`, del trabajo de tipos de cambio de otra sesión), que todavía **no está en producción**. Se aplica antes, o se extrae `approval_scopes` a su propio pase.
-2. Pase: la migración + `INSERT INTO f360.approval_scopes (scope, auth_user_id, display_name, added_by_name) VALUES ('store_discount', <Carolina prod>, 'Carolina', 'Mario 2026-10-11')`.
-3. **Carolina necesita un PIN** (Vendedoras → PIN) para aprobar en la tienda.
-4. Después: desplegar el admin y publicar la app (OTA iOS 1.0.1 y Android 1.0.2). Antes de eso no se ve nada, por diseño.
+## 7. Producción (hecho 2026-10-11)
+1. **Tabla de aprobaciones separada:** `f360.approval_scopes` pasó a su propia migración, `20261023000200` (idempotente). `20261024000100` (tipos de cambio diarios, otra sesión) ahora usa `IF NOT EXISTS` / `OR REPLACE`, así que se puede aplicar después sin error. La sesión de Inteligencia ya ajustó su reversión para no borrar la tabla.
+2. **Pase aplicado:** las dos migraciones y Carolina (`31da6b13…`) como **única** aprobadora de `store_discount`. Chequeos posteriores en el mismo pase: Mario no aprueba, Carolina tiene PIN, firmas de las funciones, permisos, y ninguna venta anterior quedó modificada.
+3. **Staging se refresca cada noche** desde producción y vuelve a aplicar las migraciones de `origin/fuxia-360` en orden. Las tres migraciones son compatibles con eso.
+4. **Pendiente:** prueba a mano en tienda (una vendedora con 10 % y otra con más de 10 % por PIN y por Avisos).
