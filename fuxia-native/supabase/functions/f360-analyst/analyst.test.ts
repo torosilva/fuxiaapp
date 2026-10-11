@@ -240,3 +240,11 @@ test('F2/F3 a fact with a figure not in the data triggers a correction asking to
 test('F3 a gap shown without its sign is verified (data −284,218.18 → "brecha de $284,218")', () => {
   assert.deepEqual(unverifiedFacts({ hechos: [{ texto: 'La brecha es de $284,218 MXN', cifras: [{ valor: 284218.18 }] }] }, collectNumbers([{ brecha_vs_meta: -284218.18 }])), []);
 });
+
+test('F3 totals of ONE tool table (overall and by mercado) are derived data; an unrelated figure is still flagged', () => {
+  const known = collectNumbers([{ por_metodo: [
+    { mercado: 'CO', metodo: 'epayco', monto_no_cobrado: 3000000, nunca_pagados: 9 }, { mercado: 'CO', metodo: 'ppcp', monto_no_cobrado: 2451000, nunca_pagados: 5 },
+    { mercado: 'MX', metodo: 'mp', monto_no_cobrado: 35120, nunca_pagados: 11 }] }]);
+  assert.deepEqual(unverifiedFacts({ hechos: [{ texto: 'Colombia: COP 5,451,000 sin cobrar en 14 pedidos', cifras: [{ valor: 5451000 }, { valor: 14 }] }] }, known), []);
+  assert.deepEqual(unverifiedFacts({ hechos: [{ texto: 'Total $7,777,777', cifras: [{ valor: 7777777 }] }] }, known).map((x) => x.valor), [7777777]);
+});

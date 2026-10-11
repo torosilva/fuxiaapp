@@ -44,6 +44,14 @@ export const ANSWER_TOOL: ToolDef = {
   } },
 };
 
+/** In "prioridades" mode the same answer tool REQUIRES exactly three priorities (the model must fill them, not only the summary). */
+export function answerTool(kind: 'pregunta' | 'prioridades'): ToolDef {
+  if (kind !== 'prioridades') return ANSWER_TOOL;
+  const schema = ANSWER_TOOL.input_schema as { properties: Record<string, Record<string, unknown>>; required: string[] };
+  return { ...ANSWER_TOOL, input_schema: { ...schema, required: [...schema.required, 'prioridades'],
+    properties: { ...schema.properties, prioridades: { ...schema.properties.prioridades, minItems: 3, maxItems: 3 } } } };
+}
+
 export function systemPrompt(today: string, kind: 'pregunta' | 'prioridades') {
   return `Eres el analista de negocio de Fuxia Ballerinas (zapatos de mujer; México y Colombia; tienda en línea WooCommerce y tiendas físicas en CDMX).
 Hoy es ${today} (hora de Ciudad de México). Respondes a la dirección (Mario y Carolina) en español claro, sin tecnicismos.
@@ -82,10 +90,28 @@ const toNum = (t: string) => Number(t.replace(/,/g, ''));
 /** Every numeric value present in tool payloads: numbers, numeric strings and numbers written INSIDE texts (e.g. "179 pares"). */
 export function collectNumbers(payloads: unknown[]): number[] {
   const out: number[] = [];
+  const num = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : typeof x === 'string' && /^-?\d+(\.\d+)?$/.test(x.trim()) ? Number(x) : null);
+  // column totals of a table returned by a tool (all rows, and rows grouped by each text column, e.g. by mercado / metodo):
+  // a total the model adds up from ONE tool table is derived data, not an invented figure
+  const totals = (rows: Record<string, unknown>[]) => {
+    const cols = new Set(rows.flatMap((r) => Object.keys(r).filter((k) => num(r[k]) !== null)));
+    const groups = new Set(rows.flatMap((r) => Object.keys(r).filter((k) => typeof r[k] === 'string' && num(r[k]) === null)));
+    for (const c of cols) {
+      out.push(rows.reduce((t, r) => t + (num(r[c]) ?? 0), 0));
+      for (const g of groups) {
+        const by = new Map<string, number>();
+        for (const r of rows) by.set(String(r[g]), (by.get(String(r[g])) ?? 0) + (num(r[c]) ?? 0));
+        out.push(...by.values());
+      }
+    }
+  };
   const walk = (v: unknown) => {
     if (typeof v === 'number' && Number.isFinite(v)) out.push(v);
     else if (typeof v === 'string') { for (const m of v.matchAll(NUM_IN_TEXT)) out.push(toNum(m[0])); }
-    else if (Array.isArray(v)) v.forEach(walk);
+    else if (Array.isArray(v)) {
+      v.forEach(walk);
+      if (v.length > 1 && v.length <= 500 && v.every((r) => r && typeof r === 'object' && !Array.isArray(r))) totals(v as Record<string, unknown>[]);
+    }
     else if (v && typeof v === 'object') Object.values(v).forEach(walk);
   };
   payloads.forEach(walk);
@@ -127,12 +153,20 @@ export function unverifiedFacts(answer: { resumen?: string; hechos?: { texto?: s
 
 const RECO_KEYS = ['texto', 'evidencia', 'impacto', 'responsable', 'medicion'] as const;
 const parseMaybe = (v: unknown) => { if (typeof v !== 'string') return v; try { return JSON.parse(v); } catch { return v; } };
+const plainKey = (k: string) => k.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+/** keys without accents / case ("medición" → "medicion", "Evidencia" → "evidencia"), recursively for objects in lists */
+function normalizeKeys(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(normalizeKeys);
+  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v as Record<string, unknown>).map(([k, x]) => [plainKey(k), normalizeKeys(x)]));
+  return v;
+}
 
 /** F2 · structural validation of the final answer and its traceability. A fact is "traceable" when it names a data tool that was
  *  actually called in this conversation and a period. Untraceable facts are moved to sin_fuente (shown as NOT verified). */
 export function validateAnswer(input: unknown, calledTools: string[], kind: 'pregunta' | 'prioridades') {
   const problems: string[] = [];
-  const a = (parseMaybe(input) ?? {}) as Record<string, unknown>;
+  const a = normalizeKeys(parseMaybe(input) ?? {}) as Record<string, unknown>;
+  for (const k of ['hechos', 'calculos', 'recomendaciones', 'prioridades', 'faltantes']) if (typeof a[k] === 'string') a[k] = normalizeKeys(parseMaybe(a[k]));
   const arr = (k: string) => { const v = parseMaybe(a[k]); if (v === undefined || v === null) return []; if (!Array.isArray(v)) { problems.push(`"${k}" debe ser una lista`); return []; } return v; };
   const resumen = typeof a.resumen === 'string' ? a.resumen.trim() : '';
   if (!resumen) problems.push('falta "resumen"');
@@ -148,7 +182,11 @@ export function validateAnswer(input: unknown, calledTools: string[], kind: 'pre
   if (calledTools.length > 0 && hechos.length === 0 && economicNumbers(resumen).length > 0) problems.push('las cifras del resumen deben ir en "hechos" con su herramienta y periodo');
   const recos = (k: string) => arr(k).filter((r: Record<string, unknown>) => RECO_KEYS.every((x) => typeof r?.[x] === 'string' && (r[x] as string).trim()));
   const prioridades = recos('prioridades');
-  if (kind === 'prioridades' && prioridades.length !== 3) problems.push(`se piden exactamente 3 prioridades completas (texto, evidencia, impacto, responsable, medición); llegaron ${prioridades.length}`);
+  if (kind === 'prioridades' && prioridades.length !== 3) {
+    const raw = Array.isArray(a.prioridades) ? a.prioridades : [];
+    const got = raw.length ? `recibí ${raw.length} con campos ${JSON.stringify(Object.keys((raw[0] ?? {}) as object))}` : 'no recibí la lista "prioridades"';
+    problems.push(`se piden exactamente 3 prioridades en la lista "prioridades", cada una con los campos texto, evidencia, impacto, responsable y medicion (texto no vacío); ${got}`);
+  }
   const answer = { resumen: resumen || 'Sin resumen.', hechos, calculos: arr('calculos').filter((c: Record<string, unknown>) => typeof c?.texto === 'string'),
     recomendaciones: recos('recomendaciones'), prioridades, faltantes: arr('faltantes').filter((f: Record<string, unknown>) => typeof f?.que === 'string'),
     sin_fuente: sinFuente, validacion: { estado: problems.length ? 'incompleta' : 'completa', problemas: problems } };

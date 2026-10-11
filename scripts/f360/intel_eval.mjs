@@ -88,6 +88,9 @@ const CASES = [
     expect: 'Las fechas escritas llegan intactas a la herramienta (desde 2026-08-01, hasta 2026-08-31).' },
 ];
 
+// EVAL_ONLY=P1,SEM,… runs a subset (the per-person daily cap of 40 questions applies)
+const ONLY = (process.env.EVAL_ONLY ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+if (ONLY.length) CASES.splice(0, CASES.length, ...CASES.filter((c) => ONLY.includes(c.tag)));
 const before = sql(SNAP);
 // ground truth for the regression cases, read-only, straight from the metrics layer (no gate, no writes)
 const truth = JSON.parse(sql(`SELECT jsonb_build_object(

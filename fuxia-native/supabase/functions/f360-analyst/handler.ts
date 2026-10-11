@@ -6,7 +6,7 @@
 //      cálculos / recomendaciones / faltantes); 5. verifier: numbers stated as facts must exist in tool payloads; 6. audit row
 //      (f360_ai_log, cost computed by the database). The question is masked before it is sent or stored.
 import { f360User, serviceRpc, type SupabaseEnv } from '../_shared/f360-woo/supabase.ts';
-import { ANSWER_TOOL, DATA_TOOLS, collectNumbers, mask, systemPrompt, unverifiedFacts, validateAnswer } from './analyst.ts';
+import { ANSWER_TOOL, DATA_TOOLS, answerTool, collectNumbers, mask, systemPrompt, unverifiedFacts, validateAnswer } from './analyst.ts';
 import { makeModel, type AnalystModel, type Block, type Message } from './provider.ts';
 
 export type AnalystEnv = SupabaseEnv & { ANTHROPIC_API_KEY?: string; F360_AI_PROVIDER?: string };
@@ -81,7 +81,8 @@ export async function handleAnalyst(req: Request, env: AnalystEnv, deps: Deps = 
   const intel = deps.intel ?? intelCaller(env);
   const signal = AbortSignal.timeout(s.timeout_seconds * 1000);
   const messages: Message[] = [{ role: 'user', content: masked }];
-  const allTools = [...DATA_TOOLS, ANSWER_TOOL];
+  const finalTool = answerTool(kind);
+  const allTools = [...DATA_TOOLS, finalTool];
   const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
   const calls: { tool: string; args: unknown; disponibilidad: unknown; fuente: unknown }[] = [];
   const payloads: unknown[] = [];
@@ -94,7 +95,7 @@ export async function handleAnalyst(req: Request, env: AnalystEnv, deps: Deps = 
     // the next turn only OFFERS entregar_respuesta and says so in plain words.
     for (let step = 0; step < s.max_tool_calls + 4 && !answer; step++) {
       closing = closing || calls.length >= s.max_tool_calls;
-      const t = await model.turn({ system: systemPrompt(mxToday(deps.now), kind), messages, tools: closing ? [ANSWER_TOOL] : allTools, maxTokens: s.max_output_tokens, signal });
+      const t = await model.turn({ system: systemPrompt(mxToday(deps.now), kind), messages, tools: closing ? [finalTool] : allTools, maxTokens: s.max_output_tokens, signal });
       usage.input += t.usage.input; usage.output += t.usage.output; usage.cacheRead += t.usage.cacheRead; usage.cacheWrite += t.usage.cacheWrite;
       messages.push({ role: 'assistant', content: t.blocks });
       const uses = t.blocks.filter((b): b is Extract<Block, { type: 'tool_use' }> => b.type === 'tool_use');
