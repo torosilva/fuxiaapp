@@ -42,7 +42,8 @@ BEGIN
 
   -- R3 H2: reservations are atomic and count against the limits until the audit row is written (limits restored afterwards)
   SELECT monthly_budget_usd, per_user_daily INTO b0, d0 FROM f360.ai_settings;
-  UPDATE f360.ai_settings SET monthly_budget_usd = (SELECT coalesce(sum(cost_usd), 0) FROM f360.ai_queries WHERE at >= date_trunc('month', now() AT TIME ZONE 'America/Mexico_City') AT TIME ZONE 'America/Mexico_City') + 0.30;
+  -- independent of how many questions the demo user already asked today: the daily cap is lifted here and checked separately below
+  UPDATE f360.ai_settings SET per_user_daily = 1000, monthly_budget_usd = (SELECT coalesce(sum(cost_usd), 0) FROM f360.ai_queries WHERE at >= date_trunc('month', now() AT TIME ZONE 'America/Mexico_City') AT TIME ZONE 'America/Mexico_City') + 0.30;
   PERFORM set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, true);
   q1 := public.f360_ai_reserve(mario, 0.20);
   q2 := public.f360_ai_reserve(mario, 0.20);

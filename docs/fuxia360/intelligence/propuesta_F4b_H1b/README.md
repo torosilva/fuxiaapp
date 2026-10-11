@@ -1,4 +1,4 @@
-# Propuesta F4b · H1b (Centro de Inteligencia) — PENDIENTE DE REVISIÓN Y APROBACIÓN
+# F4b · H1b (Centro de Inteligencia) — APROBADA por Mario 2026-10-11 ("si"); ensayo limpio; aplicada SOLO en staging
 
 > 2026-10-11 · **No ejecutada:** ni la migración ni el ensayo. Los archivos están fuera de `supabase/migrations/` para que la copia
 > nocturna de staging no la aplique sola. Al aprobarla:

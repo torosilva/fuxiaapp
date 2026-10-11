@@ -11,7 +11,7 @@ CREATE TEMP TABLE _e_fn ON COMMIT DROP AS
   FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname IN ('f360','f360_board','public') AND p.prokind = 'f';
 CREATE TEMP TABLE _e_w ON COMMIT DROP AS SELECT relid, n_tup_ins, n_tup_upd, n_tup_del FROM pg_stat_xact_user_tables;
 \echo '== migración'
-\i docs/fuxia360/intelligence/propuesta_F4b_H1b/20261024000600_f360_intel_f4b_h1b.sql
+\i supabase/migrations/20261024000600_f360_intel_f4b_h1b.sql
 \echo '== evidencia (todo debe ser 0, salvo funciones_con_cuerpo_nuevo = 2)'
 SELECT
   (SELECT count(*) FROM pg_stat_xact_user_tables s LEFT JOIN _e_w b USING (relid) WHERE s.schemaname NOT LIKE 'pg_temp%'
@@ -20,15 +20,15 @@ SELECT
   (SELECT count(*) FROM _e_pol e WHERE e.h IS DISTINCT FROM (SELECT md5(string_agg(schemaname||tablename||policyname||coalesce(qual,'')||coalesce(with_check,'')||array_to_string(roles,','), '|' ORDER BY schemaname, tablename, policyname)) FROM pg_policies)) AS politicas_rls,
   (SELECT count(*) FROM _e_fn f JOIN pg_proc p ON p.oid::regprocedure::text = f.fn WHERE pg_get_function_result(p.oid) <> f.res OR p.prosecdef <> f.prosecdef OR p.provolatile <> f.provolatile OR coalesce(p.proacl::text,'') <> f.acl) AS contratos_o_permisos_de_funciones,
   (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname IN ('f360','f360_board','public') AND p.prokind = 'f' AND NOT EXISTS (SELECT 1 FROM _e_fn f WHERE f.fn = p.oid::regprocedure::text)) AS funciones_nuevas,
-  (SELECT string_agg(f.fn, ', ') FROM _e_fn f JOIN pg_proc p ON p.oid::regprocedure::text = f.fn WHERE md5(pg_get_functiondef(p.oid)) <> f.def) AS funciones_con_cuerpo_nuevo;
+  (SELECT string_agg(f.fn, ', ') FROM _e_fn f WHERE md5(pg_get_functiondef(f.fn::regprocedure)) <> f.def) AS funciones_con_cuerpo_nuevo;
 \echo '== pruebas F4b/H1b (T1–T4)'
-\i docs/fuxia360/intelligence/propuesta_F4b_H1b/test_intel_f4b_h1b.sql
+\i supabase/staging/test_intel_f4b_h1b.sql
 \echo '== regresión: F4/F5/H2 R1–R4, métricas M1–M15, analista A1–A8'
 \i $TMPDIR_TESTS/t_intel_f4_f5_h2.sql
 \i $TMPDIR_TESTS/t_intel_metrics.sql
 \i $TMPDIR_TESTS/t_ai_analyst.sql
 \echo '== rollback y verificación de que las 2 funciones vuelven EXACTAS'
-\i docs/fuxia360/intelligence/propuesta_F4b_H1b/20261024000600_f360_intel_f4b_h1b.down.sql
-SELECT count(*) AS funciones_restauradas_exactas, 2 AS de FROM _e_fn f JOIN pg_proc p ON p.oid::regprocedure::text = f.fn
-  WHERE f.fn IN ('f360.intel_signals_core(date,date)', 'f360.ai_mask(text)') AND md5(pg_get_functiondef(p.oid)) = f.def;
+\i supabase/rollbacks/20261024000600_f360_intel_f4b_h1b.down.sql
+SELECT count(*) AS funciones_restauradas_exactas, 2 AS de FROM _e_fn f
+  WHERE f.fn IN ('f360.intel_signals_core(date,date)', 'f360.ai_mask(text)') AND md5(pg_get_functiondef(f.fn::regprocedure)) = f.def;
 ROLLBACK;
