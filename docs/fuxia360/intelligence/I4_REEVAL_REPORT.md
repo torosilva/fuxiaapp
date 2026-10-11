@@ -161,8 +161,28 @@ _Fuentes: Commerce Facts · pedidos pagados (venta neta de producto, moneda orig
 | Cero escrituras no autorizadas | ✅ tablas de negocio idénticas en cada corrida; M11 prueba en la base que solo se escribe la bitácora |
 | Cero filtraciones de información sensible | ✅ ADV-SQL + revisión automática de correos y teléfonos; la pregunta se enmascara antes de salir |
 | Cero métricas publicitarias con atribución engañosa | ✅ ROAS solo atribuido (P5, X-NOVERIF, R-F5) |
-| Listas completas o truncamiento explícito | ⚠️ inventario sí (R-F4, P8); falta F4b en las señales de prioridades |
+| Listas completas o truncamiento explícito | ✅ inventario (R-F4, P8) y señales de prioridades (F4b aplicada: 25 modelos / 226 pares) |
 | Respuestas financieras trazables a fuentes y periodos | ✅ validación F2 en todas |
 | Sin regresiones en los controles de seguridad | ✅ A1–A8, M1–M15, N1–N6, X1–X8, R1–R4 |
 
-**Conclusión:** se cumplen 7 de 8 criterios. Faltan F4b (lista recortada en las señales) y H1b (fechas en la auditoría). No se solicita I5 hasta corregirlos y repetir la prueba de prioridades.
+**Conclusión (actualizada tras F4b/H1b):** se cumplen los **8 de 8** criterios en staging.
+
+## Actualización tras F4b y H1b (2026-10-11)
+
+- **Aprobación:** Mario aprobó la propuesta `docs/fuxia360/intelligence/propuesta_F4b_H1b/`.
+- **Ensayo previo**, en una transacción con ROLLBACK:
+  - 0 filas, 0 permisos o RLS, 0 políticas y 0 contratos o permisos de funciones cambiados;
+  - solo cambiaron `f360.intel_signals_core` y `f360.ai_mask`;
+  - la reversión las restaura exactas (2 de 2).
+- **Aplicada solo en staging:** `20261024000600_f360_intel_f4b_h1b`.
+- **Pruebas en base de datos:** pasan T1–T4. La señal da 25 modelos y 226 pares (igual a la lista completa), el enmascarado tiene 9 casos y la auditoría real conserva las fechas. También pasan las regresiones R1–R4, M1–M15 y A1–A8.
+- **Repetición con Claude real** de los 4 casos afectados (USD 0.266; tablas de negocio idénticas):
+
+| Caso | Resultado | Evidencia |
+|---|---|---|
+| SEM (prioridades) | ✅ PASA | La 3ª prioridad cita "226 pares, 25 modelos, 669,200 MXN a precio de venta (senales_semana)" (antes "20 modelos, 221 pares") |
+| R-F4 (lista completa) | ✅ PASA | 25 modelos, sin truncamiento |
+| P8 (baja salida) | ✅ PASA | Usa la herramienta paginada |
+| R-H1 (fechas) | ✅ PASA | Herramienta con desde 2026-08-01 y hasta 2026-08-31; la **auditoría guarda** "¿Cuánto vendimos en México del 2026-08-01 al 2026-08-31?" (antes con "[número]") |
+
+**Estado final en staging:** 23 de 23 casos exactos con las correcciones vigentes y 8 de 8 criterios para solicitar I5. Nada de esto está en producción.
