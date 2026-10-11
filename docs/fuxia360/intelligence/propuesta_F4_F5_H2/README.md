@@ -1,4 +1,4 @@
-# Propuesta de migración F4 · F5 · H2 (Centro de Inteligencia) — PENDIENTE DE APROBACIÓN
+# Migración F4 · F5 · H2 (Centro de Inteligencia) — APROBADA por Mario 2026-10-11 ("si"), aplicada SOLO en staging
 
 > 2026-10-11 · **No aplicada.** Los archivos están FUERA de `supabase/migrations/` a propósito. La copia nocturna de staging reaplica
 > desde GitHub todo lo que haya en esa carpeta, así que ponerla ahí la aplicaría sola antes de tu aprobación.
