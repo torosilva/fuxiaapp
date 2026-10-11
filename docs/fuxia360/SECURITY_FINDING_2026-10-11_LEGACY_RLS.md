@@ -32,3 +32,38 @@
    - restringir `auth read staff/offline_sales/support_tickets` a staff/admin (`my_role()`) o a la propia clienta (`my_customer_id()`).
 3. **Rotar los NIP** del personal si la app anterior todavía los usa para algo.
 4. Probar la app móvil (compras, puntos, tickets) y la tienda antes y después.
+
+## Investigación de uso (2026-10-11, solo lecturas de código y producción)
+**Conclusión: el modo anterior de la app (NIP sin sesión) sigue vivo en producción.** Cerrar hoy las políticas `anon_*` dejaría sin vender a las tiendas que todavía lo usan.
+
+**Ventas de los últimos 30 días en `public.offline_sales`** (consulta en producción)
+
+| Canal | Vía | Ventas | Última |
+|---|---|---|---|
+| Guadalajara | app anterior (insert directo) | 27 | 2026-09-30 |
+| Tienda Polanco | app anterior | 5 | 2026-10-05 |
+| Contreras | app anterior | 1 | 2026-09-17 |
+| (sin canal) | Fuxia 360 (RPC, `created_by_rpc`) | 7 | 2026-10-10 |
+
+**Código que depende de cada política**
+
+| Política | Quién la usa |
+|---|---|
+| `anon_read_active_staff` (incluye `pin`) | `fuxia-native/app/vendedora/index.tsx:132`. La pantalla de NIP filtra `staff` por `pin` sin sesión. Se muestra a quien no tiene cuenta (`index.tsx:48`) y a dueñas y operadoras en "modo anterior". |
+| `anon_insert_offline_sales` | `fuxia-native/app/vendedora/sale.tsx:190` (venta del modo anterior) |
+| `anon_update_inventory_sold` | `vendedora/sale.tsx:162` (`sold + qty` desde el cliente) y `vendedora/inventory.tsx:92` (`stock`) |
+| `icr read open` | `vendedora/inventory.tsx:60` y `admin/inventory-approvals.tsx` |
+| `auth read support_tickets` | Solo pantallas de admin: `admin/index.tsx`, `admin/customer/[id].tsx`, `admin/dashboard-today.tsx`. La Edge Function `escalate-to-staff` usa la llave de servicio. |
+| `auth read offline_sales` | Admin (`admin/*`), `vendedora/home.tsx` y `sales-today.tsx`, y `tracking/index.tsx:123` (la clienta busca ventas no reclamadas por su teléfono). |
+
+## Pase propuesto, en dos fases (NO aplicado)
+**Fase A: no rompe nada; se puede aplicar ya con su "sí".**
+- `support_tickets`: lectura solo para `my_role() in ('admin','staff')`.
+- `offline_sales` (sesión): admin/staff, o la clienta dueña (`customer_id = my_customer_id()` o su teléfono).
+- `staff` (sesión): admin/staff. Quitar `pin` del SELECT para `authenticated` con privilegios por columna.
+- Ensayo en staging, prueba de la app (admin, vendedora F360, tracking) y `.down.sql`.
+
+**Fase B: requiere decidir el retiro del modo anterior.**
+- Mover Guadalajara y Contreras (y Polanco, si todavía alterna) al turno de Fuxia 360, o reemplazar el NIP por un RPC `SECURITY DEFINER` que valide en el servidor sin devolver `pin`.
+- Después, quitar `anon_read_active_staff`, `anon_insert_offline_sales`, `anon_update_inventory_sold` y `anon_read_*`.
+- Rotar los NIP. Hoy los puede leer cualquiera que tenga la llave pública.
