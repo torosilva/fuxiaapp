@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { handleAnalyst, type AnalystEnv } from './handler.ts';
 import { ClaudeModel, type AnalystModel, type RunParams, type Turn } from './provider.ts';
-import { collectNumbers, mask, unverifiedFacts, validateAnswer } from './analyst.ts';
+import { answerTool, collectNumbers, mask, unverifiedFacts, validateAnswer } from './analyst.ts';
 
 const env: AnalystEnv = { SUPABASE_URL: 'http://sb', SUPABASE_ANON_KEY: 'anon', SUPABASE_SERVICE_ROLE_KEY: 'svc', ANTHROPIC_API_KEY: 'sk-test' };
 const req = (body: unknown, token = 'user-jwt') => new Request('http://x', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
@@ -247,4 +247,12 @@ test('F3 totals of ONE tool table (overall and by mercado) are derived data; an 
     { mercado: 'MX', metodo: 'mp', monto_no_cobrado: 35120, nunca_pagados: 11 }] }]);
   assert.deepEqual(unverifiedFacts({ hechos: [{ texto: 'Colombia: COP 5,451,000 sin cobrar en 14 pedidos', cifras: [{ valor: 5451000 }, { valor: 14 }] }] }, known), []);
   assert.deepEqual(unverifiedFacts({ hechos: [{ texto: 'Total $7,777,777', cifras: [{ valor: 7777777 }] }] }, known).map((x) => x.valor), [7777777]);
+});
+
+test('F1 priorities mode: the answer tool asks for the 3 priorities FIRST (before facts) so the token limit cannot cut them', () => {
+  const sch = answerTool('prioridades').input_schema as { properties: Record<string, { minItems?: number; maxItems?: number }>; required: string[] };
+  assert.deepEqual(Object.keys(sch.properties).slice(0, 2), ['resumen', 'prioridades']);
+  assert.equal(sch.properties.prioridades.minItems, 3); assert.equal(sch.properties.prioridades.maxItems, 3);
+  assert.ok(sch.required.includes('prioridades')); assert.equal(sch.properties.hechos.maxItems, 4);
+  assert.deepEqual(Object.keys((answerTool('pregunta').input_schema as { properties: object }).properties).slice(0, 2), ['resumen', 'hechos']);
 });

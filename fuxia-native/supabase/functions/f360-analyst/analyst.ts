@@ -47,9 +47,13 @@ export const ANSWER_TOOL: ToolDef = {
 /** In "prioridades" mode the same answer tool REQUIRES exactly three priorities (the model must fill them, not only the summary). */
 export function answerTool(kind: 'pregunta' | 'prioridades'): ToolDef {
   if (kind !== 'prioridades') return ANSWER_TOOL;
+  // the model writes the fields in schema order: priorities go FIRST (right after the summary) so the output-token limit can never
+  // cut them off; facts are capped at 4 and recommendations are not needed in this mode
   const schema = ANSWER_TOOL.input_schema as { properties: Record<string, Record<string, unknown>>; required: string[] };
-  return { ...ANSWER_TOOL, input_schema: { ...schema, required: [...schema.required, 'prioridades'],
-    properties: { ...schema.properties, prioridades: { ...schema.properties.prioridades, minItems: 3, maxItems: 3 } } } };
+  const pr = schema.properties;
+  return { ...ANSWER_TOOL, input_schema: { ...schema, required: ['resumen', 'prioridades', 'hechos', 'faltantes'],
+    properties: { resumen: pr.resumen, prioridades: { ...pr.prioridades, minItems: 3, maxItems: 3 }, hechos: { ...pr.hechos, maxItems: 4 },
+      faltantes: pr.faltantes, calculos: { ...pr.calculos, maxItems: 3 }, recomendaciones: { ...pr.recomendaciones, maxItems: 0 } } } };
 }
 
 export function systemPrompt(today: string, kind: 'pregunta' | 'prioridades') {
