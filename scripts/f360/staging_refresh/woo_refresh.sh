@@ -96,8 +96,13 @@ fi
 step "Respaldo de staging4"
 (cd "$S" && wp db export "$B/staging4_before.sql" --single-transaction --quick >/dev/null) && gzip -f "$B/staging4_before.sql"
 (cd "$S" && wp db export "$B/keep_tables.sql" --tables="${PFX}wc_webhooks,${PFX}woocommerce_api_keys" --single-transaction >/dev/null)
-(cd "$S" && wp db export "$B/keep_options.sql" --tables="${PFX}options" --no-create-info --single-transaction \
-   --where="option_name like '\\_mp\\_%' or option_name like '%mercado%pago%' or option_name like 'mercadopago%' or option_name like 'checkbox\\_checkout\\_%' or option_name in ('gtm4wp-options','blog_public')" >/dev/null)
+# Opciones propias de staging4 (Mercado Pago de prueba, GTM, noindex): se guardan tal cual están en la base (valor crudo).
+KEEP_OPTS_WHERE="option_name like '\\_mp\\_%' or option_name like '%mercado%pago%' or option_name like 'mercadopago%' or option_name like 'checkbox\\_checkout\\_%' or option_name in ('gtm4wp-options','blog_public')"
+(cd "$S" && KEEP_OPTS_WHERE="$KEEP_OPTS_WHERE" OUT="$B/keep_options.json" wp --skip-plugins --skip-themes eval '
+  global $wpdb;
+  $rows = $wpdb->get_results("SELECT option_name, option_value, autoload FROM {$wpdb->options} WHERE " . getenv("KEEP_OPTS_WHERE"), ARRAY_A);
+  file_put_contents(getenv("OUT"), json_encode($rows));
+  echo "opciones de staging4 guardadas: " . count($rows) . PHP_EOL;')
 mkdir -p "$B/mu_before" && cp -a "$S/wp-content/mu-plugins/." "$B/mu_before/" 2>/dev/null || true
 ls -la "$B" | awk 'NR>1{print "   ", $5, $NF}'
 
@@ -140,8 +145,13 @@ W search-replace 'web-production-8cc5a.up.railway.app' 'hilo.staging.invalid' --
 
 # ── 6. Lo que staging4 conserva ─────────────────────────────────────────────────────────────────────────
 step "Configuración propia de staging4"
-W db query "DELETE FROM ${PFX}options WHERE option_name like '\\_mp\\_%' or option_name like '%mercado%pago%' or option_name like 'mercadopago%' or option_name like 'checkbox\\_checkout\\_%' or option_name in ('gtm4wp-options','blog_public')"
-W db import "$B/keep_options.sql" >/dev/null
+(cd "$S" && KEEP_OPTS_WHERE="$KEEP_OPTS_WHERE" IN="$B/keep_options.json" wp --skip-plugins --skip-themes eval '
+  global $wpdb;
+  $wpdb->query("DELETE FROM {$wpdb->options} WHERE " . getenv("KEEP_OPTS_WHERE"));
+  $rows = json_decode(file_get_contents(getenv("IN")), true);
+  foreach ($rows as $r) { $wpdb->replace($wpdb->options, $r); }
+  wp_cache_flush();
+  echo "opciones de staging4 restauradas: " . count($rows) . PHP_EOL;')
 W db import "$B/keep_tables.sql" >/dev/null
 ADMIN="$(W user list --role=administrator --field=ID --orderby=ID --order=ASC | head -1)"
 W db query "UPDATE ${PFX}wc_webhooks SET user_id = $ADMIN; UPDATE ${PFX}woocommerce_api_keys SET user_id = $ADMIN"
