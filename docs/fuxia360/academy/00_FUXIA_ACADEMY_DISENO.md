@@ -146,8 +146,15 @@ Edge Functions (después): f360-academy-sales-tutor (A6) · f360-academy-exec-tu
 | **Alumna Sales** | **Derivado**: `f360.sellers.status = 'activa'` con cuenta. Al desactivarla en Vendedoras, pierde acceso sola. También por permiso explícito (p. ej., una encargada nueva para probar) | Las 4 vendedoras activas |
 | **Alumno Ejecutivo** | Permiso explícito **+** miembro de Dirección **+** sesión con 2FA (aal2) | Mario |
 | **Editora** | Permiso explícito | Carolina, Mario |
-| **Aprobadora de contenido** | Permiso explícito | Carolina |
+| **Aprobadora de contenido** | Alcance `academy_content` en **`f360.approval_scopes`** (existente; ver nota abajo) | Carolina |
 | **Administrador Academy** | Permiso explícito; funciones sensibles con 2FA | Mario |
+
+**Aprobaciones = `f360.approval_scopes` (no una tabla nueva).** "Quién aprueba qué" ya existe en `f360.approval_scopes` + `f360.can_approve(scope, user)` (`supabase/migrations/20261023000200_f360_approval_scopes.sql`, hoy con `fx_rate`, `budget`, `close` y, desde `20261025000100`, `store_discount`). Academy **agrega alcances** a ese CHECK, conservando los existentes (incluido `store_discount`):
+- `academy_content`: publicar contenido de producto/comercial (Carolina);
+- `academy_points`: aprobar versiones de reglas y ajustes manuales de puntos;
+- `academy_rewards`: aprobar premios del catálogo y, en A5, canjes.
+
+`f360_academy.grants` queda **solo** para lo que no es una aprobación: Editora, Alumno Ejecutivo, Administrador y alumnas explícitas. La migración que amplíe el CHECK se coordina con quien esté tocando `approval_scopes` en ese momento (dry-run antes del push).
 
 Los permisos explícitos se cargan con un script revisado (con evidencia de identidad, como `board_members`). Cada cambio queda en `grant_changes`, que es append-only. Solo el Administrador da permisos, con 2FA, y **nunca a sí mismo**.
 
@@ -602,4 +609,4 @@ Los sprints no se encadenan con Growth, Inteligencia ni otros módulos. Los punt
 | Exposición de datos en la verificación pública | Mínimo de datos (decisión 3); límite de consultas; sin listados |
 | Confusión con puntos de clientas | Nombre "Puntos Academy"; tablas y funciones separadas (§2.2) |
 | Interferir con trabajos en curso | Esquema, rutas y funciones propios; puntos compartidos mínimos y fechados por sprint |
-| Duplicar fuentes de verdad | Producto y vendedoras se leen de su origen; Cuidados se captura en `product_knowledge`; la Ejecutiva usa el mismo motor |
+| Duplicar fuentes de verdad | Aprobadores en `f360.approval_scopes` existente; producto y vendedoras se leen de su origen; Cuidados se captura en `product_knowledge`; la Ejecutiva usa el mismo motor |
