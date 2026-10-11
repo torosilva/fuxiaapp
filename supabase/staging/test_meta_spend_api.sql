@@ -95,7 +95,7 @@ DO $$ BEGIN
 END $$;
 
 DO $$
-DECLARE r jsonb; d date := (now() AT TIME ZONE 'America/Mexico_City')::date - 10; n int; s numeric; ok boolean;
+DECLARE r jsonb; d date := (now() AT TIME ZONE 'America/Mexico_City')::date - 10; n int; s numeric; v_ok boolean;
   row1 jsonb := jsonb_build_object('date', d, 'market', 'MX', 'account_id', 'T1', 'campaign_id', 'c1', 'campaign_name', 'Prueba', 'currency', 'MXN', 'spend', '100.50', 'impressions', '10', 'clicks', '1');
   row2 jsonb := jsonb_build_object('date', d, 'market', 'CO', 'account_id', 'T1', 'campaign_id', 'c1', 'campaign_name', 'Prueba', 'currency', 'MXN', 'spend', '20', 'impressions', '2', 'clicks', '0');
 BEGIN
@@ -126,8 +126,8 @@ BEGIN
   EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'M6b%' THEN RAISE; END IF; END;
   -- M7: failure is recorded and the source health reads it (still NOT_CONFIGURED until the activation pase)
   PERFORM public.f360_measurement_run_failed('meta_ads', d, d, 'Meta HTTP 400 (code 190): prueba');
-  SELECT ok INTO ok FROM f360.measurement_runs WHERE source_key = 'meta_ads' ORDER BY id DESC LIMIT 1;
-  IF ok IS NOT FALSE THEN RAISE EXCEPTION 'M7'; END IF;
+  SELECT m.ok INTO v_ok FROM f360.measurement_runs m WHERE m.source_key = 'meta_ads' ORDER BY m.id DESC LIMIT 1;
+  IF v_ok IS NOT FALSE THEN RAISE EXCEPTION 'M7'; END IF;
   RAISE NOTICE 'ENSAYO OK';
 END $$;
 COMMIT;
