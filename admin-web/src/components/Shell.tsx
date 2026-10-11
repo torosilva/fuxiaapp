@@ -9,6 +9,7 @@ const GROUPS = [
   { label: 'Hoy', items: [
     { href: '/', label: 'Inicio', icon: IconHome, live: true },
     { href: '/avisos', label: 'Avisos', icon: IconBell, live: true },
+    { href: '/academy', label: 'Academy', icon: IconCheck, live: true, academy: true },
   ] },
   { label: 'Negocio en tiempo real', items: [
     { href: '/tablero', label: 'Centro de control', icon: IconGrowth, live: true, admin: true },
@@ -57,16 +58,18 @@ const FINANCE_ITEM = NAV.find((n) => n.href === '/cierre-contable')!;
 type Item = (typeof NAV)[number];
 // D0 (Mario 2026-10-11): Dirección / Inteligencia / Cierre contable hidden unless the Centro de Inteligencia is enabled (staging, or
 // NEXT_PUBLIC_F360_INTEL = "on"). The routes themselves also answer 404 when it is off.
-const visible = (n: Item, role: string, board: boolean, finance: boolean, onlyFinance: boolean) => (intelEnabled() || !INTEL_ROUTES.includes(n.href)) && visibleBase(n, role, board, finance, onlyFinance);
-const visibleBase = (n: Item, role: string, board: boolean, finance: boolean, onlyFinance: boolean) =>
+const visible = (n: Item, role: string, board: boolean, finance: boolean, onlyFinance: boolean, academy: boolean) =>
+  (intelEnabled() || !INTEL_ROUTES.includes(n.href)) && visibleBase(n, role, board, finance, onlyFinance, academy);
+const visibleBase = (n: Item, role: string, board: boolean, finance: boolean, onlyFinance: boolean, academy: boolean) =>
   onlyFinance ? 'finance' in n
+  : 'academy' in n ? academy
   : 'board' in n ? board
   : 'finance' in n ? board || finance
   : !('admin' in n) || role === 'owner' || role === 'operator';
 
 const isActive = (path: string, href: string) => (href === '/' ? path === '/' : path.startsWith(href));
 
-export function Shell({ name, role, env, alerts = 0, board = false, finance = false, onlyFinance = false, signOut, children }: { name: string; role: string; env?: string; alerts?: number; board?: boolean; finance?: boolean; onlyFinance?: boolean; signOut: () => Promise<void>; children: React.ReactNode }) {
+export function Shell({ name, role, env, alerts = 0, board = false, finance = false, onlyFinance = false, academy = false, signOut, children }: { name: string; role: string; env?: string; alerts?: number; board?: boolean; finance?: boolean; onlyFinance?: boolean; academy?: boolean; signOut: () => Promise<void>; children: React.ReactNode }) {
   const path = usePathname();
   const bottom = onlyFinance ? [FINANCE_ITEM] : [...BOTTOM, { href: '/mas', label: 'Más', icon: IconMore, live: true }];
   return (
@@ -79,7 +82,7 @@ export function Shell({ name, role, env, alerts = 0, board = false, finance = fa
           <div className="mt-1 text-[11px] text-[#8E877C]">by HiloLabs.ai</div>
         </Link>
         <nav className="flex flex-1 flex-col gap-5">
-          {GROUPS.map((g) => ({ ...g, items: g.items.filter((n) => visible(n, role, board, finance, onlyFinance)) })).filter((g) => g.items.length > 0).map((g) => (
+          {GROUPS.map((g) => ({ ...g, items: g.items.filter((n) => visible(n, role, board, finance, onlyFinance, academy)) })).filter((g) => g.items.length > 0).map((g) => (
             <div key={g.label} className="flex flex-col gap-0.5">
               <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.26em] text-[#8E877C]">{g.label}</div>
               {g.items.map(({ href, label, icon: Icon, live }) => (
