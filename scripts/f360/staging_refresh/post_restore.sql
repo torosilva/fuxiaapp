@@ -223,6 +223,20 @@ begin
 end $$;
 
 -- ── 6. Configuración propia de staging ─────────────────────────────────────────────────────────────────
+-- Si esa misma noche staging4 se copió de la tienda real (woo_refresh.sh), los IDs de producto de staging4 = los de prod.
+-- Entonces el destino de prod (con todos sus vínculos, pedidos y reseñas) pasa a llamarse woo_staging4, que es la clave que
+-- usan las funciones de staging (WOO_TARGET_KEY / F360_STOREFRONT_TARGET), y recibe la configuración de staging4 abajo.
+-- Las relaciones van por id (FK a sales_targets.id), así que cambiar la clave no rompe nada.
+do $$
+begin
+  if current_setting('fuxia.woo_mirrored', true) = 'on'
+     and exists (select 1 from f360.sales_targets where key = 'woo_production') then
+    update f360.sales_targets set key = 'woo_staging4_anterior' where key = 'woo_staging4';
+    update f360.sales_targets set key = 'woo_staging4' where key = 'woo_production';
+    raise notice 'Woo copiada esta noche: el destino de producción quedó como woo_staging4 (IDs de prod = IDs de staging4).';
+  end if;
+end $$;
+
 -- Destinos de prod que staging no tiene: apagados y sin URL real.
 update f360.sales_targets set
   active = false, orders_mode = 'off', catalog_mode = 'off', stock_sync_mode = 'off', storefront_enabled = false,
@@ -237,6 +251,8 @@ begin
     from pg_attribute a
    where a.attrelid = 'f360.sales_targets'::regclass and a.attnum > 0 and not a.attisdropped and a.attgenerated = ''
      and a.attname not in ('id', 'key', 'created_at')
+     -- Con Woo copiada, el cursor de pedidos de prod sigue valiendo (staging4 tiene los mismos pedidos).
+     and not (a.attname = 'orders_since_id' and current_setting('fuxia.woo_mirrored', true) = 'on')
      and exists (select 1 from pg_attribute b where b.attrelid = 'pg_temp.keep_sales_targets'::regclass
                   and b.attname = a.attname and b.attnum > 0 and not b.attisdropped);
   execute format('update f360.sales_targets t set %s from pg_temp.keep_sales_targets k where k.key = t.key', cols);

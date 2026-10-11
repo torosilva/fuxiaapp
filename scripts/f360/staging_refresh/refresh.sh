@@ -11,10 +11,12 @@
 set -euo pipefail
 
 MODE="${1:-}"
+# --woo-mirrored: staging4 se copió de la tienda real esta misma noche (woo_refresh.sh); ver post_restore.sql §6.
+WOO_MIRRORED=off; [ "${2:-}" = "--woo-mirrored" ] && WOO_MIRRORED=on
 case "$MODE" in
   --rehearsal) FINISH="ROLLBACK" ;;
   --apply)     FINISH="COMMIT" ;;
-  *) echo "uso: $0 --rehearsal | --apply" >&2; exit 2 ;;
+  *) echo "uso: $0 --rehearsal | --apply [--woo-mirrored]" >&2; exit 2 ;;
 esac
 
 PROD_REF="tgzgiwfzddsghnxgkcqd"
@@ -129,7 +131,7 @@ cat > "$WORK/run.sql" <<SQL
 BEGIN;
 SET LOCAL statement_timeout = 0;
 SET LOCAL lock_timeout = '60s';
-SELECT set_config('fuxia.target_ref', '$STAGING_REF', true);
+SELECT set_config('fuxia.target_ref', '$STAGING_REF', true), set_config('fuxia.woo_mirrored', '$WOO_MIRRORED', true);
 \\! date '+   · %H:%M:%S'
 \\echo '     guardando configuración de staging y vaciando esquemas'
 \\i $HERE/pre_restore.sql
@@ -139,7 +141,7 @@ SELECT set_config('fuxia.target_ref', '$STAGING_REF', true);
 \\i $WORK/prod_schema.sql
 \\endpipeline
 SET search_path = public, extensions;
-SELECT set_config('fuxia.target_ref', '$STAGING_REF', true);
+SELECT set_config('fuxia.target_ref', '$STAGING_REF', true), set_config('fuxia.woo_mirrored', '$WOO_MIRRORED', true);
 \\! date '+   · %H:%M:%S'
 \\echo '     datos de producción'
 SET session_replication_role = replica;

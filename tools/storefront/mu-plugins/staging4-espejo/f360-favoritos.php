@@ -1,0 +1,405 @@
+<?php
+// GENERADO por scripts/f360/build_staging4_mirror_mu.mjs desde tools/storefront/mu-plugins/produccion/f360-favoritos.php — no editar a mano.
+/**
+ * Plugin Name: Fuxia 360 · Favoritos (producción)
+ * Description: ♡ en tarjetas, carruseles, ficha y header + "Mis favoritos" (talla, disponibilidad, agregar a la bolsa); captura anónima en Fuxia 360.
+ *              GENERADO por scripts/f360/build_prod_storefront_mu.mjs desde tools/storefront/f360-favoritos.html — no editar a mano.
+ * Apagar: borrar este archivo de wp-content/mu-plugins/.
+ */
+if (!defined('ABSPATH')) exit;
+$f360_host = strtolower((string) wp_parse_url(home_url(), PHP_URL_HOST));
+if ($f360_host !== 'staging4.fuxiaballerinas.com') return;   // ESPEJO: solo staging4
+
+add_action('wp_footer', function () {
+  if (is_admin() || wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST)) return;
+  echo <<<'F360SNIP'
+<!--
+  Fuxia 360 · ♡ Favoritos V1 (Mario 2026-10-06). STAGING4 (espejo). Fuente: tools/storefront/f360-favoritos.html
+  · ♡ en cada tarjeta de producto (tienda, categorías, home, relacionados), en los carruseles de la Tienda y en la ficha.
+  · ♡ con contador en el header (junto a Club Fuxia) → panel "Mis favoritos" (foto, nombre, precio del país, ver / quitar).
+  · Sin cuenta: la lista vive en este dispositivo (localStorage) y se sincroniza entre pestañas; /mx/ y /co/ comparten la lista
+    y cada uno muestra su precio. Producto que ya no existe o no se vende: "Ya no está disponible" + quitar.
+  · Fuxia 360 recibe cada favorite_added / favorite_removed ANÓNIMO (id aleatorio del navegador, nunca datos personales) para
+    el reporte "Favoritos / Intent". Nada se envía al cargar la página; el panel hace una sola consulta a la tienda al abrirse.
+-->
+<div id="f360-fav-root">
+  <div class="f360-fav-velo" hidden></div>
+  <aside class="f360-fav-panel" hidden role="dialog" aria-modal="true" aria-labelledby="f360-fav-titulo">
+    <div class="f360-fav-top">
+      <h2 id="f360-fav-titulo"><span class="f360-fav-tit-logo" aria-hidden="true"></span>Mis Fuxia <span class="f360-fav-n"></span></h2>
+      <button type="button" class="f360-fav-x" aria-label="Cerrar mis favoritos">✕</button>
+    </div>
+    <div class="f360-fav-lista" aria-live="polite"></div>
+    <p class="f360-fav-pie">Se guardan en este dispositivo.</p>
+  </aside>
+  <div class="f360-fav-toast" role="status" aria-live="polite" hidden><span></span><button type="button"></button></div>
+</div>
+<style>
+#f360-fav-root [hidden] { display: none !important; }
+.f360-fav-btn { position: absolute; top: 10px; right: 10px; z-index: 5; width: 30px; height: 30px; border-radius: 50%; border: 0 !important; padding: 0 !important;
+  display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.78); color: #3a352e; cursor: pointer;
+  box-shadow: none; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); transition: transform .15s ease, background .15s ease; }
+.f360-fav-btn::after { content: ''; position: absolute; inset: -7px; }   /* a comfortable finger target while the circle stays small */
+.f360-fav-btn:hover { background: #fff; }
+.f360-fav-btn:active { transform: scale(.92); }
+.f360-fav-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.4; }
+.f360-fav-btn[aria-pressed="true"] { color: #B23A48; }
+.f360-fav-btn[aria-pressed="true"] svg { fill: currentColor; }
+.f360-fav-btn.f360-fav-pdp { position: relative; top: auto; right: auto; margin-left: 12px; vertical-align: middle; flex: 0 0 auto; width: 36px; height: 36px; background: transparent; }
+.f360-fav-btn.f360-fav-pdp svg { width: 20px; height: 20px; }
+.f360-fav-host { position: relative; }
+.f360-fav-head { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; margin-right: 12px;
+  border: 0; background: none; color: inherit; cursor: pointer; padding: 0; }
+.f360-fav-head svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+.f360-fav-head.lleno svg { fill: #B23A48; stroke: #B23A48; }
+.f360-fav-head b { position: absolute; top: -2px; right: -4px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: #B23A48; color: #fff;
+  font: 600 10px/17px inherit; font-family: inherit; text-align: center; box-sizing: border-box; }
+.f360-fav-velo { position: fixed; inset: 0; z-index: 99998; background: rgba(20,17,13,.35); }
+.f360-fav-panel { position: fixed; top: 0; right: 0; bottom: 0; z-index: 99999; width: min(420px, 100vw); background: #fff; color: #242424;
+  display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,.15); font-family: inherit; }
+.f360-fav-top { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid #f0e9df; }
+.f360-fav-top h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .02em; }
+.f360-fav-n { color: #83734C; font-weight: 500; }
+#f360-fav-root button { box-shadow: none; outline: none; text-transform: none; letter-spacing: normal; }   /* the theme's button styles never leak in */
+#f360-fav-root button:focus-visible { outline: 2px solid #83734C !important; outline-offset: 2px; }
+.f360-fav-x { display: inline-flex !important; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0 !important; margin: 0 -8px 0 0;
+  border: 0 !important; border-radius: 50%; background: none !important; color: #242424 !important; font-size: 20px; line-height: 1; cursor: pointer; }
+.f360-fav-x:hover { background: #f5f2ec !important; }
+.f360-fav-lista { flex: 1; overflow-y: auto; padding: 8px 20px; overscroll-behavior: contain; }
+.f360-fav-item { display: grid; grid-template-columns: 76px 1fr auto; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid #f4efe7; }
+.f360-fav-item img { width: 76px; height: 76px; object-fit: cover; border-radius: 6px; background: #f5f2ec; display: block; }
+.f360-fav-item a { color: inherit; text-decoration: none; }
+.f360-fav-item b { display: block; font-size: 14px; font-weight: 600; }
+.f360-fav-item span { display: block; font-size: 13px; color: #6B6B68; margin-top: 3px; }
+.f360-fav-item .f360-fav-no { color: #9b2c2c; }
+.f360-fav-quitar { display: inline-flex !important; align-items: center; justify-content: center; padding: 0 !important; border: 0 !important; background: none !important; color: #B23A48 !important; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; }
+.f360-fav-quitar svg { width: 19px; height: 19px; fill: currentColor; }
+.f360-fav-vacio { padding: 40px 10px; text-align: center; color: #6B6B68; font-size: 14px; line-height: 1.6; }
+.f360-fav-item { grid-template-areas: "img info x" "img buy buy"; }
+.f360-fav-item > img { grid-area: img; align-self: start; } .f360-fav-item > a { grid-area: info; } .f360-fav-item > .f360-fav-quitar { grid-area: x; }
+.f360-fav-comprar { grid-area: buy; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.f360-fav-color { height: 34px; border: 1px solid #e6dfd4; border-radius: 17px; padding: 0 10px; background: #fff; font: inherit; font-size: 13px; color: #242424; max-width: 100%; }
+.f360-fav-tallas { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+.f360-fav-tallas button { min-width: 38px; height: 34px; padding: 0 8px; border: 1px solid #d9d2c5; border-radius: 17px; background: #fff; cursor: pointer; font: inherit; font-size: 13px; color: #242424; }
+.f360-fav-tallas button.inm { border-color: #83734C; }
+.f360-fav-tallas button[aria-pressed="true"] { background: #242424; border-color: #242424; color: #fff; }
+.f360-fav-tallas button:disabled { opacity: .35; text-decoration: line-through; cursor: not-allowed; }
+.f360-fav-estado { font-size: 12px; color: #6B6B68; flex: 1 1 auto; } .f360-fav-estado.inm { color: #3f6b4f; font-weight: 600; }
+.f360-fav-bolsa { height: 38px; padding: 0 16px; border: 0; border-radius: 19px; background: #242424; color: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.f360-fav-bolsa:disabled { background: #cfc8bc; cursor: not-allowed; }
+.f360-fav-err { width: 100%; font-size: 12px; color: #9b2c2c; } .f360-fav-err:empty { display: none; }
+.f360-fav-pie { margin: 0; padding: 14px 20px; border-top: 1px solid #f0e9df; font-size: 12px; color: #9A9A96; }
+/* phone: the header is tight (centred logo); the ♡ sits snug against the account icon so it never touches the logo */
+@media (max-width: 767px) { .f360-fav-head { width: 24px; margin-right: -6px; } .f360-fav-head svg { width: 20px; height: 20px; } .f360-fav-btn { width: 28px; height: 28px; top: 8px; right: 8px; } .f360-fav-btn svg { width: 14px; height: 14px; } }
+
+/* brand colour (the logo's gold-brown) instead of a generic red */
+.f360-fav-btn[aria-pressed="true"] { color: #857652; }
+.f360-fav-head.lleno svg { fill: #857652; stroke: #857652; }
+.f360-fav-head b { background: #857652; }
+.f360-fav-quitar { color: #857652 !important; }
+/* look B: the Fuxia mark */
+.f360-fav-v-logo svg { fill: currentColor !important; stroke: none !important; }
+.f360-fav-btn.f360-fav-v-logo { color: #b9b0a2; }
+.f360-fav-btn.f360-fav-v-logo svg { width: 14px; height: 16px; }
+.f360-fav-btn.f360-fav-v-logo[aria-pressed="true"] { color: #857652; background: #fff; }
+.f360-fav-btn.f360-fav-pdp.f360-fav-v-logo svg { width: 20px; height: 23px; }
+.f360-fav-head.f360-fav-v-logo svg { width: 19px; height: 21px; }
+.f360-fav-head.f360-fav-v-logo.lleno { color: #857652; }
+.f360-fav-quitar.f360-fav-v-logo svg { width: 16px; height: 18px; }
+/* the stamp: the Fuxia mark rises from the heart when she saves */
+.f360-fav-sello { position: absolute; left: 50%; top: 50%; width: 22px; height: 25px; margin: -12px 0 0 -11px; color: #857652; pointer-events: none;
+  animation: f360-sello .85s ease-out forwards; }
+.f360-fav-sello svg { width: 100%; height: 100%; fill: currentColor; stroke: none; }
+@keyframes f360-sello { 0% { opacity: 0; transform: translateY(0) scale(.4); } 30% { opacity: 1; transform: translateY(-14px) scale(1.05); } 100% { opacity: 0; transform: translateY(-30px) scale(.9); } }
+.f360-fav-tit-logo { display: inline-flex; width: 16px; height: 18px; margin-right: 8px; color: #857652; vertical-align: -2px; }
+.f360-fav-tit-logo svg { width: 100%; height: 100%; fill: currentColor; }
+.f360-fav-quitar.f360-fav-quitar-txt { width: auto !important; height: 32px; padding: 0 2px !important; border-radius: 0; color: #8a8378 !important; font: inherit; font-size: 12px; text-decoration: underline; align-self: start; }
+.f360-fav-quitar.f360-fav-quitar-txt:hover { color: #242424 !important; }
+.f360-fav-toast { position: fixed; left: 50%; bottom: 96px; z-index: 100000; transform: translate(-50%, 12px); opacity: 0; display: flex; align-items: center; gap: 14px;
+  max-width: calc(100vw - 32px); padding: 11px 12px 11px 16px; border-radius: 24px; background: #242424; color: #fff; font-family: inherit; font-size: 13px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18); transition: opacity .2s ease, transform .2s ease; white-space: nowrap; }
+.f360-fav-toast.entra { opacity: 1; transform: translate(-50%, 0); }
+.f360-fav-toast span::before { content: '♥'; color: #c9b88f; margin-right: 8px; }
+.f360-fav-toast button { border: 0 !important; background: none !important; padding: 4px 6px !important; color: #e8d9b0 !important; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .f360-fav-btn { transition: none; } }
+</style>
+<script>
+/* Fuxia 360 · Favoritos V1. STAGING4 (espejo). Fuente: tools/storefront/f360-favoritos.html */
+(function () {
+  if (window.F360Fav || /[?&]bricks=run/.test(location.search)) return;
+  var F360 = 'https://faltxpkaicwpnlqaxrdu.supabase.co/functions/v1/f360-store-reserve';   // STAGING4 (espejo)
+  var KEY = 'f360_favs_v1', ANON = 'f360_anon_v1';
+  var pais = (location.pathname.match(/^\/(mx|co)\//) || [0, 'mx'])[1];
+  var base = location.origin + '/' + pais + '/';
+  var HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3s-7.6-4.6-9.3-9.4C1.6 7.6 3.6 4.5 6.9 4.5c2 0 3.6 1.1 4.6 2.7 1-1.6 2.6-2.7 4.6-2.7 3.3 0 5.3 3.1 4.2 6.4-1.7 4.8-9.3 9.4-9.3 9.4z"/></svg>';
+  // Mario 2026-10-07: "¿el logo de Fuxia en lugar de corazones?" → two looks to compare (staging4: ?fav=logo / ?fav=corazon,
+  // remembered on the device). A "corazon": the heart everyone understands, filled in the brand colour, with the Fuxia mark
+  // as a stamp when she saves. B "logo": the Fuxia mark itself.
+  var LOGO = '<svg class="f360-fav-logo" viewBox="26 25 31 34" aria-hidden="true"><path fill="currentColor" d="M 35.417969 28.21875 C 34.332031 29.796875 32.085938 33.59375 32.6875 37.207031 C 32.960938 38.851562 33.808594 40.289062 35.207031 41.484375 C 35.460938 41.027344 35.875 40.519531 36.410156 39.875 C 37.683594 38.332031 39.429688 36.226562 39.300781 33.703125 C 39.144531 30.660156 36.433594 28.808594 35.417969 28.21875 M 47.410156 28.21875 C 46.394531 28.808594 43.683594 30.664062 43.527344 33.703125 C 43.398438 36.226562 45.144531 38.335938 46.421875 39.875 C 46.953125 40.519531 47.367188 41.027344 47.621094 41.484375 C 49.019531 40.289062 49.867188 38.851562 50.140625 37.207031 C 50.742188 33.59375 48.496094 29.796875 47.410156 28.21875 M 42.050781 47.210938 C 42.925781 48.4375 43.453125 49.710938 43.621094 51 C 43.863281 52.871094 43.320312 54.421875 42.722656 55.492188 C 50.101562 52.097656 53.972656 46.738281 53.925781 39.964844 L 53.925781 39.800781 C 53.925781 36.191406 51.910156 32.90625 49.941406 30.558594 C 50.808594 32.449219 51.539062 34.910156 51.132812 37.371094 C 50.738281 39.738281 49.347656 41.703125 46.992188 43.203125 C 44.851562 44.480469 43.191406 45.828125 42.050781 47.210938 M 32.886719 30.558594 C 30.917969 32.90625 28.902344 36.191406 28.902344 39.800781 L 28.902344 39.964844 C 28.855469 46.738281 32.726562 52.097656 40.105469 55.492188 C 39.511719 54.421875 38.964844 52.871094 39.207031 51 C 39.375 49.710938 39.90625 48.4375 40.78125 47.210938 C 39.636719 45.824219 37.976562 44.480469 35.839844 43.207031 C 33.484375 41.703125 32.089844 39.738281 31.695312 37.371094 C 31.289062 34.910156 32.019531 32.449219 32.886719 30.558594 M 41.414062 48.0625 C 40.746094 49.066406 40.339844 50.09375 40.207031 51.121094 C 39.9375 53.171875 40.792969 54.800781 41.414062 55.675781 C 42.035156 54.800781 42.890625 53.175781 42.621094 51.121094 C 42.488281 50.09375 42.082031 49.066406 41.414062 48.0625 M 41.386719 57.167969 L 41.378906 57.171875 L 41.296875 57.097656 L 41.148438 57.046875 C 32.550781 53.585938 27.84375 47.519531 27.898438 39.960938 L 27.898438 39.800781 C 27.898438 32.71875 34.699219 27.183594 34.992188 26.953125 L 35.070312 26.886719 L 35.488281 27.109375 C 35.546875 27.140625 35.667969 27.199219 35.828125 27.292969 C 37.136719 28.03125 40.121094 30.085938 40.304688 33.652344 C 40.453125 36.566406 38.5625 38.847656 37.183594 40.515625 C 36.726562 41.066406 36.214844 41.683594 36.019531 42.109375 L 36.03125 42.117188 C 36.140625 42.195312 36.25 42.277344 36.367188 42.351562 C 38.507812 43.625 40.207031 44.988281 41.414062 46.398438 C 42.621094 44.988281 44.320312 43.625 46.464844 42.347656 C 46.578125 42.277344 46.683594 42.199219 46.792969 42.125 L 46.808594 42.109375 C 46.632812 41.71875 46.191406 41.175781 45.648438 40.515625 C 44.265625 38.847656 42.375 36.566406 42.523438 33.652344 C 42.707031 30.085938 45.691406 28.027344 46.964844 27.308594 C 47.164062 27.199219 47.28125 27.140625 47.34375 27.109375 L 47.757812 26.886719 L 47.839844 26.953125 C 48.128906 27.183594 54.929688 32.726562 54.929688 39.800781 L 54.929688 39.960938 C 54.984375 47.519531 50.277344 53.585938 41.679688 57.046875 L 41.488281 57.125 L 41.414062 57.203125 Z M 41.386719 57.167969"/></svg>';
+  // Mario 2026-10-07 chose A ("me encantó el A"): production is always the brand heart; the ?fav= switch exists only in staging4
+  var ESTILO = location.hostname.indexOf('staging4.') !== 0 ? 'corazon' : (function () {
+    var m = location.search.match(/[?&]fav=(logo|corazon)\b/); try { if (m) localStorage.setItem('f360_fav_estilo', m[1]); return m ? m[1] : (localStorage.getItem('f360_fav_estilo') || 'corazon'); } catch (e) { return m ? m[1] : 'corazon'; }
+  })();
+  var ICONO = ESTILO === 'logo' ? LOGO : HEART;
+  var root = document.getElementById('f360-fav-root'); if (!root) return;
+  document.body.appendChild(root);
+  var q = function (s) { return root.querySelector(s); };
+  var panel = q('.f360-fav-panel'), velo = q('.f360-fav-velo'), lista = q('.f360-fav-lista');
+  q('.f360-fav-tit-logo').innerHTML = LOGO;
+
+  // ── the list (this device) ──
+  var leer = function () { try { var v = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v.filter(function (x) { return x && x.id > 0; }) : []; } catch (e) { return []; } };
+  var guardar = function (l) { try { localStorage.setItem(KEY, JSON.stringify(l.slice(0, 200))); } catch (e) {} };
+  var favs = leer();
+  var tiene = function (id) { return favs.some(function (x) { return x.id === id; }); };
+  var anon = function () {
+    var a = null; try { a = localStorage.getItem(ANON); } catch (e) {}
+    if (!a || !/^[0-9a-f-]{36}$/i.test(a)) {
+      a = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
+      try { localStorage.setItem(ANON, a); } catch (e) {}
+    }
+    return a;
+  };
+  // anonymous intent event to Fuxia 360 (fire and forget; never blocks the page)
+  var avisar = function (ev, it) {
+    try {
+      fetch(F360, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'favorite',
+        event: ev, market: pais, anon_id: anon(), woo_product_id: it.id, woo_variation_id: it.vid || null, color: it.color || null }) }).catch(function () {});
+    } catch (e) {}
+  };
+  var cambiar = function (it, on, sinAviso) {
+    favs = leer();
+    if (on && !tiene(it.id)) { favs.unshift({ id: it.id, name: it.name || '', img: it.img || '', url: it.url || '', color: it.color || null, at: Date.now() }); guardar(favs); avisar('favorite_added', it); if (!sinAviso) aviso(true, it); }
+    else if (!on && tiene(it.id)) { var era = favs.filter(function (x) { return x.id === it.id; })[0]; favs = favs.filter(function (x) { return x.id !== it.id; }); guardar(favs); avisar('favorite_removed', it); if (!sinAviso) aviso(false, era || it); }
+    pintar();
+  };
+  // Mario 2026-10-07: confirm every tap — "Guardado en Mis Fuxia · Ver" / "Quitado de Mis Fuxia · Deshacer" (teaches that the
+  // same heart removes it, and an accidental tap is one touch away from being undone)
+  var toast = null, toastT = null;
+  var aviso = function (guardado, it) {
+    toast = toast || root.querySelector('.f360-fav-toast');
+    var t = toast.querySelector('span'), b = toast.querySelector('button');
+    t.textContent = guardado ? 'Guardado en Mis Fuxia' : 'Quitado de Mis Fuxia';
+    b.textContent = guardado ? 'Ver' : 'Deshacer';
+    b.onclick = function () { ocultar(); if (guardado) abrir(); else cambiar({ id: it.id, name: it.name, img: it.img, url: it.url, color: it.color }, true, true); };
+    toast.hidden = false; toast.classList.remove('sale'); void toast.offsetWidth; toast.classList.add('entra');
+    clearTimeout(toastT); toastT = setTimeout(ocultar, 3200);
+  };
+  var ocultar = function () { if (!toast) return; clearTimeout(toastT); toast.classList.remove('entra'); toast.classList.add('sale'); setTimeout(function () { if (toast.classList.contains('sale')) toast.hidden = true; }, 220); };
+
+  // ── hearts on every product card, the shop carousels and the product page ──
+  var boton = function (it, extra) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'f360-fav-btn f360-fav-v-' + ESTILO + (extra ? ' ' + extra : ''); b.innerHTML = ICONO;
+    b.dataset.favId = String(it.id);
+    b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation();
+      var on = !tiene(it.id); if (it.pdp) { it.vid = pdpVar.vid; it.color = pdpVar.color; } cambiar(it, on); if (on) sello(b); });
+    return b;
+  };
+  // the Fuxia mark rises from the heart for an instant when she saves (the brand's "guardado")
+  var sello = function (b) {
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var st = document.createElement('span'); st.className = 'f360-fav-sello'; st.innerHTML = LOGO; b.appendChild(st);
+    setTimeout(function () { if (st.parentNode) st.parentNode.removeChild(st); }, 900);
+  };
+  var datosDe = function (el, id) {
+    var a = el.tagName === 'A' ? el : el.querySelector('a[href]'), img = el.querySelector('img');
+    var nombre = (a && (a.getAttribute('aria-label') || '').replace(/^Ver\s+/i, '')) || (el.querySelector('h2, h3, b') || {}).textContent || '';
+    return { id: id, name: String(nombre).trim(), img: img ? (img.currentSrc || img.src) : '', url: a ? a.href : '' };
+  };
+  var tarjetas = function () {
+    document.querySelectorAll('li.type-product[class*="post-"]:not([data-f360-fav]), [data-f360-product-id]:not([data-f360-fav])').forEach(function (el) {
+      var id = Number(el.getAttribute('data-f360-product-id') || ((el.className.match(/\bpost-(\d+)\b/) || [])[1]));
+      el.setAttribute('data-f360-fav', '1');
+      if (!(id > 0)) return;
+      if (getComputedStyle(el).position === 'static') el.classList.add('f360-fav-host');
+      el.appendChild(boton(datosDe(el, id)));
+    });
+  };
+  var pdpVar = { vid: null, color: null };
+  var ficha = function () {
+    if (!document.body.classList.contains('single-product')) return;
+    var id = Number((document.body.className.match(/\bpostid-(\d+)\b/) || [])[1]);
+    var h1 = document.querySelector('.brxe-product-title, h1.product_title, h1');
+    if (!(id > 0) || !h1 || h1.querySelector('.f360-fav-btn')) return;
+    var img = document.querySelector('.woocommerce-product-gallery img, .brxe-product-gallery img');
+    var it = { id: id, name: h1.textContent.trim(), img: img ? (img.currentSrc || img.src) : '', url: location.href.split('?')[0].split('#')[0], pdp: true };
+    var b = boton(it, 'f360-fav-pdp'); b.setAttribute('aria-label', 'Guardar ' + it.name + ' en Mis Fuxia');
+    h1.style.display = 'flex'; h1.style.alignItems = 'center'; h1.style.justifyContent = 'space-between'; h1.appendChild(b);
+    // the colour / size she is looking at travels with the ♡ (canonical colour / variant in Fuxia 360)
+    var form = document.querySelector('form.variations_form');
+    if (form && window.jQuery) {
+      jQuery(form).on('found_variation', function (e, v) { pdpVar.vid = v && v.variation_id || null; })
+        .on('reset_data', function () { pdpVar.vid = null; });
+      var sel = form.querySelector('[name="attribute_pa_color"]');
+      var col = function () { var o = sel && sel.selectedOptions && sel.selectedOptions[0]; pdpVar.color = o && o.value ? o.textContent.trim() : null; };
+      if (sel) { sel.addEventListener('change', col); col(); }
+    }
+  };
+
+  // ── header: ♡ with counter, next to Club Fuxia (or before the account icon) ──
+  var head = null;
+  var cabecera = function () {
+    if (head && document.body.contains(head)) return;
+    // always right before the account icon: with "★ Club Fuxia" in the header it reads  Club Fuxia ★ | ♡ 3 | 👤
+    var cuenta = document.querySelector('#brx-header a[href*="/mi-cuenta"]');
+    var ancla = cuenta, padre = cuenta && cuenta.parentNode;
+    if (!padre) return;
+    head = document.createElement('button'); head.type = 'button'; head.className = 'f360-fav-head f360-fav-v-' + ESTILO; head.innerHTML = ICONO + '<b hidden></b>';
+    head.addEventListener('click', abrir);
+    padre.insertBefore(head, ancla || null);
+  };
+
+  var pintar = function () {
+    favs = leer();
+    var n = favs.length;
+    document.querySelectorAll('.f360-fav-btn').forEach(function (b) {
+      var on = tiene(Number(b.dataset.favId)); b.setAttribute('aria-pressed', String(on));
+      if (!b.classList.contains('f360-fav-pdp')) b.setAttribute('aria-label', (on ? 'Quitar de Mis Fuxia' : 'Guardar en Mis Fuxia'));
+    });
+    if (head) { var c = head.querySelector('b'); c.hidden = !n; c.textContent = n > 99 ? '99+' : String(n); head.classList.toggle('lleno', n > 0);
+      head.setAttribute('aria-label', 'Mis Fuxia' + (n ? ': ' + n : '')); }
+    q('.f360-fav-n').textContent = n ? '(' + n + ')' : '';
+    var firma = favs.map(function (x) { return x.id; }).join(',');
+    if (!panel.hidden && firma !== ultimaFirma) listar();
+  };
+  var ultimaFirma = null;
+
+  // ── "Mis favoritos": current data from the store of THIS country (price, photo, link); gone products say so.
+  //    V1.1 (Mario 2026-10-06 "sube de nivel el sitio"): colour + size right here (her size remembered), availability from
+  //    Fuxia 360 (same states as the shop filter, no delivery promise) and "Agregar a la bolsa" (Woo's own cart).
+  var cache = {}, elec = {}, estados = null, TALLA = 'f360_talla_v1';
+  var norm = function (v) { return String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-'); };
+  var verTalla = function (t) { return pais === 'mx' && /^\d+(\.5)?$/.test(t) && Number(t) >= 33 ? String(Number(t) - 13) : String(t); };
+  var miTalla = function (v) { try { if (v === undefined) return localStorage.getItem(TALLA); localStorage.setItem(TALLA, v); } catch (e) { return null; } };
+  var opciones = function (p) {
+    var at = function (tax) { return (p.attributes || []).filter(function (a) { return a.taxonomy === tax && a.has_variations; })[0]; };
+    var c = at('pa_color'), t = at('pa_medida');
+    return { colores: c ? c.terms.map(function (x) { return x.name; }) : [], tallas: t ? t.terms.map(function (x) { return x.name; }) : [] };
+  };
+  var variacion = function (p, color, talla) {
+    return (p.variations || []).filter(function (v) {
+      return (v.attributes || []).every(function (a) {
+        if (a.value === '' || a.value == null) return true;                                   // "any"
+        if (/color/i.test(a.name)) return !color || norm(a.value) === norm(color);
+        if (/medida|talla/i.test(a.name)) return String(a.value) === String(talla);
+        return true;
+      });
+    })[0] || null;
+  };
+  var estadoDe = function (id, color, talla) {     // 'inmediata' | 'pedido' | 'agotado' | null (unknown)
+    var it = estados && estados[id]; if (!it) return null;
+    var cs = it.colors || [], c = color ? cs.filter(function (x) { return norm(x.name) === norm(color); })[0] : cs[0];
+    return c && c.sizes ? (c.sizes[talla] || null) : null;
+  };
+  var ESTADO = { inmediata: pais === 'mx' ? 'Entrega inmediata' : 'Disponible', pedido: 'Sobre pedido', agotado: 'Agotada' };
+  var dinero = function (pr) { var dec = pr.currency_minor_unit || 0; return (pr.currency_prefix || '$') + Number(pr.price / Math.pow(10, dec)).toLocaleString('es-MX') + (pr.currency_suffix || ''); };
+
+  var comprar = function (x, p) {
+    var o = opciones(p), e = elec[x.id] || (elec[x.id] = {});
+    if (e.color == null) e.color = (x.color && o.colores.filter(function (c) { return norm(c) === norm(x.color); })[0]) || o.colores[0] || null;
+    if (e.talla == null) { var mt = miTalla(); e.talla = mt && o.tallas.indexOf(mt) >= 0 ? mt : null; }
+    var box = document.createElement('div'); box.className = 'f360-fav-comprar';
+    if (o.colores.length > 1) {
+      var sel = document.createElement('select'); sel.className = 'f360-fav-color'; sel.setAttribute('aria-label', 'Color');
+      o.colores.forEach(function (c) { var op = document.createElement('option'); op.value = c; op.textContent = c; if (c === e.color) op.selected = true; sel.appendChild(op); });
+      sel.onchange = function () { e.color = sel.value; redibujar(); };
+      box.appendChild(sel);
+    }
+    var tallas = document.createElement('div'); tallas.className = 'f360-fav-tallas'; tallas.setAttribute('role', 'group');
+    tallas.setAttribute('aria-label', pais === 'mx' ? 'Talla (México)' : 'Talla');
+    o.tallas.forEach(function (t) {
+      var v = variacion(p, e.color, t), st = estadoDe(x.id, e.color, t), off = !v || st === 'agotado';
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = verTalla(t); b.disabled = off;
+      b.setAttribute('aria-pressed', String(e.talla === t)); if (st) b.title = ESTADO[st] || '';
+      if (st === 'inmediata') b.className = 'inm';
+      b.onclick = function () { e.talla = t; miTalla(t); redibujar(); };
+      tallas.appendChild(b);
+    });
+    box.appendChild(tallas);
+    var v = e.talla ? variacion(p, e.color, e.talla) : null, st = e.talla ? estadoDe(x.id, e.color, e.talla) : null;
+    var linea = document.createElement('span'); linea.className = 'f360-fav-estado' + (st === 'inmediata' ? ' inm' : '');
+    linea.textContent = !e.talla ? 'Elige tu talla' : st ? (ESTADO[st] || '') : '';
+    box.appendChild(linea);
+    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'f360-fav-bolsa';
+    btn.textContent = e.listo ? '✓ En tu bolsa' : 'Agregar a la bolsa'; btn.disabled = !v || st === 'agotado' || !!e.listo;
+    var msg = document.createElement('span'); msg.className = 'f360-fav-err'; msg.setAttribute('role', 'alert');
+    btn.onclick = function () { agregar(x, p, v, e, btn, msg); };
+    box.appendChild(btn); box.appendChild(msg);
+    function redibujar() { box.parentNode.replaceChild(comprar(x, p), box); }
+    return box;
+  };
+  var agregar = function (x, p, v, e, btn, msg) {
+    btn.disabled = true; btn.textContent = 'Agregando…'; msg.textContent = '';
+    fetch(base + 'wp-json/wc/store/v1/cart', { credentials: 'same-origin' })
+      .then(function (r) { return fetch(base + 'wp-json/wc/store/v1/cart/add-item', { method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', Nonce: r.headers.get('Nonce') || '' }, body: JSON.stringify({ id: v.id, quantity: 1 }) }); })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw new Error(j && j.message || 'No se pudo agregar.'); return j; }); })
+      .then(function () {
+        e.listo = true; btn.textContent = '✓ En tu bolsa';
+        avisar('favorite_add_to_cart', { id: x.id, vid: v.id, color: e.color });
+        setTimeout(cerrar, 600);   // the store's own "✓ Agregado a tu carrito" (Pagar ahora) takes over
+        try { if (window.jQuery) { jQuery(document.body).trigger('wc_fragment_refresh'); jQuery(document.body).trigger('added_to_cart', [{}, '', null]); } } catch (er) { /* another script's handler must not keep the panel open */ }
+      })
+      .catch(function (err) { btn.disabled = false; btn.textContent = 'Agregar a la bolsa'; msg.textContent = String(err && err.message || 'No se pudo agregar.').replace(/<[^>]*>/g, ''); });
+  };
+
+  var listar = function () {
+    var l = favs; ultimaFirma = l.map(function (x) { return x.id; }).join(',');
+    if (!l.length) { lista.innerHTML = '<p class="f360-fav-vacio">Todavía no guardas ningún modelo.<br>Toca ' + (ESTILO === 'logo' ? 'el logo de Fuxia' : '♡') + ' en los que te gusten y aquí los verás juntos.</p>'; return; }
+    var fila = function (x) {
+      var p = cache[x.id], div = document.createElement('div'); div.className = 'f360-fav-item';
+      var vivo = p && p.is_purchasable !== false;
+      var img = document.createElement('img'); img.alt = ''; img.loading = 'lazy'; var src = (p && p.images && p.images[0] && (p.images[0].thumbnail || p.images[0].src)) || x.img || ''; if (src) img.src = src;   // no photo: the beige tile, never a broken icon
+      var a = document.createElement('a'); a.href = (p && p.permalink) || x.url || '#';
+      var b = document.createElement('b'); b.textContent = (p && p.name ? p.name.replace(/&amp;/g, '&') : x.name) || 'Modelo';
+      var s = document.createElement('span');
+      if (p === null) { s.textContent = 'Ya no está disponible'; s.className = 'f360-fav-no'; a.removeAttribute('href'); }
+      // the theme converts COP / USD per variation (bricks-child); Woo's Store API does not → outside Mexico the API number is
+      // the MXN one with another label. The real price is on the product page (incident 2026-10-06).
+      else if (p) s.textContent = !vivo ? 'Por ahora no está a la venta' : pais === 'mx' ? dinero(p.prices || {}) : 'Ver precio en el modelo';
+      a.appendChild(b); a.appendChild(s);
+      var quitar = document.createElement('button'); quitar.type = 'button'; quitar.className = 'f360-fav-quitar f360-fav-quitar-txt'; quitar.textContent = 'Quitar';
+      quitar.setAttribute('aria-label', 'Quitar ' + b.textContent + ' de Mis Fuxia');
+      quitar.onclick = function () { cambiar({ id: x.id }, false); };
+      div.appendChild(img); div.appendChild(a); div.appendChild(quitar);
+      if (p && vivo && p.type === 'variable') div.appendChild(comprar(x, p));
+      return div;
+    };
+    lista.innerHTML = ''; l.forEach(function (x) { lista.appendChild(fila(x)); });
+  };
+  var cargar = function () {
+    var ids = favs.map(function (x) { return x.id; }).filter(function (id) { return !(id in cache); });
+    var listos = [];
+    if (ids.length) listos.push(fetch(base + 'wp-json/wc/store/v1/products?per_page=100&include=' + ids.join(','), { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (prods) {
+        var vistos = {}; (prods || []).forEach(function (p) { cache[p.id] = p; vistos[p.id] = 1; });
+        ids.forEach(function (id) { if (!vistos[id]) cache[id] = null; });   // deleted / hidden / not for sale here
+      }).catch(function () {}));
+    // availability per colour / size from Fuxia 360 (once per page; if it does not answer, sizes simply show no state)
+    if (estados === null) { estados = {}; listos.push(fetch(F360, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'catalog' }) })
+      .then(function (r) { return r.ok ? r.json() : { items: [] }; })
+      .then(function (c) { (c.items || []).forEach(function (it) { estados[it.woo_product_id] = it; }); }).catch(function () {})); }
+    if (listos.length) Promise.all(listos).then(function () { ultimaFirma = null; listar(); });
+  };
+  var ultimoFoco = null;
+  function abrir() { ultimoFoco = document.activeElement; panel.hidden = false; velo.hidden = false; listar(); cargar(); q('.f360-fav-x').focus(); }
+  function cerrar() { panel.hidden = true; velo.hidden = true; if (ultimoFoco && ultimoFoco.focus) ultimoFoco.focus(); }
+  q('.f360-fav-x').onclick = cerrar; velo.onclick = cerrar;
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) cerrar(); });
+  window.addEventListener('storage', function (e) { if (e.key === KEY) pintar(); });   // other tabs
+
+  var todo = function () { cabecera(); tarjetas(); ficha(); pintar(); };
+  todo();
+  // grids / carousels that appear later (filters, "Más vendidas", lazy sections)
+  var pend = false;
+  new MutationObserver(function (ms) {
+    if (ms.every(function (m) { return root.contains(m.target); })) return;   // our own panel never re-triggers the scan
+    if (pend) return; pend = true; setTimeout(function () { pend = false; cabecera(); tarjetas(); pintar(); }, 250); })
+    .observe(document.body, { childList: true, subtree: true });
+  window.F360Fav = { abrir: abrir, lista: function () { return leer(); } };
+})();
+</script>
+F360SNIP;
+  echo "\n";
+}, 99);
