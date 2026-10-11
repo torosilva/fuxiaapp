@@ -60,3 +60,11 @@ Después de rotar: borrar o archivar las transcripciones locales que contienen l
 - **Pendientes:** revisar si sigue vigente la contraseña de `~/.fuxia-db-url` (Mario) · revocar el token personal de Supabase en el panel (ya no sirve).
 - **`F360_HILO_SECRET`: ROTADO** ~21:40 UTC, con Mario (que tiene acceso a Railway; no hizo falta Adrián). La clave nueva viajó por el portapapeles, que después se limpió; nunca se imprimió. Mario la pegó en Railway (`F360_INTAKE_SECRET`) y Claude actualizó Supabase. Verificado: clave nueva aceptada (400 "falta conversation_id", no escribe nada) y vieja rechazada (401). **De punta a punta:** el caso de prueba de Mario en el chat de la tienda llegó a la bandeja (`customer_cases`, `hilo_web`, 21:44 UTC). Valor anterior borrado.
 - **Dato personal expuesto en esta sesión** (no es credencial): el correo de una clienta del pedido #3151, por un filtro de metadatos demasiado amplio. Está solo en la transcripción local y en la conversación.
+
+## 7. Contraseña de Postgres de producción — 2026-10-11 13:30 UTC
+- Mario confirmó que la de `~/.fuxia-db-url` seguía **VIGENTE**. Se cambió en Supabase → Database → Settings → Reset database password. Mario usó la contraseña que sugirió Supabase. Llegó por el portapapeles y nunca se imprimió.
+- Verificado: la contraseña nueva entra (`select 1`) y la vieja se rechaza.
+- `~/.fuxia-db-url` y `~/.fuxia-prod.env` (`PROD_DB_URL`) quedaron con la nueva (`chmod 600`). Los dos entran. Ningún script del repo usa esos archivos: `prod_sql.sh` y `prod_read.sh` usan la sesión de la CLI.
+- Revisión después del cambio (últimos 40 min): 7 cron con `succeeded` y 52 llamadas HTTP con 200. Nada se interrumpió.
+- Archivos temporales borrados y portapapeles limpio.
+- **Pendiente (Mario):** revocar el token personal viejo de Supabase en Account → Access Tokens (ya responde 401). Opcional: revisar que Railway/Hilo no tenga un `DATABASE_URL` hacia producción; si lo tuviera, ya habría fallado.
