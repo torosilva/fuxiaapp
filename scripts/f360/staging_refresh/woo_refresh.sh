@@ -133,7 +133,7 @@ trap 'restore' ERR
 # ── 2. Guardia primero: desde aquí staging4 no puede mandar correos ni llamar a producción ───────────────
 step "Guardia de staging4 y modo mantenimiento (nadie usa staging4 ni corre su cron mientras se reemplaza)"
 cp mu/f360-guardia-staging4.php "$S/wp-content/mu-plugins/"
-(cd "$S" && wp maintenance-mode activate --skip-plugins --skip-themes >/dev/null)
+(cd "$S" && { wp maintenance-mode is-active --skip-plugins --skip-themes 2>/dev/null || wp maintenance-mode activate --skip-plugins --skip-themes >/dev/null; })
 
 # ── 3. Base de datos de la tienda real → staging4 ───────────────────────────────────────────────────────
 step "Base de datos (prod se lee con --single-transaction)"
@@ -210,7 +210,7 @@ ls "$S/wp-content/mu-plugins" | xargs echo "  "
 
 # ── 9. Caché y prueba ────────────────────────────────────────────────────────────────────────────────────
 step "Caché y prueba"
-(cd "$S" && wp maintenance-mode deactivate --skip-plugins --skip-themes >/dev/null)
+(cd "$S" && wp maintenance-mode deactivate --skip-plugins --skip-themes >/dev/null 2>&1) || true   # si no se apagó, la prueba http de abajo lo detecta
 (cd "$S" && wp sg purge >/dev/null 2>&1) || true
 [ "$(cd "$S" && wp option get home)" = "https://staging4.fuxiaballerinas.com" ] || { echo "ABORT: home quedó mal"; false; }
 [ "$(cd "$S" && wp wc webhook list --user=$ADMIN --field=delivery_url 2>/dev/null | grep -c tgzgiwfzddsghnxgkcqd)" = "0" ] || { echo "ABORT: un webhook apunta a prod"; false; }
