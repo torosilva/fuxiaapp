@@ -1,0 +1,292 @@
+diff --git a/admin-web/src/app/(app)/direccion/layout.tsx b/admin-web/src/app/(app)/direccion/layout.tsx
+index 6dbc25d..0cd2065 100644
+--- a/admin-web/src/app/(app)/direccion/layout.tsx
++++ b/admin-web/src/app/(app)/direccion/layout.tsx
+@@ -1,4 +1,5 @@
+ import { notFound } from 'next/navigation';
++import { intelEnabled } from '@/lib/feature';
+ import { boardAccessState, getBoardMe } from '@/lib/board';
+ import { BoardMfa } from '../estrategia/BoardMfa';
+ import { DireccionNav } from './DireccionNav';
+@@ -9,6 +10,7 @@ import { DireccionNav } from './DireccionNav';
+ export const dynamic = 'force-dynamic';
+ 
+ export default async function DireccionLayout({ children }: { children: React.ReactNode }) {
++  if (!intelEnabled()) notFound();   // D0: hidden in production until I5
+   const me = await getBoardMe();
+   if (!me.ok) {
+     if ((await boardAccessState()) === 'mfa_required') return <BoardMfa area="Dirección 🔒" next="/direccion" />;
+diff --git a/admin-web/src/app/(app)/estrategia/mfa-actions.ts b/admin-web/src/app/(app)/estrategia/mfa-actions.ts
+index db49fa5..6a3f7c7 100644
+--- a/admin-web/src/app/(app)/estrategia/mfa-actions.ts
++++ b/admin-web/src/app/(app)/estrategia/mfa-actions.ts
+@@ -2,7 +2,6 @@
+ import { redirect } from 'next/navigation';
+ import { createClient } from '@/lib/supabase/server';
+ import { boardAccessState } from '@/lib/board';
+-import { getMe } from '@/lib/f360';
+ import { financeAccess } from '@/lib/intel';
+ 
+ // Strategy & Board second factor (Supabase Auth TOTP). Only a Board member who is missing the second factor in this session
+@@ -14,7 +13,7 @@ const CODE = /^\d{6}$/;
+ // Where to go after the code: the board pages and the contadora's Cierre contable (I2). Anything else → /estrategia.
+ const NEXT = ['/estrategia', '/direccion', '/cierre-contable'];
+ // Board member missing the second factor, or a viewer who may be the contadora (the database decides after aal2).
+-const mayVerify = async () => (await boardAccessState()) === 'mfa_required' || (await financeAccess((await getMe()).role)) === 'mfa_required';
++const mayVerify = async () => (await boardAccessState()) === 'mfa_required' || (await financeAccess()) === 'mfa_required';
+ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+ 
+ export async function startEnroll(): Promise<MfaState> {
+diff --git a/admin-web/src/app/(app)/inteligencia/Analyst.tsx b/admin-web/src/app/(app)/inteligencia/Analyst.tsx
+index 9b27726..7be6e02 100644
+--- a/admin-web/src/app/(app)/inteligencia/Analyst.tsx
++++ b/admin-web/src/app/(app)/inteligencia/Analyst.tsx
+@@ -38,7 +38,12 @@ export function AnswerView({ a, unverified }: { a: Answer; unverified: AnalystRe
+       <p className="text-lg text-ink">{a.resumen}</p>
+       {unverified.length > 0 && (
+         <p className="rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger" data-testid="analyst-unverified">
+-          Ojo: {unverified.length} cifra(s) presentadas como hecho no aparecen en los datos consultados ({unverified.map((u) => fmt(u.valor)).join(', ')}). No las uses sin revisar.
++          Ojo: {unverified.length} cifra(s) económicas presentadas como hecho o en el resumen no aparecen en los datos consultados ({unverified.map((u) => fmt(u.valor)).join(', ')}). No las uses sin revisar.
++        </p>
++      )}
++      {a.validacion?.estado === 'incompleta' && (
++        <p className="rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger" data-testid="analyst-incomplete">
++          Respuesta incompleta: {a.validacion.problemas.join('; ')}. Lo que no tiene fuente no cuenta como hecho verificado.
+         </p>
+       )}
+       {a.formato === 'texto_libre' && <p className="text-xs text-muted">Respuesta sin estructura: nada de lo anterior cuenta como hecho verificado.</p>}
+@@ -47,6 +52,11 @@ export function AnswerView({ a, unverified }: { a: Answer; unverified: AnalystRe
+           <ul className="mt-2 flex flex-col gap-2">{a.hechos.map((h, i) => <li key={i} className="rounded-xl bg-surface-2 px-3 py-2 text-sm text-ink">{h.texto}<Source f={h.fuente} /></li>)}</ul>
+         </section>
+       )}
++      {(a.sin_fuente?.length ?? 0) > 0 && (
++        <section data-testid="analyst-sin-fuente"><h3 className="text-sm font-semibold text-danger">Sin fuente · no verificado</h3>
++          <ul className="mt-2 flex flex-col gap-2">{a.sin_fuente!.map((h, i) => <li key={i} className="rounded-xl border border-danger/40 px-3 py-2 text-sm text-ink-2">{h.texto} <span className="text-xs text-muted">({h.motivo})</span></li>)}</ul>
++        </section>
++      )}
+       {a.calculos.length > 0 && (
+         <section><h3 className="text-sm font-semibold text-ink">Cálculos</h3>
+           <ul className="mt-2 flex flex-col gap-2">{a.calculos.map((c, i) => (
+diff --git a/admin-web/src/app/(app)/inteligencia/layout.tsx b/admin-web/src/app/(app)/inteligencia/layout.tsx
+index e3b163f..9ee22bb 100644
+--- a/admin-web/src/app/(app)/inteligencia/layout.tsx
++++ b/admin-web/src/app/(app)/inteligencia/layout.tsx
+@@ -1,4 +1,5 @@
+ import { notFound } from 'next/navigation';
++import { intelEnabled } from '@/lib/feature';
+ import { boardAccessState, getBoardMe } from '@/lib/board';
+ import { BoardMfa } from '../estrategia/BoardMfa';
+ 
+@@ -8,6 +9,7 @@ import { BoardMfa } from '../estrategia/BoardMfa';
+ export const dynamic = 'force-dynamic';
+ 
+ export default async function InteligenciaLayout({ children }: { children: React.ReactNode }) {
++  if (!intelEnabled()) notFound();   // D0: hidden in production until I5
+   const me = await getBoardMe();
+   if (!me.ok) {
+     if ((await boardAccessState()) === 'mfa_required') return <BoardMfa />;
+diff --git a/admin-web/src/app/(app)/layout.tsx b/admin-web/src/app/(app)/layout.tsx
+index b0ed2f9..64d7226 100644
+--- a/admin-web/src/app/(app)/layout.tsx
++++ b/admin-web/src/app/(app)/layout.tsx
+@@ -3,16 +3,17 @@ import { boardNavVisible } from '@/lib/board';
+ import { redirect } from 'next/navigation';
+ import { getMe, getSyncBadge } from '@/lib/f360';
+ import { financeAccess } from '@/lib/intel';
++import { intelEnabled } from '@/lib/feature';
+ import { weeklyMe } from '@/lib/weekly';
+ import { signOut } from '../login/actions';
+ 
+ export default async function AppLayout({ children }: { children: React.ReactNode }) {
++  // The contadora (finance preparer WITHOUT an F360 role, 0700) only has Cierre contable: sent there server-side before anything
++  // that needs a role. /cierre-contable lives in its own route group, so this layout never wraps it.
++  if (intelEnabled() && (await financeAccess()) !== 'none') redirect('/cierre-contable');
+   const weekly = await weeklyMe();
+   if (weekly.ok && !weekly.team) redirect('/pendientes'); // the agency: only its weekly card, nothing else
+   const me = await getMe(); // no Fuxia 360 role → signed out with a clear message
+-  // The contadora (viewer + finance preparer, I2) only has Cierre contable: every other admin page sends her there, server-side.
+-  // /cierre-contable lives in its own route group, so this layout never wraps it.
+-  if ((await financeAccess(me.role)) !== 'none') redirect('/cierre-contable');
+   const alerts = await getSyncBadge().catch(() => 0);
+   const board = await boardNavVisible().catch(() => false); // menu hint only; /estrategia re-checks in the database
+   return (
+diff --git a/admin-web/src/app/(contabilidad)/cierre-contable/page.tsx b/admin-web/src/app/(contabilidad)/cierre-contable/page.tsx
+index 95bd7e3..57d532c 100644
+--- a/admin-web/src/app/(contabilidad)/cierre-contable/page.tsx
++++ b/admin-web/src/app/(contabilidad)/cierre-contable/page.tsx
+@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
+ import { BoardMfa } from '@/app/(app)/estrategia/BoardMfa';
+ import { SubmitButton } from '@/components/SubmitButton';
+ import { boardAccessState } from '@/lib/board';
+-import { getMe } from '@/lib/f360';
+ import { dayLabel, financeAccess, getClosePrep, money, monthLabel, when, type Commitment, type PrepEntry } from '@/lib/intel';
+ import { addCommitment, addEntry, commitmentEvent, voidEntry } from './actions';
+ 
+@@ -111,8 +110,7 @@ export default async function CierreContable({ searchParams }: { searchParams: P
+   const board = await boardAccessState();
+   if (!ctx.ok) {
+     if (board === 'mfa_required') return <BoardMfa area="Cierre contable" next="/cierre-contable" />;
+-    const me = await getMe();
+-    if ((await financeAccess(me.role)) === 'mfa_required') return <BoardMfa area="Cierre contable" next="/cierre-contable" />;
++    if ((await financeAccess()) === 'mfa_required') return <BoardMfa area="Cierre contable" next="/cierre-contable" />;
+     notFound();
+   }
+   const isBoard = board === 'ok';
+diff --git a/admin-web/src/app/(contabilidad)/layout.tsx b/admin-web/src/app/(contabilidad)/layout.tsx
+index a33aa47..34a5000 100644
+--- a/admin-web/src/app/(contabilidad)/layout.tsx
++++ b/admin-web/src/app/(contabilidad)/layout.tsx
+@@ -1,7 +1,9 @@
+ import { Shell } from '@/components/Shell';
+ import { boardNavVisible } from '@/lib/board';
+ import { getMe, getSyncBadge } from '@/lib/f360';
+-import { financeAccess } from '@/lib/intel';
++import { financeState } from '@/lib/intel';
++import { intelEnabled } from '@/lib/feature';
++import { notFound } from 'next/navigation';
+ import { signOut } from '../login/actions';
+ 
+ // Cierre contable (I2) has its own route group so the contadora never passes through the main admin layout (which redirects
+@@ -10,12 +12,20 @@ import { signOut } from '../login/actions';
+ export const dynamic = 'force-dynamic';
+ 
+ export default async function ContabilidadLayout({ children }: { children: React.ReactNode }) {
++  if (!intelEnabled()) notFound();   // D0: hidden in production until I5
++  const fs = await financeState();
++  if (fs.preparadora) {   // the contadora has no F360 role: never call getMe (it would sign her out)
++    return (
++      <Shell name={fs.nombre ?? 'Contabilidad'} role="viewer" env={process.env.NEXT_PUBLIC_F360_ENV} alerts={0} board={false} finance onlyFinance signOut={signOut}>
++        {children}
++      </Shell>
++    );
++  }
+   const me = await getMe();
+-  const [finance, board] = await Promise.all([financeAccess(me.role), boardNavVisible().catch(() => false)]);
+-  const onlyFinance = finance !== 'none';
+-  const alerts = onlyFinance ? 0 : await getSyncBadge().catch(() => 0);
++  const board = await boardNavVisible().catch(() => false);
++  const alerts = await getSyncBadge().catch(() => 0);
+   return (
+-    <Shell name={me.display_name} role={me.role} env={process.env.NEXT_PUBLIC_F360_ENV} alerts={alerts} board={board} finance={onlyFinance} onlyFinance={onlyFinance} signOut={signOut}>
++    <Shell name={me.display_name} role={me.role} env={process.env.NEXT_PUBLIC_F360_ENV} alerts={alerts} board={board} finance={false} onlyFinance={false} signOut={signOut}>
+       {children}
+     </Shell>
+   );
+diff --git a/admin-web/src/app/login/actions.ts b/admin-web/src/app/login/actions.ts
+index 5059c48..4fdbaff 100644
+--- a/admin-web/src/app/login/actions.ts
++++ b/admin-web/src/app/login/actions.ts
+@@ -1,5 +1,6 @@
+ 'use server';
+ import { redirect } from 'next/navigation';
++import { intelEnabled } from '@/lib/feature';
+ import { createClient } from '@/lib/supabase/server';
+ 
+ export type LoginState = { error?: string; step?: 'phone' | 'code'; phone?: string };
+@@ -24,6 +25,9 @@ async function requireF360Role(): Promise<string | null> {
+     if (error.code === '42501') {
+       const { data: weekly } = await supabase.rpc('f360_weekly_me');
+       if (weekly?.ok) return null;
++      // the contadora (0700) has no Fuxia 360 role on purpose: her only access is Cierre contable (finance preparer)
++      const { data: fin } = await supabase.rpc('f360_finance_access_state');
++      if (fin?.preparadora && intelEnabled()) return null;
+     }
+     await supabase.auth.signOut();
+     return error.code === '42501' ? 'Esta cuenta no tiene acceso a Fuxia 360. Pídele acceso a Mario.' : 'No pudimos verificar tu acceso. Intenta de nuevo.';
+diff --git a/admin-web/src/components/Shell.tsx b/admin-web/src/components/Shell.tsx
+index 9beac0e..2507ebd 100644
+--- a/admin-web/src/components/Shell.tsx
++++ b/admin-web/src/components/Shell.tsx
+@@ -1,4 +1,5 @@
+ 'use client';
++import { intelEnabled, INTEL_ROUTES } from '@/lib/feature';
+ import Link from 'next/link';
+ import { usePathname } from 'next/navigation';
+ import { IconBag, IconBell, IconBoxes, IconCamera, IconCheck, IconClock, IconGrowth, IconHome, IconLink, IconLogout, IconMore, IconMove, IconReceipt, IconScissors, IconShoe, IconUsers } from './icons';
+@@ -54,7 +55,10 @@ const FINANCE_ITEM = NAV.find((n) => n.href === '/cierre-contable')!;
+ // Who sees an entry (menu hint only — every page re-checks in the database). The contadora (onlyFinance) sees ONLY
+ // Cierre contable; her layout also redirects her there from any other page.
+ type Item = (typeof NAV)[number];
+-const visible = (n: Item, role: string, board: boolean, finance: boolean, onlyFinance: boolean) =>
++// D0 (Mario 2026-10-11): Dirección / Inteligencia / Cierre contable hidden unless the Centro de Inteligencia is enabled (staging, or
++// NEXT_PUBLIC_F360_INTEL = "on"). The routes themselves also answer 404 when it is off.
++const visible = (n: Item, role: string, board: boolean, finance: boolean, onlyFinance: boolean) => (intelEnabled() || !INTEL_ROUTES.includes(n.href)) && visibleBase(n, role, board, finance, onlyFinance);
++const visibleBase = (n: Item, role: string, board: boolean, finance: boolean, onlyFinance: boolean) =>
+   onlyFinance ? 'finance' in n
+   : 'board' in n ? board
+   : 'finance' in n ? board || finance
+diff --git a/admin-web/src/lib/analyst.ts b/admin-web/src/lib/analyst.ts
+index e898afe..835f5fe 100644
+--- a/admin-web/src/lib/analyst.ts
++++ b/admin-web/src/lib/analyst.ts
+@@ -11,10 +11,12 @@ export type Answer = {
+   recomendaciones: Reco[];
+   prioridades?: Reco[];
+   faltantes: { que: string; quien: string }[];
++  sin_fuente?: { texto: string; cifras: Cifra[]; motivo: string }[];   // F2: facts without traceable source — never shown as verified
++  validacion?: { estado: 'completa' | 'incompleta'; problemas: string[] };
+   formato?: string;
+ };
+ export type AnalystResult = {
+-  ok: true; id: number | null; kind: 'pregunta' | 'prioridades'; answer: Answer; unverified: { hecho: string; valor: number }[];
++  ok: true; id: number | null; kind: 'pregunta' | 'prioridades'; answer: Answer; unverified: { hecho: string; valor: number; donde?: 'hechos' | 'resumen' }[];
+   tools: { tool: string; args: unknown; disponibilidad: string | null; fuente: string | null }[]; sources: string[];
+   usage: { input: number; output: number; cacheRead: number; cacheWrite: number; cost_usd: number; model: string; spent_month_usd: number; budget_usd: number; warning: boolean };
+ };
+diff --git a/admin-web/src/lib/feature.ts b/admin-web/src/lib/feature.ts
+new file mode 100644
+index 0000000..834d0b0
+--- /dev/null
++++ b/admin-web/src/lib/feature.ts
+@@ -0,0 +1,5 @@
++// Feature switches decided at build time. Centro de Inteligencia (Mario 2026-10-11, D0): Dirección, Inteligencia and Cierre contable
++// stay HIDDEN in production until I5 is approved and executed — they are only on in staging, or where NEXT_PUBLIC_F360_INTEL = "on"
++// is set explicitly. Hiding is not the security (every page re-checks in the database); it only avoids showing unfinished screens.
++export const intelEnabled = () => process.env.NEXT_PUBLIC_F360_ENV === 'staging' || process.env.NEXT_PUBLIC_F360_INTEL === 'on';
++export const INTEL_ROUTES = ['/direccion', '/inteligencia', '/cierre-contable'];
+diff --git a/admin-web/src/lib/intel.ts b/admin-web/src/lib/intel.ts
+index d5da109..0c35951 100644
+--- a/admin-web/src/lib/intel.ts
++++ b/admin-web/src/lib/intel.ts
+@@ -1,6 +1,5 @@
+ import { cache } from 'react';
+ import { createClient } from '@/lib/supabase/server';
+-import type { Role } from '@/lib/f360';
+ 
+ // Centro de Inteligencia (I2): the screens only RENDER what these RPCs return. Every number, comparison, projection and
+ // availability seal is computed in the database (f360_intel_* / f360_board_* / f360_close_prep_*), which also decides who may
+@@ -96,20 +95,21 @@ export const getClosePrep = cache(() => call<ClosePrep>('f360_close_prep_context
+ export const writeCall = (fn: string, args: Record<string, unknown>) => call<{ ok: true } & Record<string, unknown>>(fn, args);
+ 
+ // ── Contadora (finance preparer) — NAVIGATION ONLY, never security ───────────────────────────────────────────────────────
+-// The database is the only gate (f360_board.require_finance_capture). There is no RPC that says "this caller is a preparer"
+-// before the second factor, so for a 'viewer' the app decides like this:
+-//   · session already aal2 → ask f360_close_prep_context: allowed = she is the contadora ('ok'); denied = a plain viewer ('none').
+-//   · session aal1 → 'mfa_required': every viewer is taken to the second-factor screen of Cierre contable first; after it,
+-//     a viewer who is not a preparer is denied by the database and goes back to the normal viewer screens.
+-// Owners/operators/sellers are never affected. (Backend gap reported in I2_COCKPIT_DELIVERY.md: f360_finance_access_state().)
+-export type FinanceAccess = 'ok' | 'mfa_required' | 'none';
+-export const financeAccess = cache(async (role: Role): Promise<FinanceAccess> => {
+-  if (role !== 'viewer') return 'none';
++// 0700 (least privilege): the contadora has NO Fuxia 360 role. f360_finance_access_state() tells the CALLER her own status
++// (preparer / board / second factor) and nothing about anyone else; the database stays the only gate (require_finance_capture).
++export type FinanceState = { preparadora: boolean; nombre?: string | null; can_close?: boolean; can_budget?: boolean; consejo: boolean;
++  rol_f360: boolean; conflicto?: boolean; mfa_requerido: boolean };
++export const financeState = cache(async (): Promise<FinanceState> => {
+   const supabase = await createClient();
+-  const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+-  if (data?.currentLevel !== 'aal2') return 'mfa_required';
+-  const ctx = await getClosePrep();
+-  return ctx.ok ? 'ok' : 'none';
++  const { data, error } = await supabase.rpc('f360_finance_access_state');
++  if (error || !data) return { preparadora: false, consejo: false, rol_f360: false, mfa_requerido: false };
++  return data as FinanceState;
++});
++export type FinanceAccess = 'ok' | 'mfa_required' | 'none';
++export const financeAccess = cache(async (): Promise<FinanceAccess> => {
++  const s = await financeState();
++  if (!s.preparadora) return 'none';
++  return s.mfa_requerido ? 'mfa_required' : 'ok';
+ });
+ 
+ // ── Presentation (no business math: formatting only) ─────────────────────────────────────────────────────────────────────

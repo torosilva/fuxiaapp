@@ -1,0 +1,34 @@
+PROPUESTA (NO aplicada) · D8 — scripts/f360/deploy_prod_admin.sh publica desde un COMMIT FIJO y revisado, no desde la punta de la rama.
+Uso propuesto:  F360_DEPLOY_SHA=c901e60 scripts/f360/deploy_prod_admin.sh
+- Exige F360_DEPLOY_SHA (sin él aborta: ya no publica "lo último de la rama").
+- Exige que el commit esté en origin/fuxia-360 (revisado y empujado).
+- Antes de publicar imprime la lista exacta de archivos de admin-web que cambian respecto del despliegue actual
+  (~/fuxia360-respaldos/prod-admin-deployed.sha) y pide confirmación escribiendo el SHA.
+- Al terminar guarda el SHA publicado en ~/fuxia360-respaldos/prod-admin-deployed.sha (para la siguiente comparación y el rollback).
+
+--- a/scripts/f360/deploy_prod_admin.sh
++++ b/scripts/f360/deploy_prod_admin.sh
+@@
+ set -euo pipefail
+ cd "$(dirname "$0")/../.."
+ REPO="$PWD"
+ W="${TMPDIR:-/tmp}/f360-admin-prod"
+ git fetch -q origin fuxia-360
+-SHA=$(git rev-parse origin/fuxia-360)
++[ -n "${F360_DEPLOY_SHA:-}" ] || { echo "ABORT: indica F360_DEPLOY_SHA=<commit revisado> (ya no se publica la punta de la rama)" >&2; exit 1; }
++SHA=$(git rev-parse --verify "${F360_DEPLOY_SHA}^{commit}")
++git merge-base --is-ancestor "$SHA" origin/fuxia-360 || { echo "ABORT: $SHA no está en origin/fuxia-360" >&2; exit 1; }
++PREV_FILE="$HOME/fuxia360-respaldos/prod-admin-deployed.sha"; PREV=$(cat "$PREV_FILE" 2>/dev/null || echo "")
++if [ -n "$PREV" ]; then
++  echo "Archivos de admin-web que cambian respecto de lo publicado ($PREV):"; git diff --stat "$PREV" "$SHA" -- admin-web
++  echo "Commits incluidos:"; git log --format='  %h %an %s' "$PREV..$SHA" -- admin-web
++fi
++read -r -p "Escribe el SHA corto ($(git rev-parse --short "$SHA")) para confirmar: " OK
++[ "$OK" = "$(git rev-parse --short "$SHA")" ] || { echo "ABORT: confirmación distinta" >&2; exit 1; }
+ [ -d "$W/.git" ] || [ -f "$W/.git" ] || git clone -q --no-checkout "$REPO" "$W"
+ git -C "$W" fetch -q "$REPO" "$SHA"
+ git -C "$W" checkout -q --detach "$SHA"
++git -C "$W" reset -q --hard   # the temp worktree can lose files (macOS purges TMPDIR): always restore the exact commit
+ git -C "$W" clean -qfdx admin-web -e .vercel
+@@ (al final, tras "LISTO")
++mkdir -p "$(dirname "$PREV_FILE")"; echo "$SHA" > "$PREV_FILE"
