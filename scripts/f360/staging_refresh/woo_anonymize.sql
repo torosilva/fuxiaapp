@@ -81,27 +81,28 @@ UPDATE {P}wc_customer_lookup SET email = CONCAT('clienta', customer_id, '@stagin
                                  last_name = CAST(customer_id AS CHAR), username = CONCAT('clienta', customer_id);
 
 -- ── Datos que no se copian: leads, avisos, carritos, sesiones, tokens de pago, registros ─────────────────
-TRUNCATE {P}fuxia_leads;
-TRUNCATE {P}wc_stock_notifications;
-TRUNCATE {P}wc_stock_notificationmeta;
-TRUNCATE {P}cartflows_ca_cart_abandonment;
-TRUNCATE {P}cartflows_ca_email_history;
-TRUNCATE {P}cr_reminders_log;
-TRUNCATE {P}epayco_order;
-TRUNCATE {P}social_users;
-TRUNCATE {P}woocommerce_sessions;
-TRUNCATE {P}woocommerce_payment_tokens;
-TRUNCATE {P}woocommerce_payment_tokenmeta;
-TRUNCATE {P}woocommerce_log;
-TRUNCATE {P}wpmailsmtp_debug_events;
-TRUNCATE {P}wpmailsmtp_tasks_meta;
-TRUNCATE {P}actionscheduler_logs;
-TRUNCATE {P}sgs_log_events;
-TRUNCATE {P}sgs_log_visitors;
-TRUNCATE {P}sg_ai_log_events;
-TRUNCATE {P}clarity_collect_events;
-TRUNCATE {P}wc_download_log;
-TRUNCATE {P}wc_rate_limits;
-TRUNCATE {P}wc_reserved_stock;
+-- DELETE (no TRUNCATE): algunas tablas tienen llaves foráneas entre sí; primero las hijas, luego las madres.
+DELETE FROM {P}fuxia_leads;
+DELETE FROM {P}wc_stock_notificationmeta;
+DELETE FROM {P}wc_stock_notifications;
+DELETE FROM {P}cartflows_ca_email_history;
+DELETE FROM {P}cartflows_ca_cart_abandonment;
+DELETE FROM {P}cr_reminders_log;
+DELETE FROM {P}epayco_order;
+DELETE FROM {P}social_users;
+DELETE FROM {P}woocommerce_sessions;
+DELETE FROM {P}woocommerce_payment_tokenmeta;
+DELETE FROM {P}woocommerce_payment_tokens;
+DELETE FROM {P}woocommerce_log;
+DELETE FROM {P}wpmailsmtp_debug_events;
+DELETE FROM {P}wpmailsmtp_tasks_meta;
+DELETE FROM {P}actionscheduler_logs;
+DELETE FROM {P}sgs_log_events;
+DELETE FROM {P}sgs_log_visitors;
+DELETE FROM {P}sg_ai_log_events;
+DELETE FROM {P}clarity_collect_events;
+DELETE FROM {P}wc_download_log;
+DELETE FROM {P}wc_rate_limits;
+DELETE FROM {P}wc_reserved_stock;
 -- Tareas programadas pendientes de prod (correos, sincronizaciones con Google/Meta): no corren en staging4.
 DELETE FROM {P}actionscheduler_actions WHERE status IN ('pending', 'in-progress');

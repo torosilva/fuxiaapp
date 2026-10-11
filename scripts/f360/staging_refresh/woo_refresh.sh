@@ -63,7 +63,10 @@ tar -C "$PKG" -czf "$PKG.tgz" . && mv "$PKG.tgz" "$PKG/pkg.tgz"
 echo "Fuxia 360 · tienda real → staging4 · ${MODE#--} · $TS"
 set +e
 "${SSH[@]}" "mkdir -p ~/f360-backups/staging4-refresh/$TS && cat > ~/f360-backups/staging4-refresh/$TS/pkg.tgz" < "$PKG/pkg.tgz"
-"${SSH[@]}" "MODE='$MODE' TS='$TS' PROD_ANON='$PROD_ANON' PROD_PUB='$PROD_PUB' STG_ANON='$STG_ANON' STG_PUB='$STG_PUB' bash -s" <<'REMOTE'
+# RESTORE_FROM=<fecha>: si esta copia falla, restaurar desde el respaldo de esa corrida (p. ej. tras una copia a medias).
+RESTORE_FROM="${RESTORE_FROM:-}"
+[[ -z "$RESTORE_FROM" || "$RESTORE_FROM" =~ ^[0-9_-]+$ ]] || { echo "ABORT: RESTORE_FROM inválido" >&2; exit 2; }
+"${SSH[@]}" "MODE='$MODE' TS='$TS' RESTORE_FROM='$RESTORE_FROM' PROD_ANON='$PROD_ANON' PROD_PUB='$PROD_PUB' STG_ANON='$STG_ANON' STG_PUB='$STG_PUB' bash -s" <<'REMOTE'
 set -euo pipefail
 P=~/www/fuxiaballerinas.com/public_html
 S=~/www/staging4.fuxiaballerinas.com/public_html
@@ -106,12 +109,24 @@ KEEP_OPTS_WHERE="option_name like '\\_mp\\_%' or option_name like '%mercado%pago
 mkdir -p "$B/mu_before" && cp -a "$S/wp-content/mu-plugins/." "$B/mu_before/" 2>/dev/null || true
 ls -la "$B" | awk 'NR>1{print "   ", $5, $NF}'
 
+# set -E: la trampa ERR también se activa dentro de funciones y subshells. El marcador evita restaurar dos veces.
+set -E
+RB="$B"   # punto de restauración
+if [ -n "$RESTORE_FROM" ]; then
+  RB=~/f360-backups/staging4-refresh/$RESTORE_FROM
+  [ -f "$RB/staging4_before.sql.gz" ] && [ -d "$RB/mu_before" ] || { echo "ABORT: no existe el respaldo $RB"; exit 11; }
+  echo "punto de restauración: $RB"
+fi
 restore() {
-  echo "!! FALLÓ: restaurando staging4 desde $B/staging4_before.sql.gz"
-  (cd "$S" && gunzip -c "$B/staging4_before.sql.gz" | wp db import - >/dev/null) || echo "!! la restauración también falló: revisar a mano"
-  rm -rf "$S/wp-content/mu-plugins" && mkdir -p "$S/wp-content/mu-plugins" && cp -a "$B/mu_before/." "$S/wp-content/mu-plugins/" || true
+  [ -f "$B/.restaurado" ] && exit 1
+  touch "$B/.restaurado"
+  echo "!! FALLÓ: restaurando staging4 desde $RB/staging4_before.sql.gz"
+  (cd "$S" && gunzip -c "$RB/staging4_before.sql.gz" | wp db import - >/dev/null) || echo "!! la restauración también falló: revisar a mano"
+  rm -rf "$S/wp-content/mu-plugins" && mkdir -p "$S/wp-content/mu-plugins" && cp -a "$RB/mu_before/." "$S/wp-content/mu-plugins/" || true
   (cd "$S" && wp maintenance-mode deactivate --skip-plugins --skip-themes >/dev/null 2>&1) || true
   (cd "$S" && wp sg purge >/dev/null 2>&1) || true
+  echo "!! staging4 restaurado"
+  exit 1
 }
 trap 'restore' ERR
 
