@@ -77,7 +77,10 @@ BEGIN
   r := public.f360_intel_query('embudo', '{"desde":"2026-08-01","hasta":"2026-08-31"}');
   IF EXISTS (SELECT 1 FROM jsonb_array_elements(r->'data'->'por_mercado') mk, jsonb_array_elements(mk->'etapas') e WHERE e->>'etapa' = 'Visitas' AND e->'valor' <> 'null'::jsonb) THEN RAISE EXCEPTION 'M7 visits'; END IF;
   r := public.f360_intel_query('marketing', '{"desde":"2026-08-01","hasta":"2026-08-31"}');
-  IF EXISTS (SELECT 1 FROM jsonb_array_elements(r->'data'->'por_mercado') mk WHERE mk->'roas_atribuido'->'valor' <> 'null'::jsonb) THEN RAISE EXCEPTION 'M7 roas'; END IF;
+  -- ROAS is never made of unattributed sales: empty, or exactly attributed-to-Meta revenue ÷ Meta spend (F5, 20261024000500)
+  IF EXISTS (SELECT 1 FROM jsonb_array_elements(r->'data'->'por_mercado') mk WHERE mk->'roas_atribuido'->'valor' <> 'null'::jsonb
+             AND (NOT mk ? 'ingresos_atribuidos_meta_mxn' OR (mk->'roas_atribuido'->>'valor')::numeric
+                  <> round((mk->'ingresos_atribuidos_meta_mxn'->>'mxn')::numeric / (mk->'inversion_mxn'->>'mxn')::numeric, 2))) THEN RAISE EXCEPTION 'M7 roas'; END IF;
 
   -- M8 inventory total = live ledger (active, non-transit locations)
   r := public.f360_intel_query('inventario_mx', '{"dias":60}');
