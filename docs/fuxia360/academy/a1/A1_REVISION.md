@@ -70,7 +70,7 @@ public.f360_academy_* (SECURITY DEFINER; deciden con auth.uid())
 
 | # | Comando exacto | Efecto | Riesgo / reversión |
 |---|---|---|---|
-| 1 | `scripts/s00a/run.sh ../f360/sql_test_one.mjs supabase/staging/f360_academy_a1_tests.sql` (desde `academy/a1`) | **Ensayo** en staging dentro de una transacción que termina en ROLLBACK. Esperado: todo PASS | Bloquea staging unos segundos; aviso previo a las otras sesiones. No deja nada |
+| 1 | `scripts/s00a/run.sh ../f360/sql_test_one.mjs supabase/staging/f360_academy_a1_tests.sql` (desde `academy/a1`) | **Ensayo** en staging dentro de una transacción que termina en ROLLBACK. Esperado: todo PASS | Bloquea staging unos segundos; aviso previo a las otras sesiones; **nunca entre 3:30 y 3:50** (copia nocturna). No deja nada |
 | 2 | Integrar `academy/a1` en `fuxia-360` + agregar `supabase/staging/academy_a1_staging.sql` a `scripts/f360/staging_refresh/after_refresh.list` + push | Esa noche staging aplica las 3 migraciones y los datos de prueba (y los reaplica cada noche) | La copia nocturna **no hace prueba en seco**: por eso va después del paso 1. **Las migraciones quedan pendientes para el próximo push manual a producción**: ese push deberá excluirlas o aprobarlas explícitamente |
 | 2b | (alternativa el mismo día) `supabase db push --db-url "$STAGING_DB_URL" --dry-run`: la lista debe tener **solo** `20261026000100/0200/0300`, y después aplicarlas | Aplica hoy sin esperar la noche | Igual que 2; si la lista trae migraciones ajenas, se detiene |
 | 3 | `scripts/s00a/run.sh ../f360/academy_a1_test_users.mjs` | Crea las 2 alumnas de prueba y carga `academy_a1_staging.sql` | Solo cuentas `@staging.invalid` |
