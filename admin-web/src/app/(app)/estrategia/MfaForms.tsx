@@ -47,7 +47,7 @@ export function MfaEnroll({ next = '/estrategia' }: { next?: string }) {
     <div className="space-y-4">
       {/* eslint-disable-next-line @next/next/no-img-element -- Supabase returns the QR as an SVG data URL */}
       <img src={setup.qr} alt="Código QR para tu app de autenticación" className="mx-auto h-48 w-48 rounded-xl bg-white p-2" />
-      <p className="text-center text-xs text-muted">¿No puedes escanear? Escribe esta clave en la app:<br /><span className="font-mono text-ink-2 break-all">{setup.secret}</span></p>
+      <p className="text-center text-xs text-muted">¿No puedes escanear? Escribe esta clave en la app:<br /><span data-testid="totp-secret" className="font-mono text-ink-2 break-all">{setup.secret}</span></p>
       <p className="rounded-xl bg-gold-soft px-4 py-3 text-xs text-ink-2">
         Recomendado: escanea el mismo código también en un segundo dispositivo o en tu gestor de contraseñas. Así, si pierdes el
         celular, sigues teniendo tu código.
