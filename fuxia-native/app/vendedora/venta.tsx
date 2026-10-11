@@ -2,7 +2,7 @@
 //   0 · ¿Qué se lleva?  the store's stock by photo → colour → size (pairs here)          [seller]
 //   1 · ¿Para quién es? her WhatsApp on a big keypad, or scan her card, or no customer   [seller]
 //   2 · Clienta nueva   light screen the seller turns to her: name (+ optional e-mail, size, birthday), privacy
-//   3 · Cobrar          her card (first name, last 4, size), pairs, how she paid, optional terminal folio
+//   3 · Cobrar          her card (first name, last 4, size), pairs, discount (≤10 % alone; more: Carolina), how she paid, folio
 //   4 · Venta lista     stock already discounted; points credited now or held until she logs in; thank-you WhatsApp
 // Price, total, stock, points and the customer link are the server's (f360_record_store_sale_for); the seller only ever
 // sees the customer's masked card. Opened from "Apartados" with ?variant=…&para=… the reserved pair is in the bag.
@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Check, Delete, MessageCircle, QrCode, Search, X } from 'lucide-react-native';
 import QRScanner from '@/components/QRScanner';
+import { NO_DISCOUNT, SaleDiscount, type DiscountValue } from '@/components/SaleDiscount';
 import { currentShift } from '@/lib/sellerSession';
 import { customerByCard, findCustomer, newSaleKey, photoUrl, recordSaleFor, registerCustomer, shiftCatalog, thanksWhatsApp,
   type CatalogItem, type MaskedCustomer, type SaleForResult } from '@/lib/f360Store';
@@ -43,6 +44,7 @@ export default function VentaF360() {
   const [scanning, setScanning] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<SaleForResult | null>(null);
+  const [discount, setDiscount] = useState<DiscountValue>(NO_DISCOUNT);   // one % on the whole sale; the server prices and decides
   const key = useRef(newSaleKey());                                    // one key per sale: a retry or double tap never sells twice
 
   useEffect(() => {
@@ -67,6 +69,8 @@ export default function VentaF360() {
   const lines = Object.entries(bag).filter(([id, n]) => n > 0 && byId[id]);
   const pairs = lines.reduce((a, [, n]) => a + n, 0);
   const total = lines.reduce((a, [id, n]) => a + Number(byId[id]?.price ?? 0) * n, 0);
+  const net = total - Math.round(total * discount.pct) / 100;                // shown only; the sale's total is the server's
+  const saleLines = lines.map(([variant_id, quantity]) => ({ variant_id, quantity }));
   const add = (i: CatalogItem) => setBag((b) => ({ ...b, [i.variant_id]: Math.min((b[i.variant_id] ?? 0) + 1, free(i)) }));
   const remove = (id: string) => setBag((b) => { const n = { ...b }; delete n[id]; return n; });
 
@@ -101,16 +105,18 @@ export default function VentaF360() {
   };
   const cobrar = async () => {
     if (!pago) { Alert.alert('Falta el pago', 'Elige cómo pagó la clienta.'); return; }
+    if (!discount.ready) { Alert.alert('Falta la aprobación', 'Un descuento de más de 10% lo tiene que aprobar Carolina.'); return; }
     setBusy(true);
     try {
-      setDone(await recordSaleFor(key.current, lines.map(([variant_id, quantity]) => ({ variant_id, quantity })), pago, folio.trim() || null, customer?.customer_ref ?? null));
+      setDone(await recordSaleFor(key.current, saleLines, pago, folio.trim() || null, customer?.customer_ref ?? null, discount.pct,
+        discount.pct > 0 ? { request_id: discount.requestId ?? undefined, reason: discount.reason || undefined } : null));
       setStep('done');
     } catch (e) { Alert.alert('No se registró la venta', (e as Error).message); }
     setBusy(false);
   };
   const nueva = () => {
     key.current = newSaleKey();
-    setBag({}); setPhone(''); setCustomer(null); setIsNew(false); setPago(null); setFolio(''); setDone(null); setOpen(null); setQ('');
+    setBag({}); setPhone(''); setCustomer(null); setIsNew(false); setPago(null); setFolio(''); setDone(null); setOpen(null); setQ(''); setDiscount(NO_DISCOUNT);
     setReg({ name: '', email: '', size: '', day: '', month: '', privacy: false });
     setStep('pick');
     shiftCatalog().then((c) => setItems(c.items ?? [])).catch(() => {});
@@ -187,6 +193,9 @@ export default function VentaF360() {
           <Text style={s.okKicker}>VENTA REGISTRADA</Text>
           <Text style={s.okTotal}>{money(Number(done.total))}</Text>
           <Text style={s.okSub}>{name ? `Para ${name} · ` : ''}{pairs} {pairs === 1 ? 'par descontado' : 'pares descontados'} de {shift.location.name}</Text>
+          {Number(done.discount_pct ?? 0) > 0 && (
+            <Text style={[s.banner, { alignSelf: 'stretch', textAlign: 'center' }]}>Descuento {Number(done.discount_pct)}% (−{money(Number(done.discount_amount ?? 0))}){done.discount_approved_by ? ` · aprobó ${done.discount_approved_by}` : ''}{'\n'}Con descuento: sin cambio.</Text>
+          )}
           {name ? (
             <View style={s.info}>
               <Text style={s.infoBig}>+{pts}</Text>
@@ -236,6 +245,7 @@ export default function VentaF360() {
               <Text style={s.linePrice}>{money(Number(i.price) * n)}</Text>
             </View>); })}
           {customer && <View style={s.ptsRow}><Text style={s.muted}>Puntos de esta compra</Text><Text style={s.pts}>+{pairs * POINTS_PER_PAIR}</Text></View>}
+          <SaleDiscount lines={saleLines} gross={total} value={discount} onChange={setDiscount} />
           <Text style={s.label}>¿CÓMO PAGÓ?</Text>
           <View style={s.pagos}>
             {PAGOS.map((p) => (
@@ -247,8 +257,8 @@ export default function VentaF360() {
           <TextInput value={folio} onChangeText={setFolio} placeholder="Ej. 004518" placeholderTextColor="rgba(255,255,255,0.35)" maxLength={20} style={s.input} />
         </ScrollView>
         <View style={s.footer}>
-          <TouchableOpacity style={[s.cta, (busy || !pago) && { opacity: 0.5 }]} disabled={busy} onPress={cobrar}>
-            {busy ? <ActivityIndicator color="#0D0D0D" /> : <Text style={s.ctaText}>Cobrar {money(total)}</Text>}
+          <TouchableOpacity style={[s.cta, (busy || !pago || !discount.ready) && { opacity: 0.5 }]} disabled={busy} onPress={cobrar}>
+            {busy ? <ActivityIndicator color="#0D0D0D" /> : <Text style={s.ctaText}>Cobrar {money(net)}</Text>}
           </TouchableOpacity>
         </View>
       </SafeAreaView>

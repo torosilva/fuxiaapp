@@ -58,11 +58,29 @@ export const customerByCard = (card: string) => crm('f360_shift_customer_by_card
 export const registerCustomer = (c: { phone: string; name: string; email?: string; size?: string; birthdayDay?: number | null; birthdayMonth?: number | null }) =>
   crm('f360_shift_customer_register', { p_phone: c.phone, p_name: c.name, p_email: c.email ?? '', p_shoe_size: c.size || null,
     p_birthday_day: c.birthdayDay ?? null, p_birthday_month: c.birthdayMonth ?? null });
-export type SaleForResult = SaleResult & { sale_id: string; points_state?: 'credited' | 'held' | 'none'; customer?: MaskedCustomer };
+export type SaleForResult = SaleResult & { sale_id: string; points_state?: 'credited' | 'held' | 'none'; customer?: MaskedCustomer;
+  gross_total?: number; discount_pct?: number; discount_amount?: number; no_exchange?: boolean; discount_approved_by?: string | null };
 export const recordSaleFor = (key: string, lines: { variant_id: string; quantity: number }[], payment: 'cash' | 'card' | 'transfer' | 'other',
-  reference: string | null, customerRef: string | null) =>
+  reference: string | null, customerRef: string | null, discountPct = 0, discount: { request_id?: string; reason?: string } | null = null) =>
   call<SaleForResult>('f360_record_store_sale_for', { p_token: token(), p_idempotency_key: key, p_lines: lines, p_payment_method: payment,
-    p_payment_reference: reference || null, p_customer_ref: customerRef });
+    p_payment_reference: reference || null, p_customer_ref: customerRef,
+    // only a discounted sale sends the discount parameters: a sale without one is the exact call servers without discounts know
+    ...(discountPct > 0 ? { p_discount_pct: discountPct, p_discount: discount } : {}) });
+
+// ── Store discount (Mario 2026-10-11): one % on the whole sale; up to the seller limit alone, above it Carolina approves
+// (her PIN here, or a request she approves from Fuxia 360). The server prices it and decides; the app only asks.
+export type DiscountPolicy = { seller_max_pct: number; can_any: boolean; approvers: string; has_approvers: boolean };
+export type SaleLines = { variant_id: string; quantity: number }[];
+export const discountPolicy = () => call<DiscountPolicy>('f360_shift_discount_policy', { p_token: token() });
+export const discountByPin = (lines: SaleLines, pct: number, reason: string, pin: string) =>
+  call<{ ok: boolean; error?: string; request_id?: string; approved_by?: string; attempts_left?: number }>('f360_store_discount_pin',
+    { p_token: token(), p_lines: lines, p_pct: pct, p_reason: reason || null, p_pin: pin });
+export const discountRequest = (lines: SaleLines, pct: number, reason: string) =>
+  call<{ ok: boolean; request_id: string; expires_at: string; approvers: string }>('f360_store_discount_request',
+    { p_token: token(), p_lines: lines, p_pct: pct, p_reason: reason || null });
+export const discountStatus = (requestId: string) =>
+  call<{ status: 'pending' | 'approved' | 'rejected' | 'used' | 'cancelled' | 'expired'; decided_by: string | null; note: string | null }>('f360_store_discount_status',
+    { p_token: token(), p_request_id: requestId });
 
 // Public product photos (same bucket the store and the admin use).
 export const photoUrl = (path?: string | null) => path ? `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-images/${path}` : null;

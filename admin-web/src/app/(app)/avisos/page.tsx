@@ -3,6 +3,8 @@ import { canWrite, getMe, getSyncOverview } from '@/lib/f360';
 import { fecha } from '@/lib/format';
 import { publisherAvailable } from '@/lib/env-guard';
 import { ReconcileButton, ResolveIssue } from './AvisosClient';
+import { DiscountInbox } from './DiscountInbox';
+import { discountInboxAction } from '../actions';
 
 const KIND: Record<string, string> = {
   oversell: 'Venta sin existencia', unknown_sku: 'Artículo no reconocido', sku_mismatch: 'SKU no coincide', stock_drift: 'Existencias distintas',
@@ -26,13 +28,14 @@ const OUTCOME: Record<string, string> = {
 export default async function Avisos({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
   const { ver } = await searchParams;
   const showResolved = ver === 'resueltos';
-  const [me, data] = await Promise.all([getMe(), getSyncOverview(showResolved ? 'resolved' : 'open')]);
+  const [me, data, inbox] = await Promise.all([getMe(), getSyncOverview(showResolved ? 'resolved' : 'open'), discountInboxAction()]);
   const rec = data.last_reconciliation;
   const live = publisherAvailable();
   return (
     <div>
       <h1 className="font-display text-5xl text-ink">Avisos</h1>
       <p className="mt-2 text-ink-2">Lo que pasa entre Fuxia 360 y la tienda en línea. Si todo está bien, aquí no hay nada pendiente.</p>
+      {inbox.ok && inbox.data.can_approve && <DiscountInbox initial={inbox.data} />}
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <section className={`rounded-3xl border p-5 ${rec && rec.drifted + rec.missing === 0 ? 'border-success/30 bg-success-soft' : 'border-line bg-surface'}`} data-testid="reconciliation">

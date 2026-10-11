@@ -748,3 +748,15 @@ export async function setCustomerContactAction(id: string, input: {
   if (r.ok && r.data.ok) { revalidatePath(`/clientes/${id}`); revalidatePath('/clientes'); }
   return r;
 }
+
+// ── Store discounts above the seller limit (Mario 2026-10-11): only people with approval scope 'store_discount' see / decide ──
+export type DiscountRequest = { id: string; seller: string; location: string; summary: string; gross_total: number; pct: number; net_total: number;
+  reason: string | null; created_at: string; expires_at: string };
+export type DiscountInbox = { can_approve: boolean; pending: DiscountRequest[];
+  recent?: { id: string; seller: string; location: string; pct: number; net_total: number; status: string; via: string; decided_by: string | null; at: string }[] };
+export async function discountInboxAction(): Promise<Result<DiscountInbox>> {
+  return call<DiscountInbox>('f360_store_discount_inbox', {});
+}
+export async function decideDiscountAction(id: string, approve: boolean, note: string): Promise<Result<{ status: string }>> {
+  return call<{ status: string }>('f360_store_discount_decide', { p_request_id: id, p_approve: approve, p_note: note.trim() || null });
+}
