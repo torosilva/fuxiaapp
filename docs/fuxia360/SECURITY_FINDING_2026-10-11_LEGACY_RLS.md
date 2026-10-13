@@ -73,3 +73,5 @@
   - Además se encontraron y cerraron en staging tres políticas que confiaban en `user_metadata.phone`, que el propio usuario puede editar.
 - **Fase B:** solo plan, en `docs/fuxia360/security/D12_FASE_B_PLAN.md`. No ejecutada.
   - Nuevo punto de alta prioridad: la Edge Function `claim-sale` acredita puntos con el total que manda el cliente, sin identificar a quien llama.
+- **2026-10-13 · Fase A APLICADA EN PRODUCCIÓN.** Pase `supabase/pase/20261013_d12_fase_a.sql@9429fe1`, verificado. Evidencia en `security/D12_FASE_A.md` §8.
+  - Siguen abiertos: el acceso anónimo (fase B), `claim-sale` y las políticas `user_metadata` de `channels` y `channel_inventory`.

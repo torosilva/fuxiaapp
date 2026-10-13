@@ -142,3 +142,47 @@ La fila `20261027000100` de `supabase_migrations.schema_migrations` está en sta
 5. **Reversión:** `.down.sql` con `prod_sql.sh` y borrar la fila de `schema_migrations`. La huella debe volver a `2ec9510e…`.
 
 **Efecto esperado en producción:** las pantallas de admin y de vendedoras siguen igual. Una clienta deja de poder leer el personal (con NIP), las ventas ajenas y los tickets ajenos.
+
+## 8. PRODUCCIÓN — aplicada el 2026-10-13 (autorización de Mario; la ejecutó él con `prod_sql.sh`)
+**Pase:** `supabase/pase/20261013_d12_fase_a.sql@9429fe1`. Su cuerpo es idéntico, verificado con `diff`, a la migración probada en staging. Primero corrió el ensayo y luego la aplicación, que dio `APLICADO`.
+
+### Diagnóstico previo y ensayos (todos en producción, sin cambios)
+| Paso | Resultado |
+|---|---|
+| Huella de `staff` / `offline_sales` / `support_tickets` | `2ec9510e…` (15), igual a lo revisado |
+| Políticas `anon` | `a8609ffb…` (7) |
+| Políticas de `channel_inventory` / `channels` / `inventory_change_requests` | `daeca86a…` (13) |
+| Permisos de tabla (7 tablas) | `27b518b7…` |
+| `my_role` / `my_phone` / `my_customer_id` | `684e0a8a…`, idénticas a staging |
+| Prueba por perfil antes de aplicar | falla como se espera: "clienta lee staff (10 filas)" |
+| Ensayo aplicar + revertir | OK |
+| Ensayo aplicar + prueba por perfil | OK |
+
+### Después
+| Comprobación | Antes | Después |
+|---|---|---|
+| Políticas de las 3 tablas | `2ec9510e…` (15) | **`af59dcb1…` (12)** = staging |
+| Políticas `anon` (app anterior) | `a8609ffb…` (7) | `a8609ffb…` (7) **sin cambio** |
+| Otras tablas de la app anterior | `daeca86a…` (13) | sin cambio |
+| Permisos de tabla | `27b518b7…` | sin cambio |
+| `d12_store_reader` / `d12_staff_reader` | — | `SECURITY DEFINER`; anon **no** ejecuta, authenticated sí |
+| Fila de la migración en `schema_migrations` | 0 | 1 |
+| Ventas `offline_sales` (n / total / última) | 45 / $205,900 / 2026-10-12 20:52 | **igual** |
+| Inventario anterior `channel_inventory` (filas / stock / vendidos) | 165 / 231 / 52 | **igual** |
+| Ledger F360 (eventos / último) | 498 / 2026-10-13 03:22 | **igual** |
+| Personal (filas / activos / huella de NIP y estado) | 10 / 8 / `daf02872…` | **igual** |
+| Tickets | 9 | 9 |
+
+**Políticas instaladas:**
+- `staff`: `d12 staff read store roles`, `staff admin write` y `anon_read_active_staff`.
+- `offline_sales`: `d12 offline_sales read store roles`, `offline_sales own by phone`, `offline_sales staff insert/update` y `anon_insert_offline_sales` / `anon_read_offline_sales` / `anon_read_own_sales`.
+- `support_tickets`: `d12 support_tickets read staff` y `d12 support_tickets read own`.
+
+**Prueba por perfil con cuentas reales** (`20261013_d12_fase_a_prueba.sql`, en modo ensayo; solo lee y se deshace): **OK**.
+- **Clienta real:** 0 filas del personal; solo sus ventas y sus tickets.
+- **Clienta con el teléfono de la admin en `user_metadata`:** nada adicional.
+- **Personal y admin:** las 10 personas del personal, las 45 ventas y los 9 tickets.
+- **Vendedora F360 (rol `customer`):** todas las ventas; 0 del personal; solo sus tickets.
+- **Anónimo:** 8 personas activas, 45 ventas y 165 filas de inventario, como antes; 0 tickets.
+
+**Reversión:** `supabase/pase/20261013_d12_fase_a_reversion.sql`. Su ensayo en producción después de aplicar dio OK. Se ejecuta con `scripts/f360/prod_sql.sh supabase/pase/20261013_d12_fase_a_reversion.sql` y vuelve a `2ec9510e…` (15).
