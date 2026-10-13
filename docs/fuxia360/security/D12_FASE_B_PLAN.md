@@ -42,6 +42,17 @@
 - Propuesta: `public.channels.legacy_pin_enabled boolean DEFAULT true`, leído por `vendedora/index.tsx`.
 - No cierra la base de datos (eso es §5). Solo guía a cada tienda migrada al turno F360. Se publica por OTA.
 - **Requiere su propia autorización:** cambio de esquema y de app.
+- **Hecho en STAGING (2026-10-13; Mario: "dale" → interruptor en staging).**
+  - **Migración** `20261029000100_d12_legacy_pin_switch.sql` y su `.down.sql`:
+    - `channels.legacy_pin_enabled` (por defecto `true`);
+    - `f360_legacy_pin_set(p_channel, p_enabled, p_reason)`, solo la dueña y con motivo;
+    - un disparador que impide cambiar la columna por cualquier otra vía, incluso `postgres` o la admin de la app con `user_metadata`;
+    - registro inmutable `f360.legacy_pin_switch_log`;
+    - `f360_legacy_pin_status()` (operadora o dueña): estado por tienda, ventas por la app anterior en 14 días y último cambio.
+  - **Pruebas:** `test_d12_legacy_pin_switch.sql` S1–S8 OK; `test_d12_phase_a.sql` OK. Las políticas `anon` no cambian (S5).
+  - **Reversión ensayada:** columna, funciones, tabla y fila quitadas; `channels` idéntica antes, durante y después.
+  - **App** (`vendedora/index.tsx`): lee `channels` con `*` y oculta las tiendas apagadas. Funciona con o sin la columna, así que es compatible con la base de producción actual. Si hay tiendas ocultas, muestra "¿No ves tu tienda? … Iniciar sesión con mi WhatsApp".
+  - **No** está en producción ni publicada por OTA: requiere autorización.
 
 ## 3. Oleadas (cada una con ensayo en staging, aviso a las sesiones 2d y d5, y "sí" de Mario/Carolina)
 **Oleada 1 · Polanco (ya tiene cuentas).**

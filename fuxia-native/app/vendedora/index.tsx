@@ -25,6 +25,7 @@ interface Channel {
   name: string;
   type: 'store' | 'bazar';
   location: string | null;
+  legacy_pin_enabled?: boolean | null;   // D12: false = the store already sells with F360 accounts (absent column = on)
 }
 
 // Seller mode is only for a logged-in person (no anonymous operation). With EXPO_PUBLIC_F360_SELLER_SESSION=1 the shift
@@ -78,23 +79,28 @@ function VendedoraLoginScreen() {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [loadingChannels, setLoadingChannels] = useState(true);
+  const [migratedCount, setMigratedCount] = useState(0);
   const [pin, setPin] = useState('');
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     (async () => {
+      // select('*') on purpose: works before and after the legacy_pin_enabled column exists (D12 switch per store)
       const { data } = await supabase
         .from('channels')
-        .select('id, name, type, location')
+        .select('*')
         .eq('active', true)
         .order('name');
       if (data) {
-        setChannels(data as Channel[]);
-        // Restore last selected channel
+        const all = data as Channel[];
+        const open = all.filter((c) => c.legacy_pin_enabled !== false);
+        setChannels(open);
+        setMigratedCount(all.length - open.length);
+        // Restore last selected channel (only if its PIN screen is still on)
         const lastId = await AsyncStorage.getItem(LAST_CHANNEL_KEY);
         if (lastId) {
-          const found = (data as Channel[]).find((c) => c.id === lastId);
+          const found = open.find((c) => c.id === lastId);
           if (found) setSelectedChannel(found);
         }
       }
@@ -201,7 +207,8 @@ function VendedoraLoginScreen() {
             <View style={styles.emptyCard}>
               <Text style={styles.emptyText}>No hay canales activos configurados.</Text>
             </View>
-          ) : (
+          ) : null}
+          {channels.length === 0 ? null : (
             channels.map((ch, idx) => (
               <MotiView
                 key={ch.id}
@@ -235,6 +242,14 @@ function VendedoraLoginScreen() {
                 </TouchableOpacity>
               </MotiView>
             ))
+          )}
+          {migratedCount > 0 && (
+            <TouchableOpacity onPress={() => router.replace('/onboarding/login' as any)} style={{ marginTop: 20, alignItems: 'center' }} activeOpacity={0.8}>
+              <Text style={[styles.emptyText, { textAlign: 'center' }]}>
+                ¿No ves tu tienda? Ya vende con cuentas individuales.
+              </Text>
+              <Text style={{ color: '#B8860B', fontSize: 16, marginTop: 8 }}>Iniciar sesión con mi WhatsApp</Text>
+            </TouchableOpacity>
           )}
         </MotiView>
       ) : (
