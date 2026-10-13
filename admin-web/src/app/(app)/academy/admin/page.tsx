@@ -10,7 +10,7 @@ export default async function AcademyAdmin() {
   const me = o.me;
   return (
     <>
-      <Link href="/academy" className="text-xs text-muted">← Academy</Link>
+      <Link href="/academy" className="text-xs text-muted">← Fuxia Academy</Link>
       <h1 className="font-display text-4xl text-ink">Contenido</h1>
       <div className="rounded-2xl bg-gold-soft px-4 py-3 text-xs text-ink-2" data-testid="academy-gates">
         {me.gates.note} Acceso real de vendedoras: <b>{me.gates.learner_access_enabled ? 'sí' : 'bloqueado'}</b> · Certificados: <b>no</b> · Puntos: <b>no</b> · Canjes: <b>no</b>.

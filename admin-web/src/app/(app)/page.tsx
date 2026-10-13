@@ -31,7 +31,7 @@ export default async function Inicio() {
         <div className="mx-auto mt-8 flex max-w-sm flex-col gap-3" data-testid="home-academy">
           <WelcomeVideo lessonId={welcome?.id} src="/academy/bienvenida-720.mp4" poster="/academy/bienvenida-poster.jpg" />
           <Link href={courseNext ? `/academy/clase/${courseNext.id}` : '/academy'} className="block rounded-2xl bg-gold px-4 py-4 text-center text-base font-semibold text-ink" data-testid="home-go-course">
-            {course ? `Ir al curso: ${course.title} →` : 'Ir a Academy →'}
+            {course ? `Ir al curso: ${course.title} →` : 'Ir a Fuxia Academy →'}
           </Link>
         </div>
       )}

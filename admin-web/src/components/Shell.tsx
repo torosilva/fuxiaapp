@@ -9,7 +9,7 @@ const GROUPS = [
   { label: 'Hoy', items: [
     { href: '/', label: 'Inicio', icon: IconHome, live: true },
     { href: '/avisos', label: 'Avisos', icon: IconBell, live: true },
-    { href: '/academy', label: 'Academy', icon: IconCheck, live: true, academy: true },
+    { href: '/academy', label: 'Fuxia Academy', icon: IconCheck, live: true, academy: true },
   ] },
   { label: 'Negocio en tiempo real', items: [
     { href: '/tablero', label: 'Centro de control', icon: IconGrowth, live: true, admin: true },

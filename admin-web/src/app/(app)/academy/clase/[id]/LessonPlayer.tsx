@@ -16,7 +16,7 @@ export function LessonPlayer({ view }: { view: LessonView }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between text-xs text-muted">
-        <Link href="/academy">← Academy</Link>
+        <Link href="/academy">← Fuxia Academy</Link>
         <span>{Math.min(i + 1, total)} de {total}</span>
       </div>
       <div className="h-1.5 rounded-full bg-surface-2"><div className="h-1.5 rounded-full bg-gold" style={{ width: `${(100 * Math.min(i, total)) / total}%` }} /></div>
