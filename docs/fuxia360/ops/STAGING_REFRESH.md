@@ -8,6 +8,8 @@ Esto reemplaza la regla anterior de "nunca resembrar `faltx…`". Los datos que 
 
 `scripts/f360/staging_refresh/nightly.sh` corre todos los días a las 3:30 en la Mac de Mario. Lo lanza `launchd` (`com.fuxia.staging-refresh.plist`); si la Mac está dormida, corre al despertar.
 
+macOS no deja que `launchd` lea `~/Documents` ("Operation not permitted"; así fallaron en silencio las noches del 12 y 13 de octubre). Por eso `launchd` corre `~/.fuxia360/staging-nightly.sh` (copia de `launcher.sh`). Ese arranque pone un clon propio, `~/.fuxia360/staging-refresh-repo`, en `origin/fuxia-360` y corre desde ahí `nightly.sh`. Así la copia nocturna siempre usa el código publicado, nunca cambios locales sin subir. El registro queda en `~/fuxia360-respaldos/staging-refresh/launchd.log`.
+
 Primero copia la tienda real a staging4 (`woo_refresh.sh --apply`, sección WooCommerce). Si salió bien, copia Supabase con `refresh.sh --apply --woo-mirrored`: el destino de venta de prod se vuelve el de staging4, porque staging4 ya tiene los mismos IDs de producto que la tienda real. Si la tienda falló (y se restauró sola), Supabase se copia igual, sin esa conexión.
 
 Pasos de la copia de Supabase (`refresh.sh`):
