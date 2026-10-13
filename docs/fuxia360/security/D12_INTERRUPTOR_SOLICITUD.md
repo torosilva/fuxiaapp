@@ -157,3 +157,18 @@
 **Reversión:** `eas update:republish` de los grupos `fdfdfc9c…` y `5e315529…`.
 
 **Independiente de A:** la app nueva funciona con y sin la migración.
+
+---
+## RESULTADO A · aplicada en producción el 2026-10-13 (la ejecutó Mario con `prod_sql.sh`, pase `@10a30f8`: ensayo y luego aplicación)
+| Comprobación | Resultado |
+|---|---|
+| Prueba T1–T5 (`--dry-run`, cuentas reales, solo caminos rechazados) | **OK** |
+| Objetos | columna 1, funciones 4, tabla 1, fila de migración 1; disparador `channels_legacy_pin_guard` |
+| Tiendas | 5 de 5 **encendidas** y activas (Cali, Contreras, Guadalajara, Monterrey, Tienda Polanco); huella `4f613a63…` **sin cambio** |
+| Políticas anon / de `channels` / permisos de `channels` | `a8609ffb…` (7) / `383f6af1…` (5) / `6efe9c24…` **sin cambio** |
+| D12 fase A | `af59dcb1…` (12) sin cambio |
+| Ventas / inventario anterior / ledger F360 / personal / tickets | 45, $205,900 / 165-231-52 / 498 eventos / `daf02872…` / 9: **sin cambio** |
+| Registro de cambios | 0 |
+| Reversión (`--dry-run` después de aplicar) | OK |
+
+**La solicitud B (OTA) sigue pendiente de autorización.**
