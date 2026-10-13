@@ -3,6 +3,8 @@ import { EventCard } from '@/components/EventCard';
 import { IconDown, IconMove, IconTruck } from '@/components/icons';
 import { canRequestTransfer, canWrite, getHome } from '@/lib/f360';
 import { pares } from '@/lib/format';
+import { academyEnabled, academyHome, academyMe } from '@/lib/academy';
+import { WelcomeVideo } from './academy/WelcomeVideo';
 
 function saludo() {
   const h = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false }));
@@ -12,10 +14,27 @@ function saludo() {
 export default async function Inicio() {
   const home = await getHome();
   const write = canWrite(home.role);
+  // Mario 2026-10-13: on entering Fuxia 360, whoever has Academy sees the welcome video pinned at the top, then one button to the course.
+  const am = academyEnabled() ? await academyMe().catch(() => null) : null;
+  const academy = !!am?.ok && (am.sales !== 'none' || am.editor || am.approver);
+  const ah = academy && am?.ok && am.sales === 'ok' ? await academyHome().catch(() => null) : null;
+  const acourses = ah?.ok ? ah.courses : [];
+  const welcome = acourses.find((c) => c.kind === 'bienvenida')?.lessons[0];
+  const course = acourses.find((c) => c.kind !== 'bienvenida');
+  const courseNext = course?.lessons.find((l) => l.status !== 'completada') ?? course?.lessons[0];
   return (
     <div>
       <p className="text-sm text-muted">{new Date().toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City', weekday: 'long', day: 'numeric', month: 'long' })}</p>
       <h1 className="font-display mt-1 text-5xl text-ink md:text-6xl">{saludo()}, {home.display_name}</h1>
+
+      {academy && (
+        <div className="mx-auto mt-8 flex max-w-sm flex-col gap-3" data-testid="home-academy">
+          <WelcomeVideo lessonId={welcome?.id} src="/academy/bienvenida-720.mp4" poster="/academy/bienvenida-poster.jpg" />
+          <Link href={courseNext ? `/academy/clase/${courseNext.id}` : '/academy'} className="block rounded-2xl bg-gold px-4 py-4 text-center text-base font-semibold text-ink" data-testid="home-go-course">
+            {course ? `Ir al curso: ${course.title} →` : 'Ir a Academy →'}
+          </Link>
+        </div>
+      )}
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {write ? (
