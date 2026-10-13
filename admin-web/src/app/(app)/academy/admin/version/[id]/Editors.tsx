@@ -80,7 +80,7 @@ export function Submit({ version }: { version: string }) {
   const [busy, start] = useTransition();
   return (
     <section className="rounded-3xl border border-line bg-surface p-4">
-      <p className="text-sm font-semibold text-ink">Enviar a revisión de Carolina</p>
+      <p className="text-sm font-semibold text-ink">Enviar a revisión</p>
       <input className={input} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Qué cambió o por qué se envía" />
       <button disabled={busy || reason.trim().length < 3} className={`${btn} mt-2`} data-testid="academy-submit"
         onClick={() => start(async () => { const r = await submit(version, reason); setMsg(r.ok ? 'Enviado. Ya no se puede editar esta versión.' : String(r.error)); })}>Enviar</button>
@@ -101,7 +101,7 @@ export function Decide({ version }: { version: string }) {
   });
   return (
     <section className="rounded-3xl border border-gold bg-surface p-4" data-testid="academy-decide">
-      <p className="text-sm font-semibold text-ink">Revisión de Carolina</p>
+      <p className="text-sm font-semibold text-ink">Revisión: aprobar o devolver</p>
       <input className={input} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Comentario (obligatorio para devolver)" />
       <div className="mt-2 flex gap-2">
         <button disabled={busy} className={btn} onClick={() => run(true)}>Aprobar y publicar</button>

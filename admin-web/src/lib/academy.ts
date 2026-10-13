@@ -48,7 +48,7 @@ export type AdminVersion = { ok: true; version: { id: string; version: number; s
 export type TeamRow = { name: string; store: string | null; course: string; version: number; enrolled_at: string; completed_at: string | null;
   lessons_total: number; lessons_done: number; practice: { answered: number; correct: number }; tester: boolean };
 
-export const STATUS: Record<string, string> = { borrador: 'Borrador', en_revision: 'En revisión de Carolina', publicado: 'Publicado', retirado: 'Retirado' };
+export const STATUS: Record<string, string> = { borrador: 'Borrador', en_revision: 'En revisión', publicado: 'Publicado', retirado: 'Retirado' };
 // Shared approval registry states and events, in Spanish.
 export const APPROVAL: Record<string, string> = { pending: 'pendiente', approved: 'aprobada', rejected: 'rechazada', cancelled: 'cancelada',
   invalidated: 'invalidada (el contenido cambió)', expired: 'vencida', consumed: 'usada (publicada)', requested: 'solicitada' };
