@@ -1,113 +1,104 @@
-# D12 · Fase B: retiro del modo anterior (NIP sin sesión) — PLAN, no ejecutado — 2026-10-11
+# D12 · Fase B: migración progresiva a cuentas individuales — PLAN TÉCNICO v2 (no ejecutado) — 2026-10-13
 
-> Mario: "Preparar el plan … No ejecutar Fase B todavía." Este documento es solo plan.
-> Los datos salen de consultas de **solo lectura** en producción hechas el 2026-10-11.
-> Los nombres son de personal interno; no se incluyen NIP ni teléfonos.
+> **Autorización de Mario (2026-10-13):** preparar el plan técnico, con migración progresiva de las tiendas a cuentas individuales.
+> **No** se cierra todavía el acceso anónimo, **no** se rotan NIP y **no** se modifica producción.
+> **Condiciones:** no fusionar tiendas, no alterar inventarios, no modificar ventas históricas, no vincular identidades por inferencia.
+>
+> v1 (2026-10-11) proponía un cierre único. Esta v2 lo reemplaza por **oleadas por tienda**: cada tienda pasa a cuentas F360 mientras la app anterior **sigue funcionando** para las que no han pasado. El acceso anónimo se cierra solo al final (§5) y con nueva autorización.
+>
+> Fuentes: consultas de solo lectura en producción (2026-10-11 y 2026-10-13). Detalle en `D12_INVESTIGACION_2026-10-13.md` y `../ops/AJUSTES_POSIBLES_VENTAS_2026-10-13.md`.
 
-## 1. Qué cierra la fase B
-| Política o función | Abre | Usada por |
-|---|---|---|
-| `staff.anon_read_active_staff` | NIP de todo el personal activo, sin sesión | `vendedora/index.tsx:132` (pantalla de NIP) |
-| `offline_sales.anon_insert_offline_sales` | registrar ventas sin sesión | `vendedora/sale.tsx:190` |
-| `offline_sales.anon_read_offline_sales` / `anon_read_own_sales` | leer todas las ventas sin sesión | `vendedora/home.tsx`, `sales-today.tsx` (modo anterior) |
-| `channel_inventory.anon_update_inventory_sold` | cambiar `sold` y `stock` sin sesión | `vendedora/sale.tsx:162`, `vendedora/inventory.tsx:92` |
-| `channel_inventory.admins_all_inventory`, `channels.admins_all_channels` | ALL con `user_metadata.phone` (falsificable; ver fase A §3) | ninguna pantalla depende de ellas: hay equivalentes con `my_role()` |
-| Edge Function `claim-sale` | puntos con el total que manda el cliente, sin identificar a quien llama | `vendedora/sale.tsx` (QR) y `claim.tsx` |
+## 1. Situación de partida (producción, 2026-10-13)
+| Tienda / canal | Cómo vende hoy | Vendedoras F360 | Ventas F360 | App anterior (60 d) | Qué falta |
+|---|---|---|---|---|---|
+| **Tienda Polanco** (F360) | turno F360 desde el 8-oct; app anterior hasta el 5-oct | Carolina Muñoz, Valeria García, Valeria Pérez y Reyna Vega: activas, con cuenta | 9 desde el 8-oct | 6 (Reyna 5, "Valeria" 1) | quitar la entrada a la app anterior **cuando Carolina confirme** que nadie la usa |
+| **Amsterdam 264** (F360) | **sin vendedoras ni ventas F360**; las ventas aparecen como *ajustes de salida* ("vendido semana 5-10 oct") | ninguna | 0 | — | dar de alta a sus vendedoras y abrir turno F360 |
+| **San Jerónimo Lídice** (F360) | sin ventas F360 | Dulce Sur, **pendiente** (sin cuenta) | 0 | — | que active su cuenta; confirmar la relación con Contreras (§1.1) |
+| **La Noria** (F360) | sin ventas F360 | ninguna | 0 | — | vendedoras y turno |
+| **Torreón** (F360, bazar) | sin actividad | ninguna | 0 | — | cuando vuelva a operar |
+| **Guadalajara** (solo app anterior, bazar) | app anterior con NIP | ninguna; **no existe la ubicación F360** | 0 | 27 (Paola 24, Chelita 3); última el 30-sep | ubicación, conteo y cuentas (§3, oleada 3) |
+| **Contreras** (solo app anterior) | app anterior con NIP | — | 0 | 1 (17-sep) | **sin decisión**: no se fusiona con San Jerónimo sin evidencia |
+| Monterrey / Cali (app anterior) | sin ventas desde mayo / nunca | — | 0 | 0 | Cali no entra a F360 (casa matriz); Monterrey por decidir |
 
-## 2. Inventario: tiendas y personas que siguen en el modo anterior
-Ventas de la app anterior (`created_by_rpc = false`) en los últimos 60 días:
+### 1.1 Restricciones que este plan respeta
+- **Contreras y San Jerónimo** siguen separadas: no se vincula `legacy_channel_id` ni se suman inventarios hasta que Carolina lo confirme.
+- **"Valeria" anterior ↔ Valeria García/Pérez:** no se vincula. El retiro de la app anterior en Polanco **no requiere** saber cuál es: basta con que ninguna vendedora de Polanco vuelva a usar el NIP anterior.
+- **Inventario:** los 5 pares de Guadalajara, los 153 de Contreras y demás saldos de la app anterior **no se migran** sin conteo físico.
 
-| Canal anterior | Tipo | Ventas 60 d | Última | Quién vendió (60 d) | Personal anterior | Ubicación en F360 | Vendedoras F360 |
-|---|---|---|---|---|---|---|---|
-| **Guadalajara** | bazar | **27** | 2026-09-30 | Paola 24, Chelita Gómez 3 | Chelita Gómez, Mario, Paola | **no existe** | — |
-| **Tienda Polanco** | tienda | 6 | 2026-10-05 | Reyna 5, Valeria 1 | Reyna, Valeria, Reyna (inactiva) | Tienda Polanco (F360; 7 ventas F360) | Carolina Muñoz, Valeria García, Valeria Pérez y Reyna Vega: activas y con cuenta |
-| **Contreras** | tienda | 1 | 2026-09-17 | Dulce Sur 1 | Dulce Sur | ¿San Jerónimo Lídice? (por confirmar) | Dulce Sur: **pendiente, sin cuenta** (en San Jerónimo Lídice) |
-| Monterrey | bazar | 0 | 2026-05-18 | — | Carolina Muñoz | no existe | — |
-| Cali | tienda | 0 | nunca | — | Adriana | no aplica: Cali es casa matriz y no es ubicación de F360 | — |
+## 2. Mecanismo técnico (ya existe en producción; no hay que construirlo)
+| Necesidad | Pieza existente |
+|---|---|
+| Alta de vendedora (nombre, WhatsApp, tienda, NIP) | `f360_admin_seller_add` (pantalla Vendedoras del admin web) |
+| NIP cifrado con bcrypt y bloqueo por intentos | `f360.sellers.pin_hash`, `f360.seller_credentials` |
+| Cuenta propia | inicio de sesión por WhatsApp; la cuenta se vincula a `f360.sellers` |
+| Turno ligado a una sola tienda | `f360_start_seller_shift`, `f360_seller_session` |
+| Venta con precio y puntos calculados por el servidor; baja de inventario atómica | `f360_record_store_sale` (con `p_customer_qr`) |
+| Apartados y descuentos con autorización | `f360_reservation_*`, `f360_store_discount_*` |
+| Ajuste de inventario auditado | `f360_adjust_inventory` (operadora o dueña) |
+| Cambio de tienda, NIP nuevo, baja | `f360_admin_seller_set_store`, `_reset_pin`, `_deactivate` |
+| Devoluciones y cambios | **no existe**. Diseño en `../ops/DEVOLUCIONES_DISENO.md`; requiere decisión de negocio |
 
-**Dispositivos.** La app anterior no registra el dispositivo en cada venta. La identificación es por canal y por vendedora (`staff_id`). Para saber qué teléfonos o tabletas usan la pantalla de NIP hay que preguntarlo en cada tienda (checklist §4, paso 0).
+**Pieza nueva, pequeña, solo de la app:** un interruptor por tienda para que su personal anterior ya no vea la pantalla de NIP.
+- Propuesta: `public.channels.legacy_pin_enabled boolean DEFAULT true`, leído por `vendedora/index.tsx`.
+- No cierra la base de datos (eso es §5). Solo guía a cada tienda migrada al turno F360. Se publica por OTA.
+- **Requiere su propia autorización:** cambio de esquema y de app.
 
-**Vendedoras que hay que migrar (propuesta para que Mario la confirme):**
-| Persona | Tienda | Situación | Qué falta |
-|---|---|---|---|
-| Paola | Guadalajara | vende por el modo anterior (24 en 60 días) | ubicación F360 de Guadalajara, alta como vendedora y cuenta propia |
-| Chelita Gómez | Guadalajara | igual (3) | igual |
-| Reyna | Polanco | ya tiene cuenta F360 (REYNA VEGA), pero vendió por el modo anterior hasta el 10-05 | usar solo el turno F360; quitarle la entrada al modo anterior |
-| Valeria | Polanco | ya tiene cuenta F360 (Valeria García o Pérez: **¿cuál es?**) | igual |
-| Dulce Sur | Contreras | alta F360 **pendiente** en San Jerónimo Lídice | confirmar que Contreras = San Jerónimo Lídice; activar la cuenta |
-| Mario (personal de Guadalajara) | Guadalajara | sin ventas | ¿darlo de baja del personal anterior? |
-| Carolina Muñoz (Monterrey) | Monterrey | sin ventas desde mayo; ya es vendedora F360 en Polanco | desactivar el registro anterior |
-| Adriana | Cali | sin ventas | Cali no entra a F360; ¿se desactiva el registro anterior? |
+## 3. Oleadas (cada una con ensayo en staging, aviso a las sesiones 2d y d5, y "sí" de Mario/Carolina)
+**Oleada 1 · Polanco (ya tiene cuentas).**
+1. Carolina confirma qué vendedoras están activas y que todas venden con su turno F360.
+2. Durante 14 días se vigila que no haya ventas de la app anterior en Polanco (`offline_sales.created_by_rpc = false`).
+3. `legacy_pin_enabled = false` para Polanco y desactivar en `public.staff` a Reyna y "Valeria" de Polanco (`active = false`, no se borran).
 
-## 3. Decisiones de negocio que necesita Mario (no las asumo)
-1. **Guadalajara (bazar):** ¿se crea su ubicación en F360, con su inventario (conteo inicial), o deja de operar? Sin ubicación F360 no hay turno de vendedora.
-2. **Contreras = San Jerónimo Lídice?** Hay que confirmarlo.
-3. **Devoluciones en tienda.** Hoy no existe ningún flujo, ni en la app anterior ni en F360. Antes de probarlas hay que definir la regla:
-   - ¿cambio por otra talla o reembolso?
-   - ¿qué pasa con los puntos?
-   - ¿quién la autoriza?
-4. **Fecha de corte** a partir de la cual el modo anterior deja de funcionar.
+**Oleada 2 · Amsterdam 264, La Noria y San Jerónimo Lídice** (ubicaciones F360 sin turno de venta).
+1. Alta de sus vendedoras con WhatsApp real (Carolina); Dulce Sur activa su cuenta.
+2. **Primer día acompañado:** cada venta por turno F360, no por ajuste. Así se termina la práctica de "vendido semana …" como ajuste.
+3. **No se reconstruyen** las ventas ya registradas como ajustes: reporte aparte, solo para revisión.
 
-## 4. Procedimiento por tienda (cuando Mario lo autorice)
-0. **Inventario de dispositivos:** en cada tienda, anotar qué teléfono o tableta se usa para vender y si tiene la app publicada (actualización OTA `production`).
-1. **Alta:** `f360_admin_seller_add` en la ubicación. La vendedora define su NIP en su primer turno. Se guarda cifrado con bcrypt, con bloqueo por intentos (`f360.seller_credentials`); nunca en texto.
-2. **Cuenta propia:** la vendedora inicia sesión en la app con su teléfono, y su cuenta se vincula a `f360.sellers` (`auth_user_id`).
-3. **Ensayo en staging** con la misma ubicación (la copia nocturna trae los datos de producción):
-   - **Venta:** turno → venta F360 (`f360_record_store_sale`) → baja el inventario de F360 y se acreditan puntos por el servidor (`loyalty_apply`).
-   - **Ajuste de inventario:** `f360_adjust_inventory` por la operadora, auditado en el ledger.
-   - **Devolución:** solo cuando Mario defina la regla (§3.3).
-   - **Apartado y descuento:** `f360_reservation_*` y `f360_store_discount_*` (ya probados en sus fases).
-4. **Primer día en vivo** con acompañamiento. Comparar las ventas del día (F360 contra el conteo físico o la caja).
-5. **Retiro del modo anterior en esa tienda:** desactivar su personal en `public.staff` (`active = false`). Así la pantalla de NIP deja de aceptarlas sin tocar todavía las políticas.
+**Oleada 3 · Guadalajara (bazar).** Depende de decisiones de Carolina (cuestionario).
+1. Crear la ubicación F360 "Guadalajara", tipo `bazaar`.
+2. **Conteo físico** como inventario inicial. Si hay mercancía nueva, transferencia desde Bodega CDMX.
+3. Alta de Paola y Chelita Gómez con su WhatsApp real.
+4. La app anterior sigue activa hasta el primer bazar completo en F360. Después: 14 días sin ventas de la app anterior, interruptor apagado y personal anterior desactivado.
 
-## 5. Cierre técnico (migración de la fase B, después del paso 5 en todas las tiendas)
-1. Quitar `anon_read_active_staff`, `anon_insert_offline_sales`, `anon_read_offline_sales`, `anon_read_own_sales`, `anon_update_inventory_sold`, `admins_all_inventory` y `admins_all_channels`.
-2. Quitar los permisos de tabla de `anon` sobre `staff`, `offline_sales`, `offline_sale_items`, `channel_inventory` y `support_tickets` (hoy tiene todos, incluido `TRUNCATE`).
-3. **App** (OTA): quitar `VendedoraLoginScreen` y el botón "Usar el modo anterior". Sin sesión, /vendedora pide iniciar sesión, igual que con `F360_SELLER_SESSION`.
-4. **`claim-sale`:**
-   - quitar `scan_qr`: la venta con QR ya la hace `f360_record_store_sale` con `customer_qr`;
-   - el reclamo por código se cambia por `f360_claim_store_sale` (con sesión, puntos calculados en el servidor);
-   - después, despublicar la función.
-5. Ensayo en staging con la prueba de la fase A ampliada: anónimo no ve ni escribe nada; las vendedoras F360 venden; clientas reclaman. Reversión con `.down.sql` ensayada.
+**Oleada 4 · Contreras, Monterrey y Cali.**
+- Solo con decisión explícita: Contreras (¿= San Jerónimo?), Monterrey (¿opera?), Cali (casa matriz, fuera de F360).
+- Si no operan: desactivar su personal anterior. **Sin borrar historial.**
 
-## 6. Rotación de los NIP expuestos
-Todos los NIP de `public.staff` se consideran comprometidos: cualquiera con la llave pública podía leerlos.
-1. Los NIP del modo anterior **no se reutilizan** en F360. Cada vendedora elige uno nuevo al activar su cuenta (paso 4.1). Si alguna repite el anterior, la admin lo restablece con `f360_admin_seller_reset_pin`.
-2. Mientras el modo anterior siga vivo en una tienda, la admin cambia el NIP de cada vendedora activa desde Personal en la app (admin, `staff admin write`). Se le comunica en persona, no por mensaje.
-3. Al cerrar la fase B, `public.staff.pin` deja de ser legible por clientes. Si la admin ya no necesita la pantalla anterior de Personal, se sustituye por valores vacíos o con hash, y la columna se elimina en una migración posterior.
+### Pruebas en cada oleada (staging, identidades ficticias, BEGIN…ROLLBACK)
+- **Venta:** turno → venta con y sin clienta → baja el inventario de F360 exacto → puntos solo por el servidor → idempotencia (doble envío = una sola venta).
+- **Ajuste de inventario:** la operadora ajusta; queda en el ledger con actor y motivo; la vendedora **no** puede ajustar.
+- **Devolución o cambio:** cuando exista (§2), las pruebas D1–D8 del diseño.
+- **Apartado y descuento:** como en sus suites (`f360_store_discounts_tests.sql`, `f360_reservations_tests.sql`).
+- **Regresión de la fase A:** `test_d12_phase_a.sql`.
 
-## 7. Contingencia: validación del NIP en el servidor (solo si una tienda no puede migrar a tiempo)
-Diseño, no implementado:
-- **`public.d12_legacy_shift_start(p_channel uuid, p_pin text)`**, `SECURITY DEFINER`:
-  - compara el NIP con un **hash bcrypt** (columna nueva `staff.pin_hash`; el texto plano se borra);
-  - aplica bloqueo por intentos, igual que `f360.seller_credentials`;
-  - devuelve **un token de turno** de corta duración (8 h, ligado a canal y vendedora), **nunca** el NIP ni la lista del personal.
-- **`public.d12_legacy_sale(p_token, p_items[{channel_inventory_id, qty}], p_payment, p_customer_qr, p_idempotency)`**, `SECURITY DEFINER`:
-  - valida el token;
-  - el **precio sale de `channel_inventory.price`**, no del cliente;
-  - baja `sold` de forma atómica y nunca deja existencias negativas;
-  - registra la venta (`created_by_rpc = true`, `price_source = 'legacy'`) y aplica los puntos con `loyalty_apply`.
-
-  Es el mismo patrón que `f360_record_store_sale` (S0.3).
-- **Ajustes de inventario** de la vendedora: solo como solicitud (`inventory_change_requests`) con el token. La aplicación sigue en `inventory-approve` (solo admin).
-- **Permisos:** `anon` solo ejecuta esas dos funciones. Las políticas `anon_*` se quitan igual que en §5.
-
-Así, aunque el modo anterior siga vivo, nadie lee NIP ni ventas y nadie escribe ventas o inventario sin un turno válido.
-
-## 8. Plan ante fallas de autenticación (en el día de la migración)
+## 4. Fallas de autenticación (día de cada oleada)
 | Falla | Respuesta |
 |---|---|
-| La vendedora no recuerda el NIP o está bloqueada | La admin hace `f360_admin_seller_reset_pin` desde el admin web; el NIP nuevo se le da en persona |
-| No le llega el código de inicio de sesión (SMS o WhatsApp) | La operadora o dueña abre el turno en su propio teléfono para esa ubicación (ya funciona: `f360Role owner/operator`) |
-| La app o Supabase no responden | Venta en papel (folio, artículos, forma de pago, teléfono de la clienta) y captura posterior por la operadora (`f360_hist_sales_save`, auditado). Los puntos se acreditan cuando la clienta reclama |
-| Falla general después del cierre técnico | Reversión de la migración de la fase B (`.down.sql`, ensayada) y OTA anterior (`eas update` al grupo previo). Restablece el modo anterior el mismo día |
+| NIP olvidado o bloqueado | La admin hace `f360_admin_seller_reset_pin`; el NIP se da en persona |
+| No llega el código de WhatsApp | La operadora o dueña abre el turno de esa tienda en su teléfono (su rol lo permite) |
+| La app o Supabase caídos | Venta en papel (folio, artículos, pago, teléfono de la clienta) y captura posterior auditada por la operadora |
+| Algo sale mal en una oleada | `legacy_pin_enabled = true` para esa tienda y reactivar su personal anterior: la app anterior vuelve el mismo día. No hay migración de base que revertir |
 
-## 9. Criterios de cierre definitivo de D12
-1. Fase A aplicada en producción y verificada (huella `af59dcb1…`).
-2. 0 ventas con `created_by_rpc = false` en los 14 días previos al cierre técnico, en todas las tiendas.
-3. Todas las vendedoras activas tienen cuenta F360 (`f360.sellers.status = 'activa'`, `auth_user_id` no nulo). Todo `public.staff` está desactivado, o validado en el servidor (§7) solo donde Mario lo apruebe.
-4. Migración de la fase B en producción. Prueba anónima con la llave pública: 0 filas en `staff`, `offline_sales`, `support_tickets`, `channel_inventory` y `channels` (salvo los canales activos, si se decide mantenerlos) y 0 escrituras.
-5. `claim-sale`: sin `scan_qr` y sin acreditar con total del cliente, o despublicada.
-6. Los NIP del modo anterior están rotados o eliminados.
-7. App: OTA sin la pantalla de NIP anterior, probada por una vendedora de cada tienda.
-8. El hallazgo `SECURITY_FINDING_2026-10-11_LEGACY_RLS.md` queda marcado como **cerrado**, con fecha y evidencia.
+## 5. Cierre técnico final (NO autorizado; solo cuando §6.1–6.3 se cumplan)
+1. Quitar `anon_read_active_staff`, `anon_insert_offline_sales`, `anon_read_offline_sales`, `anon_read_own_sales` y `anon_update_inventory_sold`, más `admins_all_inventory` y `admins_all_channels` (`user_metadata`), con la reversión ensayada.
+2. Quitar los permisos de tabla de `anon` sobre las tablas de la app anterior.
+3. **App:** quitar la pantalla de NIP anterior (OTA).
+4. **`claim-sale`:** quitar `scan_qr` (puntos con el total del cliente) y llevar el reclamo a `f360_claim_store_sale`.
+5. **Rotación de NIP** (no autorizada aún):
+   - todos los NIP de `public.staff` se consideran expuestos;
+   - ninguno se reutiliza en F360 (ya se comprobó que ninguno coincide);
+   - al desactivar el personal anterior, el NIP queda sin uso;
+   - en el cierre se vacía la columna o se reemplaza por un hash.
+
+**Contingencia, si una tienda no puede migrar a tiempo:** NIP validado en el servidor.
+- `d12_legacy_shift_start(p_channel, p_pin)` compara contra `staff.pin_hash` (bcrypt), con bloqueo por intentos, y devuelve un token de turno de 8 h. **Nunca** devuelve el NIP ni la lista del personal.
+- `d12_legacy_sale(p_token, …)` toma el precio de `channel_inventory.price`, baja de forma atómica sin negativos, pone `created_by_rpc = true` y aplica puntos con `loyalty_apply`.
+- `anon` solo podría ejecutar esas dos funciones.
+
+## 6. Criterios de cierre definitivo de D12
+1. Todas las tiendas que operan pasaron su oleada. Hubo 14 días sin ventas de la app anterior (`created_by_rpc = false`) antes del cierre técnico.
+2. Toda vendedora activa tiene cuenta F360 (`status = 'activa'`, `auth_user_id` no nulo). El personal anterior está desactivado, salvo donde Mario apruebe la contingencia.
+3. Las tiendas F360 venden por turno, no por ajuste: hubo 14 días sin "Ajuste · vendido…" (reporte de ajustes).
+4. Cierre técnico (§5) aplicado. Prueba anónima con la llave pública: 0 filas y 0 escrituras en las tablas de la app anterior.
+5. `claim-sale` sin `scan_qr` o despublicada. NIP rotados o eliminados.
+6. `SECURITY_FINDING_2026-10-11_LEGACY_RLS.md` marcado como **cerrado**, con evidencia.
