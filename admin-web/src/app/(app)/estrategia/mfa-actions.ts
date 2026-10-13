@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { boardAccessState } from '@/lib/board';
 import { financeAccess } from '@/lib/intel';
+import { academyMe } from '@/lib/academy';
 
 // Strategy & Board second factor (Supabase Auth TOTP). Only a Board member who is missing the second factor in this session
 // (f360_board_access_state = 'mfa_required', decided in the database) gets past the first line; the database re-checks aal2
@@ -10,10 +11,13 @@ import { financeAccess } from '@/lib/intel';
 export type MfaState = { error?: string; factorId?: string; qr?: string; secret?: string };
 
 const CODE = /^\d{6}$/;
-// Where to go after the code: the board pages and the contadora's Cierre contable (I2). Anything else → /estrategia.
-const NEXT = ['/estrategia', '/direccion', '/cierre-contable'];
-// Board member missing the second factor, or a viewer who may be the contadora (the database decides after aal2).
-const mayVerify = async () => (await boardAccessState()) === 'mfa_required' || (await financeAccess()) === 'mfa_required';
+// Where to go after the code: the board pages, the contadora's Cierre contable (I2) and Academy's content panel (approving
+// needs aal2). Anything else → /estrategia.
+const NEXT = ['/estrategia', '/direccion', '/cierre-contable', '/academy/admin'];
+// Board member missing the second factor, a viewer who may be the contadora, or an Academy content approver (the database
+// decides after aal2).
+const academyApprover = async () => { const m = await academyMe().catch(() => null); return !!m?.ok && m.approver && m.aal !== 'aal2'; };
+const mayVerify = async () => (await boardAccessState()) === 'mfa_required' || (await financeAccess()) === 'mfa_required' || (await academyApprover());
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function startEnroll(): Promise<MfaState> {
