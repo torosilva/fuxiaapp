@@ -14,13 +14,22 @@ export default async function AcademyHome() {
   const welcome = all.find((c) => c.kind === 'bienvenida');
   const wl = welcome?.lessons[0];
   const courses = all.filter((c) => c.kind !== 'bienvenida');
+  // Mario 2026-10-13: every visit = the welcome video pinned on top, then one button straight into the course.
+  const first = courses[0];
+  const firstNext = first?.lessons.find((l) => l.status !== 'completada') ?? first?.lessons[0];
+  const staging = process.env.NEXT_PUBLIC_F360_ENV === 'staging';
   return (
     <>
       <header>
-        <p className="text-xs uppercase tracking-[0.2em] text-muted">Fuxia Sales Academy · pruebas</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-muted">Fuxia Sales Academy{staging ? ' · pruebas' : ''}</p>
         <h1 className="font-display text-4xl text-ink">Hola, {me.name.split(' ')[0]}</h1>
       </header>
-      {wl && wl.status !== 'completada' && <WelcomeVideo lessonId={wl.id} src="/academy/bienvenida-720.mp4" poster="/academy/bienvenida-poster.jpg" />}
+      <WelcomeVideo lessonId={wl?.id} src="/academy/bienvenida-720.mp4" poster="/academy/bienvenida-poster.jpg" />
+      {firstNext && (
+        <Link href={`/academy/clase/${firstNext.id}`} className="block rounded-2xl bg-gold px-4 py-4 text-center text-base font-semibold text-ink" data-testid="academy-go-course">
+          Ir al curso: {first.title} →
+        </Link>
+      )}
       {staff && (
         <Link href="/academy/admin" className="rounded-2xl border border-line bg-surface px-4 py-3 text-sm font-semibold text-ink" data-testid="academy-admin-link">
           Contenido y aprobaciones →
@@ -61,9 +70,8 @@ export default async function AcademyHome() {
           </section>
         );
       })}
-      {wl && wl.status === 'completada' && <Link href={`/academy/clase/${wl.id}`} className="text-sm text-muted underline-offset-4 hover:underline">Ver otra vez la bienvenida</Link>}
       {me.sales === 'ok' && <Link href="/academy/fichas" className="rounded-2xl border border-line bg-surface px-4 py-3 text-sm font-semibold text-ink">Fichas de producto →</Link>}
-      <p className="text-xs text-muted">Ambiente de pruebas. Sin certificados ni puntos en esta etapa.</p>
+      <p className="text-xs text-muted">{staging ? 'Ambiente de pruebas. ' : ''}Sin certificados ni puntos en esta etapa.</p>
     </>
   );
 }
