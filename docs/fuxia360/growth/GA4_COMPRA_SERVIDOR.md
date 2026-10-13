@@ -1,12 +1,12 @@
 # GA4: compra desde el servidor (Measurement Protocol)
 
-**Estado: probado en staging4. NO está en producción. Falta la autorización expresa de Mario.**
+**Estado: EN PRODUCCIÓN desde el 2026-10-13 a las 19:06 (cf32dac).** Mario autorizó ("si dale tu por fa"), aceptó los términos de Measurement Protocol, guardó el secreto (`f360_ga4_mp_secret`, 22 caracteres) y corrió `deploy_prod_wp.sh`. Prueba como clienta: 74 productos OK. Respaldo: `~/f360-backups/prod-mu/20261013-190608/`. **Pendiente:** revisar la primera venta pagada (paso 4).
 
 | | |
 |---|---|
 | Fecha | 2026-10-13 |
 | Autorización | Mario, 2026-10-13: "SÍ AUTORIZO preparar… únicamente revisar y probar el plugin en staging4, utilizando el endpoint de validación". Excluye: instalar en producción, crear o usar secretos de producción, enviar eventos a la propiedad real y modificar GTM4WP en producción |
-| Plugin | `tools/storefront/mu-plugins/propuestas/f360-ga4-compra-servidor.php`. Está en `propuestas/` a propósito: `deploy_prod_wp.sh` solo instala `produccion/` |
+| Plugin | `tools/storefront/mu-plugins/produccion/f360-ga4-compra-servidor.php`. El espejo de staging4 lo reinstala la copia nocturna en modo validación |
 | Prueba | `tools/storefront/tests/ga4_compra_servidor_staging4.php`, que corre con `scripts/f360/test_ga4_compra_staging4.sh` |
 | Instalación en staging4 | `scripts/f360/deploy_staging4_wp.sh --propuesta f360-ga4-compra-servidor.php` |
 | Por qué hace falta | `ANALISIS_WEB_2026-06_A_2026-10.md` §2: GA4 vio 26 de 56 ventas pagadas, y ninguna de Colombia |
