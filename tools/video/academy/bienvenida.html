@@ -1,0 +1,102 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Fuxia Academy · Bienvenida</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--crema:#fffdf9;--crema2:#f5efe3;--oro:#B8966E;--oliva:#83734C;--tinta:#1d1d1b;--gris:#6B6B68}
+*{box-sizing:border-box}
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:var(--crema);font-family:Montserrat,sans-serif;color:var(--tinta)}
+#bg-dark{position:absolute;inset:0;background:var(--tinta);opacity:0}
+#bg-warm{position:absolute;inset:0;background:var(--crema2);opacity:0}
+.e{position:absolute;left:90px;right:90px;opacity:0;will-change:transform,opacity}
+.kick{font-weight:700;font-size:30px;letter-spacing:.34em;text-transform:uppercase;color:var(--oliva);text-align:center}
+.h{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:112px;line-height:1.04;text-align:center}
+.h2{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:88px;line-height:1.08;text-align:center}
+.p{font-weight:300;font-size:52px;line-height:1.32;text-align:center;color:#3a3a37}
+.gold{color:var(--oro)}
+.light{color:var(--crema)}
+.rule{height:4px;width:120px;background:var(--oro);border-radius:2px;margin:0 auto}
+.card{left:150px;right:150px;border-radius:44px;overflow:hidden;background:#fff;box-shadow:0 40px 90px rgba(0,0,0,.12)}
+.card img{display:block;width:100%;height:780px;object-fit:cover}
+.card b{display:block;padding:34px 0 40px;text-align:center;font-family:'Cormorant Garamond',serif;font-weight:600;font-size:68px}
+.bar{height:16px;border-radius:8px;background:#e9e1d3;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--oro);border-radius:8px}
+.tick{width:120px;height:120px;border-radius:60px;background:var(--oro);margin:0 auto;display:flex;align-items:center;justify-content:center}
+.dots{display:flex;gap:18px;justify-content:center}
+.dots span{width:16px;height:16px;border-radius:8px;background:#ddd2bf}
+.dots span.on{background:var(--oro)}
+</style></head><body>
+<div id="bg-warm"></div><div id="bg-dark"></div>
+<div id="esc"></div>
+<script>
+// Fuxia Academy · Bienvenida (vendedoras). Text + piano, no voice. Every line's source is in GUION_BIENVENIDA.md.
+// window.IMG = { CODE: 'file://…jpg' } is injected by render.mjs (public store photos, downloaded locally).
+const DUR = 60; window.DUR = DUR;
+const MODELOS = [['PAULA', 'Paula'], ['BALLERINAS-BYL-PUNTUDO', 'Byl'], ['MAFALDA-TACHES', 'Mafalda Studs'], ['LEATHER-LOAFERS', 'Leather Loafers'], ['SUECO-CUCARRON', 'Sueco cucarrón']];
+const E = []; const esc = document.getElementById('esc');
+function el(html, cls, top, tin, tout, fx = 'up', extra) { const d = document.createElement('div'); d.className = 'e ' + cls; d.innerHTML = html; d.style.top = top + 'px';
+  esc.appendChild(d); E.push({ d, tin, tout, fx, extra }); return d; }
+const ease = (x) => x < 0 ? 0 : x > 1 ? 1 : 1 - Math.pow(1 - x, 3);
+const inout = (x) => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
+const logo = (w, color) => `<div style="display:flex;justify-content:center"><img src="../inversionistas/logo-fuxia.svg" style="width:${w}px;filter:${color}"></div>`;
+
+// 1 · Bienvenida (0–6)
+el(logo(640, 'none'), '', 560, 0.4, 5.6, 'fade');
+el('<div class="rule"></div>', '', 760, 1.2, 5.6, 'fade');
+el('Fuxia Academy', 'kick', 820, 1.5, 5.6);
+el('Bienvenida a<br><span class="gold">Fuxia Academy</span>', 'h', 930, 2.1, 5.6);
+// 2 · Tú eres la cara de Fuxia (6–13)
+el('Tú eres la cara<br>de Fuxia.', 'h', 640, 6.3, 12.6);
+el('<div class="rule"></div>', '', 920, 7.4, 12.6, 'fade');
+el('Cada clienta conoce la marca<br>a través de ti.', 'p', 990, 8.4, 12.6);
+// 3 · El taller (13–21), fondo oscuro
+el('El taller', 'kick', 560, 13.6, 20.6);
+el('Cada par empieza en nuestro taller,<br><span class="gold">en manos de artesanos.</span>', 'h2 light', 660, 14.0, 20.6);
+el('Hecho a mano,<br>con calma y con carácter.', 'p light', 1000, 16.6, 20.6);
+// 4 · Los modelos (21–35)
+el('Aquí vas a conocer<br>cada modelo', 'h2', 150, 21.3, 34.6);
+el('su talla · su horma · sus materiales', 'p', 380, 22.0, 34.6);
+MODELOS.forEach(([code, name], i) => {
+  const t0 = 22.8 + i * 2.35;   // the outgoing card leaves fast, the next one enters 0.3 s later (no overlapping names)
+  el(`<img src="${(window.IMG || {})[code] || ''}"><b>${name}</b>`, 'card', 520, t0 + (i ? 0.3 : 0), i === 4 ? 34.6 : t0 + 2.35, 'card');
+});
+el(MODELOS.map((_, i) => `<span data-i="${i}"></span>`).join(''), 'dots', 1600, 22.8, 34.6, 'fade');
+// 5 · Lecciones cortas (35–43)
+el('Lecciones cortas,<br>desde tu celular.', 'h', 560, 35.3, 42.6);
+el('<div class="bar"><i id="barfill"></i></div>', '', 900, 36.2, 42.6, 'fade');
+el('<div class="tick"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#fffdf9" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>', '', 1030, 38.4, 42.6, 'pop');
+el('Todo lo que aprendes está<br><span class="gold">validado por Carolina.</span>', 'p', 1200, 38.8, 42.6);
+// 6 · Para qué (43–49)
+el('Para que recomiendes<br>con seguridad', 'h', 600, 43.3, 48.6);
+el('<div class="rule"></div>', '', 900, 44.2, 48.6, 'fade');
+el('y cada clienta<br>se vaya feliz.', 'h2 gold', 970, 44.9, 48.6);
+// 7 · Identidad (49–55), fondo cálido
+el('Estamos fortaleciendo<br>nuestra identidad.', 'h2', 600, 49.3, 54.6);
+el('Y empieza contigo.', 'p', 860, 51.0, 54.6);
+el('Bienvenida.', 'h gold', 1010, 52.6, 54.6, 'pop');
+// 8 · Cierre (55–60)
+el(logo(560, 'none'), '', 640, 55.2, 99, 'fade');
+el('Comodidad artesanal<br>con carácter propio.', 'p', 820, 55.8, 99);
+el('<div class="rule"></div>', '', 1030, 56.4, 99, 'fade');
+el('Fuxia Academy', 'kick', 1090, 56.6, 99);
+el('by HiloLabs.ai', 'p', 1160, 57.0, 99, 'fade');
+
+window.render = async function (t) {
+  for (const o of E) {
+    const k = ease((t - o.tin) / .7), out = ease((t - o.tout) / (o.fx === 'card' ? .3 : .5)), a = Math.max(0, k - out);
+    let tr = '';
+    if (o.fx === 'up') tr = `translateY(${(1 - k) * 40 - out * 24}px)`;
+    if (o.fx === 'pop') tr = `scale(${0.85 + 0.15 * k})`;
+    if (o.fx === 'card') tr = `translateX(${(1 - k) * 80 - out * 80}px) scale(${1.0 + 0.03 * inout((t - o.tin) / 2.35)})`;
+    o.d.style.opacity = a; o.d.style.transform = tr;
+  }
+  // backgrounds: dark for the workshop, warm for identity; final fade to crema
+  const dark = Math.min(inout((t - 13.0) / .8), 1 - inout((t - 20.6) / .8));
+  const warm = Math.min(inout((t - 48.8) / .8), 1 - inout((t - 54.8) / .8));
+  document.getElementById('bg-dark').style.opacity = Math.max(0, dark);
+  document.getElementById('bg-warm').style.opacity = Math.max(0, warm);
+  const fill = document.getElementById('barfill'); if (fill) fill.style.width = (100 * inout((t - 36.4) / 3.2)) + '%';
+  const on = Math.floor((t - 22.8) / 2.35);
+  document.querySelectorAll('.dots span').forEach((s) => s.classList.toggle('on', Number(s.dataset.i) === on));
+  document.body.style.opacity = 1 - inout((t - (DUR - .9)) / .9);
+  await Promise.all([...document.images].map((i) => i.decode().catch(() => {})));
+};
+</script></body></html>
