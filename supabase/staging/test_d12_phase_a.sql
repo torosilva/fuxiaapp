@@ -95,13 +95,20 @@ BEGIN
   IF (SELECT count(*) FROM public.support_tickets) <> 0 THEN RAISE EXCEPTION 'P6 operator tickets'; END IF;
   RESET ROLE;
 
-  -- P7 anon: unchanged in Phase A (legacy PIN screen and legacy sale keep working; closed in Phase B)
+  -- P7 anon: unchanged by Phase A. Before the closure (20261029000200) the legacy PIN screen and legacy sale work; after it,
+  --    anon has no privilege on these tables at all (test_d12_close_anon.sql covers that state in detail)
   PERFORM set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
-  SET LOCAL ROLE anon;
-  IF (SELECT count(*) FROM public.staff) <> active_staff THEN RAISE EXCEPTION 'P7 anon PIN screen changed'; END IF;
-  INSERT INTO public.offline_sales (code, items, total, channel_id, staff_id) VALUES ('ZZD12E', '[]', 60, ch, st);
-  IF (SELECT count(*) FROM public.support_tickets) <> 0 THEN RAISE EXCEPTION 'P7 anon tickets'; END IF;
-  RESET ROLE;
+  IF has_table_privilege('anon', 'public.staff', 'SELECT') THEN
+    SET LOCAL ROLE anon;
+    IF (SELECT count(*) FROM public.staff) <> active_staff THEN RAISE EXCEPTION 'P7 anon PIN screen changed'; END IF;
+    INSERT INTO public.offline_sales (code, items, total, channel_id, staff_id) VALUES ('ZZD12E', '[]', 60, ch, st);
+    IF (SELECT count(*) FROM public.support_tickets) <> 0 THEN RAISE EXCEPTION 'P7 anon tickets'; END IF;
+    RESET ROLE;
+  ELSE
+    ok := false;
+    BEGIN SET LOCAL ROLE anon; PERFORM count(*) FROM public.staff; RESET ROLE; EXCEPTION WHEN insufficient_privilege THEN RESET ROLE; ok := true; END;
+    IF NOT ok THEN RAISE EXCEPTION 'P7 anon reads staff after the closure'; END IF;
+  END IF;
 
   -- P8 no client-callable SECURITY DEFINER function hands these tables to a customer
   PERFORM set_config('request.jwt.claims', json_build_object('sub', u_cli, 'role', 'authenticated')::text, true);

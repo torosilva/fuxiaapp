@@ -61,7 +61,7 @@ BEGIN
   PERFORM pg_temp.as(o, format($q$SELECT public.f360_set_seller_pin(%L, '2468')$q$, pg_temp.id('A')));
   PERFORM pg_temp.as(o, format($q$SELECT public.f360_set_seller_pin(%L, '9753')$q$, pg_temp.id('caro')));
   PERFORM pg_temp.as(o, format($q$SELECT public.f360_set_seller_pin(%L, '1111')$q$, pg_temp.id('mario')));
-  INSERT INTO f360.approval_scopes (scope, auth_user_id, display_name, added_by_name, note) VALUES ('store_discount', o, 'Carolina', 'prueba', 'test');
+  INSERT INTO f360.approval_scopes (scope, auth_user_id, display_name, added_by_name, note) VALUES ('store_discount', o, 'Carolina', 'prueba', 'test') ON CONFLICT DO NOTHING;
   INSERT INTO t_ids (k, t) VALUES ('tokA', pg_temp.as(pg_temp.id('A'), format($q$SELECT public.f360_start_seller_shift(%L, '2468')$q$, pg_temp.id('L')))->>'token');
   INSERT INTO t_ids (k, t) VALUES ('tokC', pg_temp.as(o, format($q$SELECT public.f360_start_seller_shift(%L, '9753')$q$, pg_temp.id('L')))->>'token');
   INSERT INTO t_ids (k, t) VALUES ('tokM', pg_temp.as(pg_temp.id('mario'), format($q$SELECT public.f360_start_seller_shift(%L, '1111')$q$, pg_temp.id('L')))->>'token');
