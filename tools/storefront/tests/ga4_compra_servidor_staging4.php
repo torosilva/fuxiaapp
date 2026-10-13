@@ -21,8 +21,9 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
   return $pre;   // real: va a /debug/mp/collect
 }, 10, 3);
 
-$ok = 0; $mal = 0; $creados = array();
-function f360t($cond, $msg) { global $ok, $mal; if ($cond) { $ok++; echo "  PASA  $msg\n"; } else { $mal++; echo "  FALLA $msg\n"; } }
+// wp eval-file corre dentro de una función: los contadores van en $GLOBALS, no en variables del archivo
+$GLOBALS['f360t_ok'] = 0; $GLOBALS['f360t_mal'] = 0;
+function f360t($cond, $msg) { if ($cond) { $GLOBALS['f360t_ok']++; echo "  PASA  $msg\n"; } else { $GLOBALS['f360t_mal']++; echo "  FALLA $msg\n"; } }
 function f360t_acciones($id) { return count(as_get_scheduled_actions(array('hook' => F360_GA4_HOOK, 'args' => array('order_id' => (int) $id), 'status' => ActionScheduler_Store::STATUS_PENDING, 'group' => 'f360'), 'ids')); }
 function f360t_correr($id) {   // lo que hace el runner de Action Scheduler: ejecuta la acción y la quita de la cola
   as_unschedule_all_actions(F360_GA4_HOOK, array('order_id' => (int) $id), 'f360');
@@ -31,7 +32,6 @@ function f360t_correr($id) {   // lo que hace el runner de Action Scheduler: eje
   return array_slice($GLOBALS['f360t_http'], $n);
 }
 function f360t_pedido($metodo, $moneda, $cid = true) {
-  global $creados;
   $ids = wc_get_products(array('type' => 'variable', 'status' => 'publish', 'limit' => 2, 'return' => 'ids'));
   $o = wc_create_order();
   foreach ($ids as $pid) {
@@ -51,7 +51,6 @@ function f360t_pedido($metodo, $moneda, $cid = true) {
   $o->calculate_totals();
   $o->set_status('pending');
   $o->save();
-  $creados[] = $o->get_id();
   return $o->get_id();
 }
 
@@ -59,14 +58,14 @@ $hpos = class_exists('Automattic\WooCommerce\Utilities\OrderUtil') && Automattic
 echo "staging4 · HPOS " . ($hpos ? 'ACTIVO' : 'apagado (tablas clásicas)') . " · Woo " . WC()->version . "\n";
 
 echo "\n1) Captura del client_id al crear el pedido\n";
-$o = wc_create_order(); $o->update_meta_data('_f360_prueba_ga4', 1); $o->save(); $creados[] = $o->get_id();
+$o = wc_create_order(); $o->update_meta_data('_f360_prueba_ga4', 1); $o->save();
 $_COOKIE['_ga'] = 'GA1.1.123456789.1700000000'; $_COOKIE['_ga_8C1244627P'] = 'GS2.1.s1760111111$o5$g1$t1760111200$j60$l0$h0';
 f360_ga4_capturar_ids($o); $o = wc_get_order($o->get_id());
 f360t($o->get_meta('_f360_ga_cid') === '123456789.1700000000' && $o->get_meta('_f360_ga_sid') === '1760111111', 'cookie GS2: client_id y session_id guardados');
-$o2 = wc_create_order(); $o2->update_meta_data('_f360_prueba_ga4', 1); $o2->save(); $creados[] = $o2->get_id();
+$o2 = wc_create_order(); $o2->update_meta_data('_f360_prueba_ga4', 1); $o2->save();
 $_COOKIE['_ga_8C1244627P'] = 'GS1.1.1760222222.3.1.1760222300.0.0.0'; f360_ga4_capturar_ids($o2); $o2 = wc_get_order($o2->get_id());
 f360t($o2->get_meta('_f360_ga_sid') === '1760222222', 'cookie GS1: session_id guardado');
-$o3 = wc_create_order(); $o3->update_meta_data('_f360_prueba_ga4', 1); $o3->save(); $creados[] = $o3->get_id();
+$o3 = wc_create_order(); $o3->update_meta_data('_f360_prueba_ga4', 1); $o3->save();
 $_COOKIE['_ga'] = 'basura'; f360_ga4_capturar_ids($o3); $o3 = wc_get_order($o3->get_id());
 f360t(!$o3->get_meta('_f360_ga_cid'), 'cookie inválida: no guarda nada');
 unset($_COOKIE['_ga'], $_COOKIE['_ga_8C1244627P']);
@@ -164,6 +163,9 @@ $rv = f360t_pedido('woo-mercado-pago-custom', 'MXN'); wc_get_order($rv)->payment
 echo '  respuesta guardada: ' . wc_get_order($rv)->get_meta('_f360_ga4_mp') . "\n";
 echo '  ejemplo de lo que se manda: ' . $GLOBALS['f360t_http'][0][1] . "\n";
 
-foreach ($creados as $cid) { as_unschedule_all_actions(F360_GA4_HOOK, array('order_id' => (int) $cid), 'f360'); $o = wc_get_order($cid); if ($o && $o->get_meta('_f360_prueba_ga4')) $o->delete(true); }
-echo "\nRESULTADO: $ok pasan, $mal fallan · " . count($creados) . " pedidos de prueba borrados\n";
-exit($mal ? 1 : 0);
+// limpieza: TODOS los pedidos de prueba (marcados con _f360_prueba_ga4), también los que dejó una corrida anterior
+$prueba = wc_get_orders(array('limit' => -1, 'status' => 'any', 'meta_key' => '_f360_prueba_ga4', 'meta_value' => '1', 'return' => 'ids'));
+foreach ($prueba as $pid) { as_unschedule_all_actions(F360_GA4_HOOK, array('order_id' => (int) $pid), 'f360'); $o = wc_get_order($pid); if ($o && $o->get_meta('_f360_prueba_ga4')) $o->delete(true); }
+$quedan = count(wc_get_orders(array('limit' => -1, 'status' => 'any', 'meta_key' => '_f360_prueba_ga4', 'meta_value' => '1', 'return' => 'ids')));
+echo "\nRESULTADO: " . $GLOBALS['f360t_ok'] . " pasan, " . $GLOBALS['f360t_mal'] . " fallan · " . count($prueba) . " pedidos de prueba borrados, quedan $quedan\n";
+exit(($GLOBALS['f360t_mal'] || $quedan) ? 1 : 0);
