@@ -1,5 +1,5 @@
 -- Fuxia Academy · A1 — learning engine for Sales Academy (Mario 2026-10-11: "A1 exclusivamente en staging, alcance controlado").
--- STAGING FIRST. ADDITIVE: own schema f360_academy + public.f360_academy_* RPCs. Depends on 20261028000100 (approval registry).
+-- STAGING FIRST. ADDITIVE: own schema f360_academy + public.f360_academy_* RPCs. Depends on 20261030000100 (approval registry).
 -- Design: docs/fuxia360/academy/00_FUXIA_ACADEMY_DISENO.md (§3–§5, §9.4, §10, §12) · A1 conditions:
 --   · NO real seller access while P0-6 is open: settings.learner_access_enabled is false and a CHECK forbids true — only a reviewed
 --     migration can lift it (after P0-6 is fixed). Learners in A1 = people with an explicit 'tester' grant, loaded per environment.
@@ -10,10 +10,10 @@
 --   · Product facts are NEVER stored as course text: lessons reference products by immutable code; on submission the validated
 --     public knowledge (f360.product_knowledge_public) is frozen into a snapshot that is part of the approved hash (§9.4).
 --   · Publication = shared registry (academy_content.publish_sales, aal2; self-approval only for ordinary product content).
--- Rollback: supabase/rollbacks/20261028000200_f360_academy_a1.down.sql
+-- Rollback: supabase/rollbacks/20261030000200_f360_academy_a1.down.sql
 
 DO $$ BEGIN
-  IF to_regclass('f360.approval_requests') IS NULL THEN RAISE EXCEPTION 'ABORT: falta 20261028000100 (registro de aprobaciones)'; END IF;
+  IF to_regclass('f360.approval_requests') IS NULL THEN RAISE EXCEPTION 'ABORT: falta 20261030000100 (registro de aprobaciones)'; END IF;
 END $$;
 
 CREATE SCHEMA f360_academy;

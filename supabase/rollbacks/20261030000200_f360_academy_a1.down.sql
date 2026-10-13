@@ -1,6 +1,6 @@
--- Rollback of 20261028000200_f360_academy_a1 (and of 20261028000300, whose rows live in this schema).
+-- Rollback of 20261030000200_f360_academy_a1 (and of 20261030000300, whose rows live in this schema).
 -- Run ONLY with Mario's explicit OK: after apply it is a TEARDOWN (drops content, progress and practice history).
--- The shared approval registry keeps its academy requests/events (append-only history); revert 20261028000100 separately.
+-- The shared approval registry keeps its academy requests/events (append-only history); revert 20261030000100 separately.
 BEGIN;
 DROP FUNCTION public.f360_academy_team();
 DROP FUNCTION public.f360_academy_decide(uuid, boolean, text);

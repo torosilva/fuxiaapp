@@ -11,7 +11,7 @@
 --     them with the caller they derived from auth.uid(). decide enforces requester ≠ approver for sensitive operations, beneficiary
 --     ≠ requester/approver, aal2, can_approve_op, expiry (database clock) and hash equality; consume is single-use.
 --   · The existing fx_rate / budget / close / store_discount flows do NOT read or write this registry and need no change.
--- Rollback: supabase/rollbacks/20261028000100_f360_approval_registry.down.sql
+-- Rollback: supabase/rollbacks/20261030000100_f360_approval_registry.down.sql
 
 -- ── 1. Widen the scope CHECK (guarded) ────────────────────────────────────────────────────────────────────────────────────────
 DO $$

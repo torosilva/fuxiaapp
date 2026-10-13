@@ -3,9 +3,9 @@
 -- Uses the real Ballerinas of the pilot (copied nightly from production) for the validated-knowledge snapshot.
 -- Run (only with Mario's approval): scripts/s00a/run.sh ../f360/sql_test_one.mjs supabase/staging/f360_academy_a1_tests.sql
 BEGIN;
--- @include supabase/migrations/20261028000100_f360_approval_registry.sql
--- @include supabase/migrations/20261028000200_f360_academy_a1.sql
--- @include supabase/migrations/20261028000300_f360_academy_pilot_seed.sql
+-- @include supabase/migrations/20261030000100_f360_approval_registry.sql
+-- @include supabase/migrations/20261030000200_f360_academy_a1.sql
+-- @include supabase/migrations/20261030000300_f360_academy_pilot_seed.sql
 
 CREATE TEMP TABLE t_results (n serial, status text, name text, detail text) ON COMMIT DROP;
 GRANT ALL ON t_results TO authenticated, anon;
