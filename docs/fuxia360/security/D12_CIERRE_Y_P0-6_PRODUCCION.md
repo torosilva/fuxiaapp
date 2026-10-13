@@ -16,3 +16,11 @@ Todo lo corrió Mario con `!`; lo verifiqué con lecturas.
 - notas de revisión de tiendas de apps: la entrada de revisión solo se abre con `REVIEW_BYPASS_ENABLED='true'` y sus valores;
 - borrar el secreto `OTP_SALT`;
 - cuenta demo sin privilegios.
+
+## Academy en producción · 2026-10-13
+- **Base de datos:** se corrió `supabase/pase/20261013_academy.sql@e45645e`. Quedaron 4 migraciones `20261030*` y las compuertas así: vendedoras activas pueden entrar; certificados, puntos y canjes apagados.
+- **Permisos:** Carolina editora y Mario admin y editor; 5 operaciones de `academy_content`. Los 2 cursos quedaron en borrador.
+- **Admin:** `NEXT_PUBLIC_F360_ACADEMY=on` en Vercel `fuxia360`, solo en Production. Se publicó desde `e45645e`, que solo trae las pantallas de Academy.
+  - Ojo: `admin-web/.vercel` apunta a **fuxia360-staging**.
+- **Falta, a cargo de Carolina:** revisar y publicar el curso y el video, con 2FA. Antes tiene que aprobar las contradicciones de talla y cuidados, la foto de Mafalda Studs y la licencia de la música.
+- **Reversión:** `supabase/pase/20261013_academy_reversion.sql`. Desmonta Academy y borra el avance.
