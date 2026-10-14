@@ -13,7 +13,7 @@ const VERDICT: Record<CampaignVerdict, { label: string; cls: string }> = {
 };
 
 // War Room channel names → plain words for this view (the classification itself is unchanged).
-const CHANNEL: Record<string, string> = { 'Meta (UTM no pagado)': 'Instagram / Facebook orgánico (bio, historias)', 'Meta pagado': 'Anuncios de Meta', 'Búsqueda orgánica': 'Google orgánico' };
+const CHANNEL: Record<string, string> = { 'Meta (UTM no pagado)': 'Instagram orgánico con link (bio, historias)', 'Instagram / Facebook orgánico': 'Instagram / Facebook sin link de campaña', 'Meta pagado': 'Anuncios de Meta', 'Búsqueda orgánica': 'Google orgánico' };
 const mxn = (v: number | null | undefined) => (v == null ? '—' : `$${Math.round(v).toLocaleString('es-MX')}`);
 const byCur = (m: Record<string, number>) => {
   const parts = Object.entries(m).filter(([, v]) => v > 0).sort(([a], [b]) => (a === 'MXN' ? -1 : b === 'MXN' ? 1 : a.localeCompare(b)))
