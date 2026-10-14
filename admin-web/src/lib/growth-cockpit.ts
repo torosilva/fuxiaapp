@@ -39,3 +39,21 @@ const PAY: Record<string, string> = {
   'ppcp-card-button-gateway': 'PayPal · tarjeta', 'ppcp-gateway': 'PayPal', epayco: 'ePayco', f360_prueba: 'Prueba Fuxia 360', 'sin método': 'Sin método (abandonado antes de elegir)',
 };
 export const payName = (m: string) => PAY[m] ?? m;
+
+// S-G2 · Campañas (f360_growth_campaigns, operator+). Meta spend (MXN) per campaign vs paid orders whose last click was that campaign
+// (utm_id). COP / USD are converted only with an approved monthly rate; otherwise revenue_mxn / return are null and verdict = falta_tc.
+export type CampaignVerdict = 'recupera' | 'no_recupera' | 'sin_ventas' | 'falta_tc' | 'sin_gasto';
+export type CampaignRow = {
+  campaign_id: string; name: string; market: string | null; spend: number | null; impressions: number | null; clicks: number | null;
+  first_day: string | null; last_day: string | null; paid_orders: number; revenue_by_currency: Record<string, number>;
+  revenue_mxn: number | null; cpa: number | null; return: number | null; verdict: CampaignVerdict;
+};
+export type GrowthCampaigns = {
+  from: string; to: string; generated_at: string;
+  campaigns: CampaignRow[];
+  channels: { channel: string; paid_orders: number; revenue_by_currency: Record<string, number>; revenue_mxn: number | null }[];
+  totals: { spend: number | null; spend_currency_ok: boolean; paid_orders: number; revenue_by_currency: Record<string, number>; revenue_mxn: number | null;
+    ad_orders: number; ad_revenue_mxn: number | null; no_fx_currencies: string[]; spend_last_day: string | null };
+  sources: Record<'sales' | 'origin' | 'spend' | 'fx', string>;
+};
+export const getGrowthCampaigns = (from: string | null, to: string | null) => rpc<GrowthCampaigns>('f360_growth_campaigns', { p_from: from, p_to: to });
