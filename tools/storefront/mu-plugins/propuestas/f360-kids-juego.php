@@ -63,7 +63,7 @@ add_action('wp_footer', function () {
 .f360k__kids{margin:0;font-family:Fredoka,system-ui,sans-serif;font-weight:700;font-size:72px;line-height:.95;letter-spacing:.03em;color:var(--rosa);
   text-shadow:0 1px 0 #fff,0 4px 0 var(--oro),0 14px 26px rgba(133,118,82,.25)}
 .f360k__sub{margin:18px auto 22px;max-width:380px;font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:21px;line-height:1.3;color:var(--tinta)}
-.f360k__play{position:relative;width:min(100%,calc((100vh - 150px) * .75));aspect-ratio:3/4;margin:0 auto;border-radius:22px;overflow:hidden;outline:none;
+.f360k__play{position:relative;width:min(100%,calc((100vh - 240px) * .75));aspect-ratio:3/4;margin:0 auto;scroll-margin:130px 0 96px;border-radius:22px;overflow:hidden;outline:none;
   background:linear-gradient(#FBF6F1,#F8EBE8 60%,#F1D6D8);box-shadow:0 0 0 1px rgba(184,150,110,.55),0 0 0 7px #fff,0 0 0 8px rgba(184,150,110,.3),0 24px 44px rgba(133,118,82,.16)}
 .f360k__play:focus-visible{box-shadow:0 0 0 2px var(--oro2),0 0 0 7px #fff,0 0 0 9px var(--oro),0 24px 44px rgba(133,118,82,.16)}
 .f360k__cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
@@ -131,7 +131,7 @@ add_action('wp_footer', function () {
   function levelAt(t) { return t < 18 ? 1 : t < 36 ? 2 : 3; }
   function start() {
     st = { running: true, paused: false, t: 0, score: 0, level: 1, px: .5, tx: .5, vx: 0, stars: [], parts: [], pops: [], spawn: 0, banner: -9, keys: {} };
-    show(null); pauseBtn.hidden = false; play.focus({ preventScroll: true }); play.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' }); last = 0; requestAnimationFrame(loop); say('Empieza el juego. Nivel 1.');
+    show(null); pauseBtn.hidden = false; play.focus({ preventScroll: true }); play.scrollIntoView({ block: 'end', behavior: reduce ? 'auto' : 'smooth' }); last = 0; requestAnimationFrame(loop); say('Empieza el juego. Nivel 1.');
   }
   function end() {
     st.running = false; pauseBtn.hidden = true;
