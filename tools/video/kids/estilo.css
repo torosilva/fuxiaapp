@@ -1,0 +1,27 @@
+/* Fuxia Kids · look shared by the two launch videos (maqueta). Ivory + dusty rose + gold, Fuxia's serif, the KIDS lettering. */
+:root { --marfil:#FBF6F1; --blush:#F3DADB; --rosa:#E2A6B0; --rosa2:#C97F8D; --oro:#B8966E; --oro2:#857652; --tinta:#3A2E2A; --gris:#8B7F78 }
+* { box-sizing:border-box; margin:0; padding:0; font-variant-numeric:lining-nums }
+html,body { width:390px; height:844px; overflow:hidden; background:var(--marfil) }
+#stage { position:relative; width:390px; height:844px; overflow:hidden; font-family:Montserrat, system-ui, sans-serif; color:var(--tinta) }
+#sky { position:absolute; inset:0; width:390px; height:844px }
+.layer { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center }
+.logo { width:230px; display:block }
+.logo.blanco { filter:brightness(0) invert(1) }
+.label { font-weight:500; font-size:11px; letter-spacing:.34em; text-transform:uppercase; color:var(--oro2) }
+.serif { font-family:"Cormorant Garamond", serif; font-weight:500; font-style:italic; font-size:42px; line-height:1.02; color:var(--tinta) }
+.kids { font-family:Fredoka, sans-serif; font-weight:700; font-size:92px; line-height:.9; letter-spacing:.03em; color:var(--rosa);
+        text-shadow:0 1px 0 #fff, 0 4px 0 var(--oro), 0 14px 26px rgba(133,118,82,.28) }
+.hair { width:54px; height:1px; background:var(--oro); margin:16px auto }
+.pill { display:inline-block; padding:10px 20px; border-radius:999px; border:1px solid var(--oro); font-weight:500; font-size:11px; letter-spacing:.26em; text-transform:uppercase; color:var(--oro2); background:rgba(255,255,255,.55) }
+.hud { position:absolute; top:24px; left:20px; right:20px; display:flex; justify-content:space-between; align-items:center }
+.hud .stars { padding:8px 14px; border-radius:999px; border:1px solid var(--oro); background:rgba(255,255,255,.7); font-size:13px; font-weight:600; letter-spacing:.08em; color:var(--oro2) }
+.card { width:108px; border-radius:18px; background:#fff; border:1px solid rgba(184,150,110,.45); padding:8px 8px 12px; display:flex; flex-direction:column; align-items:center; gap:8px;
+        box-shadow:0 14px 30px rgba(133,118,82,.14) }
+.card .ph { width:90px; height:110px; border-radius:12px; background-size:cover; background-position:center }
+.card span { font-family:"Cormorant Garamond", serif; font-style:italic; font-size:19px }
+.card.sel { border-color:var(--oro); box-shadow:0 0 0 2px var(--oro), 0 18px 34px rgba(133,118,82,.24) }
+.pop { position:absolute; font-family:"Cormorant Garamond", serif; font-style:italic; font-weight:600; font-size:28px; color:var(--oro2) }
+.medal { border-radius:50%; background-size:cover; background-position:center; border:2px solid #fff; box-shadow:0 0 0 1px var(--oro), 0 16px 30px rgba(133,118,82,.25) }
+.regalo { width:300px; border-radius:24px; background:#fff; padding:26px 22px; border:1px solid var(--oro); box-shadow:0 0 0 6px #fff, 0 0 0 7px rgba(184,150,110,.5), 0 24px 40px rgba(133,118,82,.18) }
+.regalo b { display:block; font-family:"Cormorant Garamond", serif; font-weight:600; font-size:88px; line-height:.95; color:var(--rosa2) }
+.mark { position:absolute; bottom:16px; left:0; right:0; text-align:center; font-size:9px; letter-spacing:.3em; color:var(--gris); opacity:.75 }

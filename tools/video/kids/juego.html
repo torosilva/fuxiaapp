@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=390,height=844">
+<title>Fuxia Kids · el juego (maqueta)</title>
+<!-- Maqueta para Carolina (Mario 2026-10-24): fotos de muestra de la tienda, no productos Kids reales. render.mjs juego.html -->
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Montserrat:wght@500;600&display=block" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body><div id="stage"><canvas id="sky" width="780" height="1688"></canvas><div id="ui"></div>
+<div class="mark">MAQUETA · FOTOS DE MUESTRA</div></div>
+<script src="comun.js"></script>
+<script>
+// Stand-ins: crops of real Fuxia photos (only the shoe), named like a kids' line. Not real Kids products.
+const PARES = [
+  { n: 'Estrellita', f: 'doradas', size: '170%', pos: '28% 72%' },
+  { n: 'Luna', f: 'nina', size: '330%', pos: '20% 92%' },
+  { n: 'Brillo', f: 'tstrap', size: '330%', pos: '45% 77%' },
+];
+const ph = (p) => `background-image:url(${FOTO(p.f)});background-size:${p.size};background-position:${p.pos}`;
+
+function render(t) {
+  fondo(t, prog(t, 17.5, 21)); estrellasDoradas(t, 12.6, 17.6);
+  let h = '', o;
+
+  // 0–3.2: logo, "presenta"
+  o = fadeIO(t, .2, 3.2);
+  if (o > 0) h += `<div class="layer" style="opacity:${o}">
+    <img class="logo" src="${LOGO}" style="transform:translateY(${(1 - ease(prog(t, .2, 1.4))) * 14}px)">
+    <div class="hair" style="width:${54 * ease(prog(t, 1, 1.8))}px"></div>
+    <div class="label" style="opacity:${prog(t, 1.3, 1.9)}">presenta</div></div>`;
+
+  // 3–7.2: KIDS
+  o = fadeIO(t, 3, 7.2);
+  if (o > 0) h += `<div class="layer" style="opacity:${o}">
+    <div class="label">Fuxia Ballerinas</div><div style="height:18px"></div>
+    ${kidsTitle(t, 3.1)}
+    <div class="serif" style="font-size:26px;margin-top:26px;opacity:${prog(t, 4.3, 5)}">un juego para pequeñas bailarinas</div>
+    <div class="pill" style="margin-top:30px;opacity:${prog(t, 5.2, 5.8)}">Toca para jugar</div>
+    ${destello(t, 195, 420, 3.7)}</div>`;
+
+  // 7–12.8: elige tus ballerinas
+  o = fadeIO(t, 7, 12.8);
+  const sel = t < 8.8 ? -1 : t < 10.2 ? 0 : t < 11.6 ? 1 : 2;
+  const pts = 100 * [8.8, 10.2, 11.6].filter((x) => t >= x).length;
+  if (o > 0) {
+    h += `<div class="layer" style="opacity:${o};justify-content:flex-start;padding-top:128px">
+      <div class="label">Nivel 1</div><div class="serif" style="margin-top:12px">Elige tus<br>ballerinas</div>
+      <div style="display:flex;gap:10px;margin-top:40px">${PARES.map((p, i) => `<div class="card ${sel === i ? 'sel' : ''}" style="opacity:${ease(prog(t, 7.4 + i * .22, 8.1 + i * .22))};transform:translateY(${(1 - ease(prog(t, 7.4 + i * .22, 8.1 + i * .22))) * 40}px) scale(${sel === i ? 1.06 : 1})"><div class="ph" style="${ph(p)}"></div><span>${p.n}</span></div>`).join('')}</div>
+      <div style="margin-top:40px;font-size:13px;letter-spacing:.06em;color:var(--gris)">Cada par que eliges suma estrellas</div></div>`;
+    [8.8, 10.2, 11.6].forEach((a, i) => { const p = prog(t, a, a + 1.2); if (p > 0 && p < 1) h += `<div class="pop" style="left:${78 + i * 118}px;top:${330 - ease(p) * 46}px;opacity:${1 - p * p};text-shadow:0 0 10px #fff,0 0 4px #fff">+100 ✦</div>` + destello(t, 92 + i * 118, 380, a); });
+  }
+
+  // 12.6–17.8: atrapa las estrellas
+  o = fadeIO(t, 12.6, 17.8);
+  const caught = Math.round(300 + 550 * ease(prog(t, 12.8, 17.2)));
+  if (o > 0) {
+    const x = 195 + Math.sin(t * 1.9) * 110;
+    h += `<div class="layer" style="opacity:${o};justify-content:flex-start;padding-top:120px">
+      <div class="label">Nivel ${t < 15.2 ? 1 : 2}</div><div class="serif" style="margin-top:12px">Atrapa las estrellas</div></div>
+      <div class="medal" style="position:absolute;width:118px;height:118px;left:${x - 59}px;top:640px;opacity:${o};${ph(PARES[0])}"></div>
+      ${t > 15.1 && t < 16.2 ? `<div class="layer" style="opacity:${1 - prog(t, 15.7, 16.2)}">${kidsTitle(t, 15.1, 0).replace('>KIDS<', ' style="font-size:52px">¡Nivel 2!<')}</div>` : ''}
+      ${[13.4, 14.1, 14.9, 15.8, 16.5].map((a) => destello(t, x, 640, a)).join('')}`;
+  }
+
+  // 17.8–21.8: un regalo para mamá
+  o = fadeIO(t, 17.8, 21.8);
+  if (o > 0) {
+    const f = ease(prog(t, 18.9, 19.9));
+    h += `<div class="layer" style="opacity:${o}">
+      <div class="serif">Tus estrellas<br>se vuelven un regalo</div>
+      <div class="regalo" style="margin-top:34px;opacity:${f};transform:translateY(${(1 - f) * 24}px) scale(${.94 + .06 * f})">
+        <div class="label">Para mamá</div><b>10%</b>
+        <div class="serif" style="font-size:20px;margin-top:6px">en sus ballerinas Fuxia Kids</div>
+        <div style="font-size:10px;margin-top:14px;color:var(--gris);letter-spacing:.08em">Ejemplo · el premio real lo define Fuxia</div></div>
+      ${destello(t, 60, 330, 19.9)}${destello(t, 330, 360, 20.2)}</div>`;
+  }
+
+  // 21.6–26.5: cierre
+  o = prog(t, 21.6, 22.2);
+  if (o > 0) h += `<div class="layer" style="opacity:${o}">
+    <img class="logo" src="${LOGO}" style="width:190px"><div style="height:16px"></div>
+    ${kidsTitle(t, 21.7, 80)}
+    <div class="serif" style="font-size:28px;margin-top:28px">Juega · Elige · Gana</div>
+    <div class="hair"></div>
+    <div class="label">Muy pronto en fuxiaballerinas.com</div></div>`;
+
+  if (t > 7 && t < 21.6) h += `<div class="hud"><span class="label">Fuxia Kids</span><span class="stars">✦ ${t < 12.6 ? pts : t < 17.8 ? caught : 850}</span></div>`;
+  document.getElementById('ui').innerHTML = h;
+}
+window.render = render; window.DURATION = 26.5; window.STILLS = [1.6, 5.2, 11.9, 15.5, 20.4, 23.5];
+render(+(new URLSearchParams(location.search).get('t') || 5));
+</script></body></html>

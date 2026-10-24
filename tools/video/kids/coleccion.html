@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=390,height=844">
+<title>Fuxia Kids · lanzamiento de la colección (maqueta)</title>
+<!-- Maqueta para Carolina (Mario 2026-10-24): fotos de muestra de la tienda en lugar de los productos Kids, que aún no existen. -->
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Montserrat:wght@500;600&display=block" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css">
+<style>
+  .arco { position:relative; overflow:hidden; border-radius:200px 200px 22px 22px; background-repeat:no-repeat; box-shadow:0 0 0 1px rgba(184,150,110,.6), 0 0 0 9px #fff, 0 0 0 10px rgba(184,150,110,.35), 0 30px 50px rgba(133,118,82,.2) }
+  .nombre { font-family:"Cormorant Garamond", serif; font-style:italic; font-weight:500; font-size:44px; line-height:1 }
+</style>
+</head>
+<body><div id="stage"><canvas id="sky" width="780" height="1688"></canvas><div id="ui"></div>
+<div class="mark">MAQUETA · FOTOS DE MUESTRA</div></div>
+<script src="comun.js"></script>
+<script>
+const PARES = [
+  { n: 'Estrellita', d: 'dorado con piedras', f: 'doradas', size: 170, x: 30, y: 70, a: 6.5 },
+  { n: 'Luna', d: 'nude con taches dorados', f: 'nina', size: 300, x: 18, y: 90, a: 10.5 },
+  { n: 'Brillo', d: 'taupe con taches', f: 'tstrap', size: 300, x: 45, y: 77, a: 14.5 },
+];
+function render(t) {
+  fondo(t, .4 + .4 * prog(t, 18, 22));
+  let h = '', o;
+
+  o = fadeIO(t, .2, 3.2);                                   // logo
+  if (o > 0) h += `<div class="layer" style="opacity:${o}">
+    <img class="logo" src="${LOGO}" style="transform:translateY(${(1 - ease(prog(t, .2, 1.4))) * 14}px)">
+    <div class="hair" style="width:${54 * ease(prog(t, 1, 1.8))}px"></div>
+    <div class="label" style="opacity:${prog(t, 1.3, 1.9)}">presenta</div></div>`;
+
+  o = fadeIO(t, 3, 6.6);                                    // the collection
+  if (o > 0) h += `<div class="layer" style="opacity:${o}">
+    <div class="label">La primera colección</div><div style="height:18px"></div>
+    ${kidsTitle(t, 3.1)}
+    <div class="serif" style="font-size:28px;margin-top:26px;opacity:${prog(t, 4.2, 4.9)}">para pequeñas bailarinas</div>
+    ${destello(t, 195, 410, 3.7)}</div>`;
+
+  for (const [i, p] of PARES.entries()) {                    // one model per scene, slow push-in inside the arch
+    o = fadeIO(t, p.a, p.a + 4.1, .6);
+    if (o <= 0) continue;
+    const k = prog(t, p.a, p.a + 4.1), z = p.size * (1 + .08 * inout(k));
+    h += `<div class="layer" style="opacity:${o};justify-content:flex-start;padding-top:${86}px">
+      <div class="label">Fuxia Kids · ${['I', 'II', 'III'][i]}</div>
+      <div class="arco" style="margin-top:22px;width:300px;height:440px;background-image:url(${FOTO(p.f)});background-size:${z}%;background-position:${p.x}% ${p.y}%;
+        transform:translateY(${(1 - ease(prog(t, p.a, p.a + 1))) * 30}px)"></div>
+      <div class="nombre" style="margin-top:34px;opacity:${prog(t, p.a + .6, p.a + 1.3)}">${p.n}</div>
+      <div class="label" style="margin-top:12px;letter-spacing:.22em;color:var(--gris);opacity:${prog(t, p.a + .9, p.a + 1.6)}">${p.d}</div></div>`;
+  }
+
+  o = fadeIO(t, 18.5, 22.2);                                // the three together
+  if (o > 0) h += `<div class="layer" style="opacity:${o}">
+    <div class="serif">Como las de mamá,<br>en su talla</div>
+    <div style="display:flex;gap:12px;margin-top:40px">${PARES.map((p, i) => `<div class="arco" style="width:100px;height:146px;background-image:url(${FOTO(p.f)});background-size:${p.size}%;background-position:${p.x}% ${p.y}%;
+      opacity:${ease(prog(t, 18.8 + i * .25, 19.6 + i * .25))};transform:translateY(${(1 - ease(prog(t, 18.8 + i * .25, 19.6 + i * .25))) * 30}px)"></div>`).join('')}</div>
+    ${destello(t, 70, 350, 20)}${destello(t, 320, 600, 20.4)}</div>`;
+
+  o = prog(t, 22, 22.6);                                    // end card
+  if (o > 0) h += `<div class="layer" style="opacity:${o}">
+    <img class="logo" src="${LOGO}" style="width:190px"><div style="height:16px"></div>
+    ${kidsTitle(t, 22.1, 80)}
+    <div class="hair"></div>
+    <div class="label">Muy pronto en fuxiaballerinas.com</div></div>`;
+  document.getElementById('ui').innerHTML = h;
+}
+window.render = render; window.DURATION = 26.5; window.STILLS = [1.6, 5, 8.6, 12.6, 20.6, 24];
+render(+(new URLSearchParams(location.search).get('t') || 8));
+</script></body></html>
