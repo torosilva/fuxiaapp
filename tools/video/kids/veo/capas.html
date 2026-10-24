@@ -1,0 +1,30 @@
+<!doctype html><html><head><meta charset="utf-8">
+<!-- Fuxia Kids · Veo: overlays (transparent PNGs, 1080x1920) and the closing card frames. capas.mjs renders them. -->
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Montserrat:wght@500&display=block" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-variant-numeric:lining-nums }
+  html,body { width:405px; height:720px; background:transparent; overflow:hidden }
+  .cap { position:absolute; left:0; right:0; top:0; height:260px; padding-top:70px; text-align:center;
+         background:linear-gradient(to bottom, rgba(18,14,16,.55), rgba(18,14,16,.25) 60%, rgba(18,14,16,0)) }
+  .lab { font:500 9px Montserrat, sans-serif; letter-spacing:.44em; color:#E2C88F; text-transform:uppercase }
+  .txt { margin-top:12px; font:italic 400 30px/1.15 "Cormorant Garamond", serif; color:#FBF3E6; text-shadow:0 2px 12px rgba(0,0,0,.45); padding:0 24px }
+  #cierre { position:absolute; inset:0; background:radial-gradient(circle at 50% 45%, #2B2430, #141117); display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center }
+  .kids { font:700 84px/0.9 Fredoka, sans-serif; letter-spacing:.03em; color:#E2A6B0; text-shadow:0 1px 0 #fff, 0 4px 0 #C9A86F, 0 16px 30px rgba(0,0,0,.35) }
+  .dust { position:absolute; border-radius:50%; background:#E9D3A2 }
+</style></head><body><div id="root"></div>
+<script>
+const clamp = (x) => Math.max(0, Math.min(1, x)), prog = (t, a, b) => clamp((t - a) / (b - a)), ease = (x) => 1 - Math.pow(1 - x, 3);
+const rnd = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+window.caption = (lab, txt) => { document.getElementById('root').innerHTML = `<div class="cap"><div class="lab">${lab}</div><div class="txt">${txt}</div></div>`; };
+window.cierre = (t) => {
+  let d = ''; for (let i = 0; i < 40; i++) { const y = 720 - ((t * (8 + rnd(i + 9) * 14) + rnd(i + 3) * 720) % 740);
+    d += `<div class="dust" style="left:${rnd(i) * 405}px;top:${y}px;width:${1 + rnd(i + 2) * 2.2}px;height:${1 + rnd(i + 2) * 2.2}px;opacity:${.2 + .6 * Math.abs(Math.sin(t * (.7 + rnd(i + 5)) + i))}"></div>`; }
+  const k = ease(prog(t, .5, 1.5));
+  document.getElementById('root').innerHTML = `<div id="cierre" style="display:flex">${d}
+    <img src="../../inversionistas/logo-fuxia.svg" style="width:210px;filter:brightness(1.9) saturate(.8);opacity:${prog(t, .2, 1)}">
+    <div style="height:18px"></div><div class="kids" style="opacity:${k};transform:scale(${.85 + .15 * k})">KIDS</div>
+    <div style="width:${50 * prog(t, 1.4, 2.2)}px;height:1px;background:#C9A86F;margin:26px auto 18px"></div>
+    <div style="font:italic 400 26px 'Cormorant Garamond',serif;color:#F3E7D3;opacity:${prog(t, 1.8, 2.6)}">Su primer par</div>
+    <div style="margin-top:14px;font:500 9.5px Montserrat,sans-serif;letter-spacing:.42em;color:#C9A86F;opacity:${prog(t, 2.4, 3.2)}">MUY PRONTO · FUXIABALLERINAS.COM</div></div>`;
+};
+</script></body></html>

@@ -2,7 +2,7 @@ import AVFoundation
 import AppKit
 let args = CommandLine.arguments
 let dir = args[1], out = args[2]
-let W = 780, H = 1688
+let W = Int(ProcessInfo.processInfo.environment["W"] ?? "780")!, H = Int(ProcessInfo.processInfo.environment["H"] ?? "1688")!
 let files = try! FileManager.default.contentsOfDirectory(atPath: dir).filter { $0.hasSuffix(".jpg") }.sorted { Double($0.dropLast(4))! < Double($1.dropLast(4))! }
 let t0 = Double(files[0].dropLast(4))!
 try? FileManager.default.removeItem(atPath: out)
@@ -22,12 +22,12 @@ func buffer(_ path: String) -> CVPixelBuffer? {
 var lastT = -1.0, last: CVPixelBuffer? = nil, n = 0
 for f in files {
   let t = Double(f.dropLast(4))! - t0
-  if t - lastT < 0.033 { continue }   // ≤ 30 fps
+  if t - lastT < 0.03 { continue }   // ≤ 30 fps
   guard let b = buffer(dir + "/" + f) else { continue }
   while !inp.isReadyForMoreMediaData { usleep(2000) }
   ad.append(b, withPresentationTime: CMTime(seconds: t, preferredTimescale: 600)); lastT = t; last = b; n += 1
 }
-if let b = last { while !inp.isReadyForMoreMediaData { usleep(2000) }; ad.append(b, withPresentationTime: CMTime(seconds: lastT + 1.5, preferredTimescale: 600)) }
+if let b = last { while !inp.isReadyForMoreMediaData { usleep(2000) }; ad.append(b, withPresentationTime: CMTime(seconds: lastT + (Double(ProcessInfo.processInfo.environment["HOLD"] ?? "1.5")!), preferredTimescale: 600)) }
 inp.markAsFinished()
 let sem = DispatchSemaphore(value: 0); w.finishWriting { sem.signal() }; sem.wait()
 print("frames", n, "duration", lastT + 1.5, w.status.rawValue, w.error as Any)
