@@ -3,7 +3,10 @@
 
 // ── Snapshot returned by public.f360_pub_claim (the database is the single source of truth) ──
 export type SnapMedia = { id: string; path: string; alt: string | null; woo_media_id: number | null };
-export type SnapColor = { id: string; code: string; name: string; hex: string | null; media: SnapMedia[] };
+/** A short video of a colour (Fuxia 360 → store meta _fuxia360_videos; never a gallery image). */
+export type SnapVideo = { id: string; path: string; mime: string };
+export type SnapColor = { id: string; code: string; name: string; hex: string | null; media: SnapMedia[];
+  /** absent in snapshots from before 20261101000100 → the store's video meta is left untouched */ videos?: SnapVideo[] };
 export type SnapVariant = {
   id: string; color_id: string; size: string; sku: string; status: 'active' | 'archived';
   ats: number; woo_variation_id: number | null; last_pushed_stock: number | null;

@@ -292,6 +292,9 @@ export type ProductKnowledge = { knowledge: (KnowledgeFields & { status: 'borrad
   public: KnowledgePublic | null; labels: Record<string, Record<string, string>>; can_validate: boolean;
   history: { version: number; action: 'saved' | 'validated' | 'unvalidated'; by: string; at: string }[] };
 export const getProductKnowledge = (productId: string) => rpc<ProductKnowledge>('f360_product_knowledge_get', { p_product_id: productId });
+// Short videos per colour (20261101000100). They go to the store as the product meta _fuxia360_videos, not as photos.
+export type ProductVideo = { id: string; color_id: string; path: string; mime: string; bytes: number };
+export const getProductVideos = (productId: string) => rpc<ProductVideo[]>('f360_product_videos', { p_product_id: productId });
 
 // Clientas (CRM C4 · Mario 2026-10-05): full data only for customer_pii_viewers (Carolina, Mario); everyone else sees counts.
 export type CrmAccess = { pii_viewer: boolean; customers: number };

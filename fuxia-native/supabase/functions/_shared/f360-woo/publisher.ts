@@ -4,7 +4,7 @@
 // converges to the same single product with the same variations; nothing is ever deleted in Woo.
 import {
   activeVariants, buildImages, buildParent, buildVariation, COLOR_ATTR, isF360VariationOf, isManagedBy,
-  mediaName, parentSku, SIZE_ATTR, stockManaged, stockToPush, verify,
+  mediaName, parentSku, SIZE_ATTR, stockManaged, stockToPush, verify, videosMeta,
 } from './mapping.ts';
 import type { BatchItemResult, PublishOutcome, Recorder, Snapshot, WooAdapter, WooProduct, WooVariation } from './types.ts';
 
@@ -96,7 +96,7 @@ export async function publish(s: Snapshot, woo: WooAdapter, rec: Recorder, opts:
 
     const isCreate = !product;
     inTime();
-    const body = buildParent(s, ids, imagesNow(), isCreate);
+    const body = buildParent(s, ids, imagesNow(), isCreate, opts.storageBase);
     const newPhotos = (body.images as { src?: string }[]).filter((i) => i.src).length;
     if (isCreate) {
       product = await guarded('product', sku, () => woo.createProduct(body));
@@ -214,7 +214,7 @@ export async function publish(s: Snapshot, woo: WooAdapter, rec: Recorder, opts:
     const afterVars = await guarded('verify', sku, () => woo.listVariations(pid));
     summary.variations = afterVars.filter((w) => isF360VariationOf(w, s.product.code) && w.status !== 'private').length;
     summary.woo_status = after?.status ?? summary.woo_status;
-    summary.mismatches = verify(s, after, afterVars, ids, expected);
+    summary.mismatches = verify(s, after, afterVars, ids, expected, videosMeta(s, opts.storageBase));
     await rec.step({ step: 'verify', ref: sku, action: 'check', wooId: pid, ok: summary.mismatches.length === 0,
       message: summary.mismatches.length ? summary.mismatches.slice(0, 5).join('; ') : `1 producto (${after?.status}), ${summary.variations} variaciones, todo coincide`,
       detail: { mismatches: summary.mismatches } });
