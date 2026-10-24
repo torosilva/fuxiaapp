@@ -50,7 +50,7 @@ add_action('wp_footer', function () {
 .f360k__card:hover,.f360k__card:focus,.f360k__card:active{background:#fff;color:var(--tinta)}
 .f360k__btn:focus,.f360k__btn:active{background:var(--tinta);color:#F7E7C4}.f360k__btn--ghost:focus,.f360k__btn--ghost:active{background:transparent;color:var(--tinta)}
 .f360k__back:hover,.f360k__back:focus{background:none;color:var(--oro2)}
-.f360k__card svg{width:100%;max-width:190px;height:auto}
+.f360k__card svg{width:100%;max-width:150px;height:auto;max-height:130px}
 .f360k__card b{font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-weight:500;font-size:25px;line-height:1.05}
 .f360k__card span{font-size:12.5px;line-height:1.45;color:var(--gris)}
 .f360k__board{margin:4px auto 0;max-width:420px;padding:18px 18px 10px;border-radius:20px;background:rgba(255,255,255,.7);box-shadow:0 0 0 1px rgba(184,150,110,.35)}
@@ -80,7 +80,7 @@ add_action('wp_footer', function () {
 .f360k__steps{display:flex;justify-content:center;gap:6px;margin:0 0 6px;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#B9ADA5}
 .f360k__steps span.is-on{color:var(--oro2)}
 .f360k__steps span+span::before{content:"·";margin-right:6px;color:#D8CFC6}
-.f360k__shoe{display:block;width:100%;max-width:440px;height:auto;margin:4px auto 6px}
+.f360k__shoe{display:block;width:100%;max-width:330px;height:auto;margin:4px auto 6px}
 .f360k__opts{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:12px 0 16px}
 .f360k__opt,.f360k__opt:hover,.f360k__opt:focus,.f360k__opt:active{background:#fff;color:var(--tinta)}
 .f360k__opt{-webkit-tap-highlight-color:transparent;display:flex;align-items:center;gap:9px;min-height:46px;padding:6px 16px 6px 8px;border:0;border-radius:999px;background:#fff;color:var(--tinta);cursor:pointer;
@@ -96,7 +96,7 @@ add_action('wp_footer', function () {
 .f360k--franja .f360k__kids{font-size:40px}
 .f360k--franja .f360k__menu{max-width:620px;margin:0 auto}
 .f360k--franja .f360k__card{flex-direction:row;text-align:left;padding:12px 14px;gap:12px}
-.f360k--franja .f360k__card svg{width:74px;flex:none}
+.f360k--franja .f360k__card svg{width:64px;max-height:60px;flex:none}
 .f360k--franja .f360k__card b{font-size:20px}
 .f360k--franja .f360k__card span{display:none}
 .f360k--franja .f360k__board{display:none}
@@ -141,69 +141,99 @@ add_action('wp_footer', function () {
   var root = el('section', 'f360k' + (franja ? ' f360k--franja' : ''));
   root.setAttribute('aria-labelledby', 'f360k-t');
 
-  // ── the ballerina flat (round toe, gathered elastic vamp, small gold mark on the heel) as SVG
+  // ── the ballerina PAIR seen from above (lookbook illustration): wide round toe, oval opening with a finely gathered edge and light
+  //    top-stitching, Mary Jane strap across the instep, sole edge just peeking, small gold mark on the outer heel. No black outlines.
   var PIEL = {
-    nude:   { n: 'Nude', g: [['0', '#EBCDB6'], ['.45', '#D9B59A'], ['1', '#B8917A']], lin: '#F3E4D6', sw: 'linear-gradient(135deg,#EBCDB6,#C9A389)', shine: .38, w: ['nude', 'beige', 'taupe', 'camel', 'natural', 'arena', 'piel'] },
-    plata:  { n: 'Plata metálico', g: [['0', '#7E848A'], ['.28', '#F4F6F8'], ['.5', '#AEB4BA'], ['.74', '#E9ECEF'], ['1', '#868C92']], lin: '#EEF0F2', sw: 'linear-gradient(135deg,#F4F6F8,#8A9096 55%,#E1E4E7)', shine: .7, w: ['plata', 'silver', 'plateado', 'metal'] },
-    dorado: { n: 'Dorado metálico', g: [['0', '#8C6A2C'], ['.28', '#F6E3A6'], ['.5', '#C99B4A'], ['.74', '#F1D894'], ['1', '#97733A']], lin: '#F6EBD2', sw: 'linear-gradient(135deg,#F6E3A6,#B58A3E 55%,#F1D894)', shine: .7, w: ['dorado', 'oro', 'gold', 'dorada'] },
-    rosa:   { n: 'Rosa empolvado', g: [['0', '#F2C9CF'], ['.45', '#E2A6B0'], ['1', '#C08791']], lin: '#F8E7E9', sw: 'linear-gradient(135deg,#F2C9CF,#CC8E99)', shine: .4, w: ['rosa', 'pink', 'palo', 'blush', 'empolvado'] },
+    nude:   { n: 'Nude', met: false, g: [['0', '#F3DCCA'], ['.55', '#DDB89C'], ['1', '#BB937A']], lin: '#F5E8DC', sw: 'linear-gradient(135deg,#EBCDB6,#C9A389)', w: ['nude', 'beige', 'taupe', 'camel', 'natural', 'arena', 'piel'] },
+    plata:  { n: 'Plata metálico', met: true, g: [['0', '#8E949A'], ['.16', '#EEF1F4'], ['.3', '#A6ACB2'], ['.48', '#F8FAFB'], ['.64', '#9CA2A8'], ['.82', '#E3E6E9'], ['1', '#80868C']], lin: '#EEF0F2', sw: 'linear-gradient(135deg,#F4F6F8,#8A9096 55%,#E1E4E7)', w: ['plata', 'silver', 'plateado', 'metal'] },
+    dorado: { n: 'Dorado metálico', met: true, g: [['0', '#8C6A2C'], ['.16', '#F6E3A6'], ['.3', '#B88E45'], ['.48', '#FBEDC0'], ['.64', '#A9803C'], ['.82', '#EFD48F'], ['1', '#8A672B']], lin: '#F6EBD2', sw: 'linear-gradient(135deg,#F6E3A6,#B58A3E 55%,#F1D894)', w: ['dorado', 'oro', 'gold', 'dorada'] },
+    rosa:   { n: 'Rosa empolvado', met: false, g: [['0', '#F7D7DC'], ['.55', '#E4A9B3'], ['1', '#C08791']], lin: '#F8E9EB', sw: 'linear-gradient(135deg,#F2C9CF,#CC8E99)', w: ['rosa', 'pink', 'palo', 'blush', 'empolvado'] },
   };
   var TIRA = { fruncido: { n: 'Elástico fruncido', w: ['mary jane', 'maryjane', 'fruncid', 'elástic', 'elastic'] },
                doble: { n: 'Doble tira', w: ['doble', 'double', 'dos tiras'] },
                esferas: { n: 'Tira de esferas', w: ['esfera', 'bolita', 'perlitas doradas', 'cuentas'] } };
   var ADORNO = { taches: { n: 'Taches dorados', w: ['tache', 'stud', 'estoperol'] }, perlas: { n: 'Perlas', w: ['perla', 'pearl'] }, ninguno: { n: 'Sin adorno', w: [] } };
-  function bez(p, t) { var u = 1 - t; return [u * u * u * p[0] + 3 * u * u * t * p[2] + 3 * u * t * t * p[4] + t * t * t * p[6], u * u * u * p[1] + 3 * u * u * t * p[3] + 3 * u * t * t * p[5] + t * t * t * p[7]]; }
-  var ARCO1 = [212, 121, 204, 70, 262, 64, 266, 124], ARCO2a = [204, 119, 196, 74, 240, 66, 246, 124], ARCO2b = [236, 124, 232, 72, 280, 68, 286, 123];
-  var TOP = [190, 113, 228, 128, 288, 126, 330, 106], VAMP = [72, 130, 100, 120, 142, 118, 172, 121];
+  var OUT = 'M0 0 C30 0 46.5 22 48.5 58 C50 100 45 150 41.5 180 C38 204 22 215 0 215 C-22 215 -38 204 -41.5 180 C-45 150 -50 100 -48.5 58 C-46.5 22 -30 0 0 0 Z';
   var gid = 0;
-  function shoeSVG(o, extra) {
-    var k = 's' + (++gid), P = PIEL[o.piel] || PIEL.nude, d = '';
-    var grad = '<linearGradient id="' + k + 'g" x1="0" y1="0" x2="0" y2="1">' + P.g.map(function (s) { return '<stop offset="' + s[0] + '" stop-color="' + s[1] + '"/>'; }).join('') + '</linearGradient>';
-    var gold = '<radialGradient id="' + k + 'o" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#FFF4C8"/><stop offset=".55" stop-color="#D9B064"/><stop offset="1" stop-color="#8C6A2C"/></radialGradient>';
-    var pearl = '<radialGradient id="' + k + 'p" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#F3ECE6"/><stop offset="1" stop-color="#CFC3BA"/></radialGradient>';
-    var strapC = 'url(#' + k + 'g)', arcPath = function (a) { return 'M' + a[0] + ' ' + a[1] + ' C' + a[2] + ' ' + a[3] + ' ' + a[4] + ' ' + a[5] + ' ' + a[6] + ' ' + a[7]; };
-    var beads = function (a, n, r, fill) { var s = ''; for (var i = 0; i <= n; i++) { var q = bez(a, .04 + .92 * i / n); s += '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="' + r + '" fill="' + fill + '" stroke="rgba(90,70,40,.35)" stroke-width=".6"/>'; } return s; };
-    var band = function (a, w) { return '<path d="' + arcPath(a) + '" fill="none" stroke="rgba(0,0,0,.12)" stroke-width="' + (w + 2) + '" stroke-linecap="round"/>' +
-      '<path d="' + arcPath(a) + '" fill="none" stroke="' + strapC + '" stroke-width="' + w + '" stroke-linecap="round"/>'; };
-    // strap (behind the opening's far side is fine for a stylised side view)
-    var strap = '';
-    if (o.tira === 'doble') strap = band(ARCO2a, 7) + band(ARCO2b, 7) + '<circle cx="246" cy="124" r="3.6" fill="url(#' + k + 'o)"/><circle cx="286" cy="123" r="3.6" fill="url(#' + k + 'o)"/>';
-    else if (o.tira === 'esferas') strap = beads(ARCO1, 15, 5.6, 'url(#' + k + 'o)');
-    else strap = band(ARCO1, 11) + '<path d="' + arcPath(ARCO1) + '" fill="none" stroke="rgba(60,40,30,.22)" stroke-width="11" stroke-dasharray="1.3 2.6"/>' +
-      '<circle cx="266" cy="124" r="4.2" fill="url(#' + k + 'o)"/>';
-    var adorn = '';
-    if (o.adorno === 'taches') {
-      if (o.tira === 'esferas') adorn = beads(VAMP, 6, 2.6, 'url(#' + k + 'o)');
-      else if (o.tira === 'doble') adorn = beads(ARCO2a, 7, 2.3, 'url(#' + k + 'o)') + beads(ARCO2b, 7, 2.3, 'url(#' + k + 'o)');
-      else adorn = beads(ARCO1, 9, 2.4, 'url(#' + k + 'o)');
-    } else if (o.adorno === 'perlas') adorn = beads(TOP, 9, 3.7, 'url(#' + k + 'p)') + beads([176, 110, 180, 111, 185, 112, 190, 113], 1, 3.4, 'url(#' + k + 'p)');
-    d = '<svg class="f360k__shoe" viewBox="20 40 360 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ballerina ' + esc(P.n) + ', ' + esc(TIRA[o.tira].n) + ', ' + esc(ADORNO[o.adorno].n) + '">' +
-      '<defs>' + grad + gold + pearl + '</defs>' +
-      '<ellipse cx="205" cy="178" rx="160" ry="7" fill="rgba(133,118,82,.16)"/>' +
-      '<path d="M50 154 C50 169 62 175 78 175 L322 175 C344 175 358 167 359 148 L357 142 C354 160 341 167 320 167 L72 167 C60 167 52 162 52 152 Z" fill="#6E5A4A"/>' +
-      '<path d="M52 152 C34 150 32 126 60 118 C92 108 140 106 176 110 L190 113 C228 128 288 126 330 106 C350 100 360 116 357 142 C354 160 341 167 320 167 L72 167 C60 167 52 162 52 152 Z" fill="url(#' + k + 'g)" stroke="rgba(70,50,40,.35)" stroke-width="1"/>' +
-      '<path d="M190 113 C228 128 288 126 330 106 C329 118 321 127 307 131 C262 142 222 138 190 113 Z" fill="' + P.lin + '"/>' +
-      '<path d="M196 117 C232 134 286 134 322 118" fill="none" stroke="rgba(60,40,30,.12)" stroke-width="2"/>' +
-      '<path d="M176 110 L190 113 C228 128 288 126 330 106" fill="none" stroke="rgba(60,40,30,.32)" stroke-width="5" stroke-dasharray="1.2 2.2" stroke-linecap="round"/>' +
-      '<path d="M150 109 C162 110 170 111 176 110" fill="none" stroke="rgba(60,40,30,.25)" stroke-width="4" stroke-dasharray="1 2"/>' +
-      '<path d="M66 128 C98 116 140 114 168 117" fill="none" stroke="#fff" stroke-opacity="' + P.shine + '" stroke-width="6" stroke-linecap="round"/>' +
-      '<path d="M62 152 C150 160 260 160 344 148" fill="none" stroke="rgba(70,50,40,.18)" stroke-width="1" stroke-dasharray="3 3"/>' +
-      '<g transform="translate(338 136)"><circle r="7.5" fill="none" stroke="#B8966E" stroke-width="1.2"/><text y="4" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" font-style="italic" font-size="11" fill="#B8966E">F</text></g>' +
-      strap + adorn + (extra || '') + '</svg>';
-    return d;
+  function f(n) { return n.toFixed(1); }
+  function strapY(x, y0) { return y0 - 7 * (1 - (x * x) / (48 * 48)); }       // the strap bows slightly toward the toe
+  function shoeDefs(k, P) {
+    var mat = P.met
+      ? '<linearGradient id="' + k + 'm" x1="0" y1="0" x2="1" y2=".32">' + P.g.map(function (s) { return '<stop offset="' + s[0] + '" stop-color="' + s[1] + '"/>'; }).join('') + '</linearGradient>'
+      : '<radialGradient id="' + k + 'm" cx=".42" cy=".22" r=".95">' + P.g.map(function (s) { return '<stop offset="' + s[0] + '" stop-color="' + s[1] + '"/>'; }).join('') + '</radialGradient>';
+    return mat +
+      '<radialGradient id="' + k + 'o" cx=".34" cy=".3" r=".8"><stop offset="0" stop-color="#FFF7D6"/><stop offset=".45" stop-color="#E2BC6E"/><stop offset=".8" stop-color="#A97F35"/><stop offset="1" stop-color="#7E5E25"/></radialGradient>' +
+      '<radialGradient id="' + k + 'p" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".45" stop-color="#F7EEF1"/><stop offset=".75" stop-color="#E4E6F1"/><stop offset="1" stop-color="#CFC6CC"/></radialGradient>' +
+      '<radialGradient id="' + k + 'i" cx=".5" cy=".7" r=".8"><stop offset="0" stop-color="#EFE2D3"/><stop offset="1" stop-color="#D8C3AC"/></radialGradient>' +
+      '<radialGradient id="' + k + 'h" cx=".38" cy=".18" r=".6"><stop offset="0" stop-color="#fff" stop-opacity="' + (P.met ? .55 : .32) + '"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
+      '<filter id="' + k + 'b" x="-40%" y="-20%" width="180%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>';
   }
-  function boxSVG(o, name) {        // her design in a gold gift box
-    var s = shoeSVG(o).replace('<svg class="f360k__shoe" viewBox="20 40 360 150"', '<svg x="62" y="62" width="296" height="124" viewBox="20 40 360 150"');
-    return '<svg class="f360k__shoe" viewBox="0 0 420 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Su diseño en un estuche dorado">' +
-      '<defs><linearGradient id="bxg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F3DFA8"/><stop offset=".45" stop-color="#C9A25A"/><stop offset=".7" stop-color="#EBD08F"/><stop offset="1" stop-color="#A98443"/></linearGradient>' +
-      '<linearGradient id="bxb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9A7A40"/><stop offset="1" stop-color="#C7A25C"/></linearGradient></defs>' +
-      '<rect x="300" y="38" width="96" height="150" rx="8" transform="rotate(14 348 113)" fill="url(#bxg)"/>' +
-      '<rect x="40" y="118" width="340" height="110" rx="6" fill="url(#bxb)"/>' +
-      '<path d="M48 124 L120 92 L190 126 L262 90 L372 124 L372 200 L48 200 Z" fill="#F6E4E2"/>' + s +
-      '<rect x="30" y="182" width="360" height="128" rx="8" fill="url(#bxg)"/>' +
-      '<rect x="196" y="182" width="28" height="128" fill="#E2A6B0" opacity=".9"/>' +
-      '<text x="210" y="262" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" font-style="italic" font-size="23" fill="#3A2E2A">' + esc(name || '') + '</text>' +
-      '<text x="210" y="290" text-anchor="middle" font-family="Montserrat, system-ui, sans-serif" font-size="9" letter-spacing="3.5" fill="#5E4C2C">FUXIA KIDS</text></svg>';
+  function sphere(k, x, y, r, pearl) {
+    return '<circle cx="' + f(x) + '" cy="' + f(y + r * .25) + '" r="' + f(r) + '" fill="rgba(80,60,40,.22)"/>' +
+      '<circle cx="' + f(x) + '" cy="' + f(y) + '" r="' + f(r) + '" fill="url(#' + k + (pearl ? 'p' : 'o') + ')"/>' +
+      '<ellipse cx="' + f(x - r * .32) + '" cy="' + f(y - r * .36) + '" rx="' + f(r * .3) + '" ry="' + f(r * .2) + '" fill="#fff" opacity="' + (pearl ? .9 : .75) + '"/>';
+  }
+  function oneShoe(o, k, side) {      // local coords: toe up at (0,0), heel at (0,215); side = -1 left foot, 1 right foot
+    var P = PIEL[o.piel] || PIEL.nude, M = 'url(#' + k + 'm)', s = '';
+    s += '<ellipse cx="' + (4 * side) + '" cy="116" rx="51" ry="110" fill="rgba(110,86,62,.30)" filter="url(#' + k + 'b)"/>';
+    s += '<path d="' + OUT + '" transform="translate(0 108) scale(1.035 1.02) translate(0 -105)" fill="#B48F70"/>';                       // sole edge
+    s += '<path d="' + OUT + '" fill="' + M + '"/><path d="' + OUT + '" fill="url(#' + k + 'h)"/>';
+    s += '<path d="' + OUT + '" transform="translate(0 107) scale(.9) translate(0 -107)" fill="none" stroke="rgba(255,255,255,.55)" stroke-width=".8" stroke-dasharray="2.2 2"/>';
+    // opening: gathered binding (fine pleats), lining, insole with a tiny gold FUXIA
+    s += '<ellipse cx="0" cy="148" rx="35.5" ry="62" fill="' + M + '"/>';
+    var tk = ''; for (var i = 0; i < 110; i++) { var a = i / 110 * 6.2832, cx = Math.cos(a), cy = Math.sin(a), l = 3.2 + 1.6 * Math.abs(Math.sin(i * 2.3));
+      tk += 'M' + f(cx * 31) + ' ' + f(148 + cy * 56.5) + 'L' + f(cx * (31 + l)) + ' ' + f(148 + cy * (56.5 + l)); }
+    s += '<path d="' + tk + '" stroke="rgba(70,50,35,.17)" stroke-width=".6" fill="none"/>';
+    s += '<ellipse cx="0" cy="148" rx="38.5" ry="65" fill="none" stroke="rgba(255,255,255,.5)" stroke-width=".7" stroke-dasharray="2 2"/>';
+    s += '<ellipse cx="0" cy="149" rx="30" ry="55.5" fill="' + P.lin + '"/><ellipse cx="0" cy="154" rx="25.5" ry="48" fill="url(#' + k + 'i)"/>';
+    s += '<text x="0" y="186" text-anchor="middle" font-family="Montserrat, system-ui, sans-serif" font-size="5.6" letter-spacing="1.6" fill="#B08A4E">FUXIA</text>';
+    // strap across the instep
+    var path = function (y0) { return 'M-47 ' + f(y0) + ' Q0 ' + f(y0 - 14) + ' 47 ' + f(y0); }, pts = function (n, y0, x0) { var r = []; for (var j = 0; j < n; j++) { var x = -x0 + 2 * x0 * j / (n - 1); r.push([x, strapY(x, y0)]); } return r; };
+    if (o.tira === 'fruncido') {
+      s += '<path d="' + path(129) + '" stroke="rgba(70,50,35,.25)" stroke-width="17" fill="none"/><path d="' + path(128) + '" stroke="' + M + '" stroke-width="15" fill="none"/>';
+      var z = ''; for (var x = -44; x <= 44; x += 2.75) { var yy = strapY(x, 128), up = Math.round((x + 44) / 2.75) % 2; z += (x === -44 ? 'M' : 'L') + f(x) + ' ' + f(yy + (up ? -6 : 6)); }
+      s += '<path d="' + z + '" stroke="rgba(70,50,35,.28)" stroke-width=".8" fill="none"/>';
+    } else if (o.tira === 'doble') {
+      [121, 137].forEach(function (y0) { s += '<path d="' + path(y0 + 1) + '" stroke="rgba(70,50,35,.25)" stroke-width="7.5" fill="none"/><path d="' + path(y0) + '" stroke="' + M + '" stroke-width="6" fill="none"/>' +
+        '<path d="' + path(y0) + '" stroke="rgba(255,255,255,.45)" stroke-width=".6" stroke-dasharray="1.8 1.8" fill="none"/>'; });
+    } else {
+      s += '<path d="' + path(128) + '" stroke="#9C7634" stroke-width="2.6" fill="none"/>';
+      pts(6, 128, 37).forEach(function (q) { s += sphere(k, q[0], q[1], 7.8); });
+    }
+    s += '<circle cx="' + (46 * side) + '" cy="' + (o.tira === 'doble' ? 121 : 128) + '" r="3.6" fill="url(#' + k + 'o)"/>' + (o.tira === 'doble' ? '<circle cx="' + (46 * side) + '" cy="137" r="3.2" fill="url(#' + k + 'o)"/>' : '');
+    // adornment
+    if (o.adorno !== 'ninguno') {
+      var pearl = o.adorno === 'perlas', r = pearl ? 3.4 : 2.6;
+      if (o.tira === 'fruncido') pts(7, 128, 32).forEach(function (q) { s += sphere(k, q[0], q[1], r, pearl); });
+      else if (o.tira === 'doble') [121, 137].forEach(function (y0) { pts(5, y0, 28).forEach(function (q) { s += sphere(k, q[0], q[1], r * .9, pearl); }); });
+      else for (var j = 0; j < 7; j++) { var a2 = Math.PI * (1.18 + .64 * j / 6); s += sphere(k, Math.cos(a2) * 39.5, 148 + Math.sin(a2) * 66, r, pearl); }
+    }
+    s += '<g transform="translate(' + (41 * side) + ' 194) rotate(' + (side * -18) + ')"><circle r="4.6" fill="none" stroke="#C9A25A" stroke-width=".9"/>' +
+      '<text y="2.2" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" font-style="italic" font-size="6.6" fill="#C9A25A">F</text></g>';
+    return s;
+  }
+  function shoeSVG(o, single) {
+    var k = 's' + (++gid), P = PIEL[o.piel] || PIEL.nude;
+    var label = 'Ballerinas ' + P.n + ', ' + TIRA[o.tira].n + ', ' + ADORNO[o.adorno].n;
+    if (single) return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-66 -10 132 240" width="132" height="240"><defs>' + shoeDefs(k, P) + '</defs>' + oneShoe(o, k, 1) + '</svg>';
+    return '<svg class="f360k__shoe" viewBox="0 0 300 262" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="' + esc(label) + '"><defs>' + shoeDefs(k, P) + '</defs>' +
+      '<g transform="translate(97 22) rotate(-6 0 108)">' + oneShoe(o, k, -1) + '</g><g transform="translate(203 26) rotate(6 0 108)">' + oneShoe(o, k, 1) + '</g></svg>';
+  }
+  function boxSVG(o, name) {        // her pair in an open gold gift box, seen from above like the shoes
+    var pair = shoeSVG(o).replace('<svg class="f360k__shoe" viewBox="0 0 300 262"', '<svg x="70" y="64" width="280" height="245" viewBox="0 0 300 262"');
+    return '<svg class="f360k__shoe" viewBox="0 0 420 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Su par en un estuche dorado">' +
+      '<defs><linearGradient id="bxg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F3DFA8"/><stop offset=".4" stop-color="#C9A25A"/><stop offset=".62" stop-color="#EBD08F"/><stop offset="1" stop-color="#A98443"/></linearGradient>' +
+      '<radialGradient id="bxt" cx=".5" cy=".45" r=".75"><stop offset="0" stop-color="#FBF1EF"/><stop offset="1" stop-color="#F0D9D8"/></radialGradient>' +
+      '<filter id="bxs" x="-10%" y="-10%" width="120%" height="130%"><feGaussianBlur stdDeviation="8"/></filter></defs>' +
+      '<rect x="292" y="10" width="112" height="230" rx="10" transform="rotate(12 348 125)" fill="url(#bxg)" opacity=".95"/>' +
+      '<rect x="42" y="52" width="336" height="300" rx="14" fill="rgba(110,86,62,.32)" filter="url(#bxs)"/>' +
+      '<rect x="40" y="44" width="340" height="300" rx="14" fill="url(#bxg)"/>' +
+      '<rect x="56" y="58" width="308" height="272" rx="8" fill="url(#bxt)"/>' +
+      '<path d="M56 58 L150 120 L56 200 Z M364 58 L270 124 L364 210 Z" fill="#F7E6E4" opacity=".8"/>' + pair +
+      '<rect x="40" y="300" width="340" height="18" fill="#E2A6B0" opacity=".9"/>' +
+      '<rect x="128" y="286" width="164" height="58" rx="6" fill="#FFFDF9" stroke="#C9A25A" stroke-width="1"/>' +
+      '<text x="210" y="314" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" font-style="italic" font-size="19" fill="#3A2E2A">' + esc(name || '') + '</text>' +
+      '<text x="210" y="333" text-anchor="middle" font-family="Montserrat, system-ui, sans-serif" font-size="7.5" letter-spacing="3" fill="#857652">FUXIA KIDS</text></svg>';
   }
   var starIcon = '<svg viewBox="0 0 190 120" aria-hidden="true"><defs><linearGradient id="mst" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6E4B5"/><stop offset="1" stop-color="#CFAE72"/></linearGradient></defs>' +
     [[50, 34, 15], [140, 26, 11], [98, 62, 22], [160, 82, 9], [34, 92, 8]].map(function (s) { var p = ''; for (var i = 0; i < 10; i++) { var a = i * Math.PI / 5 - Math.PI / 2, r = i % 2 ? s[2] * .44 : s[2]; p += (i ? 'L' : 'M') + (s[0] + Math.cos(a) * r).toFixed(1) + ' ' + (s[1] + Math.sin(a) * r).toFixed(1); }
@@ -279,7 +309,10 @@ add_action('wp_footer', function () {
     function resize() { var r = play.getBoundingClientRect(); if (!r.width) return; dpr = Math.min(window.devicePixelRatio || 1, 2); W = r.width; H = r.height; sized = true;
       cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); g.setTransform(dpr, 0, 0, dpr, 0, 0);
       var u = Math.min(W, H * .75); SPR.s = sprite(u * .045); SPR.b = sprite(u * .07, true); SPR.u = u; if (!st.running) draw(); }
-    function shoe(x, y, w, tilt) { var h = w * .42; g.save(); g.translate(x, y); g.rotate(tilt);
+    var pieza = new Image(); pieza.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(shoeSVG({ piel: 'rosa', tira: 'fruncido', adorno: 'perlas' }, true));
+    function shoe(x, y, w, tilt) {
+      if (pieza.complete && pieza.naturalWidth) { var ih = w * 1.15, iw = ih * 132 / 240; g.save(); g.translate(x, y + ih * .22); g.rotate(tilt * .6); g.drawImage(pieza, -iw / 2, -ih / 2, iw, ih); g.restore(); return; }
+      var h = w * .42; g.save(); g.translate(x, y); g.rotate(tilt);
       g.fillStyle = 'rgba(133,118,82,.16)'; g.beginPath(); g.ellipse(0, h * .55, w * .46, h * .12, 0, 0, 7); g.fill();
       g.beginPath(); g.moveTo(-w * .48, h * .1); g.bezierCurveTo(-w * .5, -h * .45, -w * .1, -h * .5, w * .05, -h * .32); g.bezierCurveTo(w * .25, -h * .42, w * .5, -h * .3, w * .5, h * .05);
       g.bezierCurveTo(w * .48, h * .42, -w * .4, h * .5, -w * .48, h * .1); g.closePath();
@@ -406,7 +439,7 @@ add_action('wp_footer', function () {
     }
     function save() {
       var msg = stage.querySelector('.f360k__saved'), who = name || 'una pequeña bailarina';
-      var svg = boxSVG(o, '').replace('<svg class="f360k__shoe"', '<svg width="900" height="707"');
+      var svg = boxSVG(o, name || '').replace('<svg class="f360k__shoe"', '<svg width="860" height="819"');
       var img = new Image(), c = document.createElement('canvas'); c.width = 1080; c.height = 1350; var x = c.getContext('2d');
       msg.textContent = 'Preparando tu imagen…';
       img.onload = function () {
@@ -415,9 +448,9 @@ add_action('wp_footer', function () {
         x.textAlign = 'center'; x.fillStyle = '#857652'; x.font = '500 26px Montserrat, system-ui, sans-serif'; x.fillText('F U X I A   K I D S', 540, 150);
         x.fillStyle = '#3A2E2A'; x.font = 'italic 500 64px "Cormorant Garamond", Georgia, serif'; x.fillText('Las ballerinas de', 540, 250);
         x.fillStyle = '#C97F8D'; x.font = 'italic 600 84px "Cormorant Garamond", Georgia, serif'; x.fillText(who, 540, 350);
-        x.drawImage(img, 90, 410, 900, 707);
-        x.fillStyle = '#8B7F78'; x.font = '500 28px Montserrat, system-ui, sans-serif'; x.fillText(PIEL[o.piel].n + ' · ' + TIRA[o.tira].n + ' · ' + ADORNO[o.adorno].n, 540, 1180);
-        x.fillStyle = '#857652'; x.font = '500 22px Montserrat, system-ui, sans-serif'; x.fillText('Diseñadas por ella en fuxiaballerinas.com', 540, 1250);
+        x.drawImage(img, 110, 372, 860, 819);
+        x.fillStyle = '#8B7F78'; x.font = '500 28px Montserrat, system-ui, sans-serif'; x.fillText(PIEL[o.piel].n + ' · ' + TIRA[o.tira].n + ' · ' + ADORNO[o.adorno].n, 540, 1236);
+        x.fillStyle = '#857652'; x.font = '500 22px Montserrat, system-ui, sans-serif'; x.fillText('Diseñadas por ella en fuxiaballerinas.com', 540, 1284);
         c.toBlob(function (blob) {
           if (!blob) { msg.textContent = 'No se pudo crear la imagen.'; return; }
           var file = window.File ? new File([blob], 'ballerinas-fuxia-kids.png', { type: 'image/png' }) : null;
