@@ -20,7 +20,7 @@ import { customerByCard, findCustomer, newSaleKey, photoUrl, recordSaleFor, regi
 type Step = 'pick' | 'who' | 'register' | 'cobro' | 'done';
 type Pay = 'cash' | 'card' | 'transfer' | 'other';
 const PAGOS: { k: Pay; l: string }[] = [{ k: 'cash', l: 'Efectivo' }, { k: 'card', l: 'Tarjeta' }, { k: 'transfer', l: 'Transferencia' }, { k: 'other', l: 'Otro' }];
-const CATS: Record<string, string> = { ballerinas: 'Ballerinas', botas: 'Botas', 'sandalia-alta': 'Sandalias altas', 'sandalia-plana': 'Sandalias planas' };
+const CATS: Record<string, string> = { ballerinas: 'Ballerinas', botas: 'Botas', 'sandalia-alta': 'Sandalias altas', 'sandalia-plana': 'Sandalias planas', kids: 'Kids' };
 const POINTS_PER_PAIR = 100;   // Club Fuxia rule (100 per pair); the server's answer is what the done screen shows
 const money = (n: number) => `$${n.toLocaleString('es-MX', { maximumFractionDigits: 2 })}`;
 const fmtPhone = (d: string) => [d.slice(0, 2), d.slice(2, 6), d.slice(6, 10)].filter(Boolean).join(' ');
