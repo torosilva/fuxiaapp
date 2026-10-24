@@ -76,6 +76,20 @@ export async function handleReserve(req: Request, env: ReserveEnv, fetchImpl: ty
     return r.ok ? json({ ok: r.data.ok !== false }) : json({ error: r.error }, 400);
   }
 
+  // Fuxia Kids weekly board (Mario 2026-10-24): only to show off, no prizes. Name from a fixed list, random device id; every rule
+  // (list, score range, rate limits, week) is enforced in the database (f360_kids_score_submit / f360_kids_top).
+  if (body.action === 'kids_top') {
+    const r = await rpc<Record<string, unknown>>('f360_kids_top', { p_market: String(body.market ?? '').toLowerCase().slice(0, 4) });
+    return r.ok ? json(r.data) : json({ error: r.error }, 400);
+  }
+  if (body.action === 'kids_score') {
+    const num = body.num == null || body.num === '' ? null : Number(body.num), score = Number(body.score);
+    if (!Number.isInteger(score) || (num !== null && !Number.isInteger(num))) return json({ error: 'Solicitud no válida.' }, 400);
+    const r = await rpc<Record<string, unknown>>('f360_kids_score_submit', { p: { market: String(body.market ?? '').toLowerCase().slice(0, 4),
+      name: String(body.name ?? '').slice(0, 40), num, score, anon_id: String(body.anon_id ?? '').slice(0, 36) } });
+    return r.ok ? json(r.data) : json({ error: r.error }, 400);
+  }
+
   // Shop page (Mario 2026-10-03): colours, sizes and availability states per store product + best sellers / new.
   // No quantities or prices. Cached 2 minutes per function instance.
   if (body.action === 'catalog') {

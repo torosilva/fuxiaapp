@@ -186,3 +186,16 @@ test('favorite: "Agregar a la bolsa" from Mis favoritos is recorded as favorite_
   assert.equal((calls[0].args as { p: { event: string; woo_variation_id: number } }).p.event, 'favorite_add_to_cart');
   assert.equal((calls[0].args as { p: { event: string; woo_variation_id: number } }).p.woo_variation_id, 5335);
 });
+test('kids board: score and top go to the database as-is; bad numbers never reach it', async () => {
+  const calls: { fn: string; args: any }[] = [];
+  const r = await handleReserve(post({ action: 'kids_score', market: 'MX', name: 'Perla Rosa', num: 7, score: 120, anon_id: '11111111-2222-4333-8444-555555555555' }), env,
+    fakeFetch({ f360_kids_score_submit: { ok: true, top: [{ name: 'Perla Rosa 7', score: 120 }], mine: 120 } }, calls));
+  assert.equal(r.status, 200);
+  assert.deepEqual(calls[0], { fn: 'f360_kids_score_submit', args: { p: { market: 'mx', name: 'Perla Rosa', num: 7, score: 120, anon_id: '11111111-2222-4333-8444-555555555555' } } });
+  const bad = await handleReserve(post({ action: 'kids_score', market: 'mx', name: 'Perla Rosa', score: 'mucho', anon_id: 'x' }), env, fakeFetch({}, calls));
+  assert.equal(bad.status, 400); assert.equal(calls.length, 1);
+  const t = await handleReserve(post({ action: 'kids_top', market: 'co' }), env, fakeFetch({ f360_kids_top: { ok: true, top: [] } }, calls));
+  assert.deepEqual(await t.json(), { ok: true, top: [] }); assert.deepEqual(calls[1].args, { p_market: 'co' });
+  const evil = await handleReserve(post({ action: 'kids_top', market: 'mx' }, 'https://evil.example'), env, fakeFetch({}));
+  assert.equal(evil.status, 403);
+});
