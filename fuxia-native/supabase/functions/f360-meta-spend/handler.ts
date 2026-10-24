@@ -1,7 +1,9 @@
 // f360-meta-spend — reads Meta Ads spend (read-only Marketing API) into f360.marketing_spend_rows through
 // public.f360_marketing_spend_api_import (service role). Callers: pg_cron daily (Bearer F360_SYNC_SECRET) or an owner.
 //   {"action":"daily"}                              → the last 7 full days (Meta restates recent days; the newest import wins)
-//   {"action":"backfill","from":"YYYY-MM-DD","to":…} → history, in windows of 31 days (owner or scheduler secret)
+//   {"action":"backfill","from":"YYYY-MM-DD","to":…} → history, in windows of 31 days (owner or scheduler secret); also re-reads a gap
+//     (e.g. 2026-10-11..13 while Meta answered "API access blocked") — the newer import wins for those days.
+// Each row also carries what Meta says it sold (pixel purchases / value / add-to-carts): reference only, never sales.
 import { f360User, serviceRpc, type SupabaseEnv } from '../_shared/f360-woo/supabase.ts';
 import { safeEqual } from '../_shared/f360-woo/orders.ts';
 import { accountCurrency, addDays, fetchInsights, mxToday, toSpendRows, windows } from './meta.ts';

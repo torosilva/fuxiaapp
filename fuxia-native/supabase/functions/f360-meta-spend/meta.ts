@@ -1,9 +1,17 @@
 // Meta Marketing API (read-only, ads_read) → Fuxia 360 spend rows. Pure helpers + one paginated GET; no SDK (Deno and Node).
 // Rows are campaign × day × market. Market = the country Meta reports for the impressions (MX, CO; any other → ROW).
+// Also what META says it sold (pixel purchases, their value and add-to-carts, Meta's own attribution): shown next to the real paid
+// orders in Growth → Campañas, never used as sales.
 
-export type Insight = { date_start: string; campaign_id: string; campaign_name?: string; country?: string; spend?: string; impressions?: string; clicks?: string };
+type Action = { action_type?: string; value?: string };
+export type Insight = { date_start: string; campaign_id: string; campaign_name?: string; country?: string; spend?: string; impressions?: string; clicks?: string;
+  actions?: Action[]; action_values?: Action[] };
 export type SpendRow = { date: string; market: 'MX' | 'CO' | 'ROW' | 'UNKNOWN'; account_id: string; campaign_id: string; campaign_name: string | null;
-  currency: string; spend: string; impressions: string; clicks: string };
+  currency: string; spend: string; impressions: string; clicks: string; meta_purchases: string; meta_purchase_value: string; meta_add_to_cart: string };
+
+const PURCHASE = 'offsite_conversion.fb_pixel_purchase';
+const ADD_TO_CART = 'offsite_conversion.fb_pixel_add_to_cart';
+const action = (list: Action[] | undefined, type: string) => (list ?? []).find((a) => a.action_type === type)?.value;
 type Fetch = (url: string) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
 
 export function marketOf(country?: string): SpendRow['market'] {
@@ -17,17 +25,20 @@ const int = (v?: string) => Math.trunc(Number(v ?? 0)) || 0;
 
 /** Sums Meta's per-country rows into campaign × day × market; drops rows with no spend and no impressions. */
 export function toSpendRows(insights: Insight[], accountId: string, currency: string): SpendRow[] {
-  const by = new Map<string, { r: Omit<SpendRow, 'spend' | 'impressions' | 'clicks'>; c: number; i: number; k: number }>();
+  const by = new Map<string, { r: Omit<SpendRow, 'spend' | 'impressions' | 'clicks' | 'meta_purchases' | 'meta_purchase_value' | 'meta_add_to_cart'>;
+    c: number; i: number; k: number; p: number; v: number; a: number }>();
   for (const x of insights) {
     const market = marketOf(x.country);
     const key = `${x.date_start}|${x.campaign_id}|${market}`;
     const e = by.get(key) ?? { r: { date: x.date_start, market, account_id: accountId, campaign_id: String(x.campaign_id),
-      campaign_name: x.campaign_name?.slice(0, 300) || null, currency }, c: 0, i: 0, k: 0 };
+      campaign_name: x.campaign_name?.slice(0, 300) || null, currency }, c: 0, i: 0, k: 0, p: 0, v: 0, a: 0 };
     e.c += cents(x.spend); e.i += int(x.impressions); e.k += int(x.clicks);
+    e.p += int(action(x.actions, PURCHASE)); e.v += cents(action(x.action_values, PURCHASE)); e.a += int(action(x.actions, ADD_TO_CART));
     by.set(key, e);
   }
-  return [...by.values()].filter((e) => e.c > 0 || e.i > 0)
-    .map((e) => ({ ...e.r, spend: (e.c / 100).toFixed(2), impressions: String(e.i), clicks: String(e.k) }))
+  return [...by.values()].filter((e) => e.c > 0 || e.i > 0 || e.p > 0)
+    .map((e) => ({ ...e.r, spend: (e.c / 100).toFixed(2), impressions: String(e.i), clicks: String(e.k),
+      meta_purchases: String(e.p), meta_purchase_value: (e.v / 100).toFixed(2), meta_add_to_cart: String(e.a) }))
     .sort((a, b) => a.date.localeCompare(b.date) || a.campaign_id.localeCompare(b.campaign_id) || a.market.localeCompare(b.market));
 }
 
@@ -65,7 +76,7 @@ export async function accountCurrency(fetchFn: Fetch, cfg: MetaCfg): Promise<str
 
 export async function fetchInsights(fetchFn: Fetch, cfg: MetaCfg, from: string, to: string): Promise<Insight[]> {
   const q = new URLSearchParams({ level: 'campaign', time_increment: '1', breakdowns: 'country', limit: '500',
-    time_range: JSON.stringify({ since: from, until: to }), fields: 'campaign_id,campaign_name,spend,impressions,clicks', access_token: cfg.token });
+    time_range: JSON.stringify({ since: from, until: to }), fields: 'campaign_id,campaign_name,spend,impressions,clicks,actions,action_values', access_token: cfg.token });
   let url: string | undefined = `https://graph.facebook.com/${cfg.version}/act_${cfg.accountId}/insights?${q}`;
   const out: Insight[] = [];
   for (let page = 0; url; page++) {
