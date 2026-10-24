@@ -24,7 +24,8 @@ else
 fi
 read -r -p "Escribe el SHA corto ($(git rev-parse --short "$SHA")) para confirmar: " OK
 [ "$OK" = "$(git rev-parse --short "$SHA")" ] || { echo "ABORT: confirmación distinta" >&2; exit 1; }
-[ -d "$W/.git" ] || [ -f "$W/.git" ] || git clone -q --no-checkout "$REPO" "$W"
+# macOS purges old temp files, which can leave $W with a gutted .git: re-clone the temp copy when it is not a valid repo
+git -C "$W" rev-parse --git-dir >/dev/null 2>&1 || { rm -rf "$W"; git clone -q --no-checkout "$REPO" "$W"; }
 git -C "$W" fetch -q "$REPO" "$SHA"
 git -C "$W" checkout -q --detach "$SHA"
 git -C "$W" reset -q --hard   # macOS can purge files of the temp worktree: always restore the exact commit
