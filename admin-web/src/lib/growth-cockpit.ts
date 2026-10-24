@@ -47,13 +47,16 @@ export type CampaignRow = {
   campaign_id: string; name: string; market: string | null; spend: number | null; impressions: number | null; clicks: number | null;
   first_day: string | null; last_day: string | null; paid_orders: number; revenue_by_currency: Record<string, number>;
   revenue_mxn: number | null; cpa: number | null; return: number | null; verdict: CampaignVerdict;
+  // what META says it sold (pixel + Meta's attribution; null = not imported for these days). Reference only, never sales.
+  meta_purchases: number | null; meta_purchase_value: number | null; meta_add_to_cart: number | null;
 };
 export type GrowthCampaigns = {
   from: string; to: string; generated_at: string;
   campaigns: CampaignRow[];
   channels: { channel: string; paid_orders: number; revenue_by_currency: Record<string, number>; revenue_mxn: number | null }[];
   totals: { spend: number | null; spend_currency_ok: boolean; paid_orders: number; revenue_by_currency: Record<string, number>; revenue_mxn: number | null;
-    ad_orders: number; ad_revenue_mxn: number | null; no_fx_currencies: string[]; spend_last_day: string | null };
-  sources: Record<'sales' | 'origin' | 'spend' | 'fx', string>;
+    ad_orders: number; ad_revenue_mxn: number | null; no_fx_currencies: string[]; spend_last_day: string | null;
+    meta_purchases: number | null; meta_purchase_value: number | null; meta_missing_days: number };
+  sources: Record<'sales' | 'origin' | 'spend' | 'fx', string> & { meta_says?: string };
 };
 export const getGrowthCampaigns = (from: string | null, to: string | null) => rpc<GrowthCampaigns>('f360_growth_campaigns', { p_from: from, p_to: to });

@@ -3,6 +3,8 @@ import type { CampaignVerdict, GrowthCampaigns } from '@/lib/growth-cockpit';
 
 // S-G2 · Campañas: ¿qué campaña de Meta se paga sola? Gasto (Meta API) contra ventas pagadas cuyo último clic fue esa campaña.
 // Sin tipo de cambio aprobado, COP y USD se muestran en su moneda y no se calcula "ingreso ÷ gasto".
+// "Meta dice" (20261102000100): las compras que Meta se atribuye, junto a las pagadas de verdad. Solo referencia: no entra en
+// ventas, "por $1" ni veredicto.
 const MARKET_NAME: Record<string, string> = { MX: 'México', CO: 'Colombia', ROW: 'Resto', UNKNOWN: '—' };
 const VERDICT: Record<CampaignVerdict, { label: string; cls: string }> = {
   recupera: { label: 'Recupera lo gastado', cls: 'bg-success-soft text-success' },
@@ -64,16 +66,26 @@ export function Campanas({ data, today }: { data: GrowthCampaigns; today: string
         <Card label="Por cada $1 en anuncios" value={ret != null ? `$${ret.toFixed(2)}` : '—'}
           note={ret != null ? 'vendido por anuncios ÷ gastado (sin costo del producto)' : 'Falta tipo de cambio aprobado para COP'} />
       </div>
+      {t.meta_purchases != null && (
+        <div className="mt-4 rounded-2xl border border-line bg-surface p-4 text-sm text-ink" data-testid="campanas-meta-dice">
+          <p><strong>Meta dice que vendió {t.meta_purchases}</strong>{t.meta_purchase_value != null ? ` (${mxn(t.meta_purchase_value)} MXN según Meta)` : ''} ·{' '}
+            <strong>pagadas de verdad: {t.paid_orders}</strong> en total, {t.ad_orders} con último clic en un anuncio.</p>
+          <p className="mt-1 text-xs leading-relaxed text-ink-2">Meta cuenta la compra cuando se crea el pedido, aunque nunca se pague, y también se la atribuye a quien solo vio
+            un anuncio antes de comprar por otro lado. Por eso su número es mayor: el que cuenta es el de pagadas.
+            {t.meta_missing_days > 0 ? ` Faltan ${t.meta_missing_days} días del periodo sin este dato de Meta.` : ''}</p>
+        </div>
+      )}
       {lost > 0 && <p className="mt-3 text-sm text-ink"><strong>{mxn(lost)}</strong> se gastaron en campañas que no cerraron ninguna venta en este periodo.</p>}
       {noFx && <p className="mt-1 text-xs text-muted">Sin tipo de cambio aprobado para {t.no_fx_currencies.join(' y ')}: esas ventas se muestran en su moneda y no se convierten.</p>}
 
       <h2 className="font-display mt-10 text-3xl text-ink">Campañas</h2>
-      <p className="mt-1 text-sm text-ink-2">Cada campaña con lo que gastó y lo que vendió. Una venta cuenta para la campaña si fue el último clic antes de comprar.</p>
+      <p className="mt-1 text-sm text-ink-2">Cada campaña con lo que gastó y lo que vendió. Una venta cuenta para la campaña si fue el último clic antes de comprar. “Meta dice” es lo que Meta se atribuye; “Pagadas”, lo que se cobró.</p>
       <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="w-full min-w-[800px] text-sm">
           <thead className="text-xs text-muted">
             <tr><th className="py-1.5 pr-2 text-left font-normal">Campaña</th><th className="py-1.5 pl-3 text-right font-normal">Gasto</th>
-              <th className="py-1.5 pl-3 text-right font-normal">Clics</th><th className="py-1.5 pl-3 text-right font-normal">Ventas</th>
+              <th className="py-1.5 pl-3 text-right font-normal">Clics</th><th className="py-1.5 pl-3 text-right font-normal">Meta dice</th>
+              <th className="py-1.5 pl-3 text-right font-normal">Pagadas</th>
               <th className="py-1.5 pl-3 text-right font-normal">Vendido</th><th className="py-1.5 pl-3 text-right font-normal">Por $1</th>
               <th className="py-1.5 pl-3 text-left font-normal" /></tr>
           </thead>
@@ -84,7 +96,8 @@ export function Campanas({ data, today }: { data: GrowthCampaigns; today: string
                   <span className="block text-[11px] text-muted">{c.market ? `${MARKET_NAME[c.market] ?? c.market} · ` : ''}{c.first_day && c.last_day ? `${day(c.first_day)} – ${day(c.last_day)}` : c.campaign_id}</span></td>
                 <td className="tabular py-2 pl-3 text-right">{mxn(c.spend)}</td>
                 <td className="tabular py-2 pl-3 text-right text-ink-2">{c.clicks == null ? '—' : c.clicks.toLocaleString('es-MX')}</td>
-                <td className="tabular py-2 pl-3 text-right">{c.paid_orders}</td>
+                <td className="tabular py-2 pl-3 text-right text-ink-2" title="Compras que Meta se atribuye (no son ventas pagadas)">{c.meta_purchases ?? '—'}</td>
+                <td className="tabular py-2 pl-3 text-right font-semibold">{c.paid_orders}</td>
                 <td className="tabular py-2 pl-3 text-right">{c.paid_orders ? byCur(c.revenue_by_currency) : '—'}</td>
                 <td className="tabular py-2 pl-3 text-right font-semibold">{c.return != null ? `$${c.return.toFixed(2)}` : '—'}</td>
                 <td className="py-2 pl-3"><span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${VERDICT[c.verdict].cls}`}>{VERDICT[c.verdict].label}</span></td>

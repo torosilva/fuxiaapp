@@ -24,6 +24,19 @@ test('rows: per campaign × day × market, ROW countries summed in cents, empty 
   assert.ok(rows.every((r) => r.currency === 'MXN' && r.account_id === '966161362834783'));
 });
 
+test('rows: Meta-attributed purchases, their value and add-to-carts summed per market; a row with only purchases is kept', () => {
+  const buy = (n: string, v: string) => ({ actions: [{ action_type: 'offsite_conversion.fb_pixel_purchase', value: n }, { action_type: 'offsite_conversion.fb_pixel_add_to_cart', value: '4' }, { action_type: 'link_click', value: '9' }],
+    action_values: [{ action_type: 'offsite_conversion.fb_pixel_purchase', value: v }] });
+  const rows = toSpendRows([
+    { date_start: '2026-10-17', campaign_id: '1', country: 'CO', spend: '10', impressions: '5', ...buy('2', '4600.50') },
+    { date_start: '2026-10-17', campaign_id: '1', country: 'CO', spend: '0', impressions: '0', ...buy('1', '100') },
+    { date_start: '2026-10-17', campaign_id: '2', country: 'MX', spend: '0', impressions: '0', ...buy('1', '2800') },
+    { date_start: '2026-10-17', campaign_id: '3', country: 'MX', spend: '5', impressions: '1' },
+  ], '966161362834783', 'MXN');
+  assert.deepEqual(rows.map((r) => [r.campaign_id, r.meta_purchases, r.meta_purchase_value, r.meta_add_to_cart]),
+    [['1', '3', '4700.50', '8'], ['2', '1', '2800.00', '4'], ['3', '0', '0.00', '0']]);
+});
+
 test('windows: ≤31 days, contiguous, cover the range', () => {
   const w = windows('2026-05-01', '2026-10-10');
   assert.equal(w[0][0], '2026-05-01'); assert.equal(w.at(-1)![1], '2026-10-10');
