@@ -21,6 +21,12 @@ export function QueueStatusPanel({ initial, storeName }: { initial: QueueStatus 
   }, [router]);
   if (!q) return null;
   const busy = q.queued + q.running > 0;
+  // Idle: one quiet line (the product grid is the page). Busy or with errors today: the full box.
+  if (!busy && !q.failed_today) return (
+    <p className="text-sm text-muted" data-testid="queue-status">
+      {storeName}: <strong className="text-ink-2">{q.published}</strong> en la tienda ({q.live} en vivo){q.succeeded_today ? ` · ${q.succeeded_today} publicados hoy` : ''}
+    </p>
+  );
   return (
     <div className={`rounded-3xl border p-5 ${busy ? 'border-gold/40 bg-gold-soft' : 'border-line bg-surface'}`} data-testid="queue-status">
       <p className="text-lg text-ink">{busy ? `Publicando en ${storeName}…` : `${storeName}`}</p>

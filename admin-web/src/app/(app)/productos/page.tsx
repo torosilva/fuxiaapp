@@ -58,11 +58,15 @@ export default async function Productos({ searchParams }: { searchParams: Promis
         {canWrite(me.role) && <Link href="/productos/orden" className="rounded-full border border-line px-4 py-2 text-ink-2 hover:border-gold/40" data-testid="link-store-order">⭐ Orden en la tienda</Link>}
         <Link href="/bandeja" className="rounded-full border border-line px-4 py-2 text-ink-2 hover:border-gold/40">Bandeja de clientas</Link>
         <Link href="/sobre-pedido" className="rounded-full border border-line px-4 py-2 text-ink-2 hover:border-gold/40">Pedidos en línea</Link>
+        {me.role === 'owner' && home && publisherAvailable() && (
+          <details className="group w-full [&:not([open])]:w-auto" data-testid="publish-menu">
+            <summary className="cursor-pointer list-none rounded-full border border-line px-4 py-2 text-ink-2 hover:border-gold/40 [&::-webkit-details-marker]:hidden">Publicar en la tienda <span className="inline-block transition group-open:rotate-180">▾</span></summary>
+            <div className="mt-3"><PublishAllPanel storeName={storeName} /></div>
+          </details>
+        )}
       </nav>
 
       {publisherAvailable() && home && <QueueStatusPanel initial={queue} storeName={storeName} />}
-      {me.role === 'owner' && home && publisherAvailable() && <PublishAllPanel storeName={storeName} />}
-      {me.role === 'owner' && home && MERGE_ENABLED && <div className="grid gap-4 lg:grid-cols-2"><ConsolidatePanel />{STORE_KEY !== 'woo_production' && <StoreContentPush />}</div>}
 
       <div role="group" aria-label="Categorías" className="flex flex-wrap gap-2" data-testid="category-tabs">
         <Link href={href()} className={`flex min-h-[42px] items-center rounded-full px-4 text-[13px] font-semibold ${!categoria ? 'bg-ink text-[#F7E7C4]' : 'border border-line bg-surface text-ink'}`}>Todos <span className="tabular ml-1 opacity-60">{all.length}</span></Link>
@@ -122,6 +126,13 @@ export default async function Productos({ searchParams }: { searchParams: Promis
             );
           })}
         </section>
+      )}
+
+      {me.role === 'owner' && home && MERGE_ENABLED && (
+        <details className="rounded-3xl border border-line bg-surface px-5 py-4" data-testid="store-tools">
+          <summary className="cursor-pointer text-sm text-ink-2">Herramientas de la tienda (se usan rara vez)</summary>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2"><ConsolidatePanel />{STORE_KEY !== 'woo_production' && <StoreContentPush />}</div>
+        </details>
       )}
     </div>
   );
