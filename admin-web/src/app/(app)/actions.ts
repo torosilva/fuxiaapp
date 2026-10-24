@@ -94,6 +94,18 @@ export async function addMediaAction(productId: string, colorId: string, paths: 
   return r;
 }
 
+export async function addVideoAction(productId: string, colorId: string, path: string): Promise<Result<unknown>> {
+  const r = await call('f360_add_video', { p_product_id: productId, p_color_id: colorId, p_path: path });
+  if (r.ok) await afterCatalogChange(productId);
+  return r;
+}
+
+export async function removeVideoAction(productId: string, videoId: string): Promise<Result<unknown>> {
+  const r = await call('f360_remove_video', { p_video_id: videoId });
+  if (r.ok) await afterCatalogChange(productId);
+  return r;
+}
+
 export async function removeMediaAction(productId: string, mediaId: string): Promise<Result<Product>> {
   const r = await call<Product>('f360_remove_media', { p_media_id: mediaId });
   if (r.ok) await afterCatalogChange(productId);

@@ -2,9 +2,10 @@ import Link from 'next/link';
 import { EventCard } from '@/components/EventCard';
 import { ColorDot, ProductImage } from '@/components/ProductImage';
 import { IconBack, IconCheck, IconDown } from '@/components/icons';
-import { canWrite, getArchiveState, getColorRemoveState, getLegacySources, getMe, getProduct, getProductKnowledge, getProductPrices, getPublication, listCategories, listEvents, listLocations } from '@/lib/f360';
+import { canWrite, getArchiveState, getColorRemoveState, getLegacySources, getMe, getProduct, getProductKnowledge, getProductPrices, getProductVideos, getPublication, listCategories, listEvents, listLocations } from '@/lib/f360';
 import { MISSING_LABEL, pares, precio } from '@/lib/format';
 import { ColorPhotos } from './ColorPhotos';
+import { ColorVideos } from './ColorVideos';
 import { ProductInfoForm } from './ProductInfoForm';
 import { ProductName } from './ProductName';
 import { PublishPanel } from './PublishPanel';
@@ -21,7 +22,8 @@ const MISSING_ANCHOR: Record<string, string> = { precio: '#info', categoria: '#i
 
 export default async function ProductoDetalle({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ color?: string; creado?: string }> }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  const [me, product, locations, events, categories, pub, prices, knowledge] = await Promise.all([getMe(), getProduct(id), listLocations(), listEvents({ productId: id, limit: 20 }), listCategories(), getPublication(id), getProductPrices(id), getProductKnowledge(id)]);
+  const [me, product, locations, events, categories, pub, prices, knowledge, videos] = await Promise.all([getMe(), getProduct(id), listLocations(), listEvents({ productId: id, limit: 20 }), listCategories(), getPublication(id), getProductPrices(id), getProductKnowledge(id),
+    getProductVideos(id).catch(() => null)]);   // null: this database has no videos yet (migration 20261101000100) → no section
   const edit = canWrite(me.role);
   const sources = edit ? await getLegacySources(id) : [];   // adopted from the current store (Track D)
   // A model that has its OWN product in this store (published by Fuxia 360, e.g. merged from the old colour products) is managed
@@ -96,6 +98,7 @@ export default async function ProductoDetalle({ params, searchParams }: { params
       {!legacy && <PublishPanel productId={product.id} pub={pub} isOwner={me.role === 'owner'} publisherReady={publisherAvailable()} />}
 
       {color && <ColorPhotos product={product} color={color} canEdit={edit} removeBlockers={removeBlockers} />}
+      {color && videos && <ColorVideos product={product} color={color} videos={videos.filter((v) => v.color_id === color.id)} canEdit={edit} />}
       <ProductInfoForm key={`${product.regular_price}-${product.category_key}-${product.description?.length ?? 0}`} product={product} categories={categories} canEdit={edit} />
       <PricesPanel key={prices.map((p) => `${p.code}:${p.amount}`).join('|')} productId={product.id} prices={prices} canEdit={edit} />
       {/* Fit sheet: closed by default (optional for Carolina; Hilo and the product page read it) */}

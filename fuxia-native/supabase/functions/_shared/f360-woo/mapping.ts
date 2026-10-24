@@ -14,6 +14,15 @@ export const mediaName = (mediaId: string) => `f360-${mediaId}`;
 export const money = (v: number | string | null | undefined) => (v == null || v === '' ? '' : String(Number(v)));
 export const publicImageUrl = (storageBase: string, path: string) =>
   `${storageBase.replace(/\/+$/, '')}/storage/v1/object/public/product-images/${path.split('/').map(encodeURIComponent).join('/')}`;
+export const META_VIDEOS = '_fuxia360_videos';
+
+/** The store's video list (JSON in META_VIDEOS): public URL + colour name (the store takes the poster from that colour's
+ *  variation photo). null = the snapshot predates videos (old contract) → the meta is not written. [] clears the videos. */
+export function videosMeta(s: Snapshot, storageBase: string): string | null {
+  if (!s.colors.some((c) => Array.isArray(c.videos))) return null;
+  return JSON.stringify(s.colors.flatMap((c) => (c.videos ?? []).map((v) => ({
+    url: publicImageUrl(storageBase, v.path), mime: v.mime, color: c.name }))));
+}
 
 /** Currency prices as Woo meta (COP → _price_cop …), the same fields the store's variation form edits. */
 export const priceMeta = (s: Snapshot) => (s.product.prices ?? []).map((p) => ({ key: p.woo_meta_key, value: money(p.amount) }));
@@ -36,7 +45,7 @@ export function buildImages(s: Snapshot, storageBase: string): WooImageInput[] {
     m.woo_media_id ? { id: m.woo_media_id } : { src: publicImageUrl(storageBase, m.path), name: mediaName(m.id), alt: m.alt || `${s.product.name} ${c.name}` }));
 }
 
-export function buildParent(s: Snapshot, ids: { colorAttr: number; sizeAttr: number }, images: WooImageInput[], isCreate: boolean) {
+export function buildParent(s: Snapshot, ids: { colorAttr: number; sizeAttr: number }, images: WooImageInput[], isCreate: boolean, storageBase = '') {
   const body: Record<string, unknown> = {
     name: s.product.name,
     type: 'variable',
@@ -52,6 +61,8 @@ export function buildParent(s: Snapshot, ids: { colorAttr: number; sizeAttr: num
     manage_stock: false,
     meta_data: [{ key: META_PRODUCT, value: s.product.id }, { key: META_MANAGED, value: '1' }, { key: '_fuxia360_code', value: s.product.code }, ...priceMeta(s)],
   };
+  const videos = storageBase ? videosMeta(s, storageBase) : null;
+  if (videos != null) (body.meta_data as WooMeta[]).push({ key: META_VIDEOS, value: videos });
   // DW3: created NON-public. On later syncs the visibility is never touched (an owner decides it; P2.3).
   if (isCreate) { body.status = 'draft'; body.slug = s.product.slug; }
   return body;
@@ -100,7 +111,7 @@ export const isF360VariationOf = (w: WooVariation, code: string) => w.sku?.start
 
 /** Read-back verification: every expectation that must hold for "Publicado". Returns human-readable mismatches. */
 export function verify(s: Snapshot, p: WooProduct | null, vars: WooVariation[], ids: { colorAttr: number; sizeAttr: number },
-  expectedStock: Map<string, number>): string[] {
+  expectedStock: Map<string, number>, expectedVideos: string | null = null): string[] {
   const out: string[] = [];
   if (!p) return ['el producto no existe en la tienda'];
   if (p.type !== 'variable') out.push(`tipo ${p.type} (esperado variable)`);
@@ -120,6 +131,7 @@ export function verify(s: Snapshot, p: WooProduct | null, vars: WooVariation[], 
   if (!sizeA || !sameSet(sizeA.options ?? [], s.sizes)) out.push('tallas distintas');
   const photos = s.colors.reduce((n, c) => n + c.media.length, 0);
   if (p.images.length !== photos) out.push(`${p.images.length} fotos en la tienda (esperadas ${photos})`);
+  if (expectedVideos != null && String(metaValue(p.meta_data, META_VIDEOS) ?? '[]') !== expectedVideos) out.push('videos distintos');
 
   const f360 = vars.filter((w) => isF360VariationOf(w, s.product.code));
   const skus = f360.map((w) => w.sku);
