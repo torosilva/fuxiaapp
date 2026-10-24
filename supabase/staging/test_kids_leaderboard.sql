@@ -1,8 +1,7 @@
 -- 20261103000100 Fuxia Kids weekly board — rolled-back checks (staging).
 -- Run: scripts/s00a/run.sh ../f360/sql_test_one.mjs supabase/staging/test_kids_leaderboard.sql
--- Before the migration is applied to staging, uncomment the include line to rehearse it inside this transaction.
+-- Applied to staging 2026-10-24 (before that, the migration was rehearsed here with an @include line).
 BEGIN;
--- @include supabase/migrations/20261103000100_f360_kids_leaderboard.sql
 CREATE TEMP TABLE _r (n serial, line text);
 DO $$
 DECLARE a text := '11111111-2222-4333-8444-555555555555'; b text := 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'; r jsonb; i int;
