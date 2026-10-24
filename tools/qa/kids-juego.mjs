@@ -14,6 +14,14 @@ const errs = []; let fail = 0; const ok = (c, m) => { console.log((c ? '✓ ' : 
 const watch = (p) => { p.on('pageerror', (e) => errs.push(String(e))); p.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text())) errs.push(m.text()); }); };
 const init = (ctx) => ctx.addInitScript((dev) => { try { sessionStorage.setItem('fx_pop_visto', '1'); localStorage.setItem('f360k_dev', dev); localStorage.setItem('f360k_num', '42'); } catch (e) {} }, QA_DEV);
 const tag = FRANJA ? 'franja-' : '';
+// the step's main button must not be covered by any fixed element: scroll it just into view (bottom edge, where floating
+// buttons live) and ask the browser what is on top at its centre
+const libre = async (pg, sel, label) => {
+  const r = await pg.locator(sel).first().evaluate((el) => { el.scrollIntoView({ block: 'nearest' }); const b = el.getBoundingClientRect();
+    const top = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return { free: !!top && (top === el || el.contains(top)), on: top ? (top.id || top.className || top.tagName) : 'nada' }; });
+  ok(r.free, `${label}: el botón no queda tapado` + (r.free ? '' : ` (encima: ${String(r.on).slice(0, 40)})`));
+};
+const flotante = (pg) => pg.evaluate(() => { const b = document.getElementById('fx-app-btn'); return b ? getComputedStyle(b).display !== 'none' : null; });
 
 const ctx = await b.newContext({ ...devices['iPhone 13'], acceptDownloads: true }); await init(ctx);
 const p = await ctx.newPage(); watch(p);
@@ -26,9 +34,12 @@ for (const pais of ['co', 'mx']) {
 }
 await p.locator('.f360k').scrollIntoViewIfNeeded(); await p.waitForTimeout(900);
 await p.screenshot({ path: `${OUT}/${tag}1-menu.png` });
+const fl0 = await flotante(p); if (fl0 !== null) ok(fl0, 'menú: el botón "Descarga la app" se ve en el menú');
 
 // ── Atrapa las estrellas
 await p.locator('.f360k__card[data-go="estrellas"]').tap();
+await libre(p, '.f360k__over[data-k="inicio"] [data-a="jugar"]', 'estrellas · Jugar');
+const fl1 = await flotante(p); if (fl0 !== null) ok(fl1 === false, 'juego abierto: el botón flotante de la app se oculta');
 await p.locator('.f360k__estrellas [data-a="jugar"]').first().tap();
 const box = await p.locator('.f360k__cv').boundingBox();
 const t0 = Date.now(); let shot = false;
@@ -43,6 +54,7 @@ ok(st.running && st.t > 5, `estrellas: se juega (${st.t} s, ${st.score} estrella
 await p.evaluate(() => { document.querySelector('.f360k').f360k.stars.state().t = 49.95; });
 await p.waitForTimeout(700);
 ok(await p.locator('.f360k__over[data-k="fin"]:not([hidden])').count() === 1, 'estrellas: pantalla final');
+await libre(p, '.f360k__over[data-k="fin"] [data-a="subir"]', 'estrellas · Subir al tablero');
 if (BOARD) {
   await p.locator('.f360k__name').selectOption('Perla Rosa');
   await p.locator('[data-a="subir"]').tap();
@@ -62,6 +74,7 @@ const a0 = await shoeHtml();
 await p.locator('.f360k__opt[data-o="plata"]').tap(); const a1 = await shoeHtml();
 ok(a0 !== a1 && /Plata/.test(a1), 'diseña: la piel cambia el dibujo en vivo (plata metálico)');
 await p.screenshot({ path: `${OUT}/${tag}4-disena-piel.png` });
+await libre(p, '.f360k__stage [data-s="1"]', 'diseña paso 1 · Siguiente');
 await p.locator('[data-s="1"]').tap(); await p.waitForTimeout(200);
 for (const tira of ['fruncido', 'doble', 'esferas']) {
   await p.locator(`.f360k__opt[data-o="${tira}"]`).tap(); await p.waitForTimeout(150);
@@ -69,21 +82,29 @@ for (const tira of ['fruncido', 'doble', 'esferas']) {
   await p.screenshot({ path: `${OUT}/${tag}4b-paso2-${tira}.png` });
 }
 ok(/esferas/i.test(await shoeHtml()), 'diseña: tira de esferas');
+await libre(p, '.f360k__stage [data-s="1"]', 'diseña paso 2 · Siguiente');
+await p.screenshot({ path: `${OUT}/${tag}4c-paso2-botones.png` });
 await p.locator('[data-s="1"]').tap(); await p.locator('.f360k__opt[data-o="perlas"]').tap();
 ok(/Perlas/.test(await shoeHtml()), 'diseña: adorno perlas');
 await p.locator('.f360k__stage').evaluate((e) => window.scrollTo(0, e.getBoundingClientRect().top + window.scrollY - 130));
 await p.screenshot({ path: `${OUT}/${tag}5-disena-adorno.png` });
+await libre(p, '.f360k__stage [data-s="1"]', 'diseña paso 3 · Ponerlas en su estuche');
 await p.locator('[data-s="1"]').tap(); await p.waitForTimeout(300);
 await p.locator('.f360k__name2').selectOption('Luna de Plata');
 ok(/Luna de Plata/.test(await p.locator('.f360k__box').innerHTML()), 'diseña: el estuche lleva su nombre de bailarina');
 await p.waitForFunction(() => !/Buscando/.test(document.querySelector('.f360k__parbody').textContent), null, { timeout: 15000 });
 const par = (await p.locator('.f360k__parbody').innerText()).replace(/\s+/g, ' ');
 ok(FRANJA ? /Verlo/i.test(par) : /Muy pronto en Fuxia Kids/.test(par), `diseña: el par más parecido → "${par.slice(0, 80)}"`);
+await libre(p, '.f360k__stage [data-a="guardar"]', 'estuche · Guardar para mamá');
 const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 15000 }).catch(() => null), p.locator('[data-a="guardar"]').tap()]);
 if (dl) { await dl.saveAs(`${OUT}/${tag}guardar-para-mama.png`); const sz = fs.statSync(`${OUT}/${tag}guardar-para-mama.png`).size; ok(sz > 50000, `guardar para mamá: PNG descargado (${Math.round(sz / 1024)} KB)`); }
 else ok(false, 'guardar para mamá: no se descargó el PNG');
 await p.locator('.f360k__stage').evaluate((e) => window.scrollTo(0, e.getBoundingClientRect().top + window.scrollY - 130));
 await p.screenshot({ path: `${OUT}/${tag}6-estuche.png` });
+await p.locator('[data-a="guardar"]').first().evaluate((el) => el.scrollIntoView({ block: 'nearest' }));
+await p.screenshot({ path: `${OUT}/${tag}6b-estuche-botones.png` });
+await p.locator('.f360k__disena [data-go="home"]').first().tap(); await p.waitForTimeout(300);
+if (fl0 !== null) ok(await flotante(p) === true, 'de vuelta en el menú: el botón de la app vuelve a aparecer');
 
 // ── desktop: keyboard + pause
 const dctx = await b.newContext({ viewport: { width: 1280, height: 900 } }); await init(dctx);

@@ -61,6 +61,9 @@ add_action('wp_footer', function () {
 .f360k__board li.is-me{background:rgba(226,166,176,.16);border-radius:10px}
 .f360k__board p{margin:8px 0;font-size:13px;color:var(--gris)}
 .f360k__view[hidden]{display:none}
+/* while a game is open, the store's floating buttons (app, WhatsApp, Hilo) step aside on this page only; they come back in the menu */
+body.f360k-jugando #fx-app-btn,body.f360k-jugando #fx-app-panel,body.f360k-jugando .joinchat,body.f360k-jugando .fh-btn,body.f360k-jugando .fh-teaser{display:none!important}
+.f360k__estrellas,.f360k__disena{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 .f360k__bar{display:flex;align-items:center;justify-content:space-between;margin:0 0 12px}
 .f360k__back{border:0;background:none;color:var(--oro2);font-size:12px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;padding:10px 4px}
 .f360k__play{position:relative;width:min(100%,calc((100vh - 240px) * .75));aspect-ratio:3/4;margin:0 auto;border-radius:22px;overflow:hidden;outline:none;scroll-margin:130px 0 96px;
@@ -282,6 +285,7 @@ add_action('wp_footer', function () {
   function go(v) {
     if (current === 'estrellas' && v !== 'estrellas') stars.stop();
     current = v;
+    document.body.classList.toggle('f360k-jugando', v !== 'home');
     for (var n in views) views[n].hidden = franja ? (n !== 'home' && n !== v) : n !== v;
     if (v === 'home') loadBoard();
     if (v === 'estrellas') stars.ready();
