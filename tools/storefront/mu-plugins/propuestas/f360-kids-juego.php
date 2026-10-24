@@ -80,7 +80,8 @@ add_action('wp_footer', function () {
 .f360k__steps{display:flex;justify-content:center;gap:6px;margin:0 0 6px;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#B9ADA5}
 .f360k__steps span.is-on{color:var(--oro2)}
 .f360k__steps span+span::before{content:"·";margin-right:6px;color:#D8CFC6}
-.f360k__shoe{display:block;width:100%;max-width:330px;height:auto;margin:4px auto 6px}
+.f360k__shoe{display:block;width:100%;max-width:300px;height:auto;margin:4px auto 6px}
+@media (max-width:480px){.f360k__stage .f360k__shoe{max-width:250px}}
 .f360k__opts{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:12px 0 16px}
 .f360k__opt,.f360k__opt:hover,.f360k__opt:focus,.f360k__opt:active{background:#fff;color:var(--tinta)}
 .f360k__opt{-webkit-tap-highlight-color:transparent;display:flex;align-items:center;gap:9px;min-height:46px;padding:6px 16px 6px 8px;border:0;border-radius:999px;background:#fff;color:var(--tinta);cursor:pointer;
@@ -397,8 +398,10 @@ add_action('wp_footer', function () {
     var STEPS = [{ k: 'piel', t: 'La piel', q: '¿De qué piel son tus ballerinas?', m: PIEL }, { k: 'tira', t: 'La tira', q: 'Elige la tira', m: TIRA },
                  { k: 'adorno', t: 'El adorno', q: 'Un último detalle', m: ADORNO }, { k: 'estuche', t: 'Su estuche' }];
     function swatch(k, id) { if (k === 'piel') return '<i style="background:' + PIEL[id].sw + '"></i>';
-      if (k === 'tira') return '<i style="background:#fff;display:grid;place-items:center">' + (id === 'esferas' ? '<svg viewBox="0 0 30 30" width="26"><g fill="#C9A25A">' + [6, 11, 16, 21, 26].map(function (x, i) { return '<circle cx="' + x + '" cy="' + (17 - Math.sin(i / 4 * 3.14) * 7) + '" r="2.6"/>'; }).join('') + '</g></svg>'
-        : '<svg viewBox="0 0 30 30" width="26"><path d="M4 22 C6 6 24 6 26 22" fill="none" stroke="#D9B59A" stroke-width="' + (id === 'doble' ? 2.6 : 4.5) + '"/>' + (id === 'doble' ? '<path d="M9 23 C11 11 22 11 24 23" fill="none" stroke="#D9B59A" stroke-width="2.6"/>' : '<path d="M4 22 C6 6 24 6 26 22" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="4.5" stroke-dasharray="1 1.8"/>') + '</svg>') + '</i>';
+      if (k === 'tira') return '<i style="background:#fff;display:grid;place-items:center"><svg viewBox="0 0 30 30" width="24">' +
+        (id === 'esferas' ? '<path d="M3 15 H27" stroke="#9C7634" stroke-width="1.2"/><g fill="#C9A25A">' + [6, 11, 16, 21, 26].map(function (x) { return '<circle cx="' + (x - 1) + '" cy="15" r="2.6"/>'; }).join('') + '</g>'
+        : id === 'doble' ? '<path d="M3 11 H27 M3 19 H27" stroke="#D9B59A" stroke-width="2.6"/>'
+        : '<path d="M3 15 H27" stroke="#D9B59A" stroke-width="7"/><path d="M4 12 L6 18 L8 12 L10 18 L12 12 L14 18 L16 12 L18 18 L20 12 L22 18 L24 12 L26 18" stroke="rgba(90,60,40,.35)" stroke-width=".7" fill="none"/>') + '</svg></i>';
       return '<i style="background:#fff;display:grid;place-items:center">' + (id === 'ninguno' ? '<span style="color:#C9BDB3;font-size:16px">–</span>' : '<svg viewBox="0 0 30 30" width="22"><g fill="' + (id === 'perlas' ? '#F3ECE6' : '#C9A25A') + '" stroke="#B8A890" stroke-width=".6">' + [[9, 12], [21, 12], [15, 20]].map(function (p) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (id === 'perlas' ? 4.4 : 3) + '"/>'; }).join('') + '</g></svg>') + '</i>'; }
     function render() {
       steps.innerHTML = STEPS.map(function (s, i) { return '<span class="' + (i === step ? 'is-on' : '') + '">' + (i + 1) + ' ' + s.t + '</span>'; }).join('');

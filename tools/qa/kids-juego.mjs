@@ -62,10 +62,16 @@ const a0 = await shoeHtml();
 await p.locator('.f360k__opt[data-o="plata"]').tap(); const a1 = await shoeHtml();
 ok(a0 !== a1 && /Plata/.test(a1), 'diseña: la piel cambia el dibujo en vivo (plata metálico)');
 await p.screenshot({ path: `${OUT}/${tag}4-disena-piel.png` });
-await p.locator('[data-s="1"]').tap(); await p.locator('.f360k__opt[data-o="esferas"]').tap();
+await p.locator('[data-s="1"]').tap(); await p.waitForTimeout(200);
+for (const tira of ['fruncido', 'doble', 'esferas']) {
+  await p.locator(`.f360k__opt[data-o="${tira}"]`).tap(); await p.waitForTimeout(150);
+  await p.locator('.f360k__stage').evaluate((e) => window.scrollTo(0, e.getBoundingClientRect().top + window.scrollY - 130));
+  await p.screenshot({ path: `${OUT}/${tag}4b-paso2-${tira}.png` });
+}
 ok(/esferas/i.test(await shoeHtml()), 'diseña: tira de esferas');
 await p.locator('[data-s="1"]').tap(); await p.locator('.f360k__opt[data-o="perlas"]').tap();
 ok(/Perlas/.test(await shoeHtml()), 'diseña: adorno perlas');
+await p.locator('.f360k__stage').evaluate((e) => window.scrollTo(0, e.getBoundingClientRect().top + window.scrollY - 130));
 await p.screenshot({ path: `${OUT}/${tag}5-disena-adorno.png` });
 await p.locator('[data-s="1"]').tap(); await p.waitForTimeout(300);
 await p.locator('.f360k__name2').selectOption('Luna de Plata');
@@ -76,7 +82,7 @@ ok(FRANJA ? /Verlo/i.test(par) : /Muy pronto en Fuxia Kids/.test(par), `diseña:
 const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 15000 }).catch(() => null), p.locator('[data-a="guardar"]').tap()]);
 if (dl) { await dl.saveAs(`${OUT}/${tag}guardar-para-mama.png`); const sz = fs.statSync(`${OUT}/${tag}guardar-para-mama.png`).size; ok(sz > 50000, `guardar para mamá: PNG descargado (${Math.round(sz / 1024)} KB)`); }
 else ok(false, 'guardar para mamá: no se descargó el PNG');
-await p.locator('.f360k__box').scrollIntoViewIfNeeded();
+await p.locator('.f360k__stage').evaluate((e) => window.scrollTo(0, e.getBoundingClientRect().top + window.scrollY - 130));
 await p.screenshot({ path: `${OUT}/${tag}6-estuche.png` });
 
 // ── desktop: keyboard + pause
