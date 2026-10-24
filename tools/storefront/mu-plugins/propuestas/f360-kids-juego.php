@@ -31,7 +31,7 @@ add_action('wp_footer', function () {
 .f360k{--marfil:#FBF6F1;--blush:#F6E4E2;--rosa:#E2A6B0;--rosa2:#C97F8D;--oro:#B8966E;--oro2:#857652;--tinta:#3A2E2A;--gris:#8B7F78;
   box-sizing:border-box;max-width:640px;margin:8px auto 48px;padding:24px 16px 8px;text-align:center;color:var(--tinta)}
 .f360k *,.f360k *::before,.f360k *::after{box-sizing:border-box}
-.f360k button{font-family:inherit}
+.f360k button{font-family:inherit;-webkit-tap-highlight-color:transparent}
 .f360k__kids{margin:0;font-family:Fredoka,system-ui,sans-serif;font-weight:700;font-size:72px;line-height:.95;letter-spacing:.03em;color:var(--rosa);
   text-shadow:0 1px 0 #fff,0 4px 0 var(--oro),0 14px 26px rgba(133,118,82,.25)}
 .f360k__sub{margin:16px auto 22px;max-width:400px;font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:21px;line-height:1.3}
@@ -47,6 +47,9 @@ add_action('wp_footer', function () {
 .f360k__card{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 14px 20px;border:0;border-radius:22px;background:#fff;cursor:pointer;
   color:var(--tinta);box-shadow:0 0 0 1px rgba(184,150,110,.5),0 0 0 6px #fff,0 0 0 7px rgba(184,150,110,.25),0 18px 34px rgba(133,118,82,.13);transition:transform .25s}
 .f360k__card:hover{transform:translateY(-2px)}
+.f360k__card:hover,.f360k__card:focus,.f360k__card:active{background:#fff;color:var(--tinta)}
+.f360k__btn:focus,.f360k__btn:active{background:var(--tinta);color:#F7E7C4}.f360k__btn--ghost:focus,.f360k__btn--ghost:active{background:transparent;color:var(--tinta)}
+.f360k__back:hover,.f360k__back:focus{background:none;color:var(--oro2)}
 .f360k__card svg{width:100%;max-width:190px;height:auto}
 .f360k__card b{font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-weight:500;font-size:25px;line-height:1.05}
 .f360k__card span{font-size:12.5px;line-height:1.45;color:var(--gris)}
@@ -79,7 +82,8 @@ add_action('wp_footer', function () {
 .f360k__steps span+span::before{content:"·";margin-right:6px;color:#D8CFC6}
 .f360k__shoe{display:block;width:100%;max-width:440px;height:auto;margin:4px auto 6px}
 .f360k__opts{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:12px 0 16px}
-.f360k__opt{display:flex;align-items:center;gap:9px;min-height:46px;padding:6px 16px 6px 8px;border:0;border-radius:999px;background:#fff;color:var(--tinta);cursor:pointer;
+.f360k__opt,.f360k__opt:hover,.f360k__opt:focus,.f360k__opt:active{background:#fff;color:var(--tinta)}
+.f360k__opt{-webkit-tap-highlight-color:transparent;display:flex;align-items:center;gap:9px;min-height:46px;padding:6px 16px 6px 8px;border:0;border-radius:999px;background:#fff;color:var(--tinta);cursor:pointer;
   font:500 17px/1 "Cormorant Garamond",Georgia,serif;box-shadow:0 0 0 1px rgba(184,150,110,.45)}
 .f360k__opt[aria-pressed="true"]{box-shadow:0 0 0 2px var(--oro2),0 8px 18px rgba(133,118,82,.18)}
 .f360k__opt i{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
@@ -149,8 +153,8 @@ add_action('wp_footer', function () {
                esferas: { n: 'Tira de esferas', w: ['esfera', 'bolita', 'perlitas doradas', 'cuentas'] } };
   var ADORNO = { taches: { n: 'Taches dorados', w: ['tache', 'stud', 'estoperol'] }, perlas: { n: 'Perlas', w: ['perla', 'pearl'] }, ninguno: { n: 'Sin adorno', w: [] } };
   function bez(p, t) { var u = 1 - t; return [u * u * u * p[0] + 3 * u * u * t * p[2] + 3 * u * t * t * p[4] + t * t * t * p[6], u * u * u * p[1] + 3 * u * u * t * p[3] + 3 * u * t * t * p[5] + t * t * t * p[7]]; }
-  var ARCO1 = [206, 109, 198, 56, 262, 52, 264, 111], ARCO2a = [198, 108, 190, 62, 236, 54, 242, 110], ARCO2b = [230, 110, 226, 60, 276, 56, 282, 113];
-  var TOP = [192, 103, 232, 113, 290, 109, 330, 96], VAMP = [70, 120, 100, 106, 142, 104, 174, 108];
+  var ARCO1 = [212, 121, 204, 70, 262, 64, 266, 124], ARCO2a = [204, 119, 196, 74, 240, 66, 246, 124], ARCO2b = [236, 124, 232, 72, 280, 68, 286, 123];
+  var TOP = [190, 113, 228, 128, 288, 126, 330, 106], VAMP = [72, 130, 100, 120, 142, 118, 172, 121];
   var gid = 0;
   function shoeSVG(o, extra) {
     var k = 's' + (++gid), P = PIEL[o.piel] || PIEL.nude, d = '';
@@ -163,31 +167,33 @@ add_action('wp_footer', function () {
       '<path d="' + arcPath(a) + '" fill="none" stroke="' + strapC + '" stroke-width="' + w + '" stroke-linecap="round"/>'; };
     // strap (behind the opening's far side is fine for a stylised side view)
     var strap = '';
-    if (o.tira === 'doble') strap = band(ARCO2a, 7) + band(ARCO2b, 7) + '<circle cx="242" cy="110" r="3.6" fill="url(#' + k + 'o)"/><circle cx="282" cy="113" r="3.6" fill="url(#' + k + 'o)"/>';
+    if (o.tira === 'doble') strap = band(ARCO2a, 7) + band(ARCO2b, 7) + '<circle cx="246" cy="124" r="3.6" fill="url(#' + k + 'o)"/><circle cx="286" cy="123" r="3.6" fill="url(#' + k + 'o)"/>';
     else if (o.tira === 'esferas') strap = beads(ARCO1, 15, 5.6, 'url(#' + k + 'o)');
     else strap = band(ARCO1, 11) + '<path d="' + arcPath(ARCO1) + '" fill="none" stroke="rgba(60,40,30,.22)" stroke-width="11" stroke-dasharray="1.3 2.6"/>' +
-      '<circle cx="264" cy="111" r="4.2" fill="url(#' + k + 'o)"/>';
+      '<circle cx="266" cy="124" r="4.2" fill="url(#' + k + 'o)"/>';
     var adorn = '';
     if (o.adorno === 'taches') {
       if (o.tira === 'esferas') adorn = beads(VAMP, 6, 2.6, 'url(#' + k + 'o)');
       else if (o.tira === 'doble') adorn = beads(ARCO2a, 7, 2.3, 'url(#' + k + 'o)') + beads(ARCO2b, 7, 2.3, 'url(#' + k + 'o)');
       else adorn = beads(ARCO1, 9, 2.4, 'url(#' + k + 'o)');
-    } else if (o.adorno === 'perlas') adorn = beads(TOP, 9, 3.7, 'url(#' + k + 'p)') + beads([178, 99, 182, 100, 187, 101, 192, 103], 1, 3.4, 'url(#' + k + 'p)');
+    } else if (o.adorno === 'perlas') adorn = beads(TOP, 9, 3.7, 'url(#' + k + 'p)') + beads([176, 110, 180, 111, 185, 112, 190, 113], 1, 3.4, 'url(#' + k + 'p)');
     d = '<svg class="f360k__shoe" viewBox="20 40 360 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ballerina ' + esc(P.n) + ', ' + esc(TIRA[o.tira].n) + ', ' + esc(ADORNO[o.adorno].n) + '">' +
       '<defs>' + grad + gold + pearl + '</defs>' +
       '<ellipse cx="205" cy="178" rx="160" ry="7" fill="rgba(133,118,82,.16)"/>' +
-      '<path d="M50 152 C50 168 62 174 78 174 L322 174 C344 174 358 166 359 146 L357 140 C354 158 341 166 320 166 L72 166 C60 166 52 160 52 150 Z" fill="#6E5A4A"/>' +
-      '<path d="M52 150 C30 147 28 116 58 104 C92 91 142 91 178 99 L192 103 C232 113 290 109 330 96 C352 90 362 110 357 140 C354 158 341 166 320 166 L72 166 C60 166 52 160 52 150 Z" fill="url(#' + k + 'g)" stroke="rgba(70,50,40,.35)" stroke-width="1"/>' +
-      '<path d="M192 103 C232 113 290 109 330 96 C326 106 318 112 306 115 C262 124 222 120 192 103 Z" fill="' + P.lin + '"/>' +
-      '<path d="M178 99 L192 103 C232 113 290 109 330 96" fill="none" stroke="rgba(60,40,30,.3)" stroke-width="5" stroke-dasharray="1.2 2.2" stroke-linecap="round"/>' +
-      '<path d="M66 113 C98 99 140 97 170 103" fill="none" stroke="#fff" stroke-opacity="' + P.shine + '" stroke-width="6" stroke-linecap="round"/>' +
-      '<path d="M62 150 C150 158 260 158 344 146" fill="none" stroke="rgba(70,50,40,.18)" stroke-width="1" stroke-dasharray="3 3"/>' +
-      '<g transform="translate(336 128)"><circle r="7.5" fill="none" stroke="#B8966E" stroke-width="1.2"/><text y="4" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" font-style="italic" font-size="11" fill="#B8966E">F</text></g>' +
+      '<path d="M50 154 C50 169 62 175 78 175 L322 175 C344 175 358 167 359 148 L357 142 C354 160 341 167 320 167 L72 167 C60 167 52 162 52 152 Z" fill="#6E5A4A"/>' +
+      '<path d="M52 152 C34 150 32 126 60 118 C92 108 140 106 176 110 L190 113 C228 128 288 126 330 106 C350 100 360 116 357 142 C354 160 341 167 320 167 L72 167 C60 167 52 162 52 152 Z" fill="url(#' + k + 'g)" stroke="rgba(70,50,40,.35)" stroke-width="1"/>' +
+      '<path d="M190 113 C228 128 288 126 330 106 C329 118 321 127 307 131 C262 142 222 138 190 113 Z" fill="' + P.lin + '"/>' +
+      '<path d="M196 117 C232 134 286 134 322 118" fill="none" stroke="rgba(60,40,30,.12)" stroke-width="2"/>' +
+      '<path d="M176 110 L190 113 C228 128 288 126 330 106" fill="none" stroke="rgba(60,40,30,.32)" stroke-width="5" stroke-dasharray="1.2 2.2" stroke-linecap="round"/>' +
+      '<path d="M150 109 C162 110 170 111 176 110" fill="none" stroke="rgba(60,40,30,.25)" stroke-width="4" stroke-dasharray="1 2"/>' +
+      '<path d="M66 128 C98 116 140 114 168 117" fill="none" stroke="#fff" stroke-opacity="' + P.shine + '" stroke-width="6" stroke-linecap="round"/>' +
+      '<path d="M62 152 C150 160 260 160 344 148" fill="none" stroke="rgba(70,50,40,.18)" stroke-width="1" stroke-dasharray="3 3"/>' +
+      '<g transform="translate(338 136)"><circle r="7.5" fill="none" stroke="#B8966E" stroke-width="1.2"/><text y="4" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" font-style="italic" font-size="11" fill="#B8966E">F</text></g>' +
       strap + adorn + (extra || '') + '</svg>';
     return d;
   }
   function boxSVG(o, name) {        // her design in a gold gift box
-    var s = shoeSVG(o).replace('<svg class="f360k__shoe" viewBox="20 40 360 150"', '<svg x="40" y="40" width="340" height="142" viewBox="20 40 360 150"');
+    var s = shoeSVG(o).replace('<svg class="f360k__shoe" viewBox="20 40 360 150"', '<svg x="62" y="62" width="296" height="124" viewBox="20 40 360 150"');
     return '<svg class="f360k__shoe" viewBox="0 0 420 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Su diseño en un estuche dorado">' +
       '<defs><linearGradient id="bxg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F3DFA8"/><stop offset=".45" stop-color="#C9A25A"/><stop offset=".7" stop-color="#EBD08F"/><stop offset="1" stop-color="#A98443"/></linearGradient>' +
       '<linearGradient id="bxb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9A7A40"/><stop offset="1" stop-color="#C7A25C"/></linearGradient></defs>' +
