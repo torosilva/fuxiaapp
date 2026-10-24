@@ -5,7 +5,7 @@ import AppKit
 // plan.tsv lines:  clip <path> <in> <out>            (segments in order; each overlaps the previous by XF seconds)
 //                  cap <png> <start> <end>           (overlay shown from start to end, output seconds, with fades)
 let a = CommandLine.arguments, outPath = a[2], mudo = a.contains("--mudo")
-let XF = 0.7, W = 1080.0, H = 1920.0
+let XF = Double(ProcessInfo.processInfo.environment["XF"] ?? "0.7")!, W = 1080.0, H = 1920.0
 struct Seg { let url: URL; let i: Double; let o: Double }
 var segs: [Seg] = [], caps: [(String, Double, Double)] = []
 for l in try! String(contentsOfFile: a[1], encoding: .utf8).split(separator: "\n") where !l.hasPrefix("#") {
