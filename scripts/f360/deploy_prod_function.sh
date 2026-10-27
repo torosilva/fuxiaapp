@@ -24,12 +24,14 @@
 set -euo pipefail
 PROD_REF="tgzgiwfzddsghnxgkcqd"
 FN="${1:-}"
-case "$FN" in f360-store-reserve|f360-storefront|f360-hilo-intake|f360-woo-orders|f360-whatsapp|f360-meta-spend|f360-push) ;; *) echo "ABORT: solo f360-store-reserve, f360-storefront, f360-hilo-intake, f360-woo-orders, f360-whatsapp, f360-meta-spend o f360-push" >&2; exit 1;; esac
+case "$FN" in f360-store-reserve|f360-storefront|f360-hilo-intake|f360-woo-orders|f360-whatsapp|f360-meta-spend|f360-push|f360-fx-rates) ;; *) echo "ABORT: solo f360-store-reserve, f360-storefront, f360-hilo-intake, f360-woo-orders, f360-whatsapp, f360-meta-spend, f360-push o f360-fx-rates" >&2; exit 1;; esac
 cd "$(dirname "$0")/../.."
 git diff --quiet HEAD -- "fuxia-native/supabase/functions/$FN" || { echo "ABORT: $FN tiene cambios sin commitear." >&2; exit 1; }
 [ -z "$(git ls-files --others --exclude-standard "fuxia-native/supabase/functions/$FN")" ] || { echo "ABORT: $FN tiene archivos sin commitear." >&2; exit 1; }
 TMP="$(mktemp)"; chmod 600 "$TMP"; trap 'rm -f "$TMP"' EXIT
-if [ "$FN" = "f360-storefront" ]; then
+if [ "$FN" = "f360-fx-rates" ]; then
+  : # uses F360_SYNC_SECRET, already a project secret (same as the Vault f360_sync_secret the daily cron sends); no new secrets
+elif [ "$FN" = "f360-storefront" ]; then
   : # uses the secrets f360-store-reserve already set (F360_RESERVE_ORIGINS = fuxiaballerinas.com, F360_STOREFRONT_TARGET = woo_production)
 elif [ "$FN" = "f360-store-reserve" ]; then
   printf 'F360_RESERVE_ORIGINS=https://fuxiaballerinas.com,https://www.fuxiaballerinas.com\nF360_STOREFRONT_TARGET=woo_production\n' > "$TMP"
