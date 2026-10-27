@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Fuxia 360 · the ONLY way this repo deploys the store-facing functions to PRODUCTION (tgzg…), approved by Mario as a permission rule.
-# Usage: scripts/f360/deploy_prod_function.sh f360-store-reserve | f360-storefront | f360-hilo-intake | f360-woo-orders | f360-whatsapp | f360-meta-spend | f360-push | f360-fx-rates | f360-instagram | f360-clarity
+# Usage: scripts/f360/deploy_prod_function.sh f360-store-reserve | f360-storefront | f360-hilo-intake | f360-woo-orders | f360-whatsapp | f360-meta-spend | f360-push | f360-fx-rates | f360-instagram | f360-clarity | f360-analyst
 #   · f360-meta-spend (Mario 2026-10-11): Meta Ads spend, read-only Marketing API. META_ADS_TOKEN = the ads_read token of the system user
 #     fuxia360-lectura, kept in ~/.fuxia-meta-ads.token (chmod 600, never printed); account act_966161362834783. Auth: F360_SYNC_SECRET
 #     (already a project secret, same as f360-woo-sync) or an owner. Daily call: cron f360-meta-spend (migration 20261023000100).
 #   · f360-instagram / f360-clarity (Mario 2026-10-27, Growth P0): read-only. f360-clarity sets CLARITY_API_TOKEN from
 #     ~/.fuxia-clarity.token (10 calls/day; the daily cron uses 3). f360-instagram sets INSTAGRAM_TOKEN from ~/.fuxia-instagram.token
 #     only if that file exists; otherwise it reuses META_ADS_TOKEN and records "sin permiso de Instagram" in Medición. Auth: F360_SYNC_SECRET.
+#   · f360-analyst (Mario 2026-10-27, I5): the board's AI analyst; answers 503 until Mario pastes ANTHROPIC_API_KEY in Supabase.
 #   · f360-push (Mario 2026-10-11): Expo push for store notices (Apartado Gold to the store team; store discounts to Carolina).
 #     F360_PUSH_SECRET is generated ONCE into ~/.fuxia-push.secret (chmod 600, never printed); the same value goes to Vault
 #     'f360_push_secret' (+ 'f360_push_url') with scripts/f360/prod_push_vault.sh, which turns the database ticks on.
@@ -27,7 +28,7 @@
 set -euo pipefail
 PROD_REF="tgzgiwfzddsghnxgkcqd"
 FN="${1:-}"
-case "$FN" in f360-store-reserve|f360-storefront|f360-hilo-intake|f360-woo-orders|f360-whatsapp|f360-meta-spend|f360-push|f360-fx-rates|f360-instagram|f360-clarity) ;; *) echo "ABORT: solo f360-store-reserve, f360-storefront, f360-hilo-intake, f360-woo-orders, f360-whatsapp, f360-meta-spend, f360-push, f360-fx-rates, f360-instagram o f360-clarity" >&2; exit 1;; esac
+case "$FN" in f360-store-reserve|f360-storefront|f360-hilo-intake|f360-woo-orders|f360-whatsapp|f360-meta-spend|f360-push|f360-fx-rates|f360-instagram|f360-clarity|f360-analyst) ;; *) echo "ABORT: solo f360-store-reserve, f360-storefront, f360-hilo-intake, f360-woo-orders, f360-whatsapp, f360-meta-spend, f360-push, f360-fx-rates, f360-instagram, f360-clarity o f360-analyst" >&2; exit 1;; esac
 cd "$(dirname "$0")/../.."
 git diff --quiet HEAD -- "fuxia-native/supabase/functions/$FN" || { echo "ABORT: $FN tiene cambios sin commitear." >&2; exit 1; }
 [ -z "$(git ls-files --others --exclude-standard "fuxia-native/supabase/functions/$FN")" ] || { echo "ABORT: $FN tiene archivos sin commitear." >&2; exit 1; }
@@ -39,6 +40,8 @@ if [ "$FN" = "f360-clarity" ]; then
 elif [ "$FN" = "f360-instagram" ]; then
   [ -s "$HOME/.fuxia-instagram.token" ] && printf 'INSTAGRAM_TOKEN=%s\n' "$(tr -d '\n' < "$HOME/.fuxia-instagram.token")" > "$TMP"
   : # without the file it falls back to META_ADS_TOKEN (already a project secret) and reports the missing Instagram permission
+elif [ "$FN" = "f360-analyst" ]; then
+  : # I5 E5: no secret from here. ANTHROPIC_API_KEY is pasted by Mario in the Supabase dashboard (I5_PLAN_PRODUCCION.md §5); until then 503
 elif [ "$FN" = "f360-fx-rates" ]; then
   : # uses F360_SYNC_SECRET, already a project secret (same as the Vault f360_sync_secret the daily cron sends); no new secrets
 elif [ "$FN" = "f360-storefront" ]; then
