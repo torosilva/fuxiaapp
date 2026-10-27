@@ -35,10 +35,10 @@ Estados:
 | **Growth · Campañas** (gasto vs. venta pagada por `utm_id`, ventas por origen) | PROD | 2026-10-14 (`48c01f4`) | COP sin convertir (I5) | migración `20261031000100` |
 | **Growth · "Meta dice"** (compras/valor/carritos del pixel junto a lo real) | PROD | 2026-10-24 (`16567a7`) | — (relleno 11–13 oct hecho; el importador diario ya lo trae) | migración `20261102000100` |
 | **Historial de pedidos Woo (P0D)** → `f360.commerce_orders` | PROD | 2026-10-11 (83 importados) | Entran solos por el webhook (103 al 2026-10-27). No hay ventas de mayo y casi ninguna de junio | `growth/P0D_PREFLIGHT.md` |
-| **GA4 compra desde el servidor** (mu-plugin) | PROD | 2026-10-13 (`cf32dac`) | **Revisar a mano la primera venta pagada** (`_f360_ga_cid`, `_f360_ga4_mp`) | `growth/GA4_COMPRA_SERVIDOR.md` |
+| **GA4 compra desde el servidor** (mu-plugin) | PROD | 2026-10-13 (`cf32dac`) | Verificado 2026-10-27: 8 de 8 ventas pagadas (16–23 oct) están en GA4 con su transaction_id | `growth/GA4_COMPRA_SERVIDOR.md` |
 | **Análisis web jun–oct** (ventas reales vs GA4, Clarity, ePayco) | Doc | 2026-10-13/19 | — | `growth/ANALISIS_WEB_2026-06_A_2026-10.md` |
 | **ePayco Standard** (Colombia) + texto de la titular | PROD | 2026-10-19 (`b5f63c6`, `6ebecd1`) | Medir CO pagados/creados contra la base de 4/9. Nombre y logo de Fuxia en el panel de ePayco (Mario/Carolina). Se revierte con `--revertir` | `growth/ANALISIS_WEB…` §9 |
-| **Tipo de cambio oficial diario** (Banxico FIX; COP = FIX ÷ TRM; `f360-fx-rates`) | **STG** | 2026-10-11 (`c445968`) | Pasar a prod: paso 1 de I5. En staging hay propuestas mensuales may–sep y observaciones de oct; **nada aprobado** (solo aprueba Mario). Prod `fx_rates` = 0 filas | `intelligence/I5_PLAN_PRODUCCION.md` |
+| **Tipo de cambio oficial diario** (Banxico FIX; COP = FIX ÷ TRM; `f360-fx-rates`) | **PROD** | 2026-10-27 (pases `20261027_fx_diario/relleno/propuestas`) | Cron diario 14:00 UTC; 126 días por moneda desde 2026-05-04; may–sep **propuestos, nada aprobado**. Falta: alcance `fx_rate` para Mario + pantalla para aprobar (está en /direccion, oculta en prod hasta I5) | `intelligence/I5_PLAN_PRODUCCION.md` |
 | **Centro de Inteligencia** (Dirección/CEO cockpit, presupuesto, cierre contable, analista IA `f360-analyst`) | **STG** | 2026-10-11 | Pase I5: migraciones `20261024000100–0700`, funciones `f360-fx-rates` y `f360-analyst`, alcances, panel con `NEXT_PUBLIC_F360_INTEL=on`. Oculto en prod por `lib/feature.ts` | `intelligence/I5_PLAN_PRODUCCION.md` |
 | **Strategy & Board SB0** (acceso, MFA, conflicto de interés) | PROD | — | — | `strategy-board/SB0_DELIVERY.md` |
 | **Board · Earn-in tracker** | **STG** | 2026-10-08 | Migración `20261017000100` pendiente en prod | `strategy-board/SB_EARNIN_DELIVERY.md` |
@@ -50,8 +50,9 @@ Estados:
 | **Push** (`f360-push`) | PROD | 2026-10-11 | — | — |
 | **Categoría Kids** ligada al term 96 | PROD | 2026-10-24 (`08e4811`) | — | — |
 | **Kids · tablero semanal** | PROD (base) | 2026-10-24 (`53f1e05`) | — | migración `20261103000100` |
-| **Kids · juegos en la tienda** (`f360-kids-juego.php`) | **LISTO** | 2026-10-24 (`bbf0d54`) | Instalar con `deploy_prod_wp.sh`. El 2026-10-27 no aparecía en `/mx/product-category/kids/` | — |
-| **Videos en la ficha** (2 por color) | PROD (base, admin, publicador) | 2026-10-24 (`ef1209d`) | El mu-plugin `f360-video-producto.php` está por instalar o confirmar en el WP de prod. 0 videos cargados | — |
+| **Kids · juegos en la tienda** (`f360-kids-juego.php`) | PROD | 2026-10-27 (`deploy_prod_wp.sh`, respaldo prod-mu/20261027-063707) | URL real: `/mx/categoria-producto/kids/` y `/co/…` (no `product-category`). QA `kids-juego.mjs --base https://fuxiaballerinas.com --no-board` OK | — |
+| **Videos en la ficha** (2 por color) | PROD | 2026-10-24 (`ef1209d`); mu-plugin 2026-10-27 | 0 videos cargados | — |
+| **QA "hasta la pasarela"** (`tools/qa/hasta-la-pasarela.mjs`, navegador de Instagram, llega a ePayco/Mercado Pago sin pagar; `--pedir` crea pedido de prueba → cancelarlo) | Manual | 2026-10-27 | Programarlo cada hora con alerta (plan del doc de ventas) | — |
 | **QA "tienda como clienta"** cada hora | Solo en `origin/main` | 2026-10-08 | No está mergeado en `fuxia-360` | `tools/qa/tienda-como-clienta.mjs` |
 
 ## 3. Edge Functions (2026-10-27)
@@ -65,11 +66,12 @@ Estados:
 - **Growth:** el 2026-10-05 se congeló, pero después se reabrió por partes (War Room, Meta, Campañas, GA4, ePayco). Hoy está activo.
 
 ## 5. Pendientes abiertos (orden sugerido)
-1. **Pase I5, paso 1 (tipo de cambio)**, para que Growth convierta COP → MXN. Las tasas quedan propuestas hasta que Mario las apruebe.
-2. Verificar la primera venta GA4 desde el servidor.
+1. Plan de automatización de Growth (alerta de cero ventas, QA hasta la pasarela cada hora, embudo GA4 y Clarity diarios con historial, precio/cupón por venta, resumen 8:00). Documento: "Fuxia 360 · Ventas en línea y módulo Growth" (claude.ai/artifact/AFScxkzLCdNExEJyGBisGV), 2026-10-27.
+2. Aprobación de tipos de cambio por Mario (alcance `fx_rate` + pantalla).
 3. Medir ePayco Standard en Colombia contra la base de 4/9.
-4. Instalar en prod los juegos Kids y el mu-plugin de videos (`deploy_prod_wp.sh`).
-5. Earn-in (`20261017000100`) en prod, si Mario lo pide.
+4. Earn-in (`20261017000100`) en prod, si Mario lo pide.
+
+**Hechos verificados 2026-10-27 (no repetir hipótesis):** ePayco SÍ está activo y la compra de Colombia llega a ePayco (el campo REST `enabled=false` es falso). México solo ofrece tarjeta de Mercado Pago (igual desde julio). México vendió 27 de 32 pares de jul–ago a ≤ $2,380 (precio de julio o cupón familiafuxia 20 %); hoy 2,800–3,000.
 
 ## 9. Cómo volver a verificar esta página
 - **Migraciones:** `scripts/f360/prod_read.sh <<<"SELECT version FROM supabase_migrations.schema_migrations ORDER BY 1"` y comparar con `ls supabase/migrations`.
