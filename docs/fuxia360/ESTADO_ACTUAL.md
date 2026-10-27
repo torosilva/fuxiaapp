@@ -1,0 +1,78 @@
+# Fuxia 360 — Estado actual (fuente única de "¿en qué quedó?")
+
+> **Regla:** antes de contestar sobre cualquier módulo, lee esta página. Si algo pasa a staging o a producción, actualiza su línea **en el mismo commit**.
+> **Verificado el 2026-10-27.** Se comparó lo siguiente:
+> - las migraciones del repo contra `schema_migrations` de producción (`tgzg…`) y de staging (`faltx…`);
+> - las Edge Functions de los dos proyectos;
+> - el commit del admin de producción;
+> - el registro `~/fuxia360-respaldos/prod-sql.log`.
+>
+> Cómo volver a verificar: §9.
+
+## 1. Resumen
+- **Base de datos:** el repo tiene 142 migraciones. Producción tiene **134** y staging las 142.
+  - Las 8 que faltan en producción son el **tipo de cambio y el Centro de Inteligencia (I5)**, más el **earn-in del Consejo**.
+- **Admin de producción:** el commit `bd9b1c9` (2026-10-24) está en `~/fuxia360-respaldos/prod-admin-deployed.sha`. Incluye todo lo de `fuxia-360` hasta esa fecha.
+  - Se publica con `scripts/f360/deploy_prod_admin.sh` y un `F360_DEPLOY_SHA` fijo.
+  - Ojo: `admin-web/.vercel` apunta a **STAGING**.
+- **Escrituras a producción:** solo por `scripts/f360/prod_sql.sh` (archivo commiteado, primero dry-run, queda registrado). Para leer: `scripts/f360/prod_read.sh`.
+- **WordPress de producción:** se instala con `scripts/f360/deploy_prod_wp.sh` (mu-plugins de `tools/storefront/mu-plugins/produccion/`). El SSH a producción lo corre Mario.
+- **Staging:** cada noche a las 3:30 se copia producción anonimizada → staging (Supabase + Woo staging4). Detalle en `docs/fuxia360/ops/STAGING_REFRESH.md`. El código va por delante.
+
+## 2. Módulos
+
+Estados:
+- **PROD**: en producción.
+- **STG**: solo en staging.
+- **PROP**: propuesta o diseño; no está aplicado en ningún lado.
+- **LISTO**: preparado para producción, pero no instalado.
+
+| Módulo | Estado | Desde | Qué falta | Documento |
+|---|---|---|---|---|
+| **Growth · War Room** (ventas pagadas por mercado, AOV, embudo, hallazgos) | PROD | 2026-10-11 (`9d8ec4f`) | Las ventas en COP no se convierten porque falta el tipo de cambio en prod (ver I5) | `growth/S-G1_DELIVERY.md` |
+| **Growth · Conciliación de ventas** | PROD | 2026-10-11 | — | `growth/SALES_RECONCILIATION_DELIVERY.md` |
+| **Growth · gasto de Meta por API** (cron diario 02:30 CDMX, `f360-meta-spend`) | PROD | 2026-10-11 | Corre bien; la última carga fue el 2026-10-27. El token se queda así (Mario). | `growth/META_SPEND_API_DELIVERY.md` |
+| **Growth · Campañas** (gasto vs. venta pagada por `utm_id`, ventas por origen) | PROD | 2026-10-14 (`48c01f4`) | COP sin convertir (I5) | migración `20261031000100` |
+| **Growth · "Meta dice"** (compras/valor/carritos del pixel junto a lo real) | PROD | 2026-10-24 (`16567a7`) | — (relleno 11–13 oct hecho; el importador diario ya lo trae) | migración `20261102000100` |
+| **Historial de pedidos Woo (P0D)** → `f360.commerce_orders` | PROD | 2026-10-11 (83 importados) | Entran solos por el webhook (103 al 2026-10-27). No hay ventas de mayo y casi ninguna de junio | `growth/P0D_PREFLIGHT.md` |
+| **GA4 compra desde el servidor** (mu-plugin) | PROD | 2026-10-13 (`cf32dac`) | **Revisar a mano la primera venta pagada** (`_f360_ga_cid`, `_f360_ga4_mp`) | `growth/GA4_COMPRA_SERVIDOR.md` |
+| **Análisis web jun–oct** (ventas reales vs GA4, Clarity, ePayco) | Doc | 2026-10-13/19 | — | `growth/ANALISIS_WEB_2026-06_A_2026-10.md` |
+| **ePayco Standard** (Colombia) + texto de la titular | PROD | 2026-10-19 (`b5f63c6`, `6ebecd1`) | Medir CO pagados/creados contra la base de 4/9. Nombre y logo de Fuxia en el panel de ePayco (Mario/Carolina). Se revierte con `--revertir` | `growth/ANALISIS_WEB…` §9 |
+| **Tipo de cambio oficial diario** (Banxico FIX; COP = FIX ÷ TRM; `f360-fx-rates`) | **STG** | 2026-10-11 (`c445968`) | Pasar a prod: paso 1 de I5. En staging hay propuestas mensuales may–sep y observaciones de oct; **nada aprobado** (solo aprueba Mario). Prod `fx_rates` = 0 filas | `intelligence/I5_PLAN_PRODUCCION.md` |
+| **Centro de Inteligencia** (Dirección/CEO cockpit, presupuesto, cierre contable, analista IA `f360-analyst`) | **STG** | 2026-10-11 | Pase I5: migraciones `20261024000100–0700`, funciones `f360-fx-rates` y `f360-analyst`, alcances, panel con `NEXT_PUBLIC_F360_INTEL=on`. Oculto en prod por `lib/feature.ts` | `intelligence/I5_PLAN_PRODUCCION.md` |
+| **Strategy & Board SB0** (acceso, MFA, conflicto de interés) | PROD | — | — | `strategy-board/SB0_DELIVERY.md` |
+| **Board · Earn-in tracker** | **STG** | 2026-10-08 | Migración `20261017000100` pendiente en prod | `strategy-board/SB_EARNIN_DELIVERY.md` |
+| **Seguridad P0-6** (`whatsapp-otp` nueva) | PROD | 2026-10-13 (v77) | — | `security/P0-6_REMEDIACION.md` |
+| **Seguridad D12** (fase A, interruptor NIP por tienda, cierre de la entrada vieja) | PROD | 2026-10-13 | — | `security/D12_CIERRE_Y_P0-6_PRODUCCION.md` |
+| **Fuxia Academy A1** | PROD (base y permisos) | 2026-10-13 (`8d79444`) | Aprobación de contenido por Carolina, licencia de la música, A2 sin empezar | `academy/a1/` |
+| **Ventas en tienda, apartados, ventas remotas, descuentos de tienda** | PROD | oct | — | `ops/DESCUENTOS_TIENDA.md`, `omnichannel/APARTADO_GOLD.md` |
+| **CRM C1** (ficha de clienta, privacidad vendedora) | PROD | — | Pantallas C2 | `crm/C1_DELIVERY.md`, `crm/CRM_V1_PLAN.md` |
+| **Push** (`f360-push`) | PROD | 2026-10-11 | — | — |
+| **Categoría Kids** ligada al term 96 | PROD | 2026-10-24 (`08e4811`) | — | — |
+| **Kids · tablero semanal** | PROD (base) | 2026-10-24 (`53f1e05`) | — | migración `20261103000100` |
+| **Kids · juegos en la tienda** (`f360-kids-juego.php`) | **LISTO** | 2026-10-24 (`bbf0d54`) | Instalar con `deploy_prod_wp.sh`. El 2026-10-27 no aparecía en `/mx/product-category/kids/` | — |
+| **Videos en la ficha** (2 por color) | PROD (base, admin, publicador) | 2026-10-24 (`ef1209d`) | El mu-plugin `f360-video-producto.php` está por instalar o confirmar en el WP de prod. 0 videos cargados | — |
+| **QA "tienda como clienta"** cada hora | Solo en `origin/main` | 2026-10-08 | No está mergeado en `fuxia-360` | `tools/qa/tienda-como-clienta.mjs` |
+
+## 3. Edge Functions (2026-10-27)
+- **Solo en staging:** `f360-fx-rates`, `f360-analyst` (I5) y `f360-email`.
+- **Solo en prod:** `f360-meta-spend` y `f360-whatsapp`, más las viejas `backfill-orders`, `calculate-*`, `escalate-to-staff`, `loyalty-credit`, `notify-approval-pending`, `virtual-tryon*` y `woocommerce-proxy`.
+- **En prod pero no en el repo:** `send-push` y `birthday-push`.
+- **Fuente:** `fuxia-native/supabase/functions/` (no existe `supabase/functions/` en la raíz).
+
+## 4. Decisiones de Mario que siguen vigentes
+- La memoria del asistente (`~/.claude/projects/…/memory/`) guarda las reglas operativas: no preguntar lo básico, push después de cada commit, OTA, no inventar reglas de negocio…
+- **Growth:** el 2026-10-05 se congeló, pero después se reabrió por partes (War Room, Meta, Campañas, GA4, ePayco). Hoy está activo.
+
+## 5. Pendientes abiertos (orden sugerido)
+1. **Pase I5, paso 1 (tipo de cambio)**, para que Growth convierta COP → MXN. Las tasas quedan propuestas hasta que Mario las apruebe.
+2. Verificar la primera venta GA4 desde el servidor.
+3. Medir ePayco Standard en Colombia contra la base de 4/9.
+4. Instalar en prod los juegos Kids y el mu-plugin de videos (`deploy_prod_wp.sh`).
+5. Earn-in (`20261017000100`) en prod, si Mario lo pide.
+
+## 9. Cómo volver a verificar esta página
+- **Migraciones:** `scripts/f360/prod_read.sh <<<"SELECT version FROM supabase_migrations.schema_migrations ORDER BY 1"` y comparar con `ls supabase/migrations`.
+- **Funciones:** `supabase functions list --project-ref tgzgiwfzddsghnxgkcqd` (prod) y `faltxpkaicwpnlqaxrdu` (staging).
+- **Admin de prod:** `cat ~/fuxia360-respaldos/prod-admin-deployed.sha`.
+- **Pases aplicados:** `~/fuxia360-respaldos/prod-sql.log`.

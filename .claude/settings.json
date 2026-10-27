@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat \"$CLAUDE_PROJECT_DIR/docs/fuxia360/ESTADO_ACTUAL.md\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
