@@ -132,7 +132,10 @@ Capturas en `admin-web/e2e-screenshots/growth-p0/`. La prueba del experimento in
   - Las metas no se mueven después de aprobadas (prueba G6g).
 - **Token de Meta con escritura:** sigue siendo el mismo, y la función de Instagram solo hace lecturas (GET). Si se le agregan los permisos de Instagram al mismo usuario del sistema, ese token ve más. Alternativa: un token propio para Instagram (`INSTAGRAM_TOKEN`, que la función ya acepta).
 
-## 8. Plan de despliegue y reversión (cuando Mario lo autorice)
+## 8. Plan de despliegue y reversión — APLICADO en producción el 2026-10-27 (Mario: "pasa todo a produccion")
+
+Hecho: pases `supabase/pase/20261027_growth_p0.sql` y `20261027_growth_p0_clarity.sql` (27 métricas del 27 oct), funciones `f360-clarity` (con `CLARITY_API_TOKEN`) y `f360-instagram` (sin `INSTAGRAM_TOKEN`: usa el de Meta y registra la falta de permiso), `NEXT_PUBLIC_F360_GROWTH_P0=on` en Vercel y admin `32cc6d0`. Captura local desinstalada.
+
 
 1. **Migraciones a producción:** archivo de pase con candados (`supabase/pase/…`) por `scripts/f360/prod_sql.sh`, primero en seco. Incluye las dos migraciones tal cual, más la fila de `schema_migrations`.
 2. **Funciones:** agregar `f360-instagram` y `f360-clarity` a la lista de `deploy_prod_function.sh` y desplegar.
@@ -152,7 +155,7 @@ La copia nocturna prod → staging (3:30) **borra** las tablas de staging cada n
 - guarda la respuesta del día, ya limpia, en `~/fuxia360-respaldos/clarity/<día>/`;
 - reimporta todos los días guardados a staging.
 
-**Estado: INSTALADA por Mario el 27 oct** (corre diario a las 6:30; log en `~/fuxia360-respaldos/clarity/launchd.log`). Comando con que se instaló:
+**Estado: DESINSTALADA el 27 oct tras el pase a producción** (prod captura sola con el cron `f360-clarity`; staging recibe la copia nocturna). Antes: instalada por Mario el 27 oct (corre diario a las 6:30; log en `~/fuxia360-respaldos/clarity/launchd.log`). Comando con que se instaló:
 
 ```
 ! install -m 700 scripts/f360/clarity_capture_launcher.sh ~/.fuxia360/clarity-captura.sh && cp scripts/f360/com.fuxia360.clarity-captura.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuxia360.clarity-captura.plist

@@ -10,9 +10,9 @@
 > Cómo volver a verificar: §9.
 
 ## 1. Resumen
-- **Base de datos:** el repo tiene 144 migraciones. Producción tiene **135** (con el tipo de cambio del 27 oct) y staging las 144.
-  - Las 8 que faltan en producción son el **tipo de cambio y el Centro de Inteligencia (I5)**, más el **earn-in del Consejo**.
-- **Admin de producción:** el commit `bd9b1c9` (2026-10-24) está en `~/fuxia360-respaldos/prod-admin-deployed.sha`. Incluye todo lo de `fuxia-360` hasta esa fecha.
+- **Base de datos:** el repo tiene 144 migraciones. Producción tiene **137** (con el tipo de cambio y Growth P0 del 27 oct) y staging las 144.
+  - Las 7 que faltan en producción son el **tipo de cambio y el Centro de Inteligencia (I5)**, más el **earn-in del Consejo**.
+- **Admin de producción:** el commit `32cc6d0` (2026-10-27, Growth P0) está en `~/fuxia360-respaldos/prod-admin-deployed.sha`. Incluye todo lo de `fuxia-360` hasta esa fecha.
   - Se publica con `scripts/f360/deploy_prod_admin.sh` y un `F360_DEPLOY_SHA` fijo.
   - Ojo: `admin-web/.vercel` apunta a **STAGING**.
 - **Escrituras a producción:** solo por `scripts/f360/prod_sql.sh` (archivo commiteado, primero dry-run, queda registrado). Para leer: `scripts/f360/prod_read.sh`.
@@ -36,7 +36,7 @@ Estados:
 | **Growth · "Meta dice"** (compras/valor/carritos del pixel junto a lo real) | PROD | 2026-10-24 (`16567a7`) | — (relleno 11–13 oct hecho; el importador diario ya lo trae) | migración `20261102000100` |
 | **Historial de pedidos Woo (P0D)** → `f360.commerce_orders` | PROD | 2026-10-11 (83 importados) | Entran solos por el webhook (103 al 2026-10-27). No hay ventas de mayo y casi ninguna de junio | `growth/P0D_PREFLIGHT.md` |
 | **GA4 compra desde el servidor** (mu-plugin) | PROD | 2026-10-13 (`cf32dac`) | Verificado 2026-10-27: 8 de 8 ventas pagadas (16–23 oct) están en GA4 con su transaction_id | `growth/GA4_COMPRA_SERVIDOR.md` |
-| **Growth P0 · Instagram orgánico + registro de experimentos + Clarity diario** (pestañas Instagram y Experimentos; fuentes `instagram`/`clarity` en Medición; `f360-instagram`, `f360-clarity`) | **STG** | 2026-10-27 (migraciones `20261104000100/0200`) | Instagram sin datos: el token no tiene `instagram_basic`/`instagram_manage_insights` (decisión de Mario). Clarity: la API solo da 1–3 días (verificado); captura local diaria `com.fuxia360.clarity-captura` → `~/fuxia360-respaldos/clarity/` + staging hasta el pase (instalada por Mario el 27 oct, diaria 6:30; primer día capturado: 27 oct). Pestañas ocultas en prod (`growthP0Enabled`). Prod: esperar autorización de Mario | `growth/P0_INSTAGRAM_EXPERIMENTOS_CLARITY.md` |
+| **Growth P0 · Instagram orgánico + registro de experimentos + Clarity diario** (pestañas Instagram y Experimentos; fuentes `instagram`/`clarity` en Medición; `f360-instagram`, `f360-clarity`) | **PROD** | 2026-10-27 (pases `20261027_growth_p0` + `_clarity`, admin `32cc6d0`, `NEXT_PUBLIC_F360_GROWTH_P0=on`) | Instagram sin datos: el token no tiene `instagram_basic`/`instagram_manage_insights` (lo tiene que dar quien administre el Business Manager; la función registra el error en Medición). Clarity: la API solo da 1–3 días; cron diario `f360-clarity` 06:10 UTC en prod; historial desde el 27 oct (importado de la captura local, que se desinstaló). Reversión: §8 del doc | `growth/P0_INSTAGRAM_EXPERIMENTOS_CLARITY.md` |
 | **Análisis web jun–oct** (ventas reales vs GA4, Clarity, ePayco) | Doc | 2026-10-13/19 | — | `growth/ANALISIS_WEB_2026-06_A_2026-10.md` |
 | **ePayco Standard** (Colombia) + texto de la titular | PROD | 2026-10-19 (`b5f63c6`, `6ebecd1`) | Medir CO pagados/creados contra la base de 4/9. Nombre y logo de Fuxia en el panel de ePayco (Mario/Carolina). Se revierte con `--revertir` | `growth/ANALISIS_WEB…` §9 |
 | **Tipo de cambio oficial diario** (Banxico FIX; COP = FIX ÷ TRM; `f360-fx-rates`) | **PROD** | 2026-10-27 (pases `20261027_fx_diario/relleno/propuestas`) | Cron diario 14:00 UTC; 126 días por moneda desde 2026-05-04; may–sep **propuestos, nada aprobado**. Falta: alcance `fx_rate` para Mario + pantalla para aprobar (está en /direccion, oculta en prod hasta I5) | `intelligence/I5_PLAN_PRODUCCION.md` |
