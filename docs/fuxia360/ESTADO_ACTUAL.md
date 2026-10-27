@@ -71,7 +71,7 @@ Estados:
 3. Medir ePayco Standard en Colombia contra la base de 4/9.
 4. Earn-in (`20261017000100`) en prod, si Mario lo pide.
 
-**Hechos verificados 2026-10-27 (no repetir hipótesis):** ePayco SÍ está activo y la compra de Colombia llega a ePayco (el campo REST `enabled=false` es falso). México solo ofrece tarjeta de Mercado Pago (igual desde julio). México vendió 27 de 32 pares de jul–ago a ≤ $2,380 (precio de julio o cupón familiafuxia 20 %); hoy 2,800–3,000.
+**Hechos verificados 2026-10-27 (no repetir hipótesis):** ePayco SÍ está activo y la compra de Colombia llega a ePayco (el campo REST `enabled=false` es falso). México (probado como clienta en Instagram/Safari/computadora, `tools/qa/pagos-mexico.mjs`): la ÚNICA forma de pago visible es tarjeta Visa/MC/Amex de Mercado Pago con 3 y 6 meses sin intereses (9–24 con intereses); PayPal está activo en Woo pero su botón sale vacío (0×0); OXXO, saldo MP, Mercado Crédito y transferencia están desactivados. México vendió 27 de 32 pares de jul–ago a ≤ $2,380 (precio de julio o cupón familiafuxia 20 %); hoy 2,800–3,000.
 
 ## 9. Cómo volver a verificar esta página
 - **Migraciones:** `scripts/f360/prod_read.sh <<<"SELECT version FROM supabase_migrations.schema_migrations ORDER BY 1"` y comparar con `ls supabase/migrations`.
