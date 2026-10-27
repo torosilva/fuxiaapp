@@ -152,7 +152,7 @@ La copia nocturna prod → staging (3:30) **borra** las tablas de staging cada n
 - guarda la respuesta del día, ya limpia, en `~/fuxia360-respaldos/clarity/<día>/`;
 - reimporta todos los días guardados a staging.
 
-**Estado al 27 oct: NO instalada.** El asistente no la puede instalar porque es un proceso que se queda corriendo en la Mac; necesita el OK de Mario. Para instalarla, Mario escribe en la sesión:
+**Estado: INSTALADA por Mario el 27 oct** (corre diario a las 6:30; log en `~/fuxia360-respaldos/clarity/launchd.log`). Comando con que se instaló:
 
 ```
 ! install -m 700 scripts/f360/clarity_capture_launcher.sh ~/.fuxia360/clarity-captura.sh && cp scripts/f360/com.fuxia360.clarity-captura.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuxia360.clarity-captura.plist
