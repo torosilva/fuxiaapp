@@ -10,14 +10,13 @@
 > Cómo volver a verificar: §9.
 
 ## 1. Resumen
-- **Base de datos:** el repo tiene 144 migraciones. Producción tiene **137** (con el tipo de cambio y Growth P0 del 27 oct) y staging las 144.
-  - Las 7 que faltan en producción son el **tipo de cambio y el Centro de Inteligencia (I5)**, más el **earn-in del Consejo**.
-- **Admin de producción:** el commit `32cc6d0` (2026-10-27, Growth P0) está en `~/fuxia360-respaldos/prod-admin-deployed.sha`. Incluye todo lo de `fuxia-360` hasta esa fecha.
+- **Base de datos:** el repo tiene 144 migraciones. Producción tiene las **144** (27 oct: tipo de cambio, Growth P0, I5 y earn-in) y staging las 144.
+- **Admin de producción:** el commit `5520478` (2026-10-27, Growth P0 + I5) está en `~/fuxia360-respaldos/prod-admin-deployed.sha`. Incluye todo lo de `fuxia-360` hasta esa fecha.
   - Se publica con `scripts/f360/deploy_prod_admin.sh` y un `F360_DEPLOY_SHA` fijo.
   - Ojo: `admin-web/.vercel` apunta a **STAGING**.
 - **Escrituras a producción:** solo por `scripts/f360/prod_sql.sh` (archivo commiteado, primero dry-run, queda registrado). Para leer: `scripts/f360/prod_read.sh`.
 - **WordPress de producción:** se instala con `scripts/f360/deploy_prod_wp.sh` (mu-plugins de `tools/storefront/mu-plugins/produccion/`). El SSH a producción lo corre Mario.
-- **Staging:** cada noche a las 3:30 se copia producción anonimizada → staging (Supabase + Woo staging4). Detalle en `docs/fuxia360/ops/STAGING_REFRESH.md`. El código va por delante.
+- **Staging:** ⚠ la copia nocturna FALLA desde al menos el 26 oct (pg_dump del respaldo de staging: "server closed the connection"); staging no se está refrescando. Cada noche a las 3:30 se copia producción anonimizada → staging (Supabase + Woo staging4). Detalle en `docs/fuxia360/ops/STAGING_REFRESH.md`. El código va por delante.
 
 ## 2. Módulos
 
@@ -40,9 +39,9 @@ Estados:
 | **Análisis web jun–oct** (ventas reales vs GA4, Clarity, ePayco) | Doc | 2026-10-13/19 | — | `growth/ANALISIS_WEB_2026-06_A_2026-10.md` |
 | **ePayco Standard** (Colombia) + texto de la titular | PROD | 2026-10-19 (`b5f63c6`, `6ebecd1`) | Medir CO pagados/creados contra la base de 4/9. Nombre y logo de Fuxia en el panel de ePayco (Mario/Carolina). Se revierte con `--revertir` | `growth/ANALISIS_WEB…` §9 |
 | **Tipo de cambio oficial diario** (Banxico FIX; COP = FIX ÷ TRM; `f360-fx-rates`) | **PROD** | 2026-10-27 (pases `20261027_fx_diario/relleno/propuestas`) | Cron diario 14:00 UTC; 126 días por moneda desde 2026-05-04; may–sep **propuestos, nada aprobado**. Falta: alcance `fx_rate` para Mario + pantalla para aprobar (está en /direccion, oculta en prod hasta I5) | `intelligence/I5_PLAN_PRODUCCION.md` |
-| **Centro de Inteligencia** (Dirección/CEO cockpit, presupuesto, cierre contable, analista IA `f360-analyst`) | **STG** | 2026-10-11 | Pase I5: migraciones `20261024000100–0700`, funciones `f360-fx-rates` y `f360-analyst`, alcances, panel con `NEXT_PUBLIC_F360_INTEL=on`. Oculto en prod por `lib/feature.ts` | `intelligence/I5_PLAN_PRODUCCION.md` |
+| **Centro de Inteligencia** (Dirección/CEO cockpit, presupuesto, cierre contable, analista IA `f360-analyst`) | **PROD** | 2026-10-27 (pases `20261027_i5_2…7`, `f360-analyst`, `NEXT_PUBLIC_F360_INTEL=on`, admin `5520478`) | Falta: (1) alcances de aprobación `fx_rate`/`budget` = Mario y `close` = Mario + Carolina, que esperan el OK explícito de Mario; (2) la llave `ANTHROPIC_API_KEY` de producción, que Mario pega en Supabase (§5 del plan; sin ella el analista responde 503); (3) la meta de $300,000 la registra Mario en `/direccion/presupuesto`; (4) aprobar las tasas FX may–sep | `intelligence/I5_PLAN_PRODUCCION.md` |
 | **Strategy & Board SB0** (acceso, MFA, conflicto de interés) | PROD | — | — | `strategy-board/SB0_DELIVERY.md` |
-| **Board · Earn-in tracker** | **STG** | 2026-10-08 | Migración `20261017000100` pendiente en prod | `strategy-board/SB_EARNIN_DELIVERY.md` |
+| **Board · Earn-in tracker** | **PROD** | 2026-10-27 (pase `20261027_earnin`) | — | `strategy-board/SB_EARNIN_DELIVERY.md` |
 | **Seguridad P0-6** (`whatsapp-otp` nueva) | PROD | 2026-10-13 (v77) | — | `security/P0-6_REMEDIACION.md` |
 | **Seguridad D12** (fase A, interruptor NIP por tienda, cierre de la entrada vieja) | PROD | 2026-10-13 | — | `security/D12_CIERRE_Y_P0-6_PRODUCCION.md` |
 | **Fuxia Academy A1** | PROD (base y permisos) | 2026-10-13 (`8d79444`) | Aprobación de contenido por Carolina, licencia de la música, A2 sin empezar | `academy/a1/` |
@@ -57,7 +56,7 @@ Estados:
 | **QA "tienda como clienta"** cada hora | Solo en `origin/main` | 2026-10-08 | No está mergeado en `fuxia-360` | `tools/qa/tienda-como-clienta.mjs` |
 
 ## 3. Edge Functions (2026-10-27)
-- **Solo en staging:** `f360-fx-rates`, `f360-analyst` (I5) y `f360-email`.
+- **Solo en staging:** `f360-email`. (`f360-fx-rates`, `f360-analyst`, `f360-instagram` y `f360-clarity` están en prod desde el 27 oct.)
 - **Solo en prod:** `f360-meta-spend` y `f360-whatsapp`, más las viejas `backfill-orders`, `calculate-*`, `escalate-to-staff`, `loyalty-credit`, `notify-approval-pending`, `virtual-tryon*` y `woocommerce-proxy`.
 - **En prod pero no en el repo:** `send-push` y `birthday-push`.
 - **Fuente:** `fuxia-native/supabase/functions/` (no existe `supabase/functions/` en la raíz).
@@ -70,7 +69,7 @@ Estados:
 1. Plan de automatización de Growth (alerta de cero ventas, QA hasta la pasarela cada hora, embudo GA4 y Clarity diarios con historial, precio/cupón por venta, resumen 8:00). Documento: "Fuxia 360 · Ventas en línea y módulo Growth" (claude.ai/artifact/AFScxkzLCdNExEJyGBisGV), 2026-10-27.
 2. Aprobación de tipos de cambio por Mario (alcance `fx_rate` + pantalla).
 3. Medir ePayco Standard en Colombia contra la base de 4/9.
-4. Earn-in (`20261017000100`) en prod, si Mario lo pide.
+4. Arreglar la copia nocturna prod → staging (falla el respaldo de staging).
 
 **Julio, reconciliado:** de las 20 ventas pagadas de México del 23 jul al 2 ago, **9** tuvieron último clic en Instagram sin anuncio, 1 en Facebook, 3 en Google, 3 directo y 4 en anuncios de Meta. "16 de 20" = todo lo que no fue anuncio (no "Instagram").
 
