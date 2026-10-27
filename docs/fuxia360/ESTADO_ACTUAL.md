@@ -10,7 +10,7 @@
 > Cómo volver a verificar: §9.
 
 ## 1. Resumen
-- **Base de datos:** el repo tiene 142 migraciones. Producción tiene **134** y staging las 142.
+- **Base de datos:** el repo tiene 144 migraciones. Producción tiene **135** (con el tipo de cambio del 27 oct) y staging las 144.
   - Las 8 que faltan en producción son el **tipo de cambio y el Centro de Inteligencia (I5)**, más el **earn-in del Consejo**.
 - **Admin de producción:** el commit `bd9b1c9` (2026-10-24) está en `~/fuxia360-respaldos/prod-admin-deployed.sha`. Incluye todo lo de `fuxia-360` hasta esa fecha.
   - Se publica con `scripts/f360/deploy_prod_admin.sh` y un `F360_DEPLOY_SHA` fijo.
@@ -36,6 +36,7 @@ Estados:
 | **Growth · "Meta dice"** (compras/valor/carritos del pixel junto a lo real) | PROD | 2026-10-24 (`16567a7`) | — (relleno 11–13 oct hecho; el importador diario ya lo trae) | migración `20261102000100` |
 | **Historial de pedidos Woo (P0D)** → `f360.commerce_orders` | PROD | 2026-10-11 (83 importados) | Entran solos por el webhook (103 al 2026-10-27). No hay ventas de mayo y casi ninguna de junio | `growth/P0D_PREFLIGHT.md` |
 | **GA4 compra desde el servidor** (mu-plugin) | PROD | 2026-10-13 (`cf32dac`) | Verificado 2026-10-27: 8 de 8 ventas pagadas (16–23 oct) están en GA4 con su transaction_id | `growth/GA4_COMPRA_SERVIDOR.md` |
+| **Growth P0 · Instagram orgánico + registro de experimentos + Clarity diario** (pestañas Instagram y Experimentos; fuentes `instagram`/`clarity` en Medición; `f360-instagram`, `f360-clarity`) | **STG** | 2026-10-27 (migraciones `20261104000100/0200`) | Instagram sin datos: el token no tiene `instagram_basic`/`instagram_manage_insights` (decisión de Mario). Clarity: la API solo da 1–3 días (verificado); captura local diaria `com.fuxia360.clarity-captura` → `~/fuxia360-respaldos/clarity/` + staging hasta el pase. Pestañas ocultas en prod (`growthP0Enabled`). Prod: esperar autorización de Mario | `growth/P0_INSTAGRAM_EXPERIMENTOS_CLARITY.md` |
 | **Análisis web jun–oct** (ventas reales vs GA4, Clarity, ePayco) | Doc | 2026-10-13/19 | — | `growth/ANALISIS_WEB_2026-06_A_2026-10.md` |
 | **ePayco Standard** (Colombia) + texto de la titular | PROD | 2026-10-19 (`b5f63c6`, `6ebecd1`) | Medir CO pagados/creados contra la base de 4/9. Nombre y logo de Fuxia en el panel de ePayco (Mario/Carolina). Se revierte con `--revertir` | `growth/ANALISIS_WEB…` §9 |
 | **Tipo de cambio oficial diario** (Banxico FIX; COP = FIX ÷ TRM; `f360-fx-rates`) | **PROD** | 2026-10-27 (pases `20261027_fx_diario/relleno/propuestas`) | Cron diario 14:00 UTC; 126 días por moneda desde 2026-05-04; may–sep **propuestos, nada aprobado**. Falta: alcance `fx_rate` para Mario + pantalla para aprobar (está en /direccion, oculta en prod hasta I5) | `intelligence/I5_PLAN_PRODUCCION.md` |
@@ -70,6 +71,8 @@ Estados:
 2. Aprobación de tipos de cambio por Mario (alcance `fx_rate` + pantalla).
 3. Medir ePayco Standard en Colombia contra la base de 4/9.
 4. Earn-in (`20261017000100`) en prod, si Mario lo pide.
+
+**Julio, reconciliado:** de las 20 ventas pagadas de México del 23 jul al 2 ago, **9** tuvieron último clic en Instagram sin anuncio, 1 en Facebook, 3 en Google, 3 directo y 4 en anuncios de Meta. "16 de 20" = todo lo que no fue anuncio (no "Instagram").
 
 **Hechos verificados 2026-10-27 (no repetir hipótesis):** ePayco SÍ está activo y la compra de Colombia llega a ePayco (el campo REST `enabled=false` es falso). México (probado como clienta en Instagram/Safari/computadora, `tools/qa/pagos-mexico.mjs`): la ÚNICA forma de pago visible es tarjeta Visa/MC/Amex de Mercado Pago con 3 y 6 meses sin intereses (9–24 con intereses); PayPal está activo en Woo pero su botón sale vacío (0×0); OXXO, saldo MP, Mercado Crédito y transferencia están desactivados. México vendió 27 de 32 pares de jul–ago a ≤ $2,380 (precio de julio o cupón familiafuxia 20 %); hoy 2,800–3,000.
 

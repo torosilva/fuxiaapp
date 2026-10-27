@@ -12,6 +12,10 @@ import { Campanas } from './Campanas';
 import { GrowthCockpit } from './GrowthCockpit';
 import { Conciliacion } from './Conciliacion';
 import { getRecCase, getRecSummary, listRec, type RecFilters } from '@/lib/sales-rec';
+import { getExperiments, getGrowthInstagram } from '@/lib/growth-p0';
+import { Instagram } from './Instagram';
+import { Experimentos } from './Experimentos';
+import { growthP0Enabled } from '@/lib/feature';
 
 const PLAN_YEAR = 2027;
 
@@ -24,6 +28,9 @@ export default async function Growth({ searchParams }: { searchParams: Promise<R
   const commerce = vista === 'commerce';
   const medicion = vista === 'medicion';   // S-G0 Measurement Truth
   const campanas = vista === 'campanas';   // S-G2 Campañas: gasto de Meta vs ventas pagadas por campaña
+  const p0 = growthP0Enabled();   // hidden in production until the P0 pase
+  const instagram = p0 && vista === 'instagram';   // P0-A Instagram orgánico
+  const experimentos = p0 && vista === 'experimentos';   // P0-B registro de experimentos (06_EXPERIMENTS.md)
   const day = (x?: string) => (x && /^\d{4}-\d{2}-\d{2}$/.test(x) ? x : null);
   const truth = medicion ? await getMeasurementTruth(day(desde), day(hasta)) : null;
   const data = plan ? await getGrowthPlan(PLAN_YEAR) : null;
@@ -44,7 +51,9 @@ export default async function Growth({ searchParams }: { searchParams: Promise<R
     : [null, null, null];
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
   const camp = campanas ? await getGrowthCampaigns(day(desde), day(hasta)) : null;
-  const war = !plan && !commerce && !medicion && !conciliacion && !campanas;   // S-G1 Growth War Room (main view)
+  const ig = instagram ? await getGrowthInstagram(day(desde), day(hasta)) : null;
+  const exps = experimentos ? await getExperiments() : null;
+  const war = !plan && !commerce && !medicion && !conciliacion && !campanas && !instagram && !experimentos;   // S-G1 Growth War Room (main view)
   const cockpit = war ? await getGrowthCockpit(day(desde), day(hasta)) : null;
   const market = ['MX', 'CO', 'ROW'].includes(mercado ?? '') ? mercado! : 'TODOS';
   const tab = (active: boolean) => `rounded-full px-5 py-2.5 text-[15px] ${active ? 'bg-ink text-surface' : 'border border-line bg-surface text-ink-2'}`;
@@ -54,13 +63,15 @@ export default async function Growth({ searchParams }: { searchParams: Promise<R
       <div className="mt-5 flex flex-wrap gap-2">
         <Link href="/growth" className={tab(war)}>War Room</Link>
         <Link href="/growth?vista=campanas" className={tab(campanas)}>Campañas</Link>
+        {p0 && <Link href="/growth?vista=instagram" className={tab(instagram)}>Instagram</Link>}
+        {p0 && <Link href="/growth?vista=experimentos" className={tab(experimentos)}>Experimentos</Link>}
         {viewer && <Link href="/growth?vista=conciliacion" className={tab(conciliacion)}>Conciliación</Link>}
         <Link href="/growth?vista=plan" className={tab(plan)}>Plan {PLAN_YEAR}</Link>
         <Link href="/growth?vista=commerce" className={tab(commerce)}>Commerce Facts (técnico)</Link>
         <Link href="/growth?vista=medicion" className={tab(medicion)}>Medición</Link>
       </div>
 
-      {campanas ? <Campanas data={camp!} today={today} /> : conciliacion ? <Conciliacion summary={recSummary!} list={recList!} filters={recFilters} detail={recCase} /> : medicion ? <Measurement data={truth!} canUpload={me.role === 'owner'} /> : commerce ? <CommerceFacts data={facts!} /> : !plan ? (
+      {campanas ? <Campanas data={camp!} today={today} /> : instagram ? <Instagram data={ig!} today={today} /> : experimentos ? <Experimentos data={exps!} /> : conciliacion ? <Conciliacion summary={recSummary!} list={recList!} filters={recFilters} detail={recCase} /> : medicion ? <Measurement data={truth!} canUpload={me.role === 'owner'} /> : commerce ? <CommerceFacts data={facts!} /> : !plan ? (
         <>
           <GrowthCockpit data={cockpit!} market={market} />
           <h2 className="font-display mt-12 text-3xl text-ink">Qué falta para responder todo</h2>
