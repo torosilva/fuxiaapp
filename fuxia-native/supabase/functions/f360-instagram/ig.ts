@@ -92,11 +92,15 @@ export async function fetchFollowers(f: Fetch, cfg: IgCfg): Promise<number | nul
   return num(j.followers_count);
 }
 
+// Two calls: Meta answers HTTP 500 (code 1) when breakdown=follow_type goes with the other metrics (verified 2026-10-28).
+// The follows split is optional: if that call fails the day keeps NULL follows/unfollows.
 export async function fetchAccountDay(f: Fetch, cfg: IgCfg, date: string): Promise<AccountDay> {
-  const q = new URLSearchParams({ metric: ACCOUNT_METRICS.join(','), metric_type: 'total_value', period: 'day', breakdown: 'follow_type',
-    since: String(unix(date)), until: String(unix(addDays(date, 1))), access_token: cfg.token });
-  const j = await get(f, `${base(cfg)}/${cfg.igUserId}/insights?${q}`);
-  return toAccountDay(date, (j.data as RawInsight[]) ?? []);
+  const window = { metric_type: 'total_value', period: 'day', since: String(unix(date)), until: String(unix(addDays(date, 1))), access_token: cfg.token };
+  const main = new URLSearchParams({ ...window, metric: ACCOUNT_METRICS.filter((m) => m !== 'follows_and_unfollows').join(',') });
+  const j = await get(f, `${base(cfg)}/${cfg.igUserId}/insights?${main}`);
+  const follows = new URLSearchParams({ ...window, metric: 'follows_and_unfollows', breakdown: 'follow_type' });
+  const k = await get(f, `${base(cfg)}/${cfg.igUserId}/insights?${follows}`).catch(() => ({ data: [] }));
+  return toAccountDay(date, [...((j.data as RawInsight[]) ?? []), ...((k.data as RawInsight[]) ?? [])]);
 }
 
 /** Feed media newest first, down to `since` (YYYY-MM-DD, CDMX). */
