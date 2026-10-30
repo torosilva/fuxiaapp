@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Fuxia 360 · the ONLY way this repo deploys the store-facing functions to PRODUCTION (tgzg…), approved by Mario as a permission rule.
-# Usage: scripts/f360/deploy_prod_function.sh f360-store-reserve | f360-storefront | f360-hilo-intake | f360-woo-orders | f360-whatsapp | f360-meta-spend | f360-push | f360-fx-rates | f360-instagram | f360-clarity | f360-analyst | f360-ga4
+# Usage: scripts/f360/deploy_prod_function.sh f360-store-reserve | f360-storefront | f360-hilo-intake | f360-woo-orders | f360-whatsapp | f360-meta-spend | f360-push | f360-fx-rates | f360-instagram | f360-clarity | f360-analyst | f360-ga4 | f360-email
+#   · f360-email (Mario 2026-10-30, Bandeja): the team's notice e-mails (f360.email_outbox → info@fuxiaballerinas.com) via Resend.
+#     RESEND_API_KEY is already a project secret (welcome e-mail); EMAIL_FROM = hola@fuxiaballerinas.com (same sender as the welcome).
+#     F360_EMAIL_SECRET is generated ONCE into ~/.fuxia-email.secret (chmod 600, never printed); scripts/f360/prod_email_vault.sh
+#     puts the same value in Vault ('f360_email_url' + 'f360_email_secret'), which turns the database ticks on.
 #   · f360-meta-spend (Mario 2026-10-11): Meta Ads spend, read-only Marketing API. META_ADS_TOKEN = the ads_read token of the system user
 #     fuxia360-lectura, kept in ~/.fuxia-meta-ads.token (chmod 600, never printed); account act_966161362834783. Auth: F360_SYNC_SECRET
 #     (already a project secret, same as f360-woo-sync) or an owner. Daily call: cron f360-meta-spend (migration 20261023000100).
@@ -30,7 +34,7 @@
 set -euo pipefail
 PROD_REF="tgzgiwfzddsghnxgkcqd"
 FN="${1:-}"
-case "$FN" in f360-store-reserve|f360-storefront|f360-hilo-intake|f360-woo-orders|f360-whatsapp|f360-meta-spend|f360-push|f360-fx-rates|f360-instagram|f360-clarity|f360-analyst|f360-ga4) ;; *) echo "ABORT: solo f360-store-reserve, f360-storefront, f360-hilo-intake, f360-woo-orders, f360-whatsapp, f360-meta-spend, f360-push, f360-fx-rates, f360-instagram, f360-clarity, f360-analyst o f360-ga4" >&2; exit 1;; esac
+case "$FN" in f360-store-reserve|f360-storefront|f360-hilo-intake|f360-woo-orders|f360-whatsapp|f360-meta-spend|f360-push|f360-fx-rates|f360-instagram|f360-clarity|f360-analyst|f360-ga4|f360-email) ;; *) echo "ABORT: solo f360-store-reserve, f360-storefront, f360-hilo-intake, f360-woo-orders, f360-whatsapp, f360-meta-spend, f360-push, f360-fx-rates, f360-instagram, f360-clarity, f360-analyst, f360-ga4 o f360-email" >&2; exit 1;; esac
 cd "$(dirname "$0")/../.."
 git diff --quiet HEAD -- "fuxia-native/supabase/functions/$FN" || { echo "ABORT: $FN tiene cambios sin commitear." >&2; exit 1; }
 [ -z "$(git ls-files --others --exclude-standard "fuxia-native/supabase/functions/$FN")" ] || { echo "ABORT: $FN tiene archivos sin commitear." >&2; exit 1; }
@@ -59,6 +63,10 @@ elif [ "$FN" = "f360-whatsapp" ]; then
   # (F360_THANKS_SID=HX… after Meta approves fuxia_gracias_compra); without it the function sends nothing.
   [ -n "${F360_THANKS_SID:-}" ] && printf 'TWILIO_THANKS_CONTENT_SID=%s\n' "$F360_THANKS_SID" >> "$TMP"
   [ -n "${F360_THANKS_MEMBER_SID:-}" ] && printf 'TWILIO_THANKS_MEMBER_CONTENT_SID=%s\n' "$F360_THANKS_MEMBER_SID" >> "$TMP"
+elif [ "$FN" = "f360-email" ]; then
+  SECRET_FILE="$HOME/.fuxia-email.secret"
+  if [ ! -s "$SECRET_FILE" ]; then ( umask 077; openssl rand -hex 32 > "$SECRET_FILE" ); echo "Secreto nuevo generado en $SECRET_FILE"; fi
+  printf 'F360_EMAIL_SECRET=%s\nEMAIL_FROM="Fuxia 360 <hola@fuxiaballerinas.com>"\n' "$(tr -d '\n' < "$SECRET_FILE")" > "$TMP"
 elif [ "$FN" = "f360-push" ]; then
   SECRET_FILE="$HOME/.fuxia-push.secret"
   if [ ! -s "$SECRET_FILE" ]; then ( umask 077; openssl rand -hex 32 > "$SECRET_FILE" ); echo "Secreto nuevo generado en $SECRET_FILE"; fi

@@ -3,15 +3,22 @@ import { listInbox } from '@/lib/f360';
 import { fecha } from '@/lib/format';
 import { CaseStatus } from './CaseStatus';
 
-const ORIGEN: Record<string, string> = { hilo_web: 'Hilo · web', hilo_app: 'Hilo · app', hilo_whatsapp: 'Hilo · WhatsApp', hilo_voice: 'Hilo · teléfono', web_pdp: 'Tienda en línea' };
-const MOTIVO: Record<string, string> = { requested: 'Pidió hablar con alguien', complaint: 'Queja', high_intent: 'Quiere comprar', out_of_scope: 'Fuera de lo que sabe Hilo', low_confidence: 'Hilo no estaba seguro' };
+const ORIGEN: Record<string, string> = { hilo_web: 'Hilo · web', hilo_app: 'Hilo · app', hilo_whatsapp: 'Hilo · WhatsApp', hilo_voice: 'Hilo · teléfono', web_pdp: 'Tienda en línea', web_checkout: 'Checkout de la tienda' };
+const MOTIVO: Record<string, string> = { requested: 'Pidió hablar con alguien', complaint: 'Queja', high_intent: 'Quiere comprar', out_of_scope: 'Fuera de lo que sabe Hilo', low_confidence: 'Hilo no estaba seguro', technical_issue: 'Problema técnico (pago o página)' };
+
+// How long an OPEN case has waited (Mario 2026-10-30: cases sat 'Nueva' for weeks and nobody noticed).
+const espera = (c: { status: string; created_at: string }) => {
+  if (c.status !== 'nueva' && c.status !== 'en_atencion') return null;
+  const d = Math.floor((Date.now() - new Date(c.created_at).getTime()) / 86_400_000);
+  return d < 1 ? { text: 'Entró hoy', late: false } : { text: `Lleva ${d} ${d === 1 ? 'día' : 'días'} sin resolver`, late: true };
+};
 
 // Everything a customer asked the team for, from any channel (Hilo app/web/WhatsApp, "a la medida").
 export default async function Bandeja({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
   const { ver } = await searchParams;
   const all = await listInbox();
   const abiertos = all.filter((c) => c.status === 'nueva' || c.status === 'en_atencion');
-  const rows = ver === 'todos' ? all : abiertos;
+  const rows = ver === 'todos' ? all : [...abiertos].sort((a, b) => a.created_at.localeCompare(b.created_at)); // oldest first: what has waited longest goes on top
   const wa = (c: (typeof all)[number]) => c.phone && !c.phone.startsWith('···')
     ? `https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola${c.name ? ', ' + c.name : ''}! Soy de Fuxia Ballerinas.${c.product ? ` Vimos tu mensaje sobre ${c.product}${c.color ? ' ' + c.color : ''}.` : ''}`)}` : null;
   return (
@@ -28,7 +35,8 @@ export default async function Bandeja({ searchParams }: { searchParams: Promise<
             <li key={c.id} className={`rounded-2xl border bg-surface p-4 ${c.status === 'nueva' ? 'border-gold' : 'border-line'}`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs uppercase tracking-[0.14em] text-muted">{c.kind === 'a_la_medida' ? 'A la medida' : (MOTIVO[c.reason ?? ''] ?? 'Hilo pide ayuda')} · {ORIGEN[c.source] ?? c.source} · {fecha(c.created_at)}</p>
+                  <p className="text-xs uppercase tracking-[0.14em] text-muted">{c.kind === 'a_la_medida' ? 'A la medida' : c.kind === 'link_pago' ? 'Link de pago' : (MOTIVO[c.reason ?? ''] ?? 'Hilo pide ayuda')} · {ORIGEN[c.source] ?? c.source} · {fecha(c.created_at)}</p>
+                  {espera(c) && <p className={`mt-1 text-xs font-semibold ${espera(c)!.late ? 'text-danger' : 'text-muted'}`}>{espera(c)!.text}</p>}
                   <p className="mt-1 text-ink">{c.name ? <b>{c.name}</b> : <span className="text-muted">Sin nombre todavía</span>}{c.phone && <> · {c.phone}</>}{c.email && <> · {c.email}</>}</p>
                   {c.product && <p className="mt-1 text-sm text-ink-2">{c.product}{c.color && <> · {c.color}</>}{c.size && <> · talla {c.size}</>}{c.country && <> · {c.country.toUpperCase()}</>}</p>}
                   {c.summary && <p className="mt-2 text-sm text-ink-2">“{c.summary}”</p>}

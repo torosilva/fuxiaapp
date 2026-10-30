@@ -48,6 +48,7 @@ Estados:
 | **Ventas en tienda, apartados, ventas remotas, descuentos de tienda** | PROD | oct | — | `ops/DESCUENTOS_TIENDA.md`, `omnichannel/APARTADO_GOLD.md` |
 | **CRM C1** (ficha de clienta, privacidad vendedora) | PROD | — | Pantallas C2 | `crm/C1_DELIVERY.md`, `crm/CRM_V1_PLAN.md` |
 | **Push** (`f360-push`) | PROD | 2026-10-11 | — | — |
+| **Bandeja de clientas · seguimiento** (en el menú con contador; "lleva N días" en rojo; link de pago se resuelve solo al pagarse; correos de aviso `f360-email` → info@) | LISTO (staging 7/7) | 2026-10-30 | Pase `supabase/pase/20261030_bandeja_seguimiento.sql`, `deploy_prod_function.sh f360-email`, `prod_email_vault.sh`, admin. Hilo (Backbone): revisar todas sus conversaciones (falta `DATABASE_URL` de Railway) | migración `20261105000300` |
 | **Categoría Kids** ligada al term 96 | PROD | 2026-10-24 (`08e4811`) | — | — |
 | **Kids · tablero semanal** | PROD (base) | 2026-10-24 (`53f1e05`) | — | migración `20261103000100` |
 | **Kids · juegos en la tienda** (`f360-kids-juego.php`) | PROD | 2026-10-27 (`deploy_prod_wp.sh`, respaldo prod-mu/20261027-063707) | URL real: `/mx/categoria-producto/kids/` y `/co/…` (no `product-category`). QA `kids-juego.mjs --base https://fuxiaballerinas.com --no-board` OK | — |

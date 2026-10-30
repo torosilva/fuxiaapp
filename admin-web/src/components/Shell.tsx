@@ -9,6 +9,7 @@ const GROUPS = [
   { label: 'Hoy', items: [
     { href: '/', label: 'Inicio', icon: IconHome, live: true },
     { href: '/avisos', label: 'Avisos', icon: IconBell, live: true },
+    { href: '/bandeja', label: 'Bandeja de clientas', icon: IconUsers, live: true },
     { href: '/academy', label: 'Fuxia Academy', icon: IconCheck, live: true, academy: true },
   ] },
   { label: 'Negocio en tiempo real', items: [
@@ -69,7 +70,7 @@ const visibleBase = (n: Item, role: string, board: boolean, finance: boolean, on
 
 const isActive = (path: string, href: string) => (href === '/' ? path === '/' : path.startsWith(href));
 
-export function Shell({ name, role, env, alerts = 0, board = false, finance = false, onlyFinance = false, academy = false, signOut, children }: { name: string; role: string; env?: string; alerts?: number; board?: boolean; finance?: boolean; onlyFinance?: boolean; academy?: boolean; signOut: () => Promise<void>; children: React.ReactNode }) {
+export function Shell({ name, role, env, alerts = 0, inbox, board = false, finance = false, onlyFinance = false, academy = false, signOut, children }: { name: string; role: string; env?: string; alerts?: number; inbox?: { open: number; oldest_days: number }; board?: boolean; finance?: boolean; onlyFinance?: boolean; academy?: boolean; signOut: () => Promise<void>; children: React.ReactNode }) {
   const path = usePathname();
   const bottom = onlyFinance ? [FINANCE_ITEM] : [...BOTTOM, { href: '/mas', label: 'Más', icon: IconMore, live: true }];
   return (
@@ -93,6 +94,7 @@ export function Shell({ name, role, env, alerts = 0, board = false, finance = fa
                   <span className="flex-1">{label}</span>
                   {!live && <span className="text-[10px] uppercase tracking-wider text-[#8E877C]">Pronto</span>}
                   {href === '/avisos' && alerts > 0 && <span className="rounded-full bg-[#FF8A4C] px-2 py-0.5 text-[11px] font-bold text-[#1A0F06]" data-testid="alerts-badge">{alerts}</span>}
+                  {href === '/bandeja' && inbox && inbox.open > 0 && <span title={`La más antigua lleva ${inbox.oldest_days} días`} className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${inbox.oldest_days >= 1 ? 'bg-[#FF8A4C] text-[#1A0F06]' : 'bg-[#E8C98A] text-[#1A0F06]'}`} data-testid="inbox-badge">{inbox.open}</span>}
                 </Link>
               ))}
             </div>

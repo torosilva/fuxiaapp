@@ -243,10 +243,13 @@ export type StoreShipment = { id: string; order: number; store: string; label: s
 export const listStoreShipments = () => rpc<StoreShipment[]>('f360_online_store_shipments', { p_days: 30 });
 
 // Bandeja de clientas (Mario 2026-10-04): Hilo escalations (app/web/WhatsApp) + "a la medida", all in Fuxia 360.
-export type CustomerCase = { id: string; kind: 'escalacion' | 'a_la_medida'; source: string; status: 'nueva' | 'en_atencion' | 'resuelta' | 'descartada';
+export type CustomerCase = { id: string; kind: 'escalacion' | 'a_la_medida' | 'link_pago'; source: string; status: 'nueva' | 'en_atencion' | 'resuelta' | 'descartada';
   reason: string | null; summary: string | null; transcript: { role: string; content: string }[]; name: string | null; phone: string | null; email: string | null;
   country: string | null; product: string | null; color: string | null; size: string | null; page_url: string | null; created_at: string; updated_at: string; updated_by: string | null };
 export const listInbox = () => rpc<CustomerCase[]>('f360_inbox_list', { p_days: 90 });
+// Menu badge: open cases and how many days the oldest one has waited (Mario 2026-10-30: cases sat unseen for weeks).
+export type InboxBadge = { open: number; oldest_days: number };
+export const getInboxBadge = () => rpc<InboxBadge>('f360_inbox_open_count');
 
 // Ventas pasadas (Mario 2026-10-05): general summaries Carolina loads for sales made BEFORE Fuxia 360 (store per month, bazaar
 // by dates). MXN only; not sale lines (no model / customer / inventory). Online history comes from WooCommerce, not from here.
