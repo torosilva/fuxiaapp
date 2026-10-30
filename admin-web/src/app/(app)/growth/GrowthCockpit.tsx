@@ -168,14 +168,14 @@ export function GrowthCockpit({ data, market }: { data: Cockpit; market: string 
   const from = (n: number) => new Date(new Date(`${today}T12:00:00`).getTime() - n * 86400000).toISOString().slice(0, 10);
   const shown = market === 'TODOS' ? data.markets.filter((m) => m.checkout.created > 0 || m.market !== 'ROW') : data.markets.filter((m) => m.market === market);
   const pill = (on: boolean) => `rounded-full px-4 py-2 text-sm ${on ? 'bg-ink text-surface' : 'border border-line bg-surface text-ink-2'}`;
-  const q = (o: Record<string, string>) => `/growth?${new URLSearchParams({ desde: data.from, hasta: data.to, mercado: market, ...o })}`;
+  const q = (o: Record<string, string>) => `/growth?${new URLSearchParams({ vista: 'war', desde: data.from, hasta: data.to, mercado: market, ...o })}`;
   return (
     <div className="mt-6 flex flex-col gap-8">
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           {presets.map(([l, n]) => <Link key={l} href={q({ desde: from(n), hasta: today })} className={pill(data.from === from(n))}>{l}</Link>)}
           <form action="/growth" className="flex flex-wrap items-center gap-2 text-sm">
-            <input type="hidden" name="mercado" value={market} />
+            <input type="hidden" name="vista" value="war" /><input type="hidden" name="mercado" value={market} />
             <input type="date" name="desde" defaultValue={data.from} className="rounded-xl border border-line bg-surface px-3 py-2" aria-label="Desde" />
             <input type="date" name="hasta" defaultValue={data.to} className="rounded-xl border border-line bg-surface px-3 py-2" aria-label="Hasta" />
             <button className="rounded-full border border-line bg-surface px-4 py-2 text-ink-2">Aplicar</button>

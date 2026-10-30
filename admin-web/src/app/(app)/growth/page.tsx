@@ -1,9 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { DataStatusTable } from '@/components/DataStatus';
 import { canWrite, getCommerceSummary, getCrmAccess, getGrowthPlan, getMe } from '@/lib/f360';
 import { CommerceFacts } from './CommerceFacts';
-import { GROWTH_QUESTIONS } from '@/lib/data-audit';
 import { PlanEditor } from './PlanEditor';
 import { Measurement } from './Measurement';
 import { getMeasurementTruth } from '@/lib/measurement';
@@ -16,6 +14,10 @@ import { getExperiments, getGrowthInstagram } from '@/lib/growth-p0';
 import { Instagram } from './Instagram';
 import { Experimentos } from './Experimentos';
 import { growthP0Enabled } from '@/lib/feature';
+import { getCompetencia, getHoy, getRecuperar } from '@/lib/growth-hoy';
+import { Hoy } from './Hoy';
+import { Clientas } from './Clientas';
+import { Competencia } from './Competencia';
 
 const PLAN_YEAR = 2027;
 
@@ -53,30 +55,41 @@ export default async function Growth({ searchParams }: { searchParams: Promise<R
   const camp = campanas ? await getGrowthCampaigns(day(desde), day(hasta)) : null;
   const ig = instagram ? await getGrowthInstagram(day(desde), day(hasta)) : null;
   const exps = experimentos ? await getExperiments() : null;
-  const war = !plan && !commerce && !medicion && !conciliacion && !campanas && !instagram && !experimentos;   // S-G1 Growth War Room (main view)
+  const competencia = vista === 'competencia';   // Growth Competencia (2026-10-30)
+  const clientas = vista === 'clientas' && viewer;   // Clientas a recuperar: Carolina & Mario only (the database refuses everyone else)
+  const war = vista === 'war';   // S-G1 Growth War Room (now under "Más")
+  const hoy = !war && !plan && !commerce && !medicion && !conciliacion && !campanas && !instagram && !experimentos && !competencia && !clientas;   // Growth → Hoy (main view)
+  const mkt: 'MX' | 'CO' = mercado === 'CO' ? 'CO' : 'MX';
+  const hoyData = hoy ? await getHoy() : null;
+  const rec = clientas ? await getRecuperar(mkt) : hoy && viewer ? await getRecuperar('MX').catch(() => null) : null;
+  const pendingBuyers = rec && hoy ? rec.buyers.filter((b) => !b.outreach).length : null;
+  const comp = competencia ? await getCompetencia() : null;
   const cockpit = war ? await getGrowthCockpit(day(desde), day(hasta)) : null;
   const market = ['MX', 'CO', 'ROW'].includes(mercado ?? '') ? mercado! : 'TODOS';
   const tab = (active: boolean) => `rounded-full px-5 py-2.5 text-[15px] ${active ? 'bg-ink text-surface' : 'border border-line bg-surface text-ink-2'}`;
+  const more = (active: boolean) => `text-sm ${active ? 'font-semibold text-ink' : 'text-ink-2 underline'}`;
   return (
     <div>
       <h1 className="font-display text-5xl text-ink">Growth</h1>
       <div className="mt-5 flex flex-wrap gap-2">
-        <Link href="/growth" className={tab(war)}>War Room</Link>
+        <Link href="/growth" className={tab(hoy)}>Hoy</Link>
+        {viewer && <Link href="/growth?vista=clientas" className={tab(clientas)}>Clientas a recuperar</Link>}
         <Link href="/growth?vista=campanas" className={tab(campanas)}>Campañas</Link>
         {p0 && <Link href="/growth?vista=instagram" className={tab(instagram)}>Instagram</Link>}
+        <Link href="/growth?vista=competencia" className={tab(competencia)}>Competencia</Link>
         {p0 && <Link href="/growth?vista=experimentos" className={tab(experimentos)}>Experimentos</Link>}
-        {viewer && <Link href="/growth?vista=conciliacion" className={tab(conciliacion)}>Conciliación</Link>}
-        <Link href="/growth?vista=plan" className={tab(plan)}>Plan {PLAN_YEAR}</Link>
-        <Link href="/growth?vista=commerce" className={tab(commerce)}>Commerce Facts (técnico)</Link>
-        <Link href="/growth?vista=medicion" className={tab(medicion)}>Medición</Link>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+        <span className="text-xs text-muted">Más:</span>
+        <Link href="/growth?vista=war" className={more(war)}>War Room</Link>
+        {viewer && <Link href="/growth?vista=conciliacion" className={more(conciliacion)}>Conciliación</Link>}
+        <Link href="/growth?vista=plan" className={more(plan)}>Plan {PLAN_YEAR}</Link>
+        <Link href="/growth?vista=medicion" className={more(medicion)}>Medición</Link>
+        <Link href="/growth?vista=commerce" className={more(commerce)}>Commerce Facts (técnico)</Link>
       </div>
 
-      {campanas ? <Campanas data={camp!} today={today} /> : instagram ? <Instagram data={ig!} today={today} /> : experimentos ? <Experimentos data={exps!} /> : conciliacion ? <Conciliacion summary={recSummary!} list={recList!} filters={recFilters} detail={recCase} /> : medicion ? <Measurement data={truth!} canUpload={me.role === 'owner'} /> : commerce ? <CommerceFacts data={facts!} /> : !plan ? (
-        <>
-          <GrowthCockpit data={cockpit!} market={market} />
-          <h2 className="font-display mt-12 text-3xl text-ink">Qué falta para responder todo</h2>
-          <div className="mt-4"><DataStatusTable rows={GROWTH_QUESTIONS} /></div>
-        </>
+      {hoy ? <Hoy data={hoyData!} pendingBuyers={pendingBuyers} /> : clientas ? <Clientas data={rec!} /> : competencia ? <Competencia data={comp!} /> : campanas ? <Campanas data={camp!} today={today} /> : instagram ? <Instagram data={ig!} today={today} /> : experimentos ? <Experimentos data={exps!} /> : conciliacion ? <Conciliacion summary={recSummary!} list={recList!} filters={recFilters} detail={recCase} /> : medicion ? <Measurement data={truth!} canUpload={me.role === 'owner'} /> : commerce ? <CommerceFacts data={facts!} /> : !plan ? (
+        <GrowthCockpit data={cockpit!} market={market} />
       ) : (
         <PlanEditor data={data!} />
       )}
