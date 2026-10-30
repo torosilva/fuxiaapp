@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { OUTREACH, type Buyer, type Outreach, type Recuperar } from '@/lib/growth-hoy';
+import { OUTREACH, type Buyer, type Outreach, type Recuperar } from '@/lib/growth-hoy-labels';
 import { markOutreachAction } from './hoy-actions';
 
 // Growth → Clientas a recuperar (Carolina). Steps on top, one card per buyer, one tap to record what happened.

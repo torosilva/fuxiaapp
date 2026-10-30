@@ -1,7 +1,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Brand, Competencia as Data } from '@/lib/growth-hoy';
+import type { Brand, Competencia as Data } from '@/lib/growth-hoy-labels';
 import { observeCompetitorAction } from './hoy-actions';
 
 // Growth → Competencia. The table first (Fuxia highlighted), then how each brand advertises, then "what they do that Fuxia doesn't".
@@ -59,7 +59,7 @@ export function Competencia({ data }: { data: Data }) {
       <h2 className="font-display mt-10 text-3xl text-ink">Cómo anuncia cada una</h2>
       <div className="mt-4 flex flex-col gap-3">{ads.map((b) => (
         <div key={b.key} className={`rounded-[18px] border p-4 ${b.is_self ? 'border-gold/50 bg-gold-soft/30' : 'border-line bg-surface'}`}>
-          <p className="font-semibold text-ink">{b.name} <span className="text-sm font-normal text-ink-2">· ~{b.latest?.active_ads_meta ?? '—'} anuncios</span></p>
+          <p className="font-semibold text-ink">{b.name} {b.latest?.active_ads_meta != null && <span className="text-sm font-normal text-ink-2">· ~{b.latest.active_ads_meta} anuncios</span>}</p>
           <p className="mt-1 text-sm text-ink-2">{b.latest?.how_they_advertise}</p>
           <p className="mt-1 text-[11px] text-muted">{b.latest?.source}</p>
         </div>))}</div>

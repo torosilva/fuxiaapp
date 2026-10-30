@@ -117,11 +117,12 @@ BEGIN
   SELECT coalesce(jsonb_agg(jsonb_build_object('campaign_id', c.campaign_id, 'name', c.name, 'market', c.market, 'spend_mxn', round(c.spend), 'clicks', c.clicks,
       'meta_purchases', c.mp, 'ads_paid_orders', coalesce(c.orders, 0), 'last_day', c.last_day, 'active', c.last_day >= today - 2) ORDER BY c.spend DESC), '[]')
   INTO campaigns
-  FROM (SELECT d.campaign_id, max(d.campaign_name) name, (array_agg(d.market ORDER BY d.spend DESC))[1] market, sum(d.spend) spend, sum(d.clicks) clicks,
+  -- One row per campaign × market: a campaign that runs in both markets shows both, each with its own spend and sales.
+  FROM (SELECT d.campaign_id, max(d.campaign_name) name, d.market, sum(d.spend) spend, sum(d.clicks) clicks,
                sum(d.meta_purchases) mp, max(d.date) last_day,
                (SELECT count(*) FROM f360.commerce_orders o JOIN f360.commerce_woo_attribution a ON a.target_id = o.target_id AND a.woo_order_id = o.woo_order_id
-                 WHERE o.source_system = 'woo' AND o.status_class = 'countable' AND o.occurred_at >= ts14 AND a.utm_id = d.campaign_id) orders
-        FROM f360.marketing_spend_daily d WHERE d.platform = 'meta' AND d.date >= d14 GROUP BY d.campaign_id) c;
+                 WHERE o.source_system = 'woo' AND o.status_class = 'countable' AND o.occurred_at >= ts14 AND a.utm_id = d.campaign_id AND o.market = d.market) orders
+        FROM f360.marketing_spend_daily d WHERE d.platform = 'meta' AND d.date >= d14 GROUP BY d.campaign_id, d.market) c;
 
   -- Instagram: net followers last 7 days vs the 7 before (follows/unfollows from the API; days without data are not counted as 0).
   SELECT jsonb_build_object(

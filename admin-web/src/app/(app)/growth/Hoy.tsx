@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CHANNEL, STEPS, type Hoy as HoyData, type HoyFunnelRow } from '@/lib/growth-hoy';
+import { CHANNEL, STEPS, type Hoy as HoyData, type HoyFunnelRow } from '@/lib/growth-hoy-labels';
 import { PARTY } from '@/lib/growth-p0-labels';
 
 // Growth → Hoy: what Mario or Carolina need when they open Growth. Sentences first, then the numbers behind them.
@@ -88,7 +88,7 @@ export function Hoy({ data, pendingBuyers }: { data: HoyData; pendingBuyers: num
             <th className="py-1.5 pl-3 text-right font-normal">Gasto 14 días</th><th className="py-1.5 pl-3 text-right font-normal">Clics</th>
             <th className="py-1.5 pl-3 text-right font-normal">Ventas por el anuncio</th><th className="py-1.5 pl-3 text-right font-normal">Meta dice</th><th className="py-1.5 pl-3 text-left font-normal">Cómo va</th></tr></thead>
           <tbody>{data.campaigns.map((c) => (
-            <tr key={c.campaign_id} className="border-t border-line">
+            <tr key={`${c.campaign_id}-${c.market}`} className="border-t border-line">
               <td className="py-2 text-ink">{c.name}{!c.active && <span className="ml-2 text-xs text-muted">(apagada)</span>}</td>
               <td className="py-2 pl-3 text-ink-2">{MK[c.market] ?? c.market}</td>
               <td className="tabular py-2 pl-3 text-right">{money(c.spend_mxn)}</td><td className="tabular py-2 pl-3 text-right">{n(c.clicks)}</td>
