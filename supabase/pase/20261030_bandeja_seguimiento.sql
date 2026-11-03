@@ -2,14 +2,15 @@
 -- (Mario 2026-10-30: "se quedaron muchas cosas y Carolina ni yo nunca supimos" → "si dale"). Probada en staging (7/7).
 --   · prod tenía el destinatario con prefijo "[STAGING] " (copiado de la migración de staging): se quita;
 --   · los 9 avisos que nunca salieron: se les quita el prefijo; se omiten los ya viejos/atendidos (link #5776 pagado,
---     a la medida de Mariana marcada PAGADO por Carolina, prueba interna del 10 oct) y salen los 6 de casos abiertos;
+--     a la medida de Mariana marcada PAGADO por Carolina, prueba interna del 10 oct) y salen los de casos abiertos (6 + los
+--     2 links de Sandra Vázquez del 2 nov, pedidos #6145/#6149 sin pagar);
 --   · la prueba interna del 10 oct ("Prueba interna, quiero hablar con una persona") pasa a 'descartada'.
 -- Reversión: supabase/rollbacks/20261105000300_f360_bandeja_seguimiento.down.sql
 BEGIN;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version = '20261105000300') THEN RAISE EXCEPTION 'PRE: ya está'; END IF;
   IF NOT EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version = '20261104000200') THEN RAISE EXCEPTION 'PRE: falta 20261104000200'; END IF;
-  IF (SELECT count(*) FROM f360.email_outbox WHERE sent_at IS NULL) <> 9 THEN RAISE EXCEPTION 'PRE: se esperaban 9 avisos pendientes'; END IF;
+  IF (SELECT count(*) FROM f360.email_outbox WHERE sent_at IS NULL) < 9 THEN RAISE EXCEPTION 'PRE: se esperaban al menos 9 avisos pendientes'; END IF;
 END $$;
 ALTER TABLE f360.customer_cases ADD COLUMN woo_order_id bigint;
 UPDATE f360.customer_cases SET woo_order_id = (substring(summary FROM 'Pedido #([0-9]+)'))::bigint
@@ -94,7 +95,9 @@ UPDATE f360.email_outbox o SET attempts = 8, result = 'omitido 2026-10-30: aviso
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM f360.notification_recipients WHERE prefix <> '') THEN RAISE EXCEPTION 'POST: prefijo'; END IF;
   IF (SELECT status FROM f360.customer_cases WHERE woo_order_id = 5776) <> 'resuelta' THEN RAISE EXCEPTION 'POST: #5776 no se resolvió'; END IF;
-  IF (SELECT count(*) FROM f360.email_outbox WHERE sent_at IS NULL AND attempts < 8) <> 6 THEN RAISE EXCEPTION 'POST: se esperaban 6 avisos por enviar'; END IF;
+  IF EXISTS (SELECT 1 FROM f360.email_outbox o JOIN f360.customer_cases c ON c.id = o.ref_id
+             WHERE o.sent_at IS NULL AND o.attempts < 8 AND c.status NOT IN ('nueva', 'en_atencion')) THEN RAISE EXCEPTION 'POST: aviso de caso cerrado por enviar'; END IF;
+  IF (SELECT count(*) FROM f360.email_outbox WHERE sent_at IS NULL AND attempts < 8) < 6 THEN RAISE EXCEPTION 'POST: faltan avisos de casos abiertos'; END IF;
   IF EXISTS (SELECT 1 FROM f360.email_outbox WHERE subject LIKE '[STAGING]%' AND sent_at IS NULL) THEN RAISE EXCEPTION 'POST: asunto staging'; END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'commerce_woo_orders_case_paid') THEN RAISE EXCEPTION 'POST: trigger'; END IF;
   IF has_function_privilege('anon', 'public.f360_inbox_open_count()', 'EXECUTE') THEN RAISE EXCEPTION 'POST: anon'; END IF;
