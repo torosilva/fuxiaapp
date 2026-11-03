@@ -10,6 +10,7 @@ const env = {
   TWILIO_WHATSAPP_FROM: Deno.env.get('TWILIO_WHATSAPP_FROM') ?? '',
   TWILIO_THANKS_CONTENT_SID: Deno.env.get('TWILIO_THANKS_CONTENT_SID') ?? '',
   TWILIO_THANKS_MEMBER_CONTENT_SID: Deno.env.get('TWILIO_THANKS_MEMBER_CONTENT_SID') ?? '',
+  TWILIO_STAFF_CONTENT_SID: Deno.env.get('TWILIO_STAFF_CONTENT_SID') ?? '',
 };
 
 Deno.serve((req) => handleWhatsApp(req, env));

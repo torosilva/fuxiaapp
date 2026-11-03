@@ -7,7 +7,7 @@
 // Each kind has a list of template SIDs in order of preference ("HXcard,HXplain"): the FIRST one Meta has approved is used,
 // so a nicer template replaces the current one by itself the moment it is approved.
 export type WhatsAppEnv = { SUPABASE_URL: string; SUPABASE_SERVICE_ROLE_KEY: string; TWILIO_ACCOUNT_SID: string; TWILIO_AUTH_TOKEN: string;
-  TWILIO_WHATSAPP_FROM: string; TWILIO_THANKS_CONTENT_SID: string; TWILIO_THANKS_MEMBER_CONTENT_SID?: string };
+  TWILIO_WHATSAPP_FROM: string; TWILIO_THANKS_CONTENT_SID: string; TWILIO_THANKS_MEMBER_CONTENT_SID?: string; TWILIO_STAFF_CONTENT_SID?: string };
 type Msg = { id: string; kind: string; phone: string; variables: Record<string, string> };
 
 // Twilio WhatsApp México expects +521 + 10 digits (same rule as whatsapp-otp).
@@ -22,8 +22,9 @@ export async function handleWhatsApp(req: Request, env: WhatsAppEnv, fetchImpl: 
   const lists: Record<string, string[]> = {
     thanks: (env.TWILIO_THANKS_CONTENT_SID ?? '').split(',').map((x) => x.trim()).filter(Boolean),
     thanks_member: (env.TWILIO_THANKS_MEMBER_CONTENT_SID ?? '').split(',').map((x) => x.trim()).filter(Boolean),
+    aviso_equipo: (env.TWILIO_STAFF_CONTENT_SID ?? '').split(',').map((x) => x.trim()).filter(Boolean),   // Bandeja → Carolina (2026-11-03)
   };
-  if (!lists.thanks.length && !lists.thanks_member.length) return json({ ok: true, skipped: 'sin plantilla aprobada' });
+  if (!Object.values(lists).some((l) => l.length)) return json({ ok: true, skipped: 'sin plantilla aprobada' });
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY || !env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.TWILIO_WHATSAPP_FROM) {
     return json({ error: 'No configurado.' }, 500);
   }

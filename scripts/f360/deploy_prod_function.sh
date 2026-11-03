@@ -63,6 +63,8 @@ elif [ "$FN" = "f360-whatsapp" ]; then
   # (F360_THANKS_SID=HX… after Meta approves fuxia_gracias_compra); without it the function sends nothing.
   [ -n "${F360_THANKS_SID:-}" ] && printf 'TWILIO_THANKS_CONTENT_SID=%s\n' "$F360_THANKS_SID" >> "$TMP"
   [ -n "${F360_THANKS_MEMBER_SID:-}" ] && printf 'TWILIO_THANKS_MEMBER_CONTENT_SID=%s\n' "$F360_THANKS_MEMBER_SID" >> "$TMP"
+  # Bandeja → Carolina (2026-11-03): F360_STAFF_SID=HX… = template fuxia_aviso_equipo (sends nothing until Meta approves it)
+  [ -n "${F360_STAFF_SID:-}" ] && printf 'TWILIO_STAFF_CONTENT_SID=%s\n' "$F360_STAFF_SID" >> "$TMP"
 elif [ "$FN" = "f360-email" ]; then
   SECRET_FILE="$HOME/.fuxia-email.secret"
   if [ ! -s "$SECRET_FILE" ]; then ( umask 077; openssl rand -hex 32 > "$SECRET_FILE" ); echo "Secreto nuevo generado en $SECRET_FILE"; fi
