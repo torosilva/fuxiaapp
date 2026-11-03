@@ -5,8 +5,10 @@
  *   1) Ningún correo sale a nadie: wp_mail se corta y queda en el registro de PHP (solo destinatario y asunto).
  *   2) Ninguna llamada HTTP del servidor llega a producción ni a cuentas reales: Supabase de prod, la tienda real,
  *      Meta (Graph API) y Google Merchant Center.
+ *      Única excepción: la compra de prueba de Conversions API (f360-meta-compra-servidor) al pixel 951926154215387 cuando
+ *      lleva `test_event_code`. Meta la muestra en "Probar eventos" y no la cuenta en ningún informe.
  *   3) Si el sitio no es staging4, el plugin no hace nada (no debe vivir en producción).
- * Version: 1.0.0
+ * Version: 1.1.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -34,7 +36,16 @@ add_filter(
 add_filter(
 	'pre_http_request',
 	static function ( $pre, $args, $url ) {
+		if ( false !== $pre ) {
+			return $pre; // ya lo contestó otro filtro (p. ej. una prueba): no sale nada.
+		}
 		$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+		if ( 'graph.facebook.com' === $host && preg_match( '#^/v\d+\.\d+/951926154215387/events$#', (string) wp_parse_url( $url, PHP_URL_PATH ) ) ) {
+			$body = json_decode( is_string( $args['body'] ?? null ) ? $args['body'] : '', true );
+			if ( is_array( $body ) && ! empty( $body['test_event_code'] ) ) {
+				return $pre; // compra de prueba: solo "Probar eventos".
+			}
+		}
 		$blocked = array(
 			'tgzgiwfzddsghnxgkcqd.supabase.co',   // Supabase de producción.
 			'fuxiaballerinas.com',                // Tienda real.
