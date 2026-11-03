@@ -161,8 +161,11 @@ fwrite(STDOUT, "\n11) Nada personal en texto\n");
 $todo = implode("\n", array_column(f360t_purchases(f360t_fb()), 'body'));
 $propios = array_filter(f360t_fb(), function ($r) { return strpos($r['body'], '"test_event_code"') !== false; });
 $txt = implode("\n", array_column($propios, 'body'));
-f360t($txt !== '' && stripos($txt, 'PRUEBAPII') === false && stripos($txt, 'staging.invalid') === false && strpos($txt, '5000') === false && strpos($txt, '01234') === false && stripos($txt, 'méxico') === false,
-  'ni nombre, correo, teléfono, CP ni ciudad en texto en ' . count($propios) . ' envíos (IP y user agent sí, como pide Meta)');
+$hashes = true;
+foreach ($propios as $r) foreach (json_decode($r['body'], true)['data'] as $ev) foreach (array('em', 'ph', 'fn', 'ln', 'ct', 'st', 'zp', 'country', 'external_id') as $k)
+  if (isset($ev['user_data'][$k])) foreach ($ev['user_data'][$k] as $v) $hashes = $hashes && preg_match('/^[a-f0-9]{64}$/', $v);
+f360t($txt !== '' && $hashes && stripos($txt, 'PRUEBAPII') === false && stripos($txt, 'staging.invalid') === false && strpos($txt, '5550001111') === false && strpos($txt, '3001234567') === false && stripos($txt, 'Ciudad de M') === false,
+  'en ' . count($propios) . ' envíos: correo, teléfono, nombre, ciudad, estado, CP y país solo como SHA-256 (IP y user agent en claro, como pide Meta)');
 
 fwrite(STDOUT, "\n12) Lo que el plugin de Meta intentó mandar en toda la prueba (bloqueado)\n");
 $tipos = array(); foreach (f360t_fb() as $r) { if (strpos($r['body'], '"test_event_code"') !== false) continue; $tipos[] = preg_replace('#https://graph\.facebook\.com/v[\d.]+/#', '', strtok($r['url'], '?')) . (strpos($r['body'], 'Purchase') !== false ? ' (Purchase)' : ''); }
