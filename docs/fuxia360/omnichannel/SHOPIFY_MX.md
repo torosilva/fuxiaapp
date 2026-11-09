@@ -148,5 +148,5 @@ Se **reusa el camino de pedidos que ya existe**, no se crea uno paralelo. Un ped
     - Ojo: la regla CRO-6 convierte "24 MX → 37", y 24 ahora también es talla Kids.
 - **Bug encontrado el 2026-11-09 por Mario:** "Subir a la tienda" fallaba en Woo con "Este modelo viene del catálogo Woo anterior…" en TODOS los modelos ligados a Shopify.
   - **Causa:** las ligas de Shopify usan origin `legacy_adopted`, y `f360.sync_job_legacy_guard` miraba esas ligas en cualquier tienda.
-  - **Arreglo:** `20261109000300`, que filtra por la tienda del trabajo, en el pase `20261109_legacy_guard_por_tienda.sql`. El dry-run salió OK; falta que Mario lo aplique.
+  - **Arreglo:** `20261109000300`, que filtra por la tienda del trabajo, en el pase `20261109_legacy_guard_por_tienda.sql`, **APLICADO** en producción el 2026-11-09.
   - **Otra lectura sin filtro por tienda:** el aviso de "no se puede archivar" (`20261007000500`). Ahí sí es correcto, porque estar ligado a Shopify también cuenta.
