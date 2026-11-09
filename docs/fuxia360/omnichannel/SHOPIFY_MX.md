@@ -100,6 +100,15 @@ Se **reusa el camino de pedidos que ya existe**, no se crea uno paralelo. Un ped
   - Hilo en Railway: CORS 400. Rama `shopify-mx-cors` del repo fuxia-chatbot, una línea → `main`.
   - `f360-store-reserve`: 403. `F360_RESERVE_ORIGINS` + mx en `deploy_prod_function.sh`.
 - **Publicar:** `cd shopify-app && npx -y @shopify/cli@4.9.4 app deploy` (pide la sesión de Shopify de Mario). Después, encender el app embed en el editor del tema y apagar el asistente IA de Shopify ("Z9fdqc 0Z AI", `<shopify-chat>` del tema Horizon).
+- **2026-11-09, EN VIVO:**
+  - versión `fuxia-360-2` publicada por Mario;
+  - app embed "Hilo · Fuxia 360" encendido en el tema Horizon y guardado;
+  - CORS de Railway (`main` 2e3e808) y `f360-store-reserve` con el origen mx.
+- **Bug encontrado en vivo:** en las tarjetas de "Lo más vendido", `catalogo` chocaba de nombre. Arreglado en `7e99a15`; falta un `app deploy` más.
+- **El botón "Shop with AI" / "Comprar con IA" NO era de Shopify:** era el app embed **"Clarity Agents JS"** de Microsoft Clarity (`#ads-agent-host`, scripts de `adsagentclient…azurefd.net`).
+  - Apagado el 2026-11-09.
+  - "Clarity JS" (la medición) sigue encendido.
+  - Verificado en la tienda pública: sin agente, con Clarity y con Hilo.
 
 ## 7. Después
 - **Bienvenida 10% + captura de correo/celular:** cupón BIENVENIDA10 en Shopify + popup propio; los datos van a la ficha de la clienta en Fuxia 360.
