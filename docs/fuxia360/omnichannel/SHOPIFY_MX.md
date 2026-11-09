@@ -134,3 +134,4 @@ Se **reusa el camino de pedidos que ya existe**, no se crea uno paralelo. Un ped
   - el pixel de Meta sí está en Shopify (web pixels);
   - GA4 y la compra por servidor dependen de cómo lo dejó la agencia;
   - comparar 4 semanas Shopify vs las 4 anteriores en Woo cuando ya entren los pedidos.
+- **Ficha de producto (2026-11-09, EN VIVO):** el link "Más opciones de pago" medía 11.7 px. Se subió a 15 px con el **Custom CSS nativo** de la sección "Product information" del tema (`.shopify-payment-button__more-options`). El botón de Shop Pay sigue igual.
