@@ -117,7 +117,14 @@ Se **reusa el camino de pedidos que ya existe**, no se crea uno paralelo. Un ped
   - 213 con "acepta correos" (popup Woo, "Sin spam…"); 100 sin permiso (compradoras y carritos); SMS = no; 49 con celular.
   - Solo México: 137 leads de Colombia se quedan en Woo. Sin dirección (claves de estado Woo ≠ Shopify; siguen en Fuxia 360).
 - **Cupón BIENVENIDA10 (2026-11-09, HECHO):** creado en Shopify con las reglas Woo (10%, un uso por clienta, sin mínimo, no combina).
-- **Popup y correos:** Shopify Forms (popup 10%) y Shopify Messaging (carrito abandonado), nativos (Mario: "no custom si Shopify ya lo hace").
+- **Popup y correos (2026-11-09, EN VIVO), nativos** (Mario: "no custom si Shopify ya lo hace"):
+  - **Shopify Forms**, formulario "Bienvenida 10%" (id 1244541): el texto del popup Woo; aparece a los 25 s o al intentar salir (escritorio), igual que el de Woo; correo obligatorio y WhatsApp opcional.
+    - Permiso **solo de correo**: SMS y WhatsApp apagados, porque el WhatsApp de Woo daba puntos, no permiso de publicidad.
+    - Al enviar muestra **BIENVENIDA10**; etiqueta `popup-bienvenida`.
+    - Se quitó "+50 puntos Club Fuxia": Forms no puede darlos.
+    - App embed "Forms" encendido en el tema.
+  - **Shopify Messaging**, automatización "Recupera el pedido abandonado" (correo "Completa tu pedido", en español): **activa por defecto**. Mario autorizó los permisos.
+- **Favoritos y el arreglo de Hilo (2026-11-09, EN VIVO):** `app deploy` corrido por Mario y app embed "Favoritos · Fuxia 360" encendido. Verificado en la tienda: corazones en tarjetas y header, y Hilo «Lo más vendido» con tarjetas.
 - **Lo que se rompió con la redirección y hay que mover a Shopify:**
   - `f360-store-reserve` (link de pago MX);
   - `my-orders`, `link-orders` y `backfill-orders`;
