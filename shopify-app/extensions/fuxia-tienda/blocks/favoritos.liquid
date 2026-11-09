@@ -1,0 +1,27 @@
+{% comment %}
+  Fuxia 360 · ♡ Favoritos ("Mis Fuxia") en la tienda Shopify de México: corazón en cada tarjeta, en la ficha y en el header.
+  App embed: Tienda en línea → Temas → Personalizar → Incrustaciones de aplicaciones → "Favoritos · Fuxia 360".
+  Fuente: shopify-app/extensions/fuxia-tienda (port de tools/storefront/f360-favoritos.html).
+{% endcomment %}
+<div id="f360-fav-root">
+  <div class="f360-fav-velo" hidden></div>
+  <aside class="f360-fav-panel" hidden role="dialog" aria-modal="true" aria-labelledby="f360-fav-titulo">
+    <div class="f360-fav-top">
+      <h2 id="f360-fav-titulo"><span class="f360-fav-tit-logo" aria-hidden="true"></span>Mis Fuxia <span class="f360-fav-n"></span></h2>
+      <button type="button" class="f360-fav-x" aria-label="Cerrar mis favoritos">✕</button>
+    </div>
+    <div class="f360-fav-lista" aria-live="polite"></div>
+    <p class="f360-fav-pie">Se guardan en este dispositivo.</p>
+  </aside>
+  <div class="f360-fav-toast" role="status" aria-live="polite" hidden><span></span><button type="button"></button></div>
+</div>
+{{ 'favoritos.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'favoritos.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Favoritos · Fuxia 360",
+  "target": "body",
+  "settings": []
+}
+{% endschema %}
