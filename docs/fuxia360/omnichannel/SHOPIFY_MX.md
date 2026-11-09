@@ -56,7 +56,7 @@ El handle de Shopify es igual al slug del producto Woo: **78 de 79** (falta `bot
   - Cada liga automática hereda una liga que ya hizo una persona o el publicador.
   - Origen `legacy_adopted`: se compara por id, no por SKU.
 - **Staging, con el catálogo real:** 1,026 de 1,278 ligadas, 0 con otro color o talla, ningún par ligado dos veces.
-- **Pendientes:** 252 tallas en 42 colores, por ejemplo `mafalda-taches`, `croc`, `flats-picudos-con-taches` y `botas-comb`. Son productos Woo viejos sin liga en Fuxia 360. Van a homologación con Carolina.
+- **Las 252 pendientes** (42 colores: Mafalda Studs, Stud Point, Croc, Knotty…): sus variaciones Woo viejas no guardaban color (solo "Medida"). Se resolvieron con una 3.ª regla (`20261109000200`): **nombre del modelo** (la agencia usó los nombres de Fuxia 360 como título en Shopify; exactamente un producto activo con ese nombre) + color + talla. Prueba de solo lectura en prod: 252/252 únicas, sin choques. Staging: 1278/1278.
 - **Límite conocido:** si un producto Shopify no tiene **ninguna** talla ligada, su venta se registra como "legacy" y no se descuenta, igual que pasa en Woo. Por eso hay que cerrar los pendientes.
 
 ## 4. Pedidos Shopify → Fuxia 360 (primero)
