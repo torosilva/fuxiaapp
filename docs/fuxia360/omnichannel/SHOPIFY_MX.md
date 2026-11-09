@@ -118,7 +118,7 @@ Se **reusa el camino de pedidos que ya existe**, no se crea uno paralelo. Un ped
   - Solo México: 137 leads de Colombia se quedan en Woo. Sin dirección (claves de estado Woo ≠ Shopify; siguen en Fuxia 360).
 - **Cupón BIENVENIDA10 (2026-11-09, HECHO):** creado en Shopify con las reglas Woo (10%, un uso por clienta, sin mínimo, no combina).
 - **Popup y correos (2026-11-09, EN VIVO), nativos** (Mario: "no custom si Shopify ya lo hace"):
-  - **Shopify Forms**, formulario "Bienvenida 10%" (id 1244541): el texto del popup Woo; aparece a los 25 s o al intentar salir (escritorio), igual que el de Woo; correo obligatorio y WhatsApp opcional.
+  - **Shopify Forms**, formulario "Bienvenida 10%" (id 1244541): el texto del popup Woo; aparece a los 25 s o al intentar salir (escritorio), igual que el de Woo; correo obligatorio y WhatsApp opcional. Sin recuadro recordatorio (teaser = Never): tapaba "Descarga la app" y a Mario no le gustó.
     - Permiso **solo de correo**: SMS y WhatsApp apagados, porque el WhatsApp de Woo daba puntos, no permiso de publicidad.
     - Al enviar muestra **BIENVENIDA10**; etiqueta `popup-bienvenida`.
     - Se quitó "+50 puntos Club Fuxia": Forms no puede darlos.
