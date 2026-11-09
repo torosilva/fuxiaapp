@@ -135,3 +135,14 @@ Se **reusa el camino de pedidos que ya existe**, no se crea uno paralelo. Un ped
   - GA4 y la compra por servidor dependen de cómo lo dejó la agencia;
   - comparar 4 semanas Shopify vs las 4 anteriores en Woo cuando ya entren los pedidos.
 - **Ficha de producto (2026-11-09, EN VIVO):** el link "Más opciones de pago" medía 11.7 px. Se subió a 15 px con el **Custom CSS nativo** de la sección "Product information" del tema (`.shopify-payment-button__more-options`). El botón de Shop Pay sigue igual.
+- **Tallas Kids (2026-11-09).** La guía oficial de Mario: 24 16.0 · 25 16.5 · 26 17.2 · 27 17.9 · 28 18.6 · 29 19.2 · 30 19.9 · 31 20.6 · 32 21.3 · 33 21.9 cm.
+  - **Antes:** Mini cucarrones y Mini Twin Studs tenían 25–33 + 35–40, y Mini Paula solo 35–40, en Fuxia 360, Shopify y Woo. La tabla de cm del tema decía 25 = 15.5 cm.
+  - **Shopify (EN VIVO):** los tres quedaron con 24–33. Las variantes se editaron en el admin: $1,900, sin control de inventario, todas comprables.
+  - **Tabla de cm:** está en el bloque Custom Liquid `custom_liquid_ajMTkt` del template de producto, rama `product.type == 'Kids'`. Ahí se corrigieron los valores. Respaldo del bloque original: `~/fuxia360-respaldos/shopify_custom_liquid_tallas_20261109.txt`.
+  - **Fuxia 360:** `supabase/pase/20261109_kids_tallas.sql`, con dry-run OK.
+    - Agrega 24–33 con una variante por color.
+    - Borra 35–40 solo si no tienen ninguna historia; sus ligas a Woo y Shopify se borran con ellas.
+  - **Liga Shopify:** `supabase/pase/20261109_kids_tallas_shopify.sql` va después. Recarga el catálogo (1,264 variantes) y liga las 100 tallas Kids.
+  - **Woo CO:** botón **Publicar** de cada modelo en Fuxia 360. El publicador oculta 35–40 (privadas, nunca las borra) y crea las nuevas.
+  - **Hilo:** su KB solo trae la tabla de adulta. Falta un artículo Kids (`fuxia-chatbot` `kb/seed.json` + `scripts/ingest_kb.py`).
+    - Ojo: la regla CRO-6 convierte "24 MX → 37", y 24 ahora también es talla Kids.
