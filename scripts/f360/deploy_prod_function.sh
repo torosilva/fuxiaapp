@@ -25,7 +25,7 @@
 #     once Meta approves the template fuxia_gracias_compra (without it, the function sends nothing).
 #   · whitelist only (never the app's own functions: hilo-chat, whatsapp-otp, woocommerce-*, …);
 #   · the function must be committed with no local changes;
-#   · f360-store-reserve: F360_RESERVE_ORIGINS = fuxiaballerinas.com only, F360_STOREFRONT_TARGET = woo_production. The Woo key
+#   · f360-store-reserve: F360_RESERVE_ORIGINS = fuxiaballerinas.com + mx.fuxiaballerinas.com (Shopify México, Hilo 2026-11-09), F360_STOREFRONT_TARGET = woo_production. The Woo key
 #     (WOO_BASE_URL/USER/SECRET) is already a project secret (deploy_prod_publisher.sh), so the payment link creates REAL orders
 #     in fuxiaballerinas.com. No test phones in production (the 2-hour hold stays closed until real WhatsApp codes exist).
 #   · f360-woo-orders (Mario 2026-10-08): online orders → Fuxia 360 inventory. WOO_WEBHOOK_SECRET is generated ONCE into
@@ -60,7 +60,7 @@ elif [ "$FN" = "f360-fx-rates" ]; then
 elif [ "$FN" = "f360-storefront" ]; then
   : # uses the secrets f360-store-reserve already set (F360_RESERVE_ORIGINS = fuxiaballerinas.com, F360_STOREFRONT_TARGET = woo_production)
 elif [ "$FN" = "f360-store-reserve" ]; then
-  printf 'F360_RESERVE_ORIGINS=https://fuxiaballerinas.com,https://www.fuxiaballerinas.com\nF360_STOREFRONT_TARGET=woo_production\n' > "$TMP"
+  printf 'F360_RESERVE_ORIGINS=https://fuxiaballerinas.com,https://www.fuxiaballerinas.com,https://mx.fuxiaballerinas.com\nF360_STOREFRONT_TARGET=woo_production\n' > "$TMP"
 elif [ "$FN" = "f360-whatsapp" ]; then
   # Twilio keys are already project secrets (whatsapp-otp). The approved template SID is set ONLY when given
   # (F360_THANKS_SID=HX… after Meta approves fuxia_gracias_compra); without it the function sends nothing.

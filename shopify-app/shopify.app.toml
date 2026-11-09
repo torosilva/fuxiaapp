@@ -1,0 +1,19 @@
+# Fuxia 360 · app de Shopify (Dev Dashboard, org 245924007, app 445479976961), instalada en z9fdqc-0z.myshopify.com.
+# Solo lleva la extensión de tema (Hilo). Los pedidos llegan por webhooks registrados con scripts/f360/shopify_webhooks.mjs.
+# Publicar: cd shopify-app && npx -y @shopify/cli@4.9.4 app deploy
+client_id = "39296237368fe65fa30cab980b78303c"
+name = "Fuxia 360"
+application_url = "https://fuxia360.vercel.app"
+embedded = false
+
+[access_scopes]
+scopes = "read_orders,read_products,read_inventory,write_inventory,read_locations,read_customers"
+
+[auth]
+redirect_urls = [ "https://fuxia360.vercel.app" ]
+
+[webhooks]
+api_version = "2026-10"
+
+[build]
+include_config_on_deploy = true

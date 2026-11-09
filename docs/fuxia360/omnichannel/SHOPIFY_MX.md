@@ -92,8 +92,16 @@ Se **reusa el camino de pedidos que ya existe**, no se crea uno paralelo. Un ped
 - **Productos sobre pedido** (`make_to_order`): se dejan con "seguir vendiendo sin existencia" (`inventoryPolicy CONTINUE`). Así no se agotan los que se fabrican.
 - **Colombia (Woo) y México (Shopify) comparten las mismas existencias.** Cada pedido de una tienda baja el número en Fuxia 360 y se reenvía a la otra en ~1 min. El riesgo de vender doble existe solo en ese minuto.
 
-## 6. Después
-- **Hilo:** app embed de la app Fuxia 360 (theme app extension), para que no dependa del código del tema que maneja la agencia.
+## 6. Hilo en Shopify (2026-11-09, listo para publicar)
+- **Ubicación:** extensión de tema de la app Fuxia 360 (`shopify-app/extensions/fuxia-tienda`, app embed "Hilo · Fuxia 360"). Vive en la app, así que un cambio de tema no lo borra.
+- **Base:** port de `tools/storefront/f360-hilo-global.html`. Producto, color y talla salen del formulario de Shopify (`[name=id]` + `/products.json`). Las tarjetas y los modelos salen de `/products.json`: los títulos de Shopify son los nombres de Fuxia 360 (79 de 81).
+- **Tallas:** las de la tienda (35–40).
+- **Los dos servicios rechazaban a mx.fuxiaballerinas.com:**
+  - Hilo en Railway: CORS 400. Rama `shopify-mx-cors` del repo fuxia-chatbot, una línea → `main`.
+  - `f360-store-reserve`: 403. `F360_RESERVE_ORIGINS` + mx en `deploy_prod_function.sh`.
+- **Publicar:** `cd shopify-app && npx -y @shopify/cli@4.9.4 app deploy` (pide la sesión de Shopify de Mario). Después, encender el app embed en el editor del tema y apagar el asistente IA de Shopify ("Z9fdqc 0Z AI", `<shopify-chat>` del tema Horizon).
+
+## 7. Después
 - **Bienvenida 10% + captura de correo/celular:** cupón BIENVENIDA10 en Shopify + popup propio; los datos van a la ficha de la clienta en Fuxia 360.
 - **Fuxia Kids (juegos)**, **Favoritos**, link del **Club Fuxia**.
 - **Clientas:** subir la base a Shopify respetando el consentimiento de marketing (pendiente de decisión con la agencia).

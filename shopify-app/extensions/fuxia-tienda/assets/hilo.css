@@ -1,0 +1,56 @@
+/* Fuxia 360 · Hilo (Shopify). Same look as the Woo store: tools/storefront/f360-hilo-global.html */
+#fh-root { --fh-gold: #B8966E; --fh-ink: #242424; font-family: inherit; }
+#fh-root [hidden] { display: none !important; }
+.fh-btn { position: fixed; right: 18px; bottom: calc(18px + var(--fh-lift, 0px)); z-index: 99990; display: flex; align-items: center; gap: 8px; height: 58px; padding: 0 18px 0 14px;
+  border: 0; border-radius: 29px; background: var(--fh-gold); color: #fff; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,.22); transition: transform .2s ease, bottom .25s ease; }
+.fh-btn:hover { transform: translateY(-2px); }
+.fh-btn svg { width: 30px; height: 30px; }
+.fh-btn-t { font-size: 15px; font-weight: 600; letter-spacing: .04em; }
+.fh-teaser { position: fixed; right: 18px; bottom: calc(88px + var(--fh-lift, 0px)); z-index: 99990; max-width: 240px; padding: 12px 32px 12px 14px; background: #fff; color: var(--fh-ink);
+  border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.16); font-size: 14px; line-height: 1.35; cursor: pointer; animation: fh-in .3s ease; }
+.fh-teaser-x { position: absolute; top: 4px; right: 6px; border: 0; background: none; font-size: 18px; color: #9A9A96; cursor: pointer; }
+.fh-panel { position: fixed; right: 18px; bottom: calc(88px + var(--fh-lift, 0px)); z-index: 99991; width: min(370px, calc(100vw - 24px)); height: min(560px, calc(100vh - 120px));
+  display: flex; flex-direction: column; background: #fffdf9; border-radius: 18px; box-shadow: 0 16px 48px rgba(0,0,0,.24); overflow: hidden; animation: fh-in .25s ease; }
+@keyframes fh-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.fh-top { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: var(--fh-gold); color: #fff; }
+.fh-top-id { display: flex; align-items: center; gap: 10px; }
+.fh-top-id b { display: block; font-size: 16px; } .fh-top-id small { font-size: 12px; opacity: .9; }
+.fh-by { font-style: normal; font-weight: 400; font-size: 11px; letter-spacing: .08em; opacity: .85; margin-left: 4px; }   /* Mario 2026-10-06: HiloLabs en todos lados */
+.fh-ava { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.18); display: grid; place-items: center; }
+.fh-ava svg { width: 22px; height: 22px; }
+.fh-x { border: 0; background: none; color: #fff; font-size: 26px; line-height: 1; cursor: pointer; }
+.fh-log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.fh-log p { margin: 0; padding: 9px 12px; border-radius: 14px; font-size: 14px; line-height: 1.4; max-width: 86%; white-space: pre-line; }
+.fh-log .h { background: #f3ece1; color: #3b342c; align-self: flex-start; border-bottom-left-radius: 4px; }
+.fh-log .c { background: var(--fh-gold); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+.fh-log .t { color: #9A9A96; font-style: italic; background: none; padding: 2px 4px; }
+.fh-log a { color: #8c6414; text-decoration: underline; word-break: break-word; }
+.fh-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 10px; }
+.fh-chips button { padding: 8px 12px; border: 1px solid var(--fh-gold); border-radius: 18px; background: #fff; color: #8c6414; font-size: 13px; cursor: pointer; font-family: inherit; }
+.fh-chips .fh-big { flex: 1 1 100%; padding: 13px 14px; font-size: 15px; text-align: left; border-radius: 12px; }
+.fh-chips .fh-big.wa { border-color: #25D366; color: #128C4A; }
+.fh-top-act { display: flex; align-items: center; gap: 4px; }
+.fh-wa { width: 34px; height: 34px; border: 0; border-radius: 50%; background: #fff; color: #25D366; cursor: pointer; display: grid; place-items: center; }
+.fh-wa svg { width: 20px; height: 20px; }
+.fh-chips { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; padding: 2px 14px 8px !important; }
+.fh-chips::-webkit-scrollbar { display: none; }
+.fh-chips button { flex: 0 0 auto; padding: 7px 11px !important; font-size: 12.5px !important; white-space: nowrap; }
+.fh-log > * { flex-shrink: 0; }
+.fh-cards { flex: 0 0 auto; display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 4px; align-self: stretch; scrollbar-width: none; }
+.fh-cards::-webkit-scrollbar { display: none; }
+.fh-card, .fh-card * { text-decoration: none !important; }
+.fh-card { flex: 0 0 132px; border: 1px solid #ece4d6; border-radius: 12px; background: #fff; overflow: hidden; text-decoration: none; color: #242424; display: flex; flex-direction: column; }
+.fh-card img { width: 100%; height: 120px; object-fit: cover; background: #f5f2ec; display: block; }
+.fh-card img.fh-sinfoto { background: #f5f2ec url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21c-4-3-6-7-6-11 2 1 4 3 6 6 2-3 4-5 6-6 0 4-2 8-6 11z' fill='none' stroke='%23B8966E' stroke-width='1.2'/%3E%3C/svg%3E") center / 40px no-repeat; }
+.fh-card b { font-size: 12.5px; font-weight: 600; padding: 7px 8px 0; line-height: 1.25; }
+.fh-card span { font-size: 12px; color: #6B6B68; padding: 2px 8px 0; }
+.fh-card i { font-style: normal; margin: 6px 8px 8px; padding: 6px 0; border-radius: 8px; background: #B8966E; color: #fff; text-align: center; font-size: 12px; font-weight: 600; }
+.fh-in { display: flex; gap: 8px; padding: 10px 12px 12px; border-top: 1px solid #eee5d8; }
+.fh-in input { flex: 1; height: 42px; padding: 0 12px; border: 1px solid #d9d2c5; border-radius: 21px; font-size: 16px; font-family: inherit; }
+.fh-in button { width: 42px; height: 42px; border: 0; border-radius: 50%; background: var(--fh-ink); color: #fff; cursor: pointer; }
+.fh-hp { position: absolute !important; left: -9999px !important; width: 1px !important; height: 1px !important; opacity: 0 !important; }
+@media (max-width: 640px) {
+  .fh-btn { right: 12px; height: 54px; padding: 0 16px 0 12px; }
+  .fh-panel { right: 8px; left: 8px; width: auto; bottom: calc(80px + var(--fh-lift, 0px)); height: min(70vh, calc(100vh - 110px)); }
+  .fh-teaser { right: 12px; }
+}
