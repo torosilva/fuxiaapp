@@ -43,34 +43,42 @@ export async function handleOrders(req: Request, env: OrdersEnv, opts: OrdersOpt
 
   let order: Record<string, unknown>;
   try { order = JSON.parse(raw); } catch { return json({ error: 'Cuerpo no válido.' }, 400); }
+  const woo = opts.commerceWoo !== undefined ? opts.commerceWoo
+    : env.WOO_BASE_URL && env.WOO_USER && env.WOO_SECRET ? commerceWoo({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET }) : null;
+  // Refund detail is read from Woo when there are refunds; if that read fails the refund is kept header-only (PARTIAL)
+  // and the 15-minute poll completes it.
+  const refundDetails = woo && Array.isArray(order.refunds) && order.refunds.length
+    ? async () => (await woo.listRefunds(Number(order.id))).map(refundDetail) : undefined;
+  return ingestOrder(rpc, env.WOO_TARGET_KEY, delivery, order, { afterApplied: opts.afterApplied, refundDetails, log: 'f360-woo-orders' });
+}
+
+/** Everything after a delivery is authenticated: one Woo-shaped order → Fuxia 360. Shared by Woo (f360-woo-orders) and
+ *  Shopify (f360-shopify, which translates its orders to this shape first). Answers 5xx on a failure the store should retry. */
+export async function ingestOrder(rpc: ReturnType<typeof serviceRpc>, targetKey: string, delivery: { delivery_id: string | null; topic: string },
+  order: Record<string, unknown>, o: { afterApplied?: () => Promise<unknown>; refundDetails?: () => Promise<Record<string, unknown>[]>; log: string }): Promise<Response> {
   try {
-    const result = await rpc<{ result: string }>('f360_ingest_woo_order', { p_target_key: env.WOO_TARGET_KEY, p_delivery: delivery, p_order: minimizeOrder(order) });
+    const result = await rpc<{ result: string }>('f360_ingest_woo_order', { p_target_key: targetKey, p_delivery: delivery, p_order: minimizeOrder(order) });
     // Push the new Bodega stock right away (best effort; the queue + worker guarantee it anyway).
-    if (result.result === 'applied' && opts.afterApplied) { try { await opts.afterApplied(); } catch { /* retried by the worker */ } }
+    if (result.result === 'applied' && o.afterApplied) { try { await o.afterApplied(); } catch { /* retried by the worker */ } }
     // G1 Commerce Facts: the order's economics + first-party attribution (whitelist only; inventory above is unaffected).
-    // Refund detail is read from Woo when there are refunds; if that read fails the refund is kept header-only (PARTIAL)
-    // and the 15-minute poll completes it. A capture failure answers 5xx so Woo retries (both steps are idempotent).
-    const woo = opts.commerceWoo !== undefined ? opts.commerceWoo
-      : env.WOO_BASE_URL && env.WOO_USER && env.WOO_SECRET ? commerceWoo({ baseUrl: env.WOO_BASE_URL, user: env.WOO_USER, secret: env.WOO_SECRET }) : null;
+    // A capture failure answers 5xx so the store retries (both steps are idempotent).
     let detailed: Record<string, unknown>[] | undefined;
-    if (woo && Array.isArray(order.refunds) && order.refunds.length) {
-      try { detailed = (await woo.listRefunds(Number(order.id))).map(refundDetail); } catch { detailed = undefined; }
-    }
-    const commerce = await rpc<{ result: string }>('f360_capture_order_economics', { p_target_key: env.WOO_TARGET_KEY, p_order: orderEconomics(order, detailed), p_via: 'webhook' });
+    if (o.refundDetails) { try { detailed = await o.refundDetails(); } catch { detailed = undefined; } }
+    const commerce = await rpc<{ result: string }>('f360_capture_order_economics', { p_target_key: targetKey, p_order: orderEconomics(order, detailed), p_via: 'webhook' });
     // CRM C7: where it ships → the customer's ficha. Best effort: a failure here must never make Woo retry or block stock.
     let shipping = 'skipped';
     try {
-      shipping = (await rpc<{ result: string }>('f360_capture_order_shipping', { p_target_key: env.WOO_TARGET_KEY, p_order: orderShipping(order) })).result;
-    } catch (e) { shipping = 'error'; console.error(`[f360-woo-orders] shipping capture failed order=${order.id}: ${(e as Error).message}`); }
+      shipping = (await rpc<{ result: string }>('f360_capture_order_shipping', { p_target_key: targetKey, p_order: orderShipping(order) })).result;
+    } catch (e) { shipping = 'error'; console.error(`[${o.log}] shipping capture failed order=${order.id}: ${(e as Error).message}`); }
     // CRM C8 (online = store): a buyer who is not a customer yet is registered and her points are HELD until she logs in
     // (the database also cancels them if the order is cancelled/refunded first). Best effort, like shipping.
     let loyalty = 'skipped';
     try {
-      loyalty = (await rpc<{ result: string }>('f360_web_order_loyalty', { p_target_key: env.WOO_TARGET_KEY, p_order: orderLoyalty(order) })).result;
-    } catch (e) { loyalty = 'error'; console.error(`[f360-woo-orders] loyalty step failed order=${order.id}: ${(e as Error).message}`); }
+      loyalty = (await rpc<{ result: string }>('f360_web_order_loyalty', { p_target_key: targetKey, p_order: orderLoyalty(order) })).result;
+    } catch (e) { loyalty = 'error'; console.error(`[${o.log}] loyalty step failed order=${order.id}: ${(e as Error).message}`); }
     return json({ ...result, commerce: commerce.result, shipping, loyalty });
   } catch (e) {
-    // 5xx → Woo retries the delivery later; the database side is atomic, so a retry is always safe.
+    // 5xx → the store retries the delivery later; the database side is atomic, so a retry is always safe.
     return json({ error: (e as Error).message }, 500);
   }
 }

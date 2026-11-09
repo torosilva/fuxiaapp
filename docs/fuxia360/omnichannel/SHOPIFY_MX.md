@@ -47,9 +47,17 @@ El handle de Shopify es igual al slug del producto Woo: **78 de 79** (falta `bot
    - Las variaciones Woo **sin atributo de color** (p. ej. `sandalias-tiras-amarrar`) no sirven para esto: casarían Negro y Verde con la misma variación.
 3. **Lo que no se resuelva** va a la pantalla de Homologación como pendiente. Nunca se adivina.
 
-La liga vive en una tabla nueva `f360.shopify_variant_links`:
-- columnas: `shopify_variant_id`, `shopify_inventory_item_id`, `variant_id`, `method`, `confirmed_by`;
-- `UNIQUE` por variante Shopify y por variante Fuxia 360 dentro de la tienda.
+**Cómo quedó (20261109000100):**
+- **Copia del catálogo:** `f360.shopify_products` / `f360.shopify_variants`, cargada con `scripts/f360/shopify_catalog.mjs`.
+- **La liga va en `f360.woo_variant_links`**, la misma que leen pedidos e inventario.
+- **Ids internos cortos:** los ids de Shopify (50958118649926) no caben en las columnas de 32 bits que vienen de Woo, y ampliarlas obliga a rehacer la cadena de vistas de ventas en producción. Por eso cada producto y variante de Shopify recibe un `link_id`, y `public.f360_shopify_localize` cambia los ids antes de ingerir el pedido.
+- **Ids que se quedan como los de Shopify:** pedido, línea, reembolso y clienta, porque ya son bigint.
+- **Guardia de la liga:** en Shopify exige que la variante exista en la copia del catálogo, en vez de la homologación hecha a mano.
+  - Cada liga automática hereda una liga que ya hizo una persona o el publicador.
+  - Origen `legacy_adopted`: se compara por id, no por SKU.
+- **Staging, con el catálogo real:** 1,026 de 1,278 ligadas, 0 con otro color o talla, ningún par ligado dos veces.
+- **Pendientes:** 252 tallas en 42 colores, por ejemplo `mafalda-taches`, `croc`, `flats-picudos-con-taches` y `botas-comb`. Son productos Woo viejos sin liga en Fuxia 360. Van a homologación con Carolina.
+- **Límite conocido:** si un producto Shopify no tiene **ninguna** talla ligada, su venta se registra como "legacy" y no se descuenta, igual que pasa en Woo. Por eso hay que cerrar los pendientes.
 
 ## 4. Pedidos Shopify → Fuxia 360 (primero)
 Se **reusa el camino de pedidos que ya existe**, no se crea uno paralelo. Un pedido Shopify entra como un pedido más de la tienda en línea, con su propio `sales_target` (`shopify_mx`, `kind 'shopify'`). Así funcionan sin tocarlos:
@@ -64,11 +72,12 @@ Se **reusa el camino de pedidos que ya existe**, no se crea uno paralelo. Un ped
   - traduce el pedido Shopify a la forma que esperan `f360_ingest_woo_order` / `f360_capture_order_economics`:
     - `financial_status` paid/partially_refunded → `processing`; fulfilled → `completed`; voided/cancelled → `cancelled`;
     - `line_items` con la variante Fuxia 360 ya resuelta por `shopify_variant_links`.
-- **Respaldo:** sondeo cada 15 min por GraphQL (`orders(query:"updated_at:>…")`), igual que `commerce_poll`.
+- **Respaldo:** sondeo cada 15 min por GraphQL (`orders(query:"updated_at:>…")`), igual que `commerce_poll`. **Pendiente**; por ahora solo webhooks, que Shopify reintenta hasta 48 h.
 - **Cambios de base:**
   - `sales_targets.kind` acepta `'shopify'`;
   - la liga de variantes por tienda acepta la tabla nueva;
   - `orders_since_id` = pedido de corte, para que el `#1001` de prueba nunca mueva inventario.
+- **Pedidos de prueba:** Shopify los marca con `test: true` y se ignoran sin registrar nada.
 - **Identidad del pedido:** el `id` numérico de Shopify (bigint), único por tienda. El número visible (#1001) se guarda aparte. Nunca choca con los de Woo porque la tienda es otra.
 - **Mercado:** MXN → MX, como hoy.
 

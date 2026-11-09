@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Fuxia 360 · the ONLY way this repo deploys the store-facing functions to PRODUCTION (tgzg…), approved by Mario as a permission rule.
-# Usage: scripts/f360/deploy_prod_function.sh f360-store-reserve | f360-storefront | f360-hilo-intake | f360-woo-orders | f360-whatsapp | f360-meta-spend | f360-push | f360-fx-rates | f360-instagram | f360-clarity | f360-analyst | f360-ga4 | f360-email
+# Usage: scripts/f360/deploy_prod_function.sh f360-store-reserve | f360-storefront | f360-hilo-intake | f360-woo-orders | f360-whatsapp | f360-meta-spend | f360-push | f360-fx-rates | f360-instagram | f360-clarity | f360-analyst | f360-ga4 | f360-email | f360-shopify
+#   · f360-shopify (Mario 2026-11-09, Shopify México): order webhooks of mx.fuxiaballerinas.com → Fuxia 360. SHOPIFY_CLIENT_SECRET =
+#     the "Fuxia 360" app's client secret from ~/.fuxia-shopify.secret (chmod 600, never printed; it also signs the webhooks).
+#     Webhooks are subscribed afterwards with scripts/f360/shopify_webhooks.mjs. Docs: docs/fuxia360/omnichannel/SHOPIFY_MX.md.
 #   · f360-email (Mario 2026-10-30, Bandeja): the team's notice e-mails (f360.email_outbox → info@fuxiaballerinas.com) via Resend.
 #     RESEND_API_KEY is already a project secret (welcome e-mail); EMAIL_FROM = hola@fuxiaballerinas.com (same sender as the welcome).
 #     F360_EMAIL_SECRET is generated ONCE into ~/.fuxia-email.secret (chmod 600, never printed); scripts/f360/prod_email_vault.sh
@@ -34,7 +37,7 @@
 set -euo pipefail
 PROD_REF="tgzgiwfzddsghnxgkcqd"
 FN="${1:-}"
-case "$FN" in f360-store-reserve|f360-storefront|f360-hilo-intake|f360-woo-orders|f360-whatsapp|f360-meta-spend|f360-push|f360-fx-rates|f360-instagram|f360-clarity|f360-analyst|f360-ga4|f360-email) ;; *) echo "ABORT: solo f360-store-reserve, f360-storefront, f360-hilo-intake, f360-woo-orders, f360-whatsapp, f360-meta-spend, f360-push, f360-fx-rates, f360-instagram, f360-clarity, f360-analyst, f360-ga4 o f360-email" >&2; exit 1;; esac
+case "$FN" in f360-store-reserve|f360-storefront|f360-hilo-intake|f360-woo-orders|f360-whatsapp|f360-meta-spend|f360-push|f360-fx-rates|f360-instagram|f360-clarity|f360-analyst|f360-ga4|f360-email|f360-shopify) ;; *) echo "ABORT: solo f360-store-reserve, f360-storefront, f360-hilo-intake, f360-woo-orders, f360-whatsapp, f360-meta-spend, f360-push, f360-fx-rates, f360-instagram, f360-clarity, f360-analyst, f360-ga4, f360-email o f360-shopify" >&2; exit 1;; esac
 cd "$(dirname "$0")/../.."
 git diff --quiet HEAD -- "fuxia-native/supabase/functions/$FN" || { echo "ABORT: $FN tiene cambios sin commitear." >&2; exit 1; }
 [ -z "$(git ls-files --others --exclude-standard "fuxia-native/supabase/functions/$FN")" ] || { echo "ABORT: $FN tiene archivos sin commitear." >&2; exit 1; }
@@ -65,6 +68,10 @@ elif [ "$FN" = "f360-whatsapp" ]; then
   [ -n "${F360_THANKS_MEMBER_SID:-}" ] && printf 'TWILIO_THANKS_MEMBER_CONTENT_SID=%s\n' "$F360_THANKS_MEMBER_SID" >> "$TMP"
   # Bandeja → Carolina (2026-11-03): F360_STAFF_SID=HX… = template fuxia_aviso_equipo (sends nothing until Meta approves it)
   [ -n "${F360_STAFF_SID:-}" ] && printf 'TWILIO_STAFF_CONTENT_SID=%s\n' "$F360_STAFF_SID" >> "$TMP"
+elif [ "$FN" = "f360-shopify" ]; then
+  SECRET_FILE="$HOME/.fuxia-shopify.secret"
+  [ -s "$SECRET_FILE" ] || { echo "ABORT: falta $SECRET_FILE (client secret de la app Fuxia 360 en Shopify)." >&2; exit 1; }
+  printf 'SHOPIFY_CLIENT_SECRET=%s\nSHOPIFY_SHOP=z9fdqc-0z.myshopify.com\nSHOPIFY_TARGET_KEY=shopify_mx\n' "$(tr -d '\n' < "$SECRET_FILE")" > "$TMP"
 elif [ "$FN" = "f360-email" ]; then
   SECRET_FILE="$HOME/.fuxia-email.secret"
   if [ ! -s "$SECRET_FILE" ]; then ( umask 077; openssl rand -hex 32 > "$SECRET_FILE" ); echo "Secreto nuevo generado en $SECRET_FILE"; fi
@@ -108,6 +115,11 @@ elif [ "$FN" = "f360-woo-orders" ]; then
   ping=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$URL" -H 'Content-Type: application/x-www-form-urlencoded' -d 'webhook_id=0')
   echo "Ping de Woo (debe 200): $ping"
   [ "$ping" = "200" ] || { echo "ATENCIÓN: respuesta inesperada al ping" >&2; exit 2; }
+elif [ "$FN" = "f360-shopify" ]; then
+  # a GET proves it is up without JWT and records nothing (an unsigned POST would be logged as a rejected delivery)
+  get=$(curl -s -o /dev/null -w '%{http_code}' "$URL")
+  echo "GET (debe 405): $get"
+  [ "$get" = "405" ] || { echo "ATENCIÓN: respuesta inesperada" >&2; exit 2; }
 elif [ "$FN" = "f360-whatsapp" ]; then
   # takes no input: a call only delivers what the database already queued (or answers 'sin plantilla aprobada')
   out=$(curl -s -w ' %{http_code}' -X POST "$URL" -H 'Content-Type: application/json' -d '{}')
