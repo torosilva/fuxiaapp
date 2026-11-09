@@ -113,7 +113,11 @@ Se **reusa el camino de pedidos que ya existe**, no se crea uno paralelo. Un ped
 ## 7. Después
 - **Bienvenida 10% + captura de correo/celular:** cupón BIENVENIDA10 en Shopify + popup propio; los datos van a la ficha de la clienta en Fuxia 360.
 - **Fuxia Kids (juegos)**, **Favoritos**, link del **Club Fuxia**.
-- **Clientas:** subir la base a Shopify respetando el consentimiento de marketing (pendiente de decisión con la agencia).
+- **Clientas (2026-11-09, HECHO):** `scripts/f360/wp_clientas_a_shopify.sh` → `~/fuxia360-respaldos/shopify_clientas_mx.csv` → Shopify Customers → Import (sobrescribir existentes). **313 importadas, 0 fallidas.**
+  - 213 con "acepta correos" (popup Woo, "Sin spam…"); 100 sin permiso (compradoras y carritos); SMS = no; 49 con celular.
+  - Solo México: 137 leads de Colombia se quedan en Woo. Sin dirección (claves de estado Woo ≠ Shopify; siguen en Fuxia 360).
+- **Cupón BIENVENIDA10 (2026-11-09, HECHO):** creado en Shopify con las reglas Woo (10%, un uso por clienta, sin mínimo, no combina).
+- **Popup y correos:** Shopify Forms (popup 10%) y Shopify Messaging (carrito abandonado), nativos (Mario: "no custom si Shopify ya lo hace").
 - **Lo que se rompió con la redirección y hay que mover a Shopify:**
   - `f360-store-reserve` (link de pago MX);
   - `my-orders`, `link-orders` y `backfill-orders`;
