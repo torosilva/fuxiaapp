@@ -16,4 +16,3 @@ redirect_urls = [ "https://fuxia360.vercel.app" ]
 api_version = "2026-10"
 
 [build]
-include_config_on_deploy = true
