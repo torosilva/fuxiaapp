@@ -16,7 +16,7 @@
   var checkout = /\/checkouts?\//.test(path), handle = (path.match(/\/products\/([^/?#]+)/) || [])[1] || null, producto = !!handle;
   // the store's catalogue (79 models), once per visit: titles = Fuxia 360 model names, handles = the old Woo slugs
   var prods = null;
-  function catalogo() {
+  function tienda() {
     if (prods) return prods;
     var c = null; try { c = JSON.parse(sessionStorage.getItem('fh_prods') || 'null'); } catch (e) { c = null; }
     return (prods = c ? Promise.resolve(c) : fetch('/products.json?limit=250').then(function (r) { return r.json(); }).then(function (j) {
@@ -27,7 +27,7 @@
     }).catch(function () { prods = null; return []; }));
   }
   var actual = null;   // this product page's model (title + variants), for colour / size
-  if (handle) catalogo().then(function (ps) { actual = ps.filter(function (p) { return p.handle === handle; })[0] || null; });
+  if (handle) tienda().then(function (ps) { actual = ps.filter(function (p) { return p.handle === handle; })[0] || null; });
   function varianteElegida() {
     var id = new URLSearchParams(location.search).get('variant'), f = document.querySelector('form[action*="/cart/add"] [name="id"]');
     if (f && f.value) id = f.value;
@@ -69,7 +69,7 @@
   var cache = {};
   function tarjetas(slugs) {
     var row = document.createElement('div'); row.className = 'fh-cards'; log.appendChild(row);
-    catalogo().then(function (ps) {
+    tienda().then(function (ps) {
       slugs.slice(0, 6).forEach(function (sl) {
         var pr = ps.filter(function (p) { return p.handle === sl; })[0];
         var a = document.createElement('a'); a.className = 'fh-card'; a.href = '/products/' + sl;
@@ -92,7 +92,7 @@
   var nrm = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
   function mostrarModelos(texto, items, siguientes) {
     // Fuxia 360's catalogue (sales, category, new) → the Shopify model with the same name
-    return catalogo().then(function (ps) {
+    return tienda().then(function (ps) {
       var porNombre = {}; ps.forEach(function (p) { porNombre[nrm(p.title)] = p.handle; });
       var slugs = [];
       items.forEach(function (it) { var h = porNombre[nrm(it.name)]; if (h && slugs.indexOf(h) < 0 && slugs.length < 6) slugs.push(h); });
