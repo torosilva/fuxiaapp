@@ -159,6 +159,6 @@ Se **reusa el camino de pedidos que ya existe**, no se crea uno paralelo. Un ped
     - `blocks/` y `sections/product-recommendations.liquid`: `role="img"` en el esqueleto de carga.
   - **Ojo:** si la agencia actualiza el tema Horizon, estos cambios de código pueden perderse y hay que volver a aplicarlos.
   - **Lo que falta:**
-    - El botón de Hilo: blanco sobre #b8966e, contraste 2.75. Es nuestro y se arregla con `app deploy`.
+    - ~~El botón de Hilo~~: **arreglado** el 2026-11-09. Letra oscura sobre el mismo dorado (`c008b46`); Mario hizo el `app deploy`.
     - Las etiquetas grises y el nombre del recuadro del popup de Shopify Forms. Son de la app de Shopify; no se pueden cambiar.
     - Un `h3` en "Recomendados".
