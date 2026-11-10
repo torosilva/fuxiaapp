@@ -2,7 +2,7 @@
 #fh-root { --fh-gold: #B8966E; --fh-ink: #242424; font-family: inherit; }
 #fh-root [hidden] { display: none !important; }
 .fh-btn { position: fixed; right: 18px; bottom: calc(18px + var(--fh-lift, 0px)); z-index: 99990; display: flex; align-items: center; gap: 8px; height: 58px; padding: 0 18px 0 14px;
-  border: 0; border-radius: 29px; background: var(--fh-gold); color: #fff; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,.22); transition: transform .2s ease, bottom .25s ease; }
+  border: 0; border-radius: 29px; background: var(--fh-gold); color: #1d1b18; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,.22); transition: transform .2s ease, bottom .25s ease; }
 .fh-btn:hover { transform: translateY(-2px); }
 .fh-btn svg { width: 30px; height: 30px; }
 .fh-btn-t { font-size: 15px; font-weight: 600; letter-spacing: .04em; }
