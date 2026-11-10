@@ -168,3 +168,9 @@ Se **reusa el camino de pedidos que ya existe**, no se crea uno paralelo. Un ped
 - **Menú "Tienda" (2026-11-09, EN VIVO):** submenú Ballerinas / Sandalias planas / Sandalias altas / Botas / Ver todo.
   - El encabezado de la agencia (`sections/fx-encabezado.liquid`) no mostraba submenús en computadora; se le agregó un menú desplegable. Respaldo del archivo original en `~/fuxia360-respaldos/shopify_fx-encabezado_20261109.liquid`.
   - Las colecciones se ordenan por más vendidos.
+- **Círculos de color (2026-11-09, EN VIVO): 79/79 productos y 53 colores.**
+  - Script: `scripts/f360/shopify_colores.mjs`.
+  - Cada color es un metaobjeto `shopify--color-pattern`. El tono sale de `product_colors.hex` de Fuxia 360; 14 estampados y combinados que no tenían tono recibieron uno aproximado.
+  - A cada producto se le asignó su categoría de Shopify (Flats, Sandals, Boots, Shoes).
+  - La opción Color quedó ligada a `shopify.color-pattern`. Los ids de variante no cambian (verificado).
+  - El tema tiene encendido "Swatches" en el bloque del selector de variantes.
