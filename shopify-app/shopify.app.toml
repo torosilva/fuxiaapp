@@ -7,7 +7,7 @@ application_url = "https://fuxia360.vercel.app"
 embedded = false
 
 [access_scopes]
-scopes = "read_orders,read_products,read_inventory,write_inventory,read_locations,read_customers"
+scopes = "read_orders,read_products,write_products,read_metaobjects,write_metaobjects,read_inventory,write_inventory,read_locations,read_customers"
 
 [auth]
 redirect_urls = [ "https://fuxia360.vercel.app" ]
