@@ -162,3 +162,9 @@ Se **reusa el camino de pedidos que ya existe**, no se crea uno paralelo. Un ped
     - ~~El botón de Hilo~~: **arreglado** el 2026-11-09. Letra oscura sobre el mismo dorado (`c008b46`); Mario hizo el `app deploy`.
     - Las etiquetas grises y el nombre del recuadro del popup de Shopify Forms. Son de la app de Shopify; no se pueden cambiar.
     - Un `h3` en "Recomendados".
+- **Inventario real en Shopify (2026-11-09, EN VIVO).** Mario aprobó los permisos `write_products` y `write_metaobjects` (versión `fuxia-360-9` + pantalla de actualización de acceso).
+  - Se cargó con `scripts/f360/shopify_inventario.mjs`: 1,264 tallas rastreadas, "seguir vendiendo sin existencia" en los 79 modelos (todos sobre pedido en Fuxia 360) y cantidades = `f360.online_ats` (343 tallas, 484 pares). Ninguna talla quedó agotada.
+  - **Falta la sincronización automática:** cuando Fuxia 360 mueva existencias, Shopify todavía no se actualiza solo. Por ahora se vuelve a correr el script.
+- **Menú "Tienda" (2026-11-09, EN VIVO):** submenú Ballerinas / Sandalias planas / Sandalias altas / Botas / Ver todo.
+  - El encabezado de la agencia (`sections/fx-encabezado.liquid`) no mostraba submenús en computadora; se le agregó un menú desplegable. Respaldo del archivo original en `~/fuxia360-respaldos/shopify_fx-encabezado_20261109.liquid`.
+  - Las colecciones se ordenan por más vendidos.
