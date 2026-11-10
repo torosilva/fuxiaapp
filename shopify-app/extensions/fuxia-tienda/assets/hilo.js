@@ -255,4 +255,6 @@
   }
   setInterval(acomodar, 1500); acomodar();
   window.FuxiaHilo = { open: function (o) { abrir(o || { chat: true }); } };
+  // a link ending in #hilo (e.g. the "Habla con nosotras" button in emails) opens the chat on arrival
+  if (location.hash === '#hilo' && !checkout) abrir({ chat: true });
 })();
