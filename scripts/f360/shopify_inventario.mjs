@@ -10,6 +10,7 @@
 //      node scripts/f360/shopify_inventario.mjs <ats.json> --apply
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
+import { randomUUID } from 'node:crypto';
 
 const SHOP = 'z9fdqc-0z.myshopify.com', API = '2026-10', LOCATION = 'gid://shopify/Location/97074643014';
 const [file, flag] = process.argv.slice(2);
@@ -54,9 +55,10 @@ console.log(`política + rastreo: ${prodOk}/${byProduct.size} productos${errs.le
 let qOk = 0;
 for (let k = 0; k < rows.length; k += 100) {
   const chunk = rows.slice(k, k + 100);
-  const d = await gql(`mutation($in: InventorySetQuantitiesInput!) { inventorySetQuantities(input: $in) { userErrors { field message } } }`, {
+  const d = await gql(`mutation($in: InventorySetQuantitiesInput!, $k: String!) { inventorySetQuantities(input: $in) @idempotent(key: $k) { userErrors { field message } } }`, {
     in: { name: 'available', reason: 'correction', referenceDocumentUri: 'fuxia360://inventario-real/2026-11-09',
           quantities: chunk.map((r) => ({ inventoryItemId: `gid://shopify/InventoryItem/${r.i}`, locationId: LOCATION, quantity: r.q, changeFromQuantity: 0 })) },   // just started tracking: every size is at 0
+    k: randomUUID(),   // required by API 2026-10
   });
   const ue = d.inventorySetQuantities.userErrors;
   if (ue.length) errs.push(`cantidades ${k}: ${ue[0].message}`); else qOk += chunk.length;
