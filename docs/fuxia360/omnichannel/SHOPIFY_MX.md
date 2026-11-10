@@ -150,3 +150,15 @@ Se **reusa el camino de pedidos que ya existe**, no se crea uno paralelo. Un ped
   - **Causa:** las ligas de Shopify usan origin `legacy_adopted`, y `f360.sync_job_legacy_guard` miraba esas ligas en cualquier tienda.
   - **Arreglo:** `20261109000300`, que filtra por la tienda del trabajo, en el pase `20261109_legacy_guard_por_tienda.sql`, **APLICADO** en producción el 2026-11-09.
   - **Otra lectura sin filtro por tienda:** el aviso de "no se puede archivar" (`20261007000500`). Ahí sí es correcto, porque estar ligado a Shopify también cuenta.
+- **Accesibilidad de la ficha (2026-11-09, EN VIVO): Lighthouse móvil pasó de 75 a 92.** Regina Romero tiene 93. Mario pidió hacerlo nosotros, sin pasarlo a la agencia.
+  - **Custom CSS de "Product information":** los puntitos del carrusel miden 24 px (`.slideshow-controls__dots .slideshow-control`); el punto visible no cambió.
+  - **Custom CSS de "FX · Footer":** el texto legal y el copyright pasaron a crema al 70%, con contraste de unos 7:1. Para los links se redefine la variable `--f-faint` dentro de `.fx-legal`, porque la agencia usa `!important`.
+  - **Código del tema.** Cada archivo tiene historial de versiones en el editor de código.
+    - `sections/product-information.liquid`: `aria-label` en el botón de la barra que sigue al bajar.
+    - `snippets/slideshow-controls.liquid`: los puntitos quedan como `tablist`/`presentation`/`tab`, para que su `aria-selected` sea válido; no se tocó `slideshow.js`.
+    - `blocks/` y `sections/product-recommendations.liquid`: `role="img"` en el esqueleto de carga.
+  - **Ojo:** si la agencia actualiza el tema Horizon, estos cambios de código pueden perderse y hay que volver a aplicarlos.
+  - **Lo que falta:**
+    - El botón de Hilo: blanco sobre #b8966e, contraste 2.75. Es nuestro y se arregla con `app deploy`.
+    - Las etiquetas grises y el nombre del recuadro del popup de Shopify Forms. Son de la app de Shopify; no se pueden cambiar.
+    - Un `h3` en "Recomendados".
