@@ -5,6 +5,7 @@ import { canRequestTransfer, canWrite, getHome } from '@/lib/f360';
 import { pares } from '@/lib/format';
 import { academyEnabled, academyHome, academyMe } from '@/lib/academy';
 import { WelcomeVideo } from './academy/WelcomeVideo';
+import { HoyDireccion } from './HoyDireccion';
 
 function saludo() {
   const h = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false }));
@@ -35,6 +36,8 @@ export default async function Inicio() {
           </Link>
         </div>
       )}
+
+      {write && <HoyDireccion />}
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {write ? (

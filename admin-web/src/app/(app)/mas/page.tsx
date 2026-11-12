@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { IconBag, IconBell, IconBoxes, IconCamera, IconCheck, IconClock, IconGrowth, IconLink, IconMove, IconReceipt, IconScissors, IconUsers } from '@/components/icons';
+import { IconBell, IconBoxes, IconCamera, IconCheck, IconClock, IconGrowth, IconLink, IconMove, IconReceipt, IconUsers } from '@/components/icons';
 import { boardNavVisible } from '@/lib/board';
 import { canWrite, getMe } from '@/lib/f360';
 
@@ -16,9 +16,9 @@ const ITEMS = [
   { href: '/foto-app', label: 'Foto de la app', icon: IconCamera, live: true },
   { href: '/bandeja', label: 'Bandeja de clientas', icon: IconUsers, live: true },
   { href: '/clientes', label: 'Clientes', icon: IconUsers, live: true, admin: true },
-  { href: '/growth', label: 'Growth', icon: IconGrowth, live: true, admin: true },
-  { href: '/pedidos', label: 'Pedidos', icon: IconBag, live: false },
-  { href: '/produccion', label: 'Producción', icon: IconScissors, live: false },
+  { href: '/growth', label: 'Growth (medición)', icon: IconGrowth, live: true, admin: true },
+  { href: '/pendientes', label: 'Pendientes de la semana', icon: IconCheck, live: true, admin: true },
+  { href: '/usuarios', label: 'Usuarios', icon: IconUsers, live: true, admin: true },
 ];
 
 export default async function Mas() {

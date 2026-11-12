@@ -2,49 +2,47 @@
 import { intelEnabled, INTEL_ROUTES } from '@/lib/feature';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { IconBag, IconBell, IconBoxes, IconCamera, IconCheck, IconClock, IconGrowth, IconHome, IconLink, IconLogout, IconMore, IconMove, IconReceipt, IconScissors, IconShoe, IconUsers } from './icons';
+import { IconBell, IconBoxes, IconCamera, IconCheck, IconClock, IconGrowth, IconHome, IconLink, IconLogout, IconMore, IconMove, IconReceipt, IconShoe, IconUsers } from './icons';
 
 // Same screens and permissions as before, grouped by what the person is doing (Mario 2026-10-06: "los botones no están agrupados").
+// Fase 3 (Mario 2026-11-12): Inicio first (the business of today + the map), "Crecer" becomes Marketing, screens that are not
+// live yet are hidden instead of shown disabled. Permissions did not change: every page re-checks in the database.
 const GROUPS = [
-  { label: 'Hoy', items: [
-    { href: '/', label: 'Inicio', icon: IconHome, live: true },
+  { label: 'Inicio', items: [
+    { href: '/', label: 'Hoy', icon: IconHome, live: true },
+    { href: '/como-funciona', label: 'Mapa del negocio', icon: IconGrowth, live: true, admin: true },
+    { href: '/tablero', label: 'Centro de control', icon: IconGrowth, live: true, admin: true },
     { href: '/avisos', label: 'Avisos', icon: IconBell, live: true },
     { href: '/bandeja', label: 'Bandeja de clientas', icon: IconUsers, live: true },
     { href: '/academy', label: 'Fuxia Academy', icon: IconCheck, live: true, academy: true },
   ] },
-  { label: 'Negocio en tiempo real', items: [
-    { href: '/tablero', label: 'Centro de control', icon: IconGrowth, live: true, admin: true },
-    { href: '/como-funciona', label: 'Mapa del negocio', icon: IconGrowth, live: true, admin: true },
-    { href: '/pendientes', label: 'Pendientes de la semana', icon: IconCheck, live: true, admin: true },
-  ] },
   { label: 'Vender', items: [
     { href: '/ventas', label: 'Ventas', icon: IconReceipt, live: true, admin: true },
     { href: '/apartados', label: 'Apartados', icon: IconClock, live: true, admin: true },
-    { href: '/pedidos', label: 'Pedidos', icon: IconBag, live: false },
-    { href: '/produccion', label: 'Producción', icon: IconScissors, live: false },
   ] },
-  { label: 'Inventario', items: [
+  { label: 'Producto e inventario', items: [
+    { href: '/productos', label: 'Productos', icon: IconShoe, live: true },
     { href: '/inventario', label: 'Inventario', icon: IconBoxes, live: true },
     { href: '/transferencias', label: 'Transferencias', icon: IconMove, live: true },
-    { href: '/productos', label: 'Productos', icon: IconShoe, live: true },
   ] },
   { label: 'Clientas', items: [
     { href: '/clientes', label: 'Clientes', icon: IconUsers, live: true, admin: true },
     { href: '/demanda', label: 'Demanda sin inventario', icon: IconGrowth, live: true, admin: true },
     { href: '/favoritos', label: 'Favoritos · intención', icon: IconGrowth, live: true, admin: true },
   ] },
-  { label: 'Crecer', items: [
-    { href: '/growth', label: 'Growth', icon: IconGrowth, live: true, admin: true },
+  { label: 'Marketing', items: [
+    { href: '/growth', label: 'Growth (medición)', icon: IconGrowth, live: true, admin: true },
+    { href: '/pendientes', label: 'Pendientes de la semana', icon: IconCheck, live: true, admin: true },
   ] },
   { label: 'Dirección', items: [
-    { href: '/estrategia', label: 'Strategy & Board 🔒', icon: IconGrowth, live: true, board: true },
     { href: '/direccion', label: 'Dirección 🔒', icon: IconGrowth, live: true, board: true },
     { href: '/inteligencia', label: 'Inteligencia 🔒', icon: IconGrowth, live: true, board: true },
+    { href: '/estrategia', label: 'Strategy & Board 🔒', icon: IconGrowth, live: true, board: true },
     { href: '/cierre-contable', label: 'Cierre contable', icon: IconReceipt, live: true, finance: true },
   ] },
   { label: 'Configuración', items: [
-    { href: '/tiendas', label: 'Tiendas', icon: IconBoxes, live: true, admin: true },
     { href: '/usuarios', label: 'Usuarios', icon: IconUsers, live: true, admin: true },
+    { href: '/tiendas', label: 'Tiendas', icon: IconBoxes, live: true, admin: true },
     { href: '/vendedoras', label: 'Vendedoras', icon: IconUsers, live: true, admin: true },
     { href: '/homologacion', label: 'Homologación', icon: IconLink, live: true, admin: true },
     { href: '/conteo', label: 'Conteo de apertura', icon: IconCheck, live: true, admin: true },
