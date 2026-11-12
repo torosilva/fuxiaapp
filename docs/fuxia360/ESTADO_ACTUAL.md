@@ -16,7 +16,7 @@
   - Ojo: `admin-web/.vercel` apunta a **STAGING**.
 - **Escrituras a producción:** solo por `scripts/f360/prod_sql.sh` (archivo commiteado, primero dry-run, queda registrado). Para leer: `scripts/f360/prod_read.sh`.
 - **WordPress de producción:** se instala con `scripts/f360/deploy_prod_wp.sh` (mu-plugins de `tools/storefront/mu-plugins/produccion/`). El SSH a producción lo corre Mario.
-- **Staging:** ⚠ la copia nocturna FALLA desde al menos el 26 oct (pg_dump del respaldo de staging: "server closed the connection"); staging no se está refrescando. Cada noche a las 3:30 se copia producción anonimizada → staging (Supabase + Woo staging4). Detalle en `docs/fuxia360/ops/STAGING_REFRESH.md`. El código va por delante.
+- **Staging:** copia nocturna **reparada el 2026-11-12** y corrida a mano ese día (13:27, OK; anonimización verificada). Fallaba desde ~26 oct porque la Mac despertaba sin red y el respaldo de staging moría al primer intento: ahora espera red hasta 15 min y reintenta 3 veces (`259b9b8`). Además la copia **nunca incluía `f360_academy`** (Academy en prod desde 13 oct): agregado (`99450f2`). Cada noche a las 3:30 se copia producción anonimizada → staging (Supabase + Woo staging4). Detalle en `docs/fuxia360/ops/STAGING_REFRESH.md`. El código va por delante.
 
 ## 2. Módulos
 
