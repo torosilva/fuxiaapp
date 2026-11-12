@@ -32,6 +32,7 @@ const GROUPS = [
   ] },
   { label: 'Marketing', items: [
     { href: '/growth', label: 'Growth (medición)', icon: IconGrowth, live: true, admin: true },
+    { href: '/skills', label: 'Fuxia Skills', icon: IconCheck, live: true, admin: true },
     { href: '/pendientes', label: 'Pendientes de la semana', icon: IconCheck, live: true, admin: true },
   ] },
   { label: 'Dirección', items: [

@@ -17,6 +17,7 @@ const ITEMS = [
   { href: '/bandeja', label: 'Bandeja de clientas', icon: IconUsers, live: true },
   { href: '/clientes', label: 'Clientes', icon: IconUsers, live: true, admin: true },
   { href: '/growth', label: 'Growth (medición)', icon: IconGrowth, live: true, admin: true },
+  { href: '/skills', label: 'Fuxia Skills', icon: IconCheck, live: true, admin: true },
   { href: '/pendientes', label: 'Pendientes de la semana', icon: IconCheck, live: true, admin: true },
   { href: '/usuarios', label: 'Usuarios', icon: IconUsers, live: true, admin: true },
 ];
