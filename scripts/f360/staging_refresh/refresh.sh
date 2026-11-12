@@ -71,7 +71,7 @@ if [ "$MODE" = "--apply" ]; then
   step "Respaldo de staging antes de reemplazar"
   # 2026-11-12: el pooler a veces corta la conexión al empezar (sobre todo de noche); 3 intentos antes de abortar.
   retry() { local n; for n in 1 2 3; do "$@" && return 0; echo "   intento $n falló; reintento en 60 s"; sleep 60; done; return 1; }
-  retry pg_dump "$STAGING_DB_URL" -Fc -n public -n f360 -n f360_board -n supabase_migrations -f "$WORK/staging_before_app.dump" \
+  retry pg_dump "$STAGING_DB_URL" -Fc -n public -n f360 -n f360_board -n f360_academy -n supabase_migrations -f "$WORK/staging_before_app.dump" \
     || fail "respaldo de staging (esquemas de la app)"
   retry pg_dump "$STAGING_DB_URL" -Fc --data-only -t auth.users -t auth.identities -f "$WORK/staging_before_auth.dump" \
     || fail "respaldo de staging (usuarios)"
@@ -81,7 +81,7 @@ fi
 # ── 2. Lectura de producción (pg_dump siempre lee en una transacción READ ONLY) ──────────────────────────────────────────────────────
 step "Leyendo producción (solo lectura)"
 # Esquema: mismos filtros que usa `supabase db dump` (omite lo que administra la plataforma).
-pg_dump "$PROD_DB_URL" --schema-only --quote-all-identifiers -n public -n f360 -n f360_board \
+pg_dump "$PROD_DB_URL" --schema-only --quote-all-identifiers -n public -n f360 -n f360_board -n f360_academy \
   | sed -E 's/^\\(un)?restrict .*$/-- &/' \
   | sed -E 's/^CREATE SCHEMA "/CREATE SCHEMA IF NOT EXISTS "/' \
   | sed -E 's/^CREATE PUBLICATION "supabase_realtime/-- &/' \
@@ -96,7 +96,7 @@ pg_dump "$PROD_DB_URL" --schema-only --quote-all-identifiers -n public -n f360 -
   > "$WORK/prod_schema.sql" || fail "lectura del esquema de producción"
 
 # Datos de la app. Nunca salen de prod: tokens de teléfonos, códigos OTP, sesiones y bandejas de mensajes por enviar.
-pg_dump "$PROD_DB_URL" --data-only --quote-all-identifiers -n public -n f360 -n f360_board \
+pg_dump "$PROD_DB_URL" --data-only --quote-all-identifiers -n public -n f360 -n f360_board -n f360_academy \
   --exclude-table-data='"public"."push_tokens"' \
   --exclude-table-data='"public"."otp_verifications"' \
   --exclude-table-data='"f360"."seller_sessions"' \
@@ -134,12 +134,12 @@ with objs as (
          format('%I.%I', n.nspname, c.relname) as name,
          coalesce(c.relacl, acldefault((case c.relkind when 'S' then 's' else 'r' end)::"char", c.relowner)) as acl
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
-   where n.nspname in ('public', 'f360', 'f360_board') and c.relkind in ('r', 'p', 'v', 'm', 'f', 'S')
+   where n.nspname in ('public', 'f360', 'f360_board', 'f360_academy') and c.relkind in ('r', 'p', 'v', 'm', 'f', 'S')
      and pg_get_userbyid(c.relowner) = 'postgres'
   union all
   select 'routine', p.oid::regprocedure::text, coalesce(p.proacl, acldefault('f'::"char", p.proowner))
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname in ('public', 'f360', 'f360_board') and pg_get_userbyid(p.proowner) = 'postgres'
+   where n.nspname in ('public', 'f360', 'f360_board', 'f360_academy') and pg_get_userbyid(p.proowner) = 'postgres'
      and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
 ), grants as (
   select o.kind, o.name, a.privilege_type, a.is_grantable,

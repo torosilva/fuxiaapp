@@ -111,7 +111,7 @@ begin
     select c.table_schema as s, c.table_name as t, c.column_name as col
       from information_schema.columns c
       join information_schema.tables tb on tb.table_schema = c.table_schema and tb.table_name = c.table_name and tb.table_type = 'BASE TABLE'
-     where c.table_schema in ('public', 'f360', 'f360_board') and c.data_type in ('text', 'character varying')
+     where c.table_schema in ('public', 'f360', 'f360_board', 'f360_academy') and c.data_type in ('text', 'character varying')
        and (c.column_name ~ '(_by_name|_by|^actor_name|^by_name|^set_by_name|^granted_by_name|^revoked_by_name)$')
   loop
     execute format('insert into pg_temp.internal_names select distinct lower(btrim(%I)) from %I.%I where %I is not null', r.col, r.s, r.t, r.col);
@@ -213,7 +213,7 @@ begin
     select c.table_schema as s, c.table_name as t, c.column_name as col, c.data_type as dt
       from information_schema.columns c
       join information_schema.tables tb on tb.table_schema = c.table_schema and tb.table_name = c.table_name and tb.table_type = 'BASE TABLE'
-     where c.table_schema in ('public', 'f360', 'f360_board') and c.data_type in ('text', 'character varying', 'jsonb')
+     where c.table_schema in ('public', 'f360', 'f360_board', 'f360_academy') and c.data_type in ('text', 'character varying', 'jsonb')
        and c.is_generated = 'NEVER'
   loop
     execute format('update %I.%I set %I = replace(%I::text, %L, %L)::%s where %I::text like %L',
@@ -283,7 +283,7 @@ begin
     select c.table_schema as s, c.table_name as t, c.column_name as col
       from information_schema.columns c
       join information_schema.tables tb on tb.table_schema = c.table_schema and tb.table_name = c.table_name and tb.table_type = 'BASE TABLE'
-     where (c.table_schema in ('public', 'f360', 'f360_board')
+     where (c.table_schema in ('public', 'f360', 'f360_board', 'f360_academy')
             or (c.table_schema = 'auth' and c.table_name in ('users', 'identities')))
        and c.data_type in ('text', 'character varying', 'jsonb', 'json', 'ARRAY')
   loop

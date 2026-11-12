@@ -27,6 +27,7 @@ create temp table keep_user_roles on commit drop as
   select r.* from f360.user_roles r where r.auth_user_id in (select id from keep_users);
 
 -- ── 2. Vaciar los esquemas de la app ───────────────────────────────────────────────────────────────────
+drop schema if exists f360_academy cascade;
 drop schema if exists f360_board cascade;
 drop schema if exists f360 cascade;
 
