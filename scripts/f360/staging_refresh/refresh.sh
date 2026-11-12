@@ -69,9 +69,11 @@ echo "Fuxia 360 · copia producción → staging · modo ${MODE#--} · $TS"
 # ── 1. Respaldo de staging (solo en --apply) ───────────────────────────────────────────────────────────────
 if [ "$MODE" = "--apply" ]; then
   step "Respaldo de staging antes de reemplazar"
-  pg_dump "$STAGING_DB_URL" -Fc -n public -n f360 -n f360_board -n supabase_migrations -f "$WORK/staging_before_app.dump" \
+  # 2026-11-12: el pooler a veces corta la conexión al empezar (sobre todo de noche); 3 intentos antes de abortar.
+  retry() { local n; for n in 1 2 3; do "$@" && return 0; echo "   intento $n falló; reintento en 60 s"; sleep 60; done; return 1; }
+  retry pg_dump "$STAGING_DB_URL" -Fc -n public -n f360 -n f360_board -n supabase_migrations -f "$WORK/staging_before_app.dump" \
     || fail "respaldo de staging (esquemas de la app)"
-  pg_dump "$STAGING_DB_URL" -Fc --data-only -t auth.users -t auth.identities -f "$WORK/staging_before_auth.dump" \
+  retry pg_dump "$STAGING_DB_URL" -Fc --data-only -t auth.users -t auth.identities -f "$WORK/staging_before_auth.dump" \
     || fail "respaldo de staging (usuarios)"
   ls -lh "$WORK"/staging_before_*.dump | awk '{print "   ", $5, $NF}'
 fi

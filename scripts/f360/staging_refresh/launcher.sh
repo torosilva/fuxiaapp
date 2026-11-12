@@ -8,6 +8,12 @@ export PATH="/opt/homebrew/opt/libpq/bin:/opt/homebrew/bin:/usr/local/bin:/usr/b
 CL="$HOME/.fuxia360/staging-refresh-repo"
 notify() { osascript -e "display notification \"$1\" with title \"Fuxia staging\" subtitle \"Copia nocturna FALLÓ\"" >/dev/null 2>&1 || true; }
 echo "── $(date '+%F %T') · copia nocturna"
+# 2026-11-12: la Mac despierta sin red (3:30 / al abrir la tapa) y todo fallaba al primer intento. Espera hasta 15 min a que haya red.
+for i in $(seq 1 30); do
+  if /usr/bin/host -W 5 github.com >/dev/null 2>&1 && /usr/bin/host -W 5 pooler.supabase.com >/dev/null 2>&1; then break; fi
+  [ "$i" = 30 ] && { notify "sin red después de 15 min"; exit 1; }
+  sleep 30
+done
 if [ ! -d "$CL/.git" ]; then
   git clone -q --branch fuxia-360 https://github.com/torosilva/fuxiaapp.git "$CL" || { notify "no pude clonar el repositorio"; exit 1; }
 fi
